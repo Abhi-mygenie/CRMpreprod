@@ -361,8 +361,6 @@ export function MessageStatusContent({ embedded = false }) {
                                         <th className="px-3 py-3 w-10"></th>
                                         <th className="px-3 py-3">Name</th>
                                         <th className="px-3 py-3">Phone</th>
-                                        <th className="px-3 py-3">Template</th>
-                                        <th className="px-3 py-3">Source</th>
                                         <th className="px-3 py-3">Status</th>
                                         <th className="px-3 py-3">Time</th>
                                         <th className="px-3 py-3">Action</th>
@@ -372,23 +370,20 @@ export function MessageStatusContent({ embedded = false }) {
                                     {loading ? (
                                         [...Array(5)].map((_, i) => (
                                             <tr key={i} className="border-b">
-                                                <td colSpan={8} className="px-3 py-4">
+                                                <td colSpan={6} className="px-3 py-4">
                                                     <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
                                                 </td>
                                             </tr>
                                         ))
                                     ) : logs.length === 0 ? (
                                         <tr>
-                                            <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
+                                            <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
                                                 No messages found
                                             </td>
                                         </tr>
                                     ) : (
                                         logs.map(log => {
                                             const isEligible = log.status === "pending" || log.status === "rejected";
-                                            const source = log.campaign_id 
-                                                ? filterOptions.campaigns.find(c => c.id === log.campaign_id)?.name || "Campaign"
-                                                : log.event_type?.replace(/_/g, " ") || "-";
                                             return (
                                                 <tr key={log.id} className="bg-white border-b hover:bg-gray-50 transition-colors" data-testid={`message-row-${log.id}`}>
                                                     <td className="px-3 py-3">
@@ -404,12 +399,6 @@ export function MessageStatusContent({ embedded = false }) {
                                                     </td>
                                                     <td className="px-3 py-3 text-gray-600">
                                                         {log.customer_phone || "-"}
-                                                    </td>
-                                                    <td className="px-3 py-3 text-gray-600">
-                                                        {log.template_name || "-"}
-                                                    </td>
-                                                    <td className="px-3 py-3 text-gray-600 capitalize">
-                                                        {source}
                                                     </td>
                                                     <td className="px-3 py-3">
                                                         <StatusBadge status={log.status} />
@@ -459,9 +448,6 @@ export function MessageStatusContent({ embedded = false }) {
                     ) : (
                         logs.map(log => {
                             const isEligible = log.status === "pending" || log.status === "rejected";
-                            const source = log.campaign_id 
-                                ? filterOptions.campaigns.find(c => c.id === log.campaign_id)?.name || "Campaign"
-                                : log.event_type?.replace(/_/g, " ") || "-";
                             return (
                                 <Card key={log.id} className="shadow-sm border border-gray-100">
                                     <CardContent className="p-3">
@@ -480,9 +466,6 @@ export function MessageStatusContent({ embedded = false }) {
                                                 {log.customer_name && (
                                                     <div className="text-xs text-gray-500 mb-1">{log.customer_phone}</div>
                                                 )}
-                                                <div className="text-xs text-gray-600 mb-1">
-                                                    {log.template_name || "-"} • <span className="capitalize">{source}</span>
-                                                </div>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs text-gray-400">{formatRelativeTime(log.created_at)}</span>
                                                     {isEligible && (
