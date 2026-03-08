@@ -690,7 +690,7 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Sorting Tabs - Smaller compact chips */}
-                <div className="flex gap-1.5 overflow-x-auto pb-3 mb-3 -mx-4 px-4 scrollbar-hide">
+                <div className="flex gap-1.5 lg:gap-2 overflow-x-auto pb-3 lg:pb-4 mb-3 lg:mb-4 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
                     <button
                         onClick={() => setFilters({...filters, sort_by: "created_at", sort_order: "desc", inactive_days: null, most_loyal: false})}
                         className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all font-body ${
