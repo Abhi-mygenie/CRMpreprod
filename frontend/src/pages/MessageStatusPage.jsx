@@ -38,18 +38,16 @@ const StatusBadge = ({ status }) => {
     );
 };
 
-// Stats card component
+// Stats card component - compact for embedded view
 const StatsCard = ({ icon: Icon, label, value, color }) => (
-    <Card className="bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
-        <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-                <div className={`p-2 rounded-lg flex-shrink-0 ${color}`}>
-                    <Icon className="w-4 h-4 text-white" />
+    <Card className="bg-white shadow-sm border border-gray-100">
+        <CardContent className="p-2">
+            <div className="flex flex-col items-center text-center">
+                <div className={`w-7 h-7 rounded-md flex items-center justify-center mb-1 ${color}`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
                 </div>
-                <div className="min-w-0">
-                    <p className="text-[10px] text-gray-500 font-medium whitespace-nowrap">{label}</p>
-                    <p className="text-lg font-bold text-gray-900">{value.toLocaleString()}</p>
-                </div>
+                <p className="text-base font-bold text-gray-900">{value.toLocaleString()}</p>
+                <p className="text-[9px] text-gray-500 font-medium">{label}</p>
             </div>
         </CardContent>
     </Card>
