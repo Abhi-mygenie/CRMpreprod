@@ -317,22 +317,46 @@ async def log_message_attempt(
     phone: str,
     event_type: str,
     template_id: str,
-    result: SendResult
+    result: SendResult,
+    template_name: str = None,
+    campaign_id: str = None,
+    country_code: str = "91",
+    body_values: Dict = None,
+    customer_name: str = None
 ):
-    """Log a WhatsApp message attempt to database"""
+    """Log a WhatsApp message attempt to database for status tracking"""
     import uuid
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Map result to status
+    status = "pending" if result.success else "rejected"
     
     log_entry = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
         "customer_id": customer_id,
-        "phone": phone,
+        "customer_name": customer_name or "",
+        "customer_phone": phone,
+        "country_code": country_code,
         "event_type": event_type,
         "template_id": template_id,
-        "status": "sent" if result.success else "failed",
+        "template_name": template_name or "",
+        "campaign_id": campaign_id,
+        "status": status,
         "message_id": result.message_id,
         "error": result.error,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "body_values": body_values or {},
+        "resend_count": 0,
+        "status_history": [
+            {
+                "status": status,
+                "timestamp": now,
+                "action": "initial_send"
+            }
+        ],
+        "created_at": now,
+        "updated_at": now
     }
     
     await db.whatsapp_message_logs.insert_one(log_entry)
@@ -417,10 +441,15 @@ async def trigger_whatsapp_event(
         logger.info(f"Triggering WhatsApp for event {event_type} to {phone}")
         result = await send_single_message(api_key, message)
         
-        # 7. Log the attempt
+        # 7. Log the attempt with full details
         await log_message_attempt(
             db, user_id, customer.get("id"), phone,
-            event_type, template_id, result
+            event_type, template_id, result,
+            template_name=config.get("template_name"),
+            campaign_id=event_data.get("campaign_id") if event_data else None,
+            country_code=country_code,
+            body_values=body_values,
+            customer_name=customer.get("name")
         )
         
         return result

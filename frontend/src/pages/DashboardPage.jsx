@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Users, QrCode, Plus, Star, TrendingUp, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, RotateCcw, ChevronRight, Menu, KeyRound, LogOut, X, ShoppingBag, Wallet, Ticket, UserMinus, Repeat, Calendar } from "lucide-react";
+import { Users, QrCode, Plus, Star, TrendingUp, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, RotateCcw, ChevronRight, Menu, KeyRound, LogOut, X, ShoppingBag, Wallet, Ticket, UserMinus, Repeat, Calendar, MessageSquare, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { MessageStatusContent } from "@/pages/MessageStatusPage";
 
 export default function DashboardPage() {
     const { user, api, logout } = useAuth();
@@ -38,6 +39,7 @@ export default function DashboardPage() {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [resetLoading, setResetLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState("crm"); // "crm" or "messages"
 
     const handleResetPassword = async () => {
         if (!currentPassword || !newPassword || !confirmPassword) {
@@ -287,6 +289,37 @@ export default function DashboardPage() {
                     </div>
                 )}
 
+                {/* Tab Switcher */}
+                <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl">
+                    <button
+                        onClick={() => setActiveTab("crm")}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                            activeTab === "crm" 
+                                ? "bg-white text-[#F26B33] shadow-sm" 
+                                : "text-gray-600 hover:text-gray-900"
+                        }`}
+                        data-testid="crm-tab"
+                    >
+                        <BarChart3 className="w-4 h-4" />
+                        CRM
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("messages")}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                            activeTab === "messages" 
+                                ? "bg-white text-[#F26B33] shadow-sm" 
+                                : "text-gray-600 hover:text-gray-900"
+                        }`}
+                        data-testid="messages-tab"
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                        Messages
+                    </button>
+                </div>
+
+                {/* CRM Content */}
+                {activeTab === "crm" && (
+                <>
                 {/* Stats Grid - 6 Rows x 3 Columns */}
                 
                 {/* Header Row 1: Loyalty Orders % - Total, 30D, 7D */}
@@ -631,6 +664,13 @@ export default function DashboardPage() {
                         </p>
                     </div>
                 </div>
+                </>
+                )}
+
+                {/* Messages Content */}
+                {activeTab === "messages" && (
+                    <MessageStatusContent embedded={true} />
+                )}
 
             </div>
         </MobileLayout>

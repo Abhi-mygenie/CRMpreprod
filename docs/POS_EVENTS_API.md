@@ -98,6 +98,34 @@ Common fields that can be passed in `event_data`:
 }
 ```
 
+### Event Trigger Not Configured
+
+```json
+{
+  "success": true,
+  "message": "Event 'order_confirmed' not configured",
+  "data": {
+    "event_type": "order_confirmed",
+    "whatsapp_sent": false,
+    "reason": "Event trigger not configured"
+  }
+}
+```
+
+### Event Trigger Paused
+
+```json
+{
+  "success": true,
+  "message": "Event 'order_confirmed' is paused",
+  "data": {
+    "event_type": "order_confirmed",
+    "whatsapp_sent": false,
+    "reason": "Event trigger is paused"
+  }
+}
+```
+
 ### No Template Configured
 
 ```json
@@ -201,11 +229,12 @@ Common fields that can be passed in `event_data`:
 
 1. POS system calls `/api/pos/events` when an event occurs
 2. CRM validates the API key and event type
-3. CRM looks up the customer by phone
-4. CRM checks if a WhatsApp template is configured for this event
-5. If configured, CRM sends WhatsApp message via AuthKey
-6. Event is logged in `pos_event_logs` collection
-7. Response returned to POS
+3. **CRM checks if event trigger is ACTIVE** (early exit if paused/not configured)
+4. CRM looks up the customer by phone
+5. CRM checks if a WhatsApp template is configured for this event
+6. If configured, CRM sends WhatsApp message via AuthKey
+7. Event is logged in `pos_event_logs` collection
+8. Response returned to POS
 
 ## Notes
 

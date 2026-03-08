@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from pydantic import BaseModel
-from typing import List, Optional, Dict
-from datetime import datetime, timezone
+from typing import List, Optional, Dict, Any
+from datetime import datetime, timezone, timedelta
 import uuid
 import httpx
 
@@ -14,6 +14,9 @@ from models.schemas import (
     AutomationRule, AutomationRuleCreate, AutomationRuleUpdate,
     AUTOMATION_EVENTS, POS_EVENTS, CRM_EVENTS
 )
+
+# Message status constants
+MESSAGE_STATUSES = ["pending", "delivered", "read", "rejected"]
 
 
 class TestTemplateRequest(BaseModel):
@@ -877,3 +880,315 @@ async def test_template(request: TestTemplateRequest, user: dict = Depends(get_c
             "error": result.error,
             "message": f"Failed to send test message: {result.error}"
         }
+
+
+# ============================================
+# Message Status Dashboard APIs
+# ============================================
+
+@router.get("/message-stats")
+async def get_message_stats(
+    user: dict = Depends(get_current_user),
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None
+):
+    """Get message statistics by status"""
+    query = {"user_id": user["id"]}
+    
+    if date_from:
+        query["created_at"] = {"$gte": date_from}
+    if date_to:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = date_to
+        else:
+            query["created_at"] = {"$lte": date_to}
+    
+    # Aggregate counts by status
+    pipeline = [
+        {"$match": query},
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+    ]
+    results = await db.whatsapp_message_logs.aggregate(pipeline).to_list(10)
+    
+    stats = {
+        "total": 0,
+        "delivered": 0,
+        "read": 0,
+        "pending": 0,
+        "rejected": 0
+    }
+    
+    for r in results:
+        status = r["_id"]
+        count = r["count"]
+        stats["total"] += count
+        if status in stats:
+            stats[status] = count
+    
+    return stats
+
+
+@router.get("/message-logs")
+async def get_message_logs(
+    user: dict = Depends(get_current_user),
+    status: Optional[str] = None,
+    event_type: Optional[str] = None,
+    campaign_id: Optional[str] = None,
+    template_name: Optional[str] = None,
+    search: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, le=200)
+):
+    """Get paginated message logs with filters"""
+    query = {"user_id": user["id"]}
+    
+    if status and status != "all":
+        query["status"] = status
+    if event_type and event_type != "all":
+        query["event_type"] = event_type
+    if campaign_id and campaign_id != "all":
+        query["campaign_id"] = campaign_id
+    if template_name and template_name != "all":
+        query["template_name"] = template_name
+    if search:
+        query["customer_phone"] = {"$regex": search, "$options": "i"}
+    if date_from:
+        query["created_at"] = {"$gte": date_from}
+    if date_to:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = date_to
+        else:
+            query["created_at"] = {"$lte": date_to}
+    
+    # Get total count
+    total = await db.whatsapp_message_logs.count_documents(query)
+    
+    # Get logs
+    logs = await db.whatsapp_message_logs.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "total": total,
+        "logs": logs,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@router.get("/message-filters")
+async def get_message_filters(user: dict = Depends(get_current_user)):
+    """Get available filter options for message logs from master data"""
+    
+    # Get events from master list (POS + CRM events)
+    event_types = AUTOMATION_EVENTS
+    
+    # Get templates from authkey templates + custom templates
+    template_names = set()
+    
+    # Get AuthKey templates if API key configured
+    if user.get("authkey_api_key"):
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://api.authkey.io/request",
+                    params={
+                        "authkey": user["authkey_api_key"],
+                        "type": "getAllTemplate"
+                    },
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    templates = data.get("templates", [])
+                    for t in templates:
+                        name = t.get("temp_name") or t.get("name")
+                        if name:
+                            template_names.add(name)
+        except Exception:
+            pass
+    
+    # Get custom templates from DB
+    custom_templates = await db.custom_templates.find(
+        {"user_id": user["id"]}, {"_id": 0, "name": 1}
+    ).to_list(100)
+    for t in custom_templates:
+        if t.get("name"):
+            template_names.add(t["name"])
+    
+    # Get configured template mappings
+    mappings = await db.whatsapp_event_template_map.find(
+        {"user_id": user["id"]}, {"_id": 0, "template_name": 1}
+    ).to_list(100)
+    for m in mappings:
+        if m.get("template_name"):
+            template_names.add(m["template_name"])
+    
+    # Get campaigns (segments)
+    campaigns = await db.segments.find(
+        {"user_id": user["id"]}, {"_id": 0, "id": 1, "name": 1}
+    ).to_list(100)
+    
+    return {
+        "statuses": MESSAGE_STATUSES,
+        "event_types": event_types,
+        "template_names": sorted(list(template_names)),
+        "campaigns": campaigns
+    }
+
+
+@router.post("/status-callback")
+async def message_status_callback(request: Request):
+    """
+    Webhook endpoint for AuthKey to send message status updates.
+    This endpoint is public (no auth) as it's called by AuthKey.
+    """
+    try:
+        payload = await request.json()
+        
+        message_id = payload.get("message_id") or payload.get("msgId")
+        status = payload.get("status", "").lower()
+        
+        if not message_id:
+            return {"success": False, "error": "message_id required"}
+        
+        # Map AuthKey status to our status
+        status_map = {
+            "sent": "pending",
+            "delivered": "delivered",
+            "read": "read",
+            "failed": "rejected",
+            "rejected": "rejected",
+            "undelivered": "rejected"
+        }
+        mapped_status = status_map.get(status, status)
+        
+        if mapped_status not in MESSAGE_STATUSES:
+            mapped_status = "pending"
+        
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Update message log
+        result = await db.whatsapp_message_logs.update_one(
+            {"message_id": message_id},
+            {
+                "$set": {
+                    "status": mapped_status,
+                    "updated_at": now
+                },
+                "$push": {
+                    "status_history": {
+                        "status": mapped_status,
+                        "timestamp": now,
+                        "raw_payload": payload
+                    }
+                }
+            }
+        )
+        
+        return {
+            "success": True,
+            "message_id": message_id,
+            "status": mapped_status,
+            "updated": result.modified_count > 0
+        }
+    
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+class ResendRequest(BaseModel):
+    message_ids: List[str]
+
+
+@router.post("/resend")
+async def resend_messages(
+    request: ResendRequest,
+    user: dict = Depends(get_current_user)
+):
+    """Resend failed/pending messages"""
+    if not request.message_ids:
+        raise HTTPException(status_code=400, detail="No message IDs provided")
+    
+    # Get messages to resend
+    messages = await db.whatsapp_message_logs.find({
+        "id": {"$in": request.message_ids},
+        "user_id": user["id"],
+        "status": {"$in": ["pending", "rejected"]}
+    }, {"_id": 0}).to_list(len(request.message_ids))
+    
+    if not messages:
+        raise HTTPException(status_code=404, detail="No eligible messages found")
+    
+    # Get user's AuthKey API key
+    authkey_api_key = user.get("authkey_api_key")
+    if not authkey_api_key:
+        raise HTTPException(status_code=400, detail="WhatsApp API key not configured")
+    
+    results = []
+    now = datetime.now(timezone.utc).isoformat()
+    
+    for msg in messages:
+        try:
+            # Build WhatsApp message
+            wa_msg = WhatsAppMessage(
+                phone=msg.get("customer_phone"),
+                country_code=msg.get("country_code", "91"),
+                template_name=msg.get("template_name"),
+                template_id=msg.get("template_id"),
+                body_values=msg.get("body_values", {})
+            )
+            
+            # Send message
+            result = await send_single_message(authkey_api_key, wa_msg)
+            
+            new_status = "pending" if result.success else "rejected"
+            new_message_id = result.message_id if result.success else msg.get("message_id")
+            
+            # Update the log with new attempt
+            await db.whatsapp_message_logs.update_one(
+                {"id": msg["id"]},
+                {
+                    "$set": {
+                        "message_id": new_message_id,
+                        "status": new_status,
+                        "updated_at": now,
+                        "resend_count": msg.get("resend_count", 0) + 1,
+                        "last_resend_at": now
+                    },
+                    "$push": {
+                        "status_history": {
+                            "status": new_status,
+                            "timestamp": now,
+                            "action": "resend",
+                            "success": result.success,
+                            "error": result.error if not result.success else None
+                        }
+                    }
+                }
+            )
+            
+            results.append({
+                "id": msg["id"],
+                "success": result.success,
+                "new_status": new_status,
+                "error": result.error if not result.success else None
+            })
+        
+        except Exception as e:
+            results.append({
+                "id": msg["id"],
+                "success": False,
+                "error": str(e)
+            })
+    
+    success_count = sum(1 for r in results if r["success"])
+    
+    return {
+        "total": len(messages),
+        "success_count": success_count,
+        "failed_count": len(messages) - success_count,
+        "results": results
+    }
