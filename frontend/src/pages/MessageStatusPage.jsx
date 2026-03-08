@@ -353,18 +353,18 @@ export function MessageStatusContent({ embedded = false }) {
                 )}
                 
                 {/* Message Logs Table - Desktop */}
-                <div className="hidden md:block">
+                <div className="hidden lg:block">
                     <Card className="shadow-sm border border-gray-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-3 py-3 w-10"></th>
-                                        <th className="px-3 py-3">Name</th>
-                                        <th className="px-3 py-3">Phone</th>
-                                        <th className="px-3 py-3">Status</th>
-                                        <th className="px-3 py-3">Time</th>
-                                        <th className="px-3 py-3">Action</th>
+                                        <th className="px-4 py-3 w-10"></th>
+                                        <th className="px-4 py-3">Name</th>
+                                        <th className="px-4 py-3">Phone</th>
+                                        <th className="px-4 py-3">Status</th>
+                                        <th className="px-4 py-3">Time</th>
+                                        <th className="px-4 py-3">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
