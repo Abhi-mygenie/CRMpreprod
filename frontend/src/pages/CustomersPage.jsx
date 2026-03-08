@@ -661,8 +661,8 @@ export default function CustomersPage() {
                 {customerTab === "customers" && (
                 <>
                 {/* Search & Filter Row */}
-                <div className="flex gap-2 mb-3">
-                    <div className="relative flex-1">
+                <div className="flex gap-2 lg:gap-4 mb-3 lg:mb-4">
+                    <div className="relative flex-1 lg:max-w-md">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A1A1AA]" />
                         <Input
                             type="text"
@@ -676,10 +676,11 @@ export default function CustomersPage() {
                     <Button 
                         variant="outline" 
                         onClick={() => setShowFilters(true)}
-                        className={`h-12 px-3 rounded-xl relative ${activeFiltersCount > 0 ? 'border-[#F26B33] text-[#F26B33]' : ''}`}
+                        className={`h-12 px-3 lg:px-4 rounded-xl relative ${activeFiltersCount > 0 ? 'border-[#F26B33] text-[#F26B33]' : ''}`}
                         data-testid="filter-btn"
                     >
                         <Filter className="w-5 h-5" />
+                        <span className="hidden lg:inline ml-2">Filters</span>
                         {activeFiltersCount > 0 && (
                             <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#F26B33] text-white text-xs rounded-full flex items-center justify-center">
                                 {activeFiltersCount}
