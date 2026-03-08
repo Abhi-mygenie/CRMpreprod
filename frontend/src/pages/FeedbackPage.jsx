@@ -9,11 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
-import { ResponsiveLayout } from "@/components/ResponsiveLayout";
-
 import { MobileLayout } from "@/components/MobileLayout";
-
 
 export default function FeedbackPage() {
     const { api } = useAuth();
@@ -83,13 +79,8 @@ export default function FeedbackPage() {
     );
 
     return (
-
-        <ResponsiveLayout>
-            <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
-
         <MobileLayout>
             <div className="p-4 max-w-lg mx-auto">
-
                 <div className="flex items-center justify-between mb-4">
                     <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="feedback-title">
                         Feedback
@@ -234,10 +225,6 @@ export default function FeedbackPage() {
                     </form>
                 </DialogContent>
             </Dialog>
-
-        </ResponsiveLayout>
-
         </MobileLayout>
-
     );
 }

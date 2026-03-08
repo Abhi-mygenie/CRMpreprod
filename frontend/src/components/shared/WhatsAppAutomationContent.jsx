@@ -12,11 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-
-import { ResponsiveLayout } from "@/components/ResponsiveLayout";
-
 import { MobileLayout } from "@/components/MobileLayout";
-
 
 export function WhatsAppAutomationContent({ embedded = false }) {
     const { api } = useAuth();
@@ -780,23 +776,12 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                 </div>
             </div>
         );
-
-        return embedded ? loadingUI : <ResponsiveLayout>{loadingUI}</ResponsiveLayout>;
-
+        return embedded ? loadingUI : <MobileLayout>{loadingUI}</MobileLayout>;
     }
 
     const ContentWrapper = ({ children }) => {
         if (embedded) return <>{children}</>;
         return (
-
-            <ResponsiveLayout>
-                <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
-                    {/* Header */}
-                    <div className="flex items-center gap-3 mb-6 lg:mb-8">
-                        <button 
-                            onClick={() => navigate("/settings")}
-                            className="p-2 hover:bg-gray-100 rounded-full lg:hidden"
-
             <MobileLayout>
                 <div className="p-4 max-w-lg mx-auto">
                     {/* Header */}
@@ -804,32 +789,20 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                         <button 
                             onClick={() => navigate("/settings")}
                             className="p-2 hover:bg-gray-100 rounded-full"
-
                             data-testid="back-btn"
                         >
                             <ChevronLeft className="w-5 h-5" />
                         </button>
                         <div>
-
-                            <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="whatsapp-title">
-                                WhatsApp Automation
-                            </h1>
-                            <p className="text-sm lg:text-base text-[#52525B]">Templates & event triggers</p>
-
                             <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="whatsapp-title">
                                 WhatsApp Automation
                             </h1>
                             <p className="text-sm text-[#52525B]">Templates & event triggers</p>
-
                         </div>
                     </div>
                     {children}
                 </div>
-
-            </ResponsiveLayout>
-
             </MobileLayout>
-
         );
     };
 
