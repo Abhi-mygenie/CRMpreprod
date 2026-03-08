@@ -1273,82 +1273,190 @@ export default function CustomersPage() {
                         )}
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {customers.map((customer) => {
-                            // Format total_spent as ₹23K or ₹1.2L
-                            const formatSpent = (amount) => {
-                                if (!amount || amount === 0) return '₹0';
-                                if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
-                                if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;
-                                return `₹${amount}`;
-                            };
-                            
-                            // Format last visit as relative time
-                            const formatLastVisit = (dateStr) => {
-                                if (!dateStr) return 'Never';
-                                const date = new Date(dateStr);
-                                const now = new Date();
-                                const diffMs = now - date;
-                                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                                
-                                if (diffDays === 0) return 'Today';
-                                if (diffDays === 1) return '1d ago';
-                                if (diffDays < 7) return `${diffDays}d ago`;
-                                if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-                                if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
-                                return `${Math.floor(diffDays / 365)}y ago`;
-                            };
-                            
-                            return (
-                                <div
-                                    key={customer.id}
-                                    className="customer-list-item w-full cursor-pointer"
-                                    data-testid={`customer-row-${customer.id}`}
-                                    onClick={() => navigate(`/customers/${customer.id}`)}
-                                >
-                                    <Avatar className="w-10 h-10 mr-3">
-                                        <AvatarFallback className={`font-semibold ${
-                                            customer.customer_type === "corporate" 
-                                                ? "bg-[#F26B33]/10 text-[#F26B33]" 
-                                                : "bg-[#329937]/10 text-[#329937]"
-                                        }`}>
-                                            {customer.customer_type === "corporate" ? <Building2 className="w-5 h-5" /> : customer.name.charAt(0)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-medium text-[#1A1A1A] truncate">{customer.name}</p>
-                                            <button
-                                                onClick={(e) => openEditModal(customer, e)}
-                                                className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#F26B33]/10 transition-colors"
-                                                data-testid={`edit-customer-list-${customer.id}`}
+                    <>
+                        {/* Desktop Table View */}
+                        <div className="hidden lg:block bg-white rounded-xl border border-gray-100 overflow-hidden">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+                                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
+                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Visits</th>
+                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Spent</th>
+                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Visit</th>
+                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Points</th>
+                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Wallet</th>
+                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tier</th>
+                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {customers.map((customer) => {
+                                        const formatSpent = (amount) => {
+                                            if (!amount || amount === 0) return '₹0';
+                                            if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+                                            if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;
+                                            return `₹${amount}`;
+                                        };
+                                        
+                                        const formatLastVisit = (dateStr) => {
+                                            if (!dateStr) return 'Never';
+                                            const date = new Date(dateStr);
+                                            const now = new Date();
+                                            const diffMs = now - date;
+                                            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                            
+                                            if (diffDays === 0) return 'Today';
+                                            if (diffDays === 1) return '1d ago';
+                                            if (diffDays < 7) return `${diffDays}d ago`;
+                                            if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+                                            if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+                                            return `${Math.floor(diffDays / 365)}y ago`;
+                                        };
+                                        
+                                        return (
+                                            <tr 
+                                                key={customer.id}
+                                                className="hover:bg-gray-50 cursor-pointer transition-colors"
+                                                onClick={() => navigate(`/customers/${customer.id}`)}
+                                                data-testid={`customer-table-row-${customer.id}`}
                                             >
-                                                <Edit2 className="w-3 h-3 text-[#52525B]" />
-                                            </button>
-                                        </div>
-                                        <p className="text-sm text-[#52525B]">
-                                            {customer.total_visits || 0} visits · {formatSpent(customer.total_spent)} · {formatLastVisit(customer.last_visit)}
-                                        </p>
-                                    </div>
-                                    <div className="text-right flex items-center gap-3">
-                                        {customer.wallet_balance > 0 && (
-                                            <div className="text-right border-r pr-3 border-gray-200">
-                                                <p className="font-semibold text-[#F26B33]">₹{customer.wallet_balance.toLocaleString()}</p>
-                                                <p className="text-[10px] text-[#A1A1AA]">Wallet</p>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="w-9 h-9">
+                                                            <AvatarFallback className={`text-sm font-semibold ${
+                                                                customer.customer_type === "corporate" 
+                                                                    ? "bg-[#F26B33]/10 text-[#F26B33]" 
+                                                                    : "bg-[#329937]/10 text-[#329937]"
+                                                            }`}>
+                                                                {customer.customer_type === "corporate" ? <Building2 className="w-4 h-4" /> : customer.name.charAt(0)}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-medium text-[#1A1A1A] text-sm">{customer.name}</p>
+                                                            {customer.email && <p className="text-xs text-gray-400">{customer.email}</p>}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600">{customer.phone}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className="text-sm font-medium text-gray-700">{customer.total_visits || 0}</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className="text-sm font-medium text-gray-700">{formatSpent(customer.total_spent)}</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className={`text-sm ${customer.last_visit ? 'text-gray-600' : 'text-gray-400'}`}>
+                                                        {formatLastVisit(customer.last_visit)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className="text-sm font-semibold text-[#329937]">{customer.total_points}</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    {customer.wallet_balance > 0 ? (
+                                                        <span className="text-sm font-semibold text-[#F26B33]">₹{customer.wallet_balance.toLocaleString()}</span>
+                                                    ) : (
+                                                        <span className="text-sm text-gray-400">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <Badge variant="outline" className={`tier-badge ${customer.tier.toLowerCase()}`}>
+                                                        {customer.tier}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <button
+                                                        onClick={(e) => openEditModal(customer, e)}
+                                                        className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#F26B33]/10 transition-colors mx-auto"
+                                                        data-testid={`edit-customer-table-${customer.id}`}
+                                                    >
+                                                        <Edit2 className="w-4 h-4 text-[#52525B]" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile List View */}
+                        <div className="lg:hidden space-y-2">
+                            {customers.map((customer) => {
+                                const formatSpent = (amount) => {
+                                    if (!amount || amount === 0) return '₹0';
+                                    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+                                    if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;
+                                    return `₹${amount}`;
+                                };
+                                
+                                const formatLastVisit = (dateStr) => {
+                                    if (!dateStr) return 'Never';
+                                    const date = new Date(dateStr);
+                                    const now = new Date();
+                                    const diffMs = now - date;
+                                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                    
+                                    if (diffDays === 0) return 'Today';
+                                    if (diffDays === 1) return '1d ago';
+                                    if (diffDays < 7) return `${diffDays}d ago`;
+                                    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+                                    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+                                    return `${Math.floor(diffDays / 365)}y ago`;
+                                };
+                                
+                                return (
+                                    <div
+                                        key={customer.id}
+                                        className="customer-list-item w-full cursor-pointer"
+                                        data-testid={`customer-row-${customer.id}`}
+                                        onClick={() => navigate(`/customers/${customer.id}`)}
+                                    >
+                                        <Avatar className="w-10 h-10 mr-3">
+                                            <AvatarFallback className={`font-semibold ${
+                                                customer.customer_type === "corporate" 
+                                                    ? "bg-[#F26B33]/10 text-[#F26B33]" 
+                                                    : "bg-[#329937]/10 text-[#329937]"
+                                            }`}>
+                                                {customer.customer_type === "corporate" ? <Building2 className="w-5 h-5" /> : customer.name.charAt(0)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-medium text-[#1A1A1A] truncate">{customer.name}</p>
+                                                <button
+                                                    onClick={(e) => openEditModal(customer, e)}
+                                                    className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#F26B33]/10 transition-colors"
+                                                    data-testid={`edit-customer-list-${customer.id}`}
+                                                >
+                                                    <Edit2 className="w-3 h-3 text-[#52525B]" />
+                                                </button>
                                             </div>
-                                        )}
-                                        <div className="text-right">
-                                            <p className="font-semibold text-[#329937] points-display text-sm">{customer.total_points} pts</p>
-                                            <Badge variant="outline" className={`tier-badge ${customer.tier.toLowerCase()}`}>
-                                                {customer.tier}
-                                            </Badge>
+                                            <p className="text-sm text-[#52525B]">
+                                                {customer.total_visits || 0} visits · {formatSpent(customer.total_spent)} · {formatLastVisit(customer.last_visit)}
+                                            </p>
                                         </div>
-                                        <ChevronRight className="w-5 h-5 text-[#A1A1AA]" />
+                                        <div className="text-right flex items-center gap-3">
+                                            {customer.wallet_balance > 0 && (
+                                                <div className="text-right border-r pr-3 border-gray-200">
+                                                    <p className="font-semibold text-[#F26B33]">₹{customer.wallet_balance.toLocaleString()}</p>
+                                                    <p className="text-[10px] text-[#A1A1AA]">Wallet</p>
+                                                </div>
+                                            )}
+                                            <div className="text-right">
+                                                <p className="font-semibold text-[#329937] points-display text-sm">{customer.total_points} pts</p>
+                                                <Badge variant="outline" className={`tier-badge ${customer.tier.toLowerCase()}`}>
+                                                    {customer.tier}
+                                                </Badge>
+                                            </div>
+                                            <ChevronRight className="w-5 h-5 text-[#A1A1AA]" />
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
                 )}
             </>
             )}
