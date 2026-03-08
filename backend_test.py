@@ -8,11 +8,12 @@ from datetime import datetime
 class CRMAPITester:
     def __init__(self):
         # Use the public endpoint from frontend .env
-        self.base_url = "https://faaf417a-078d-41d3-a8ec-a563e16a4357.preview.emergentagent.com"
+        self.base_url = "https://crm-build-deploy.preview.emergentagent.com"
         self.token = None
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
+        self.demo_api_key = "demo-api-key-12345"  # Demo API key for POS testing
 
     def log_result(self, name, success, details=""):
         """Log test result"""
@@ -136,6 +137,211 @@ class CRMAPITester:
             200
         )
 
+    def test_pos_events_valid_payload(self):
+        """Test POS events endpoint with valid payload"""
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': self.demo_api_key
+        }
+        
+        test_data = {
+            "pos_id": "mygenie",
+            "restaurant_id": "test_restaurant_123",
+            "event_type": "new_order_customer",
+            "order_id": "ORDER_001",
+            "customer_phone": "+919876543210",
+            "event_data": {
+                "customer_name": "John Doe",
+                "order_amount": 500.0,
+                "restaurant_name": "Test Restaurant"
+            }
+        }
+        
+        return self.run_test(
+            "POS Events - Valid Payload",
+            "POST",
+            "/api/pos/events",
+            200,
+            data=test_data,
+            headers=headers
+        )
+
+    def test_pos_events_invalid_event_type(self):
+        """Test POS events endpoint with invalid event type"""
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': self.demo_api_key
+        }
+        
+        test_data = {
+            "pos_id": "mygenie",
+            "restaurant_id": "test_restaurant_123",
+            "event_type": "invalid_event_type",
+            "order_id": "ORDER_002",
+            "customer_phone": "+919876543210"
+        }
+        
+        return self.run_test(
+            "POS Events - Invalid Event Type",
+            "POST",
+            "/api/pos/events",
+            200,  # Should return 200 with error message in response
+            data=test_data,
+            headers=headers
+        )
+
+    def test_pos_events_missing_delivery_phone(self):
+        """Test order_ready_delivery without delivery_boy_phone"""
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': self.demo_api_key
+        }
+        
+        test_data = {
+            "pos_id": "mygenie", 
+            "restaurant_id": "test_restaurant_123",
+            "event_type": "order_ready_delivery",
+            "order_id": "ORDER_003",
+            "customer_phone": "+919876543210"
+        }
+        
+        return self.run_test(
+            "POS Events - Missing Delivery Phone",
+            "POST",
+            "/api/pos/events", 
+            200,  # Should return 200 with error message
+            data=test_data,
+            headers=headers
+        )
+
+    def test_pos_events_with_delivery_phone(self):
+        """Test order_ready_delivery with delivery_boy_phone"""
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': self.demo_api_key
+        }
+        
+        test_data = {
+            "pos_id": "mygenie",
+            "restaurant_id": "test_restaurant_123", 
+            "event_type": "order_ready_delivery",
+            "order_id": "ORDER_004",
+            "customer_phone": "+919876543210",
+            "event_data": {
+                "delivery_boy_phone": "+919876543211"
+            }
+        }
+        
+        return self.run_test(
+            "POS Events - With Delivery Phone",
+            "POST",
+            "/api/pos/events",
+            200,
+            data=test_data,
+            headers=headers
+        )
+
+    def test_pos_events_outlet_notification(self):
+        """Test new_order_outlet event"""
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': self.demo_api_key
+        }
+        
+        test_data = {
+            "pos_id": "mygenie",
+            "restaurant_id": "test_restaurant_123",
+            "event_type": "new_order_outlet", 
+            "order_id": "ORDER_005",
+            "customer_phone": "+919876543210",
+            "event_data": {
+                "outlet_phone": "+919876543212",
+                "order_amount": 750.0
+            }
+        }
+        
+        return self.run_test(
+            "POS Events - Outlet Notification",
+            "POST", 
+            "/api/pos/events",
+            200,
+            data=test_data,
+            headers=headers
+        )
+
+    def test_pos_events_no_api_key(self):
+        """Test POS events endpoint without API key"""
+        headers = {'Content-Type': 'application/json'}
+        
+        test_data = {
+            "pos_id": "mygenie",
+            "restaurant_id": "test_restaurant_123",
+            "event_type": "new_order_customer",
+            "order_id": "ORDER_006",
+            "customer_phone": "+919876543210"
+        }
+        
+        return self.run_test(
+            "POS Events - No API Key",
+            "POST",
+            "/api/pos/events",
+            401,  # Should return unauthorized
+            data=test_data,
+            headers=headers
+        )
+
+    def test_pos_events_invalid_api_key(self):
+        """Test POS events endpoint with invalid API key"""
+        headers = {
+            'Content-Type': 'application/json', 
+            'X-API-Key': 'invalid-api-key-12345'
+        }
+        
+        test_data = {
+            "pos_id": "mygenie",
+            "restaurant_id": "test_restaurant_123",
+            "event_type": "new_order_customer",
+            "order_id": "ORDER_007", 
+            "customer_phone": "+919876543210"
+        }
+        
+        return self.run_test(
+            "POS Events - Invalid API Key",
+            "POST",
+            "/api/pos/events",
+            401,  # Should return unauthorized
+            data=test_data,
+            headers=headers
+        )
+
+    def test_pos_events_send_bill_manual(self):
+        """Test send_bill_manual event type"""
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': self.demo_api_key
+        }
+        
+        test_data = {
+            "pos_id": "mygenie",
+            "restaurant_id": "test_restaurant_123",
+            "event_type": "send_bill_manual",
+            "order_id": "ORDER_008",
+            "customer_phone": "+919876543210",
+            "event_data": {
+                "order_amount": 1250.0,
+                "payment_method": "card"
+            }
+        }
+        
+        return self.run_test(
+            "POS Events - Send Bill Manual",
+            "POST",
+            "/api/pos/events",
+            200,
+            data=test_data,
+            headers=headers
+        )
+
     def test_root_api(self):
         """Test root API endpoint"""
         return self.run_test(
@@ -167,6 +373,19 @@ class CRMAPITester:
         else:
             print("\n⚠️ Skipping authenticated endpoints - no token available")
 
+        # Test 5: POS Events API Tests (using API key authentication)
+        print("\n🔧 Testing POS Events Webhook API")
+        print("-" * 40)
+        
+        self.test_pos_events_valid_payload()
+        self.test_pos_events_invalid_event_type() 
+        self.test_pos_events_missing_delivery_phone()
+        self.test_pos_events_with_delivery_phone()
+        self.test_pos_events_outlet_notification()
+        self.test_pos_events_no_api_key()
+        self.test_pos_events_invalid_api_key()
+        self.test_pos_events_send_bill_manual()
+
         # Print summary
         print("\n" + "=" * 60)
         print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} tests passed")
@@ -175,6 +394,10 @@ class CRMAPITester:
             print("🎉 All tests passed!")
         else:
             print("❌ Some tests failed")
+            print("\nFailed tests:")
+            for result in self.test_results:
+                if result["status"] == "FAIL":
+                    print(f"  - {result['test']}: {result['details']}")
             
         return self.tests_passed == self.tests_run
 

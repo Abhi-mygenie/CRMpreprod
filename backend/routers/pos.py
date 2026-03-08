@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 import uuid
 import asyncio
@@ -11,7 +11,7 @@ from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_pe
 from core.whatsapp import trigger_whatsapp_event
 from models.schemas import (
     POSPaymentWebhook, POSCustomerLookup, POSResponse,
-    MessageRequest
+    MessageRequest, POS_EVENTS
 )
 
 router = APIRouter(prefix="/pos", tags=["POS Gateway"])
@@ -1551,6 +1551,203 @@ async def regenerate_api_key(user: dict = Depends(get_current_user)):
         "api_key": new_key,
         "warning": "Make sure to update your POS system with the new key"
     }
+
+
+# ============================================
+# POS Events Webhook (Single endpoint for all events)
+# ============================================
+
+class POSEventWebhook(BaseModel):
+    """Schema for POS to trigger WhatsApp events"""
+    pos_id: str  # POS system identifier (e.g., "mygenie")
+    restaurant_id: str  # Restaurant ID in POS system
+    event_type: str  # Event type from POS_EVENTS
+    order_id: str  # POS order reference
+    customer_phone: str  # Customer phone to notify
+    
+    # Optional event-specific data for template variables
+    event_data: Optional[Dict[str, Any]] = None
+
+
+@router.post("/events", response_model=POSResponse)
+async def pos_event_webhook(
+    event_data: POSEventWebhook,
+    user: dict = Depends(verify_pos_api_key)
+):
+    """
+    Single webhook for POS to trigger WhatsApp messages for various events.
+    
+    Supported events:
+    - new_order_customer: Notify customer when order is placed
+    - new_order_outlet: Alert outlet when order is received
+    - order_confirmed: Confirm order to customer
+    - order_ready_customer: Notify customer order is ready
+    - item_ready: Notify customer specific item is ready
+    - order_served: Notify customer order is served
+    - item_served: Notify customer item is served
+    - order_ready_delivery: Alert delivery boy order is ready
+    - order_dispatched: Notify customer order is out for delivery
+    - send_bill_manual: Manually send bill to customer
+    - send_bill_auto: Auto send bill (same as send_bill)
+    
+    Requires X-API-Key header for authentication.
+    """
+    try:
+        # 1. Validate event type
+        if event_data.event_type not in POS_EVENTS:
+            return POSResponse(
+                success=False,
+                message=f"Invalid event_type. Must be one of: {POS_EVENTS}",
+                data=None
+            )
+        
+        # 2. Validate pos_id and restaurant_id if user has them configured
+        if user.get("pos_id") and event_data.pos_id != user["pos_id"]:
+            return POSResponse(
+                success=False,
+                message=f"Invalid pos_id. Expected: {user['pos_id']}, Received: {event_data.pos_id}",
+                data=None
+            )
+        
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # 3. Determine recipient based on event type
+        recipient_phone = event_data.customer_phone
+        recipient_type = "customer"
+        
+        # Special handling for outlet and delivery boy notifications
+        if event_data.event_type == "new_order_outlet":
+            # Send to outlet phone (from user settings or event_data)
+            outlet_phone = (event_data.event_data or {}).get("outlet_phone") or user.get("phone")
+            if outlet_phone:
+                recipient_phone = outlet_phone
+                recipient_type = "outlet"
+            else:
+                return POSResponse(
+                    success=False,
+                    message="Outlet phone not configured",
+                    data=None
+                )
+        
+        elif event_data.event_type == "order_ready_delivery":
+            # Send to delivery boy phone from event_data
+            delivery_phone = (event_data.event_data or {}).get("delivery_boy_phone")
+            if delivery_phone:
+                recipient_phone = delivery_phone
+                recipient_type = "delivery_boy"
+            else:
+                return POSResponse(
+                    success=False,
+                    message="Delivery boy phone required in event_data.delivery_boy_phone",
+                    data=None
+                )
+        
+        # 4. Find customer by phone (for customer data in templates)
+        customer = await db.customers.find_one({
+            "user_id": user["id"],
+            "phone": event_data.customer_phone
+        })
+        
+        # Build customer data for template (use found customer or minimal data)
+        if customer:
+            customer_data = {
+                **customer,
+                "phone": recipient_phone,  # Override with actual recipient
+            }
+        else:
+            # Minimal customer data if not found
+            customer_data = {
+                "id": None,
+                "name": (event_data.event_data or {}).get("customer_name", "Customer"),
+                "phone": recipient_phone,
+                "country_code": "+91",
+                "total_points": 0,
+                "wallet_balance": 0,
+                "tier": "Bronze"
+            }
+        
+        # 5. Build event context data
+        context_data = {
+            "order_id": event_data.order_id,
+            "pos_order_id": event_data.order_id,
+            "restaurant_name": user.get("restaurant_name", ""),
+            **(event_data.event_data or {})
+        }
+        
+        # 6. Map event_type to internal event key
+        # send_bill_manual and send_bill_auto both use "send_bill" internally
+        internal_event = event_data.event_type
+        if event_data.event_type in ["send_bill_manual", "send_bill_auto"]:
+            internal_event = "send_bill"
+        
+        # 7. Trigger WhatsApp event
+        result = await trigger_whatsapp_event(
+            db, user["id"], internal_event, customer_data, context_data
+        )
+        
+        # 8. Log the event
+        event_log = {
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "pos_id": event_data.pos_id,
+            "restaurant_id": event_data.restaurant_id,
+            "event_type": event_data.event_type,
+            "order_id": event_data.order_id,
+            "customer_phone": event_data.customer_phone,
+            "recipient_phone": recipient_phone,
+            "recipient_type": recipient_type,
+            "customer_id": customer["id"] if customer else None,
+            "whatsapp_sent": result.success if result else False,
+            "whatsapp_error": result.error if result and not result.success else None,
+            "event_data": event_data.event_data,
+            "created_at": now
+        }
+        await db.pos_event_logs.insert_one(event_log)
+        
+        # 9. Return response
+        if result is None:
+            return POSResponse(
+                success=True,
+                message=f"Event '{event_data.event_type}' received but no WhatsApp template configured",
+                data={
+                    "event_id": event_log["id"],
+                    "event_type": event_data.event_type,
+                    "whatsapp_sent": False,
+                    "reason": "No template configured or event disabled"
+                }
+            )
+        
+        if result.success:
+            return POSResponse(
+                success=True,
+                message=f"Event '{event_data.event_type}' processed and WhatsApp sent",
+                data={
+                    "event_id": event_log["id"],
+                    "event_type": event_data.event_type,
+                    "whatsapp_sent": True,
+                    "message_id": result.message_id,
+                    "recipient": recipient_phone,
+                    "recipient_type": recipient_type
+                }
+            )
+        else:
+            return POSResponse(
+                success=True,
+                message=f"Event '{event_data.event_type}' received but WhatsApp failed",
+                data={
+                    "event_id": event_log["id"],
+                    "event_type": event_data.event_type,
+                    "whatsapp_sent": False,
+                    "error": result.error
+                }
+            )
+    
+    except Exception as e:
+        return POSResponse(
+            success=False,
+            message=f"Event processing failed: {str(e)}",
+            data=None
+        )
 
 
 # Messaging routes
