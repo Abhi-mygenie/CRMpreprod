@@ -16,6 +16,7 @@
 - ✅ Installed all dependencies
 - ✅ Verified all APIs working with external database
 - ✅ Tested login, dashboard, customers pages
+- ✅ **POS Events Webhook** - Single endpoint for all POS WhatsApp triggers
 
 ## Core Features (Existing)
 - Authentication (Demo login, JWT-based)
@@ -29,14 +30,25 @@
 - QR Code Generation
 - Templates Management
 
+## New API Endpoints (March 8, 2026)
+### POST /api/pos/events
+Single webhook for POS to trigger WhatsApp messages.
+- **Auth**: X-API-Key header
+- **Events**: new_order_customer, new_order_outlet, order_confirmed, order_ready_customer, item_ready, order_served, item_served, order_ready_delivery, order_dispatched, send_bill_manual, send_bill_auto
+- **Docs**: /app/docs/POS_EVENTS_API.md
+
 ## Environment Configuration
 - Backend: MONGO_URL, DB_NAME configured for external DB
 - Frontend: REACT_APP_BACKEND_URL configured
 
+## Parked Tasks
+- Templates page: status/category filters (waiting on AuthKey API update)
+
 ## Next Action Items
-- User mentioned: Webhook URL needed for template status submission
+- Configure WhatsApp templates in CRM for each POS event
+- Webhook URL for Meta template status updates
 
 ## Backlog
-- P0: None (app running as-is)
-- P1: Webhook integration for template status
-- P2: Future enhancements as needed
+- P0: None
+- P1: Meta webhook for template approval status
+- P2: Test WhatsApp button on automation page
