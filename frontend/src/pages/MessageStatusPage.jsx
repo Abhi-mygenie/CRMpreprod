@@ -263,9 +263,10 @@ export function MessageStatusContent({ embedded = false }) {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Status</SelectItem>
-                                    {filterOptions.statuses.map(s => (
-                                        <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>
-                                    ))}
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="delivered">Delivered</SelectItem>
+                                    <SelectItem value="read">Read</SelectItem>
+                                    <SelectItem value="rejected">Failed</SelectItem>
                                 </SelectContent>
                             </Select>
                             
