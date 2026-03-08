@@ -431,7 +431,7 @@ export function MessageStatusContent({ embedded = false }) {
                 </div>
                 
                 {/* Message Logs Cards - Mobile */}
-                <div className="md:hidden space-y-3">
+                <div className="lg:hidden space-y-3">
                     {loading ? (
                         [...Array(3)].map((_, i) => (
                             <Card key={i} className="animate-pulse">
