@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+import { MobileLayout } from "@/components/MobileLayout";
 
 export default function CouponsPage() {
     const { api } = useAuth();
@@ -193,8 +193,8 @@ export default function CouponsPage() {
     };
 
     return (
-        <ResponsiveLayout>
-            <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
+        <MobileLayout>
+            <div className="p-4 max-w-lg mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                     <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="coupons-title">
@@ -530,6 +530,6 @@ export default function CouponsPage() {
                     </form>
                 </DialogContent>
             </Dialog>
-        </ResponsiveLayout>
+        </MobileLayout>
     );
 }

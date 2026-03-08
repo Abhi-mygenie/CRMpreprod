@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+import { MobileLayout } from "@/components/MobileLayout";
 import { MigrationOverlay } from "@/components/MigrationOverlay";
 import {
     Select,
@@ -139,23 +139,21 @@ export default function DashboardPage() {
 
     if (loading) {
         return (
-            <ResponsiveLayout>
-                <div className="p-4 lg:p-8 animate-pulse">
+            <MobileLayout>
+                <div className="p-4 animate-pulse">
                     <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
-                    {/* Desktop skeleton - 6 columns */}
-                    <div className="hidden lg:grid lg:grid-cols-6 gap-4 mb-4">
-                        {[...Array(12)].map((_, i) => (
-                            <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
-                        ))}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="h-20 bg-gray-200 rounded-xl"></div>
+                        <div className="h-20 bg-gray-200 rounded-xl"></div>
+                        <div className="h-20 bg-gray-200 rounded-xl"></div>
                     </div>
-                    {/* Mobile skeleton - 3 columns */}
-                    <div className="grid grid-cols-3 gap-2 lg:hidden mb-3">
-                        {[...Array(6)].map((_, i) => (
-                            <div key={i} className="h-20 bg-gray-200 rounded-xl"></div>
-                        ))}
+                    <div className="grid grid-cols-3 gap-2">
+                        <div className="h-20 bg-gray-200 rounded-xl"></div>
+                        <div className="h-20 bg-gray-200 rounded-xl"></div>
+                        <div className="h-20 bg-gray-200 rounded-xl"></div>
                     </div>
                 </div>
-            </ResponsiveLayout>
+            </MobileLayout>
         );
     }
 
@@ -166,42 +164,8 @@ export default function DashboardPage() {
         toast.success("Migration completed! Dashboard refreshed.");
     };
 
-    // Stats card component for reusability
-    const StatCard = ({ icon: Icon, label, value, color = "#F26B33", suffix = "", prefix = "", subValue = null, highlight = false }) => (
-        <div className={`stats-card-responsive ${highlight ? 'bg-gradient-to-r from-' + color + '/10 to-transparent' : ''}`} data-testid={`${label.toLowerCase().replace(/[\s()]/g, '-')}-card`}>
-            <div className={`flex items-center gap-1.5 mb-1.5`} style={{ color }}>
-                <Icon className="w-4 h-4 lg:w-5 lg:h-5" />
-                <span className="text-[10px] lg:text-xs font-medium uppercase tracking-wider font-body">{label}</span>
-            </div>
-            <p className="text-xl lg:text-2xl font-bold text-[#2B2B2B] font-heading">
-                {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
-                {subValue && (
-                    <span className="text-xs lg:text-sm font-normal text-[#52525B] ml-1">
-                        ({subValue})
-                    </span>
-                )}
-            </p>
-        </div>
-    );
-
-    // Split stat card for Revenue Split display
-    const SplitStatCard = ({ icon: Icon, label, repeatValue, newValue, color = "#329937", highlight = false }) => (
-        <div className={`stats-card-responsive ${highlight ? 'bg-gradient-to-r from-[#329937]/10 to-transparent' : ''}`} data-testid={`${label.toLowerCase().replace(/[\s()]/g, '-')}-card`}>
-            <div className="flex items-center gap-1.5 mb-1.5" style={{ color }}>
-                <Icon className="w-4 h-4 lg:w-5 lg:h-5" />
-                <span className="text-[10px] lg:text-xs font-medium uppercase tracking-wider font-body">{label}</span>
-            </div>
-            <p className="text-sm lg:text-lg font-bold text-[#2B2B2B] font-heading">
-                <span className="text-[#329937]">{repeatValue}%</span>
-                <span className="text-[10px] lg:text-xs font-normal text-[#52525B]"> R </span>
-                <span className="text-[#F26B33]">{newValue}%</span>
-                <span className="text-[10px] lg:text-xs font-normal text-[#52525B]"> N</span>
-            </p>
-        </div>
-    );
-
     return (
-        <ResponsiveLayout>
+        <MobileLayout>
             {/* Migration Overlay */}
             {showMigrationOverlay && (
                 <MigrationOverlay 
@@ -211,18 +175,18 @@ export default function DashboardPage() {
                 />
             )}
             
-            <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
+            <div className="p-4 max-w-lg mx-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6 lg:mb-8">
+                <div className="flex items-center justify-between mb-5">
                     <div>
-                        <p className="text-[#52525B] text-sm lg:text-base font-body">Welcome</p>
-                        <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#2B2B2B] font-heading" data-testid="restaurant-name">
+                        <p className="text-[#52525B] text-sm font-body">Welcome</p>
+                        <h1 className="text-2xl font-bold text-[#2B2B2B] font-heading" data-testid="restaurant-name">
                             {user?.restaurant_name}
                         </h1>
                     </div>
-                    <div className="flex items-center gap-3 lg:gap-4">
-                        <Avatar className="w-10 h-10 lg:w-12 lg:h-12 bg-[#F26B33]">
-                            <AvatarFallback className="bg-[#F26B33] text-white font-semibold text-lg lg:text-xl">
+                    <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10 bg-[#F26B33]">
+                            <AvatarFallback className="bg-[#F26B33] text-white font-semibold">
                                 {user?.restaurant_name?.charAt(0)}
                             </AvatarFallback>
                         </Avatar>
@@ -271,7 +235,7 @@ export default function DashboardPage() {
                 {/* Reset Password Modal */}
                 {showResetPassword && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                        <div className="bg-white rounded-2xl w-full max-w-sm lg:max-w-md p-6 shadow-xl">
+                        <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold text-[#2B2B2B] font-heading">Reset Password</h2>
                                 <button onClick={() => setShowResetPassword(false)} className="p-1 hover:bg-gray-100 rounded-lg">
@@ -326,7 +290,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* Tab Switcher */}
-                <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl max-w-md lg:max-w-lg">
+                <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl">
                     <button
                         onClick={() => setActiveTab("crm")}
                         className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${
@@ -356,150 +320,359 @@ export default function DashboardPage() {
                 {/* CRM Content */}
                 {activeTab === "crm" && (
                 <>
-                    {/* Section: Loyalty & Revenue Overview */}
-                    <div className="mb-6">
-                        <h2 className="text-sm lg:text-base font-semibold text-[#52525B] mb-3 uppercase tracking-wider">Loyalty & Revenue Overview</h2>
-                        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-4">
-                            <StatCard icon={Repeat} label="Loyalty Orders" value={stats?.loyalty_orders_percent || 0} suffix="%" color="#F26B33" highlight />
-                            <StatCard icon={Repeat} label="Loyalty (30D)" value={stats?.loyalty_orders_percent_30d || 0} suffix="%" color="#F26B33" />
-                            <StatCard icon={Repeat} label="Loyalty (7D)" value={stats?.loyalty_orders_percent_7d || 0} suffix="%" color="#F26B33" />
-                            <SplitStatCard icon={TrendingUp} label="Revenue Split" repeatValue={stats?.repeat_revenue_percent || 0} newValue={stats?.new_revenue_percent || 0} highlight />
-                            <SplitStatCard icon={TrendingUp} label="Split (30D)" repeatValue={stats?.repeat_revenue_percent_30d || 0} newValue={stats?.new_revenue_percent_30d || 0} />
-                            <SplitStatCard icon={TrendingUp} label="Split (7D)" repeatValue={stats?.repeat_revenue_percent_7d || 0} newValue={stats?.new_revenue_percent_7d || 0} />
+                {/* Stats Grid - 6 Rows x 3 Columns */}
+                
+                {/* Header Row 1: Loyalty Orders % - Total, 30D, 7D */}
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact bg-gradient-to-r from-[#F26B33]/10 to-transparent" data-testid="loyalty-orders-total-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Loyalty Orders</span>
                         </div>
+                        <p className="text-xl font-bold text-[#F26B33] font-heading">
+                            {stats?.loyalty_orders_percent || 0}%
+                        </p>
                     </div>
+                    <div className="stats-card-compact" data-testid="loyalty-orders-30d-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Loyalty (30D)</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#F26B33] font-heading">
+                            {stats?.loyalty_orders_percent_30d || 0}%
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="loyalty-orders-7d-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Loyalty (7D)</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#F26B33] font-heading">
+                            {stats?.loyalty_orders_percent_7d || 0}%
+                        </p>
+                    </div>
+                </div>
 
-                    {/* Section: Customer Metrics */}
-                    <div className="mb-6">
-                        <h2 className="text-sm lg:text-base font-semibold text-[#52525B] mb-3 uppercase tracking-wider">Customer Metrics</h2>
-                        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-4">
-                            <StatCard icon={Users} label="Customers" value={stats?.total_customers || 0} color="#F26B33" />
-                            <StatCard icon={Users} label="Active(30d)" value={stats?.active_customers_30d || 0} color="#329937" />
-                            <StatCard icon={TrendingUp} label="New(7d)" value={stats?.new_customers_7d || 0} color="#329937" />
-                            <StatCard 
-                                icon={Repeat} 
-                                label="Repeat 2+" 
-                                value={stats?.repeat_2_plus || 0} 
-                                color="#F26B33"
-                                subValue={stats?.total_customers > 0 ? `${((stats.repeat_2_plus / stats.total_customers) * 100).toFixed(1)}%` : '0%'}
-                            />
-                            <StatCard 
-                                icon={Repeat} 
-                                label="Repeat 5+" 
-                                value={stats?.repeat_5_plus || 0} 
-                                color="#F26B33"
-                                subValue={stats?.total_customers > 0 ? `${((stats.repeat_5_plus / stats.total_customers) * 100).toFixed(1)}%` : '0%'}
-                            />
-                            <StatCard 
-                                icon={Repeat} 
-                                label="Repeat 10+" 
-                                value={stats?.repeat_10_plus || 0} 
-                                color="#329937"
-                                subValue={stats?.total_customers > 0 ? `${((stats.repeat_10_plus / stats.total_customers) * 100).toFixed(1)}%` : '0%'}
-                            />
+                {/* Header Row 2: Revenue Split - Total, 30D, 7D */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="stats-card-compact bg-gradient-to-r from-[#329937]/10 to-transparent" data-testid="revenue-split-total-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Revenue Split</span>
                         </div>
+                        <p className="text-sm font-bold text-[#2B2B2B] font-heading">
+                            <span className="text-[#329937]">{stats?.repeat_revenue_percent || 0}%</span>
+                            <span className="text-[10px] font-normal text-[#52525B]"> R </span>
+                            <span className="text-[#F26B33]">{stats?.new_revenue_percent || 0}%</span>
+                            <span className="text-[10px] font-normal text-[#52525B]"> N</span>
+                        </p>
                     </div>
+                    <div className="stats-card-compact" data-testid="revenue-split-30d-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Split (30D)</span>
+                        </div>
+                        <p className="text-sm font-bold text-[#2B2B2B] font-heading">
+                            <span className="text-[#329937]">{stats?.repeat_revenue_percent_30d || 0}%</span>
+                            <span className="text-[10px] font-normal text-[#52525B]"> R </span>
+                            <span className="text-[#F26B33]">{stats?.new_revenue_percent_30d || 0}%</span>
+                            <span className="text-[10px] font-normal text-[#52525B]"> N</span>
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="revenue-split-7d-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Split (7D)</span>
+                        </div>
+                        <p className="text-sm font-bold text-[#2B2B2B] font-heading">
+                            <span className="text-[#329937]">{stats?.repeat_revenue_percent_7d || 0}%</span>
+                            <span className="text-[10px] font-normal text-[#52525B]"> R </span>
+                            <span className="text-[#F26B33]">{stats?.new_revenue_percent_7d || 0}%</span>
+                            <span className="text-[10px] font-normal text-[#52525B]"> N</span>
+                        </p>
+                    </div>
+                </div>
 
-                    {/* Section: Inactive Customers */}
-                    <div className="mb-6">
-                        <h2 className="text-sm lg:text-base font-semibold text-[#52525B] mb-3 uppercase tracking-wider">Churn Risk</h2>
-                        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-4">
-                            <StatCard 
-                                icon={UserMinus} 
-                                label="Inactive 30d" 
-                                value={stats?.inactive_30d || 0} 
-                                color="#EF4444"
-                                subValue={stats?.total_customers > 0 ? `${((stats.inactive_30d / stats.total_customers) * 100).toFixed(1)}%` : '0%'}
-                            />
-                            <StatCard 
-                                icon={UserMinus} 
-                                label="Inactive 60d" 
-                                value={stats?.inactive_60d || 0} 
-                                color="#EF4444"
-                                subValue={stats?.total_customers > 0 ? `${((stats.inactive_60d / stats.total_customers) * 100).toFixed(1)}%` : '0%'}
-                            />
-                            <StatCard 
-                                icon={UserMinus} 
-                                label="Inactive 90d" 
-                                value={stats?.inactive_90d || 0} 
-                                color="#EF4444"
-                                subValue={stats?.total_customers > 0 ? `${((stats.inactive_90d / stats.total_customers) * 100).toFixed(1)}%` : '0%'}
-                            />
-                            {/* Empty placeholders for desktop grid alignment */}
-                            <div className="hidden lg:block"></div>
-                            <div className="hidden lg:block"></div>
-                            <div className="hidden lg:block"></div>
+                {/* Row 1: Total Customers, Active (30D), New (7D) */}
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact" data-testid="total-customers-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Users className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Customers</span>
                         </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.total_customers || 0}
+                        </p>
                     </div>
+                    <div className="stats-card-compact" data-testid="active-customers-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <Users className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Active(30d)</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.active_customers_30d || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="new-customers-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">New(7d)</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.new_customers_7d || 0}
+                        </p>
+                    </div>
+                </div>
 
-                    {/* Section: Points - Show only if loyalty_enabled */}
-                    {stats?.loyalty_enabled && (
-                    <div className="mb-6">
-                        <h2 className="text-sm lg:text-base font-semibold text-[#52525B] mb-3 uppercase tracking-wider">Points Overview</h2>
-                        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-4">
-                            <StatCard icon={ArrowUpRight} label="Pts Issued" value={stats?.total_points_issued || 0} color="#329937" />
-                            <StatCard icon={ArrowDownRight} label="Pts Redeemed" value={stats?.total_points_redeemed || 0} color="#EF4444" />
-                            <StatCard icon={Star} label="Pts Balance" value={stats?.points_balance || 0} color="#329937" />
-                            <div className="hidden lg:block"></div>
-                            <div className="hidden lg:block"></div>
-                            <div className="hidden lg:block"></div>
+                {/* Row 2: Repeat 2+, Repeat 5+, Repeat 10+ */}
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact" data-testid="repeat-2-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Repeat 2+</span>
                         </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.repeat_2_plus || 0}
+                            <span className="text-xs font-normal text-[#52525B] ml-1">
+                                ({stats?.total_customers > 0 ? ((stats.repeat_2_plus / stats.total_customers) * 100).toFixed(1) : 0}%)
+                            </span>
+                        </p>
                     </div>
-                    )}
+                    <div className="stats-card-compact" data-testid="repeat-5-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Repeat 5+</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.repeat_5_plus || 0}
+                            <span className="text-xs font-normal text-[#52525B] ml-1">
+                                ({stats?.total_customers > 0 ? ((stats.repeat_5_plus / stats.total_customers) * 100).toFixed(1) : 0}%)
+                            </span>
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="repeat-10-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <Repeat className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Repeat 10+</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.repeat_10_plus || 0}
+                            <span className="text-xs font-normal text-[#52525B] ml-1">
+                                ({stats?.total_customers > 0 ? ((stats.repeat_10_plus / stats.total_customers) * 100).toFixed(1) : 0}%)
+                            </span>
+                        </p>
+                    </div>
+                </div>
 
-                    {/* Section: Wallet - Show only if wallet_enabled */}
-                    {stats?.wallet_enabled && (
-                    <div className="mb-6">
-                        <h2 className="text-sm lg:text-base font-semibold text-[#52525B] mb-3 uppercase tracking-wider">Wallet Overview</h2>
-                        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-4">
-                            <StatCard icon={Wallet} label="Wallet In" value={stats?.wallet_issued || 0} prefix="₹" color="#F26B33" />
-                            <StatCard icon={Wallet} label="Wallet Out" value={stats?.wallet_used || 0} prefix="₹" color="#EF4444" />
-                            <StatCard icon={Wallet} label="Wallet Bal" value={stats?.wallet_balance || 0} prefix="₹" color="#F26B33" />
-                            <div className="hidden lg:block"></div>
-                            <div className="hidden lg:block"></div>
-                            <div className="hidden lg:block"></div>
+                {/* Row 3: Inactive 30D, 60D, 90D */}
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact" data-testid="inactive-30d-card">
+                        <div className="flex items-center gap-1 text-[#EF4444] mb-1">
+                            <UserMinus className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Inactive 30d</span>
                         </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.inactive_30d || 0}
+                            <span className="text-xs font-normal text-[#52525B] ml-1">
+                                ({stats?.total_customers > 0 ? ((stats.inactive_30d / stats.total_customers) * 100).toFixed(1) : 0}%)
+                            </span>
+                        </p>
                     </div>
-                    )}
+                    <div className="stats-card-compact" data-testid="inactive-60d-card">
+                        <div className="flex items-center gap-1 text-[#EF4444] mb-1">
+                            <UserMinus className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Inactive 60d</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.inactive_60d || 0}
+                            <span className="text-xs font-normal text-[#52525B] ml-1">
+                                ({stats?.total_customers > 0 ? ((stats.inactive_60d / stats.total_customers) * 100).toFixed(1) : 0}%)
+                            </span>
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="inactive-90d-card">
+                        <div className="flex items-center gap-1 text-[#EF4444] mb-1">
+                            <UserMinus className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Inactive 90d</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.inactive_90d || 0}
+                            <span className="text-xs font-normal text-[#52525B] ml-1">
+                                ({stats?.total_customers > 0 ? ((stats.inactive_90d / stats.total_customers) * 100).toFixed(1) : 0}%)
+                            </span>
+                        </p>
+                    </div>
+                </div>
 
-                    {/* Section: Coupons - Show only if coupon_enabled */}
-                    {stats?.coupon_enabled && (
-                    <div className="mb-6">
-                        <h2 className="text-sm lg:text-base font-semibold text-[#52525B] mb-3 uppercase tracking-wider">Coupons</h2>
-                        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-4">
-                            <StatCard icon={Ticket} label="Coupons" value={stats?.total_coupons || 0} color="#8B5CF6" />
-                            <StatCard icon={Ticket} label="Used" value={stats?.coupons_used || 0} color="#F26B33" />
-                            <StatCard icon={Ticket} label="Discount" value={stats?.discount_availed || 0} prefix="₹" color="#8B5CF6" />
-                            <div className="hidden lg:block"></div>
-                            <div className="hidden lg:block"></div>
-                            <div className="hidden lg:block"></div>
+                {/* Row 4: Points Issued, Points Redeemed, Points Balance - Show only if loyalty_enabled */}
+                {stats?.loyalty_enabled && (
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact" data-testid="points-issued-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Pts Issued</span>
                         </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading points-display">
+                            {stats?.total_points_issued?.toLocaleString() || 0}
+                        </p>
                     </div>
-                    )}
+                    <div className="stats-card-compact" data-testid="points-redeemed-card">
+                        <div className="flex items-center gap-1 text-[#EF4444] mb-1">
+                            <ArrowDownRight className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Pts Redeemed</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading points-display">
+                            {stats?.total_points_redeemed?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="points-balance-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <Star className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Pts Balance</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading points-display">
+                            {stats?.points_balance?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                </div>
+                )}
 
-                    {/* Section: Orders & Revenue */}
-                    <div className="mb-6">
-                        <h2 className="text-sm lg:text-base font-semibold text-[#52525B] mb-3 uppercase tracking-wider">Orders & Revenue</h2>
-                        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-4">
-                            <StatCard icon={ShoppingBag} label="Orders" value={stats?.total_orders || 0} color="#8B5CF6" />
-                            <StatCard icon={ShoppingBag} label="Avg Order" value={stats?.avg_order_value || 0} prefix="₹" color="#8B5CF6" />
-                            <StatCard icon={Calendar} label="Orders/Day" value={stats?.avg_orders_per_day || 0} color="#8B5CF6" />
-                            <StatCard icon={TrendingUp} label="Revenue" value={stats?.total_revenue || 0} prefix="₹" color="#329937" />
-                            <StatCard icon={TrendingUp} label="Rev (30D)" value={stats?.revenue_30d || 0} prefix="₹" color="#329937" />
-                            <StatCard icon={TrendingUp} label="Rev (7D)" value={stats?.revenue_7d || 0} prefix="₹" color="#329937" />
+                {/* Row 5: Wallet Issued, Wallet Used, Wallet Balance - Show only if wallet_enabled */}
+                {stats?.wallet_enabled && (
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact" data-testid="wallet-issued-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Wallet className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Wallet In</span>
                         </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            ₹{stats?.wallet_issued?.toLocaleString() || 0}
+                        </p>
                     </div>
+                    <div className="stats-card-compact" data-testid="wallet-used-card">
+                        <div className="flex items-center gap-1 text-[#EF4444] mb-1">
+                            <Wallet className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Wallet Out</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            ₹{stats?.wallet_used?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="wallet-balance-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Wallet className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Wallet Bal</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            ₹{stats?.wallet_balance?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                </div>
+                )}
+
+                {/* Row 6: Total Coupons, Coupons Used, Discount Availed - Show only if coupon_enabled */}
+                {stats?.coupon_enabled && (
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact" data-testid="total-coupons-card">
+                        <div className="flex items-center gap-1 text-[#8B5CF6] mb-1">
+                            <Ticket className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Coupons</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.total_coupons || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="coupons-used-card">
+                        <div className="flex items-center gap-1 text-[#F26B33] mb-1">
+                            <Ticket className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Used</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.coupons_used || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="discount-availed-card">
+                        <div className="flex items-center gap-1 text-[#8B5CF6] mb-1">
+                            <Ticket className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Discount</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            ₹{stats?.discount_availed?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                </div>
+                )}
+
+                {/* Row 7: Total Orders, Avg Order Value, Avg Orders/Day */}
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact" data-testid="total-orders-card">
+                        <div className="flex items-center gap-1 text-[#8B5CF6] mb-1">
+                            <ShoppingBag className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Orders</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.total_orders || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="avg-order-value-card">
+                        <div className="flex items-center gap-1 text-[#8B5CF6] mb-1">
+                            <ShoppingBag className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Avg Order</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            ₹{stats?.avg_order_value?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="avg-orders-per-day-card">
+                        <div className="flex items-center gap-1 text-[#8B5CF6] mb-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Orders/Day</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            {stats?.avg_orders_per_day || 0}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Row 8: Revenue - Total, 30D, 7D */}
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="stats-card-compact" data-testid="total-revenue-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Revenue</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            ₹{stats?.total_revenue?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="revenue-30d-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Rev (30D)</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            ₹{stats?.revenue_30d?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                    <div className="stats-card-compact" data-testid="revenue-7d-card">
+                        <div className="flex items-center gap-1 text-[#329937] mb-1">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider font-body">Rev (7D)</span>
+                        </div>
+                        <p className="text-xl font-bold text-[#2B2B2B] font-heading">
+                            ₹{stats?.revenue_7d?.toLocaleString() || 0}
+                        </p>
+                    </div>
+                </div>
                 </>
                 )}
 
                 {/* Messages Content */}
                 {activeTab === "messages" && (
-                    <div className="max-w-6xl">
-                        <MessageStatusContent embedded={true} />
-                    </div>
+                    <MessageStatusContent embedded={true} />
                 )}
 
             </div>
-        </ResponsiveLayout>
+        </MobileLayout>
     );
 }
