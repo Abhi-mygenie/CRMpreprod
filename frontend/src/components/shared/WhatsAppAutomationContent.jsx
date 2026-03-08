@@ -814,12 +814,21 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                     <CardContent className="p-4">
                         <div className="flex items-start gap-3">
                             <MessageSquare className="w-5 h-5 text-[#25D366] mt-0.5" />
-                            <div>
+                            <div className="flex-1">
                                 <p className="text-sm font-medium text-[#1A1A1A]">Automated WhatsApp Messages</p>
                                 <p className="text-xs text-[#52525B] mt-1">
                                     Create message templates and configure which events trigger automatic WhatsApp messages to your customers.
                                 </p>
                             </div>
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => navigate("/message-status")}
+                                className="shrink-0"
+                                data-testid="view-message-status-btn"
+                            >
+                                <Eye className="w-4 h-4 mr-1" /> Message Status
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>

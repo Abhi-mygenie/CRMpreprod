@@ -18,6 +18,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import LoyaltySettingsPage from "@/pages/LoyaltySettingsPage";
 import WhatsAppAutomationPage from "@/components/shared/WhatsAppAutomationContent";
 import CustomerRegistrationPage from "@/pages/CustomerRegistrationPage";
+import MessageStatusPage from "@/pages/MessageStatusPage";
 
 // Components
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -46,6 +47,7 @@ function App() {
                         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                         <Route path="/loyalty-settings" element={<ProtectedRoute><LoyaltySettingsPage /></ProtectedRoute>} />
                         <Route path="/whatsapp-automation" element={<ProtectedRoute><WhatsAppAutomationPage /></ProtectedRoute>} />
+                        <Route path="/message-status" element={<ProtectedRoute><MessageStatusPage /></ProtectedRoute>} />
 
                         {/* Fallback */}
                         <Route path="*" element={<Navigate to="/" />} />
