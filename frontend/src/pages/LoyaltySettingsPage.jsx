@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { MobileLayout } from "@/components/MobileLayout";
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
 export default function LoyaltySettingsPage() {
     const { api } = useAuth();
@@ -46,20 +46,20 @@ export default function LoyaltySettingsPage() {
 
     if (loading) {
         return (
-            <MobileLayout>
-                <div className="p-4 max-w-lg mx-auto">
+            <ResponsiveLayout>
+                <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
                     <div className="animate-pulse space-y-4">
                         <div className="h-8 bg-gray-200 rounded w-48"></div>
                         <div className="h-32 bg-gray-200 rounded-xl"></div>
                     </div>
                 </div>
-            </MobileLayout>
+            </ResponsiveLayout>
         );
     }
 
     return (
-        <MobileLayout>
-            <div className="p-4 max-w-lg mx-auto">
+        <ResponsiveLayout>
+            <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
                 <div className="flex items-center gap-3 mb-6">
                     <button onClick={() => navigate("/settings")} className="p-2 hover:bg-gray-100 rounded-full" data-testid="back-btn">
                         <ChevronLeft className="w-5 h-5" />
@@ -277,6 +277,6 @@ export default function LoyaltySettingsPage() {
                     </>
                 )}
             </div>
-        </MobileLayout>
+        </ResponsiveLayout>
     );
 }
