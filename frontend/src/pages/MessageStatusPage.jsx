@@ -518,15 +518,15 @@ export function MessageStatusContent({ embedded = false }) {
             </div>
     );
     
-    // Return with or without MobileLayout wrapper
+    // Return with or without ResponsiveLayout wrapper
     if (embedded) {
         return content;
     }
     
     return (
-        <MobileLayout>
+        <ResponsiveLayout>
             {content}
-        </MobileLayout>
+        </ResponsiveLayout>
     );
 }
 
