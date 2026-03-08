@@ -211,11 +211,11 @@ export function MessageStatusContent({ embedded = false }) {
     const allEligibleSelected = eligibleCount > 0 && selectedIds.size === eligibleCount;
     
     const content = (
-        <div className={embedded ? "" : "p-4 md:p-6 max-w-6xl mx-auto"}>
+        <div className={embedded ? "" : "p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto"}>
             {/* Header - only show when not embedded */}
             {!embedded && (
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Georgia']" data-testid="message-status-title">
+                <div className="flex items-center justify-between mb-6 lg:mb-8">
+                    <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Georgia']" data-testid="message-status-title">
                         Message Status
                     </h1>
                     <Button 
