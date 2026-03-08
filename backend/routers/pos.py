@@ -1611,7 +1611,43 @@ async def pos_event_webhook(
         
         now = datetime.now(timezone.utc).isoformat()
         
-        # 3. Determine recipient based on event type
+        # 3. Map event_type to internal event key FIRST
+        # send_bill_manual and send_bill_auto both use "send_bill" internally
+        internal_event = event_data.event_type
+        if event_data.event_type in ["send_bill_manual", "send_bill_auto"]:
+            internal_event = "send_bill"
+        
+        # 4. CHECK IF EVENT TRIGGER IS ACTIVE (early exit if paused)
+        event_config = await db.whatsapp_event_template_map.find_one(
+            {"user_id": user["id"], "event_key": internal_event},
+            {"_id": 0}
+        )
+        
+        if not event_config:
+            # No config means event not configured at all
+            return POSResponse(
+                success=True,
+                message=f"Event '{event_data.event_type}' not configured",
+                data={
+                    "event_type": event_data.event_type,
+                    "whatsapp_sent": False,
+                    "reason": "Event trigger not configured"
+                }
+            )
+        
+        if not event_config.get("is_enabled", True):
+            # Event is paused/disabled
+            return POSResponse(
+                success=True,
+                message=f"Event '{event_data.event_type}' is paused",
+                data={
+                    "event_type": event_data.event_type,
+                    "whatsapp_sent": False,
+                    "reason": "Event trigger is paused"
+                }
+            )
+        
+        # 5. Determine recipient based on event type
         recipient_phone = event_data.customer_phone
         recipient_type = "customer"
         
@@ -1642,13 +1678,13 @@ async def pos_event_webhook(
                     data=None
                 )
         
-        # 4. Find customer by phone (for customer data in templates)
+        # 6. Find customer by phone (for customer data in templates)
         customer = await db.customers.find_one({
             "user_id": user["id"],
             "phone": event_data.customer_phone
         })
         
-        # Build customer data for template (use found customer or minimal data)
+        # 7. Build customer data for template (use found customer or minimal data)
         if customer:
             customer_data = {
                 **customer,
@@ -1666,7 +1702,7 @@ async def pos_event_webhook(
                 "tier": "Bronze"
             }
         
-        # 5. Build event context data
+        # 8. Build event context data
         context_data = {
             "order_id": event_data.order_id,
             "pos_order_id": event_data.order_id,
@@ -1674,18 +1710,12 @@ async def pos_event_webhook(
             **(event_data.event_data or {})
         }
         
-        # 6. Map event_type to internal event key
-        # send_bill_manual and send_bill_auto both use "send_bill" internally
-        internal_event = event_data.event_type
-        if event_data.event_type in ["send_bill_manual", "send_bill_auto"]:
-            internal_event = "send_bill"
-        
-        # 7. Trigger WhatsApp event
+        # 9. Trigger WhatsApp event
         result = await trigger_whatsapp_event(
             db, user["id"], internal_event, customer_data, context_data
         )
         
-        # 8. Log the event
+        # 10. Log the event
         event_log = {
             "id": str(uuid.uuid4()),
             "user_id": user["id"],
@@ -1704,7 +1734,7 @@ async def pos_event_webhook(
         }
         await db.pos_event_logs.insert_one(event_log)
         
-        # 9. Return response
+        # 11. Return response
         if result is None:
             return POSResponse(
                 success=True,
