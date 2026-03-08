@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { MobileLayout } from "@/components/MobileLayout";
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
 export function WhatsAppAutomationContent({ embedded = false }) {
     const { api } = useAuth();
@@ -776,13 +776,13 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                 </div>
             </div>
         );
-        return embedded ? loadingUI : <MobileLayout>{loadingUI}</MobileLayout>;
+        return embedded ? loadingUI : <ResponsiveLayout>{loadingUI}</ResponsiveLayout>;
     }
 
     const ContentWrapper = ({ children }) => {
         if (embedded) return <>{children}</>;
         return (
-            <MobileLayout>
+            <ResponsiveLayout>
                 <div className="p-4 max-w-lg mx-auto">
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
@@ -802,7 +802,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                     </div>
                     {children}
                 </div>
-            </MobileLayout>
+            </ResponsiveLayout>
         );
     };
 
