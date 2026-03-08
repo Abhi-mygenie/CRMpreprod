@@ -35,6 +35,7 @@
 Single webhook for POS to trigger WhatsApp messages.
 - **Auth**: X-API-Key header
 - **Events**: new_order_customer, new_order_outlet, order_confirmed, order_ready_customer, item_ready, order_served, item_served, order_ready_delivery, order_dispatched, send_bill_manual, send_bill_auto
+- **Flow**: Validates API key → Checks trigger is ACTIVE → Looks up customer → Sends WhatsApp → Logs event
 - **Docs**: /app/docs/POS_EVENTS_API.md
 
 ## Environment Configuration
