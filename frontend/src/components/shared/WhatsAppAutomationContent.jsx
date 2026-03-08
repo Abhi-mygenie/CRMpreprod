@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
-import { MobileLayout } from "@/components/MobileLayout";
+
 
 
 export function WhatsAppAutomationContent({ embedded = false }) {
@@ -797,13 +797,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                             onClick={() => navigate("/settings")}
                             className="p-2 hover:bg-gray-100 rounded-full lg:hidden"
 
-            <MobileLayout>
-                <div className="p-4 max-w-lg mx-auto">
-                    {/* Header */}
-                    <div className="flex items-center gap-3 mb-6">
-                        <button 
-                            onClick={() => navigate("/settings")}
-                            className="p-2 hover:bg-gray-100 rounded-full"
+        
 
                             data-testid="back-btn"
                         >
@@ -828,7 +822,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
 
             </ResponsiveLayout>
 
-            </MobileLayout>
+            
 
         );
     };
