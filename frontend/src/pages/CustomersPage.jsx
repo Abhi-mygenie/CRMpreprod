@@ -596,8 +596,8 @@ export default function CustomersPage() {
         <ResponsiveLayout>
             <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="customers-title">
+                <div className="flex items-center justify-between mb-4 lg:mb-6">
+                    <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="customers-title">
                         {customerTab === "customers" ? "Customers" : "Segments"}
                     </h1>
                     {customerTab === "customers" ? (
