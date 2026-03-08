@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
-import { MobileLayout } from "@/components/MobileLayout";
+
 
 
 export default function CouponsPage() {
