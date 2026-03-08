@@ -20,7 +20,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+
+import { MobileLayout } from "@/components/MobileLayout";
+
 import { ComingSoonOverlay } from "@/components/shared/ComingSoonOverlay";
 import { COUNTRY_CODES, GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
 import { SegmentsPageContent } from "@/pages/SegmentsPage";
@@ -593,11 +597,19 @@ export default function CustomersPage() {
     };
 
     return (
+
         <ResponsiveLayout>
             <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4 lg:mb-6">
                     <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="customers-title">
+
+        <MobileLayout>
+            <div className="p-4 max-w-lg mx-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="customers-title">
+
                         {customerTab === "customers" ? "Customers" : "Segments"}
                     </h1>
                     {customerTab === "customers" ? (
@@ -633,10 +645,17 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Tab switcher */}
+
                 <div className="flex gap-2 mb-4 lg:mb-6 max-w-md">
                     <button
                         onClick={() => setCustomerTab("customers")}
                         className={`flex-1 py-2 lg:py-2.5 text-sm font-medium rounded-full transition-colors ${
+
+                <div className="flex gap-2 mb-4">
+                    <button
+                        onClick={() => setCustomerTab("customers")}
+                        className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
+
                             customerTab === "customers"
                                 ? "bg-[#1A1A1A] text-white"
                                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -647,7 +666,11 @@ export default function CustomersPage() {
                     </button>
                     <button
                         onClick={() => setCustomerTab("segments")}
+
                         className={`flex-1 py-2 lg:py-2.5 text-sm font-medium rounded-full transition-colors ${
+
+                        className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${
+
                             customerTab === "segments"
                                 ? "bg-[#1A1A1A] text-white"
                                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -661,8 +684,13 @@ export default function CustomersPage() {
                 {customerTab === "customers" && (
                 <>
                 {/* Search & Filter Row */}
+
                 <div className="flex gap-2 lg:gap-4 mb-3 lg:mb-4">
                     <div className="relative flex-1 lg:max-w-md">
+
+                <div className="flex gap-2 mb-3">
+                    <div className="relative flex-1">
+
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A1A1AA]" />
                         <Input
                             type="text"
@@ -676,11 +704,18 @@ export default function CustomersPage() {
                     <Button 
                         variant="outline" 
                         onClick={() => setShowFilters(true)}
+
                         className={`h-12 px-3 lg:px-4 rounded-xl relative ${activeFiltersCount > 0 ? 'border-[#F26B33] text-[#F26B33]' : ''}`}
                         data-testid="filter-btn"
                     >
                         <Filter className="w-5 h-5" />
                         <span className="hidden lg:inline ml-2">Filters</span>
+
+                        className={`h-12 px-3 rounded-xl relative ${activeFiltersCount > 0 ? 'border-[#F26B33] text-[#F26B33]' : ''}`}
+                        data-testid="filter-btn"
+                    >
+                        <Filter className="w-5 h-5" />
+
                         {activeFiltersCount > 0 && (
                             <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#F26B33] text-white text-xs rounded-full flex items-center justify-center">
                                 {activeFiltersCount}
@@ -690,7 +725,11 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Sorting Tabs - Smaller compact chips */}
+
                 <div className="flex gap-1.5 lg:gap-2 overflow-x-auto pb-3 lg:pb-4 mb-3 lg:mb-4 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
+
+                <div className="flex gap-1.5 overflow-x-auto pb-3 mb-3 -mx-4 px-4 scrollbar-hide">
+
                     <button
                         onClick={() => setFilters({...filters, sort_by: "created_at", sort_order: "desc", inactive_days: null, most_loyal: false})}
                         className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all font-body ${
@@ -1274,6 +1313,7 @@ export default function CustomersPage() {
                         )}
                     </div>
                 ) : (
+
                     <>
                         {/* Desktop Table View */}
                         <div className="hidden lg:block bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -1458,6 +1498,84 @@ export default function CustomersPage() {
                             })}
                         </div>
                     </>
+
+                    <div className="space-y-2">
+                        {customers.map((customer) => {
+                            // Format total_spent as ₹23K or ₹1.2L
+                            const formatSpent = (amount) => {
+                                if (!amount || amount === 0) return '₹0';
+                                if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+                                if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;
+                                return `₹${amount}`;
+                            };
+                            
+                            // Format last visit as relative time
+                            const formatLastVisit = (dateStr) => {
+                                if (!dateStr) return 'Never';
+                                const date = new Date(dateStr);
+                                const now = new Date();
+                                const diffMs = now - date;
+                                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                
+                                if (diffDays === 0) return 'Today';
+                                if (diffDays === 1) return '1d ago';
+                                if (diffDays < 7) return `${diffDays}d ago`;
+                                if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+                                if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+                                return `${Math.floor(diffDays / 365)}y ago`;
+                            };
+                            
+                            return (
+                                <div
+                                    key={customer.id}
+                                    className="customer-list-item w-full cursor-pointer"
+                                    data-testid={`customer-row-${customer.id}`}
+                                    onClick={() => navigate(`/customers/${customer.id}`)}
+                                >
+                                    <Avatar className="w-10 h-10 mr-3">
+                                        <AvatarFallback className={`font-semibold ${
+                                            customer.customer_type === "corporate" 
+                                                ? "bg-[#F26B33]/10 text-[#F26B33]" 
+                                                : "bg-[#329937]/10 text-[#329937]"
+                                        }`}>
+                                            {customer.customer_type === "corporate" ? <Building2 className="w-5 h-5" /> : customer.name.charAt(0)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-medium text-[#1A1A1A] truncate">{customer.name}</p>
+                                            <button
+                                                onClick={(e) => openEditModal(customer, e)}
+                                                className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#F26B33]/10 transition-colors"
+                                                data-testid={`edit-customer-list-${customer.id}`}
+                                            >
+                                                <Edit2 className="w-3 h-3 text-[#52525B]" />
+                                            </button>
+                                        </div>
+                                        <p className="text-sm text-[#52525B]">
+                                            {customer.total_visits || 0} visits · {formatSpent(customer.total_spent)} · {formatLastVisit(customer.last_visit)}
+                                        </p>
+                                    </div>
+                                    <div className="text-right flex items-center gap-3">
+                                        {customer.wallet_balance > 0 && (
+                                            <div className="text-right border-r pr-3 border-gray-200">
+                                                <p className="font-semibold text-[#F26B33]">₹{customer.wallet_balance.toLocaleString()}</p>
+                                                <p className="text-[10px] text-[#A1A1AA]">Wallet</p>
+                                            </div>
+                                        )}
+                                        <div className="text-right">
+                                            <p className="font-semibold text-[#329937] points-display text-sm">{customer.total_points} pts</p>
+                                            <Badge variant="outline" className={`tier-badge ${customer.tier.toLowerCase()}`}>
+                                                {customer.tier}
+                                            </Badge>
+                                        </div>
+                                        <ChevronRight className="w-5 h-5 text-[#A1A1AA]" />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
                 )}
             </>
             )}
@@ -2416,6 +2534,10 @@ export default function CustomersPage() {
                     </form>
                 </DialogContent>
             </Dialog>
+
         </ResponsiveLayout>
+
+        </MobileLayout>
+
     );
 }

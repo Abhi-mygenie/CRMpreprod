@@ -14,7 +14,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+
 import { WhatsAppAutomationContent } from "@/components/shared/WhatsAppAutomationContent";
 
 export default function SettingsPage() {
@@ -362,8 +364,11 @@ export default function SettingsPage() {
     const tabs = shouldShowMigration ? allTabs : allTabs.filter(t => t.key !== "migration");
 
     return (
+
         <ResponsiveLayout>
             <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
+
+    
                 <h1 className="text-2xl font-bold text-[#2B2B2B] mb-6 font-heading" data-testid="settings-title">Settings</h1>
 
                 {/* Tab Cards - All have green border, orange ring around icon
@@ -909,6 +914,8 @@ export default function SettingsPage() {
                     </Button>
                 </div>
             </div>
+
         </ResponsiveLayout>
+
     );
 }
