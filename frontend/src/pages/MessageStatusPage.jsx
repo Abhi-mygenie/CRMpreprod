@@ -17,7 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { MobileLayout } from "@/components/MobileLayout";
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
 // Status badge component
 const StatusBadge = ({ status }) => {
