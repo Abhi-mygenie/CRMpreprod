@@ -17,7 +17,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { MobileLayout } from "@/components/MobileLayout";
+
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+
 
 // Status badge component
 const StatusBadge = ({ status }) => {
@@ -211,11 +213,19 @@ export function MessageStatusContent({ embedded = false }) {
     const allEligibleSelected = eligibleCount > 0 && selectedIds.size === eligibleCount;
     
     const content = (
+
+        <div className={embedded ? "" : "p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto"}>
+            {/* Header - only show when not embedded */}
+            {!embedded && (
+                <div className="flex items-center justify-between mb-6 lg:mb-8">
+                    <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Georgia']" data-testid="message-status-title">
+
         <div className={embedded ? "" : "p-4 md:p-6 max-w-6xl mx-auto"}>
             {/* Header - only show when not embedded */}
             {!embedded && (
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Georgia']" data-testid="message-status-title">
+
                         Message Status
                     </h1>
                     <Button 
@@ -244,7 +254,11 @@ export function MessageStatusContent({ embedded = false }) {
             )}
                 
                 {/* Stats Cards */}
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4 mb-6 lg:mb-8">
+
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+
                     <StatsCard icon={MessageSquare} label="Total" value={stats.total} color="bg-gray-500" />
                     <StatsCard icon={CheckCircle} label="Delivered" value={stats.delivered} color="bg-green-500" />
                     <StatsCard icon={Eye} label="Read" value={stats.read} color="bg-blue-500" />
@@ -353,18 +367,26 @@ export function MessageStatusContent({ embedded = false }) {
                 )}
                 
                 {/* Message Logs Table - Desktop */}
+
+                <div className="hidden lg:block">
+
                 <div className="hidden md:block">
+
                     <Card className="shadow-sm border border-gray-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-3 py-3 w-10"></th>
-                                        <th className="px-3 py-3">Name</th>
-                                        <th className="px-3 py-3">Phone</th>
-                                        <th className="px-3 py-3">Status</th>
-                                        <th className="px-3 py-3">Time</th>
-                                        <th className="px-3 py-3">Action</th>
+
+                                        <th className="px-4 py-3 w-10"></th>
+                                        <th className="px-4 py-3">Name</th>
+                                        <th className="px-4 py-3">Phone</th>
+                                        <th className="px-4 py-3">Status</th>
+                                        <th className="px-4 py-3">Time</th>
+                                        <th className="px-4 py-3">Action</th>
+
+                                       
+
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -431,7 +453,11 @@ export function MessageStatusContent({ embedded = false }) {
                 </div>
                 
                 {/* Message Logs Cards - Mobile */}
+
+                <div className="lg:hidden space-y-3">
+
                 <div className="md:hidden space-y-3">
+
                     {loading ? (
                         [...Array(3)].map((_, i) => (
                             <Card key={i} className="animate-pulse">
@@ -518,15 +544,21 @@ export function MessageStatusContent({ embedded = false }) {
             </div>
     );
     
+
+    // Return with or without ResponsiveLayout wrapper
+
     // Return with or without MobileLayout wrapper
+
     if (embedded) {
         return content;
     }
     
     return (
-        <MobileLayout>
+
+        <ResponsiveLayout>
             {content}
-        </MobileLayout>
+        </ResponsiveLayout>
+
     );
 }
 

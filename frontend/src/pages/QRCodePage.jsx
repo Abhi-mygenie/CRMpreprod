@@ -4,7 +4,9 @@ import { Copy, Download, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MobileLayout } from "@/components/MobileLayout";
+
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+
 
 export default function QRCodePage() {
     const { api, user } = useAuth();
@@ -42,8 +44,11 @@ export default function QRCodePage() {
     };
 
     return (
-        <MobileLayout>
-            <div className="p-4 max-w-lg mx-auto">
+
+        <ResponsiveLayout>
+            <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
+
+        
                 <h1 className="text-2xl font-bold text-[#1A1A1A] mb-2 font-['Montserrat']" data-testid="qr-page-title">
                     Customer QR Code
                 </h1>
@@ -99,6 +104,8 @@ export default function QRCodePage() {
                     </div>
                 )}
             </div>
-        </MobileLayout>
+
+        </ResponsiveLayout>
+
     );
 }

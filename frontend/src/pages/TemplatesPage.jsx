@@ -10,7 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MobileLayout } from "@/components/MobileLayout";
+
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+
 
 export default function TemplatesPage() {
     const { api, user } = useAuth();
@@ -238,8 +240,10 @@ export default function TemplatesPage() {
     };
 
     return (
-        <MobileLayout>
-            <div className="p-4 max-w-lg mx-auto">
+
+        <ResponsiveLayout>
+            <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
+
                 <div className="flex items-center gap-3 mb-4">
                     <div>
                         <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="templates-title">
@@ -560,6 +564,8 @@ export default function TemplatesPage() {
                 </Dialog>
 
             </div>
-        </MobileLayout>
+
+        </ResponsiveLayout>
+
     );
 }

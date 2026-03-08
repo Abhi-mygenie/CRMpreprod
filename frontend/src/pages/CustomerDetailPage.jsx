@@ -12,7 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+
 import { MobileLayout } from "@/components/MobileLayout";
+
 
 export default function CustomerDetailPage() {
     const { id } = useParams();
@@ -200,18 +204,31 @@ export default function CustomerDetailPage() {
 
     if (loading) {
         return (
+
+            <ResponsiveLayout>
+
             <MobileLayout>
+
                 <div className="p-4 animate-pulse">
                     <div className="h-32 bg-gray-200 rounded-xl mb-4"></div>
                     <div className="h-24 bg-gray-200 rounded-xl"></div>
                 </div>
+
+            </ResponsiveLayout>
+
             </MobileLayout>
+
         );
     }
 
     return (
+
+        <ResponsiveLayout>
+            <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
+
         <MobileLayout>
             <div className="p-4 max-w-lg mx-auto">
+
                 {/* Back Button */}
                 <button 
                     onClick={() => navigate("/customers")}
@@ -1014,6 +1031,10 @@ export default function CustomerDetailPage() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+        </ResponsiveLayout>
+
         </MobileLayout>
+
     );
 }
