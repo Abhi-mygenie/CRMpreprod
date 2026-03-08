@@ -233,6 +233,13 @@
     z-index: 9999;
 }
 
+/* Hide bottom nav on desktop when sidebar is shown */
+@media (min-width: 1024px) {
+    .mobile-bottom-nav {
+        display: none;
+    }
+}
+
 .mobile-bottom-nav-item {
     display: flex;
     flex-direction: column;
