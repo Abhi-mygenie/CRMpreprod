@@ -72,7 +72,8 @@ const formatRelativeTime = (dateStr) => {
     return date.toLocaleDateString();
 };
 
-export default function MessageStatusPage() {
+// Exportable content component for embedding
+export function MessageStatusContent({ embedded = false }) {
     const { api } = useAuth();
     
     // State
@@ -211,10 +212,10 @@ export default function MessageStatusPage() {
     const eligibleCount = logs.filter(log => log.status === "pending" || log.status === "rejected").length;
     const allEligibleSelected = eligibleCount > 0 && selectedIds.size === eligibleCount;
     
-    return (
-        <MobileLayout>
-            <div className="p-4 md:p-6 max-w-6xl mx-auto">
-                {/* Header */}
+    const content = (
+        <div className={embedded ? "" : "p-4 md:p-6 max-w-6xl mx-auto"}>
+            {/* Header - only show when not embedded */}
+            {!embedded && (
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Georgia']" data-testid="message-status-title">
                         Message Status
@@ -228,6 +229,21 @@ export default function MessageStatusPage() {
                         <RefreshCw className="w-4 h-4 mr-1" /> Refresh
                     </Button>
                 </div>
+            )}
+            
+            {/* Refresh button for embedded mode */}
+            {embedded && (
+                <div className="flex justify-end mb-4">
+                    <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => { fetchStats(); fetchLogs(); }}
+                        data-testid="refresh-btn"
+                    >
+                        <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+                    </Button>
+                </div>
+            )}
                 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
@@ -514,6 +530,21 @@ export default function MessageStatusPage() {
                     </div>
                 )}
             </div>
+    );
+    
+    // Return with or without MobileLayout wrapper
+    if (embedded) {
+        return content;
+    }
+    
+    return (
+        <MobileLayout>
+            {content}
         </MobileLayout>
     );
+}
+
+// Default export for standalone page
+export default function MessageStatusPage() {
+    return <MessageStatusContent embedded={false} />;
 }
