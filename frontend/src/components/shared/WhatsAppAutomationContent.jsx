@@ -783,21 +783,21 @@ export function WhatsAppAutomationContent({ embedded = false }) {
         if (embedded) return <>{children}</>;
         return (
             <ResponsiveLayout>
-                <div className="p-4 max-w-lg mx-auto">
+                <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
                     {/* Header */}
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center gap-3 mb-6 lg:mb-8">
                         <button 
                             onClick={() => navigate("/settings")}
-                            className="p-2 hover:bg-gray-100 rounded-full"
+                            className="p-2 hover:bg-gray-100 rounded-full lg:hidden"
                             data-testid="back-btn"
                         >
                             <ChevronLeft className="w-5 h-5" />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="whatsapp-title">
+                            <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="whatsapp-title">
                                 WhatsApp Automation
                             </h1>
-                            <p className="text-sm text-[#52525B]">Templates & event triggers</p>
+                            <p className="text-sm lg:text-base text-[#52525B]">Templates & event triggers</p>
                         </div>
                     </div>
                     {children}
