@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
-import { MobileLayout } from "@/components/MobileLayout";
+
 
 
 export default function CustomerDetailPage() {
