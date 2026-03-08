@@ -25,7 +25,7 @@ const StatusBadge = ({ status }) => {
         delivered: { bg: "bg-green-100", text: "text-green-800", border: "border-green-300", icon: CheckCircle, label: "Delivered" },
         read: { bg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300", icon: Eye, label: "Read" },
         pending: { bg: "bg-yellow-100", text: "text-yellow-800", border: "border-yellow-300", icon: Clock, label: "Pending" },
-        rejected: { bg: "bg-red-100", text: "text-red-800", border: "border-red-300", icon: XCircle, label: "Rejected" }
+        rejected: { bg: "bg-red-100", text: "text-red-800", border: "border-red-300", icon: XCircle, label: "Failed" }
     };
     
     const { bg, text, border, icon: Icon, label } = config[status] || config.pending;
@@ -249,7 +249,7 @@ export function MessageStatusContent({ embedded = false }) {
                     <StatsCard icon={CheckCircle} label="Delivered" value={stats.delivered} color="bg-green-500" />
                     <StatsCard icon={Eye} label="Read" value={stats.read} color="bg-blue-500" />
                     <StatsCard icon={Clock} label="Pending" value={stats.pending} color="bg-yellow-500" />
-                    <StatsCard icon={XCircle} label="Rejected" value={stats.rejected} color="bg-red-500" />
+                    <StatsCard icon={XCircle} label="Failed" value={stats.rejected} color="bg-red-500" />
                 </div>
                 
                 {/* Filters */}
