@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { MobileLayout } from "@/components/MobileLayout";
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 import { ComingSoonOverlay } from "@/components/shared/ComingSoonOverlay";
 import { COUNTRY_CODES, GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
 import { SegmentsPageContent } from "@/pages/SegmentsPage";
