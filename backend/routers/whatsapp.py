@@ -980,12 +980,51 @@ async def get_message_logs(
 
 @router.get("/message-filters")
 async def get_message_filters(user: dict = Depends(get_current_user)):
-    """Get available filter options for message logs"""
-    # Get unique event types
-    event_types = await db.whatsapp_message_logs.distinct("event_type", {"user_id": user["id"]})
+    """Get available filter options for message logs from master data"""
     
-    # Get unique template names
-    template_names = await db.whatsapp_message_logs.distinct("template_name", {"user_id": user["id"]})
+    # Get events from master list (POS + CRM events)
+    event_types = AUTOMATION_EVENTS
+    
+    # Get templates from authkey templates + custom templates
+    template_names = set()
+    
+    # Get AuthKey templates if API key configured
+    if user.get("authkey_api_key"):
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "https://api.authkey.io/request",
+                    params={
+                        "authkey": user["authkey_api_key"],
+                        "type": "getAllTemplate"
+                    },
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    templates = data.get("templates", [])
+                    for t in templates:
+                        name = t.get("temp_name") or t.get("name")
+                        if name:
+                            template_names.add(name)
+        except Exception:
+            pass
+    
+    # Get custom templates from DB
+    custom_templates = await db.custom_templates.find(
+        {"user_id": user["id"]}, {"_id": 0, "name": 1}
+    ).to_list(100)
+    for t in custom_templates:
+        if t.get("name"):
+            template_names.add(t["name"])
+    
+    # Get configured template mappings
+    mappings = await db.whatsapp_event_template_map.find(
+        {"user_id": user["id"]}, {"_id": 0, "template_name": 1}
+    ).to_list(100)
+    for m in mappings:
+        if m.get("template_name"):
+            template_names.add(m["template_name"])
     
     # Get campaigns (segments)
     campaigns = await db.segments.find(
@@ -994,8 +1033,8 @@ async def get_message_filters(user: dict = Depends(get_current_user)):
     
     return {
         "statuses": MESSAGE_STATUSES,
-        "event_types": [e for e in event_types if e],
-        "template_names": [t for t in template_names if t],
+        "event_types": event_types,
+        "template_names": sorted(list(template_names)),
         "campaigns": campaigns
     }
 
