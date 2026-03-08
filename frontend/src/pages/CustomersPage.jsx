@@ -2307,6 +2307,6 @@ export default function CustomersPage() {
                     </form>
                 </DialogContent>
             </Dialog>
-        </MobileLayout>
+        </ResponsiveLayout>
     );
 }
