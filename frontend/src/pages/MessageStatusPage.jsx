@@ -41,14 +41,14 @@ const StatusBadge = ({ status }) => {
 // Stats card component
 const StatsCard = ({ icon: Icon, label, value, color }) => (
     <Card className="bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
-        <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${color}`}>
-                    <Icon className="w-5 h-5 text-white" />
+        <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+                <div className={`p-2 rounded-lg flex-shrink-0 ${color}`}>
+                    <Icon className="w-4 h-4 text-white" />
                 </div>
-                <div>
-                    <p className="text-xs text-gray-500 font-medium">{label}</p>
-                    <p className="text-xl font-bold text-gray-900 font-['Inter']">{value.toLocaleString()}</p>
+                <div className="min-w-0">
+                    <p className="text-[10px] text-gray-500 font-medium whitespace-nowrap">{label}</p>
+                    <p className="text-lg font-bold text-gray-900">{value.toLocaleString()}</p>
                 </div>
             </div>
         </CardContent>
@@ -256,11 +256,11 @@ export function MessageStatusContent({ embedded = false }) {
                 
                 {/* Filters */}
                 <Card className="mb-4 shadow-sm border border-gray-100">
-                    <CardContent className="p-4">
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <CardContent className="p-3">
+                        <div className="flex flex-wrap gap-2">
                             {/* Status Filter */}
                             <Select value={filters.status} onValueChange={(v) => handleFilterChange("status", v)}>
-                                <SelectTrigger data-testid="filter-status">
+                                <SelectTrigger data-testid="filter-status" className="w-[100px] text-xs h-9">
                                     <SelectValue placeholder="Status" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -273,8 +273,8 @@ export function MessageStatusContent({ embedded = false }) {
                             
                             {/* Event Type Filter */}
                             <Select value={filters.event_type} onValueChange={(v) => handleFilterChange("event_type", v)}>
-                                <SelectTrigger data-testid="filter-event-type">
-                                    <SelectValue placeholder="Event Type" />
+                                <SelectTrigger data-testid="filter-event-type" className="w-[100px] text-xs h-9">
+                                    <SelectValue placeholder="Event" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Events</SelectItem>
@@ -286,7 +286,7 @@ export function MessageStatusContent({ embedded = false }) {
                             
                             {/* Campaign Filter */}
                             <Select value={filters.campaign_id} onValueChange={(v) => handleFilterChange("campaign_id", v)}>
-                                <SelectTrigger data-testid="filter-campaign">
+                                <SelectTrigger data-testid="filter-campaign" className="w-[110px] text-xs h-9">
                                     <SelectValue placeholder="Campaign" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -299,7 +299,7 @@ export function MessageStatusContent({ embedded = false }) {
                             
                             {/* Template Filter */}
                             <Select value={filters.template_name} onValueChange={(v) => handleFilterChange("template_name", v)}>
-                                <SelectTrigger data-testid="filter-template">
+                                <SelectTrigger data-testid="filter-template" className="w-[110px] text-xs h-9">
                                     <SelectValue placeholder="Template" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -311,13 +311,13 @@ export function MessageStatusContent({ embedded = false }) {
                             </Select>
                             
                             {/* Search */}
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <div className="relative flex-1 min-w-[120px]">
+                                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <Input 
-                                    placeholder="Search phone..."
+                                    placeholder="Search..."
                                     value={filters.search}
                                     onChange={(e) => handleFilterChange("search", e.target.value)}
-                                    className="pl-9"
+                                    className="pl-8 text-xs h-9"
                                     data-testid="filter-search"
                                 />
                             </div>
@@ -360,37 +360,40 @@ export function MessageStatusContent({ embedded = false }) {
                             <table className="w-full text-sm text-left">
                                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-4 py-3 w-10"></th>
-                                        <th className="px-4 py-3">Phone</th>
-                                        <th className="px-4 py-3">Template</th>
-                                        <th className="px-4 py-3">Event</th>
-                                        <th className="px-4 py-3">Campaign</th>
-                                        <th className="px-4 py-3">Status</th>
-                                        <th className="px-4 py-3">Time</th>
-                                        <th className="px-4 py-3">Action</th>
+                                        <th className="px-3 py-3 w-10"></th>
+                                        <th className="px-3 py-3">Name</th>
+                                        <th className="px-3 py-3">Phone</th>
+                                        <th className="px-3 py-3">Template</th>
+                                        <th className="px-3 py-3">Source</th>
+                                        <th className="px-3 py-3">Status</th>
+                                        <th className="px-3 py-3">Time</th>
+                                        <th className="px-3 py-3">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {loading ? (
                                         [...Array(5)].map((_, i) => (
                                             <tr key={i} className="border-b">
-                                                <td colSpan={8} className="px-4 py-4">
+                                                <td colSpan={8} className="px-3 py-4">
                                                     <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
                                                 </td>
                                             </tr>
                                         ))
                                     ) : logs.length === 0 ? (
                                         <tr>
-                                            <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                                            <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
                                                 No messages found
                                             </td>
                                         </tr>
                                     ) : (
                                         logs.map(log => {
                                             const isEligible = log.status === "pending" || log.status === "rejected";
+                                            const source = log.campaign_id 
+                                                ? filterOptions.campaigns.find(c => c.id === log.campaign_id)?.name || "Campaign"
+                                                : log.event_type?.replace(/_/g, " ") || "-";
                                             return (
                                                 <tr key={log.id} className="bg-white border-b hover:bg-gray-50 transition-colors" data-testid={`message-row-${log.id}`}>
-                                                    <td className="px-4 py-3">
+                                                    <td className="px-3 py-3">
                                                         <Checkbox 
                                                             checked={selectedIds.has(log.id)}
                                                             disabled={!isEligible}
@@ -398,25 +401,25 @@ export function MessageStatusContent({ embedded = false }) {
                                                             data-testid={`checkbox-${log.id}`}
                                                         />
                                                     </td>
-                                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                                    <td className="px-3 py-3 font-medium text-gray-900">
+                                                        {log.customer_name || "-"}
+                                                    </td>
+                                                    <td className="px-3 py-3 text-gray-600">
                                                         {log.customer_phone || "-"}
                                                     </td>
-                                                    <td className="px-4 py-3 text-gray-600">
+                                                    <td className="px-3 py-3 text-gray-600">
                                                         {log.template_name || "-"}
                                                     </td>
-                                                    <td className="px-4 py-3 text-gray-600">
-                                                        {log.event_type?.replace(/_/g, " ") || "-"}
+                                                    <td className="px-3 py-3 text-gray-600 capitalize">
+                                                        {source}
                                                     </td>
-                                                    <td className="px-4 py-3 text-gray-600">
-                                                        {filterOptions.campaigns.find(c => c.id === log.campaign_id)?.name || "-"}
-                                                    </td>
-                                                    <td className="px-4 py-3">
+                                                    <td className="px-3 py-3">
                                                         <StatusBadge status={log.status} />
                                                     </td>
-                                                    <td className="px-4 py-3 text-gray-500 text-xs">
+                                                    <td className="px-3 py-3 text-gray-500 text-xs">
                                                         {formatRelativeTime(log.created_at)}
                                                     </td>
-                                                    <td className="px-4 py-3">
+                                                    <td className="px-3 py-3">
                                                         {isEligible && (
                                                             <Button 
                                                                 size="sm" 
@@ -458,10 +461,13 @@ export function MessageStatusContent({ embedded = false }) {
                     ) : (
                         logs.map(log => {
                             const isEligible = log.status === "pending" || log.status === "rejected";
+                            const source = log.campaign_id 
+                                ? filterOptions.campaigns.find(c => c.id === log.campaign_id)?.name || "Campaign"
+                                : log.event_type?.replace(/_/g, " ") || "-";
                             return (
                                 <Card key={log.id} className="shadow-sm border border-gray-100">
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start gap-3">
+                                    <CardContent className="p-3">
+                                        <div className="flex items-start gap-2">
                                             <Checkbox 
                                                 checked={selectedIds.has(log.id)}
                                                 disabled={!isEligible}
@@ -469,18 +475,16 @@ export function MessageStatusContent({ embedded = false }) {
                                                 className="mt-1"
                                             />
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="font-medium text-gray-900">{log.customer_phone || "-"}</span>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="font-medium text-gray-900 text-sm">{log.customer_name || log.customer_phone || "-"}</span>
                                                     <StatusBadge status={log.status} />
                                                 </div>
-                                                <div className="text-sm text-gray-600 mb-1">
-                                                    {log.template_name || "-"} • {log.event_type?.replace(/_/g, " ") || "-"}
-                                                </div>
-                                                {log.campaign_id && (
-                                                    <div className="text-xs text-gray-500 mb-2">
-                                                        Campaign: {filterOptions.campaigns.find(c => c.id === log.campaign_id)?.name || "-"}
-                                                    </div>
+                                                {log.customer_name && (
+                                                    <div className="text-xs text-gray-500 mb-1">{log.customer_phone}</div>
                                                 )}
+                                                <div className="text-xs text-gray-600 mb-1">
+                                                    {log.template_name || "-"} • <span className="capitalize">{source}</span>
+                                                </div>
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs text-gray-400">{formatRelativeTime(log.created_at)}</span>
                                                     {isEligible && (

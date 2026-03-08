@@ -321,7 +321,8 @@ async def log_message_attempt(
     template_name: str = None,
     campaign_id: str = None,
     country_code: str = "91",
-    body_values: Dict = None
+    body_values: Dict = None,
+    customer_name: str = None
 ):
     """Log a WhatsApp message attempt to database for status tracking"""
     import uuid
@@ -335,6 +336,7 @@ async def log_message_attempt(
         "id": str(uuid.uuid4()),
         "user_id": user_id,
         "customer_id": customer_id,
+        "customer_name": customer_name or "",
         "customer_phone": phone,
         "country_code": country_code,
         "event_type": event_type,
@@ -446,7 +448,8 @@ async def trigger_whatsapp_event(
             template_name=config.get("template_name"),
             campaign_id=event_data.get("campaign_id") if event_data else None,
             country_code=country_code,
-            body_values=body_values
+            body_values=body_values,
+            customer_name=customer.get("name")
         )
         
         return result
