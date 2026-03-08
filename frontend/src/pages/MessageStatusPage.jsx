@@ -244,7 +244,7 @@ export function MessageStatusContent({ embedded = false }) {
             )}
                 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4 mb-6 lg:mb-8">
                     <StatsCard icon={MessageSquare} label="Total" value={stats.total} color="bg-gray-500" />
                     <StatsCard icon={CheckCircle} label="Delivered" value={stats.delivered} color="bg-green-500" />
                     <StatsCard icon={Eye} label="Read" value={stats.read} color="bg-blue-500" />
