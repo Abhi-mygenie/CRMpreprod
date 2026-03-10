@@ -265,7 +265,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                 api.get("/whatsapp/automation/events"),
                 api.get("/whatsapp/api-key")
             ]);
-            setTemplates(templatesRes.data);
+            setTemplates(templatesRes.data.templates || templatesRes.data || []);
             setAutomationRules(rulesRes.data);
             setAvailableEvents(eventsRes.data.events || []);
             setWhatsappApiKey(apiKeyRes.data.authkey_api_key || "");
