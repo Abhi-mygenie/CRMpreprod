@@ -72,8 +72,22 @@
 
 ## Prioritized Backlog
 - P0: Application running with Item Analytics ✅
+- P0: Segment creation on Segments page ✅
 - P1: Additional analytics (see Analytics Roadmap below)
+- P1: Handle empty customer names ("NA" display) ✅
 - P2: AI-powered recommendations based on item performance
+
+---
+
+## Session 4 (2026-03-10) - Segment Creation Migration & UI Fixes
+- ✅ Moved "Add Segment" feature from CustomersPage to SegmentsPage
+  - Added "Add Segment" button in SegmentsPage header
+  - Created full-featured Create Segment modal with all filters (tier, inactive, visits, spent, city, type, diet, time slot, dining, gender, source, WhatsApp, VIP, birthday, anniversary)
+  - Preview count feature to see matching customers before saving
+  - Clean removal of segment creation code from CustomersPage
+- ✅ Added `POST /api/segments/preview-count` backend endpoint
+- ✅ Fixed empty/null customer names to show "NA" in CustomersPage and CustomerLifecyclePage
+- ✅ Testing: 100% pass rate (backend + frontend) via testing agent
 
 ---
 
@@ -117,7 +131,8 @@
 ---
 
 ## Next Tasks
-- Test category filtering
-- Add drill-down to see which customers ordered specific items
-- Trend sparklines for items over time
-- Pick next analytics feature from roadmap
+- Cohort Analysis Dashboard (P1)
+- RFM Segmentation (P1)
+- Revenue by Customer Segment Dashboard (P1)
+- Points Economy Dashboard (P1)
+- Sorting button UI improvement on Item Analytics page (P2 - user verification pending)
