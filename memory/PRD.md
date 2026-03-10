@@ -24,6 +24,26 @@
 - ✅ Added route `/item-analytics` to App.js
 - ✅ Added "Item Analytics" to sidebar navigation
 
+### Session 3 (2026-03-10) - Customer Lifecycle Dashboard
+- ✅ Added customer lifecycle endpoints to `/app/backend/routers/analytics.py`
+  - `GET /api/analytics/customer-lifecycle` - Summary counts per stage
+  - `GET /api/analytics/customer-lifecycle/trend` - Historical trend data
+  - `GET /api/analytics/customer-lifecycle/customers` - Filtered customer list
+  - `GET /api/analytics/customer-lifecycle/export` - CSV export
+- ✅ Created `/app/frontend/src/pages/CustomerLifecyclePage.jsx`
+- ✅ Added route `/customer-lifecycle` to App.js
+- ✅ Added "Lifecycle" to sidebar navigation
+
+#### Customer Lifecycle Features:
+- 5 stage cards: New, Active, At Risk, Dormant, Churned (with counts & %)
+- Stacked area chart showing lifecycle trend over time (30d/90d/180d/365d)
+- Stage distribution bar with color-coded breakdown
+- Customer table with sortable columns
+- Stage filter & search
+- Re-engage button for at-risk/dormant/churned customers
+- Export to CSV
+- Mobile responsive card view
+
 #### Item Analytics Features:
 - Summary cards: Total Items, Avg Repeat Rate, High Performers, Categories
 - Filters: Time Period (7d/30d/90d/all), Category, Search
@@ -62,7 +82,7 @@
 ### Customer Analytics
 | # | Feature | Description | Priority | Status |
 |---|---------|-------------|----------|--------|
-| 1 | Customer Lifecycle Dashboard | New vs Returning vs Churned customers over time | P1 | Planned |
+| 1 | Customer Lifecycle Dashboard | New vs Returning vs Churned customers over time | P1 | ✅ Done |
 | 2 | Cohort Analysis | Retention rates by signup month | P1 | Planned |
 | 3 | RFM Segmentation | Recency, Frequency, Monetary scoring (VIPs, At-Risk, Lost) | P1 | Planned |
 | 4 | Churn Prediction | Customers likely to churn based on declining visit frequency | P2 | Planned |

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { 
     Home, Users, FileText, MessageSquare, Settings, 
     QrCode, Gift, Award, Zap, ChevronLeft, ChevronRight,
-    LayoutDashboard, BarChart3
+    LayoutDashboard, BarChart3, Activity
 } from "lucide-react";
 import { DemoModeBanner } from "@/components/shared/DemoModeBanner";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ export const ResponsiveLayout = ({ children }) => {
         { path: "/", icon: LayoutDashboard, label: "Dashboard" },
         { path: "/customers", icon: Users, label: "Customers" },
         { path: "/segments", icon: Users, label: "Segments" },
+        { path: "/customer-lifecycle", icon: Activity, label: "Lifecycle" },
         { path: "/item-analytics", icon: BarChart3, label: "Item Analytics" },
         { path: "/templates", icon: FileText, label: "Templates" },
         { path: "/qr", icon: QrCode, label: "QR Code" },
