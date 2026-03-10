@@ -16,13 +16,22 @@ export const ResponsiveLayout = ({ children }) => {
     const [expandedGroups, setExpandedGroups] = useState({});
     
     const whatsappChildPaths = ["/settings", "/templates", "/whatsapp-automation", "/segments"];
+    const analyticsChildPaths = ["/customer-lifecycle", "/item-analytics"];
     const isWhatsAppChildActive = whatsappChildPaths.includes(location.pathname);
+    const isAnalyticsChildActive = analyticsChildPaths.includes(location.pathname);
 
     const navItems = [
         { path: "/", icon: LayoutDashboard, label: "Dashboard" },
         { path: "/customers", icon: Users, label: "Customers" },
-        { path: "/customer-lifecycle", icon: Activity, label: "Lifecycle" },
-        { path: "/item-analytics", icon: BarChart3, label: "Item Analytics" },
+        { 
+            icon: BarChart3, 
+            label: "Analytics",
+            group: "analytics",
+            children: [
+                { path: "/customer-lifecycle", icon: Activity, label: "Lifecycle" },
+                { path: "/item-analytics", icon: BarChart3, label: "Item Analytics" },
+            ]
+        },
         { path: "/loyalty-settings", icon: Award, label: "Loyalty" },
         { path: "/coupons", icon: Gift, label: "Coupons" },
         { path: "/wallet", icon: Wallet, label: "Wallet" },
@@ -49,7 +58,9 @@ export const ResponsiveLayout = ({ children }) => {
 
     const isGroupExpanded = (group) => {
         if (expandedGroups[group] !== undefined) return expandedGroups[group];
-        return isWhatsAppChildActive;
+        if (group === "whatsapp") return isWhatsAppChildActive;
+        if (group === "analytics") return isAnalyticsChildActive;
+        return false;
     };
 
     // Bottom nav items (subset for mobile)
