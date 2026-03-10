@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { 
     Home, Users, FileText, MessageSquare, Settings, 
     QrCode, Gift, Award, Zap, ChevronLeft, ChevronRight,
-    LayoutDashboard, BarChart3, Activity
+    LayoutDashboard, BarChart3, Activity, LogOut
 } from "lucide-react";
 import { DemoModeBanner } from "@/components/shared/DemoModeBanner";
 import { cn } from "@/lib/utils";
@@ -100,8 +100,24 @@ export const ResponsiveLayout = ({ children }) => {
                     </ul>
                 </nav>
 
-                {/* Collapse Toggle */}
-                <div className="p-3 border-t border-gray-100">
+                {/* Logout & Collapse */}
+                <div className="p-3 border-t border-gray-100 space-y-1">
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem("token");
+                            localStorage.removeItem("user");
+                            navigate("/login");
+                        }}
+                        className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 transition-colors",
+                            sidebarCollapsed && "justify-center px-2"
+                        )}
+                        data-testid="sidebar-logout-btn"
+                        title={sidebarCollapsed ? "Logout" : undefined}
+                    >
+                        <LogOut className="w-5 h-5 flex-shrink-0" />
+                        {!sidebarCollapsed && <span className="font-medium text-sm">Logout</span>}
+                    </button>
                     <button
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[#52525B] hover:bg-gray-50 transition-colors"
