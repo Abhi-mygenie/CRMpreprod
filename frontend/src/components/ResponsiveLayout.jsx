@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { 
     Home, Users, FileText, MessageSquare, Settings, 
     QrCode, Gift, Award, Zap, ChevronLeft, ChevronRight,
-    LayoutDashboard, BarChart3, Activity, LogOut, User, RefreshCw
+    LayoutDashboard, BarChart3, Activity, LogOut, User, RefreshCw,
+    Wallet, UserPlus
 } from "lucide-react";
 import { DemoModeBanner } from "@/components/shared/DemoModeBanner";
 import { cn } from "@/lib/utils";
@@ -16,18 +17,19 @@ export const ResponsiveLayout = ({ children }) => {
     const navItems = [
         { path: "/", icon: LayoutDashboard, label: "Dashboard" },
         { path: "/customers", icon: Users, label: "Customers" },
-        { path: "/segments", icon: Users, label: "Segments" },
         { path: "/customer-lifecycle", icon: Activity, label: "Lifecycle" },
         { path: "/item-analytics", icon: BarChart3, label: "Item Analytics" },
-        { path: "/templates", icon: FileText, label: "Templates" },
-        { path: "/qr", icon: QrCode, label: "QR Code" },
-        { path: "/feedback", icon: MessageSquare, label: "Feedback" },
-        { path: "/coupons", icon: Gift, label: "Coupons" },
         { path: "/loyalty-settings", icon: Award, label: "Loyalty" },
+        { path: "/coupons", icon: Gift, label: "Coupons" },
+        { path: "/wallet", icon: Wallet, label: "Wallet" },
+        { path: "/settings", icon: MessageSquare, label: "WhatsApp" },
+        { path: "/templates", icon: FileText, label: "Templates" },
         { path: "/whatsapp-automation", icon: Zap, label: "Automation" },
-        { path: "/settings", icon: Settings, label: "Settings" },
-        { path: "/profile", icon: User, label: "Profile" },
-        { path: "/migration", icon: RefreshCw, label: "Migration" }
+        { path: "/segments", icon: Users, label: "Segments" },
+        { path: "/feedback", icon: MessageSquare, label: "Feedback" },
+        { path: "/qr", icon: UserPlus, label: "Add Customer" },
+        { path: "/migration", icon: RefreshCw, label: "Migration" },
+        { path: "/profile", icon: User, label: "Profile" }
     ];
 
     // Bottom nav items (subset for mobile)
@@ -36,7 +38,7 @@ export const ResponsiveLayout = ({ children }) => {
         { path: "/customers", icon: Users, label: "Customers" },
         { path: "/templates", icon: FileText, label: "Templates" },
         { path: "/feedback", icon: MessageSquare, label: "Feedback" },
-        { path: "/settings", icon: Settings, label: "Settings" }
+        { path: "/settings", icon: MessageSquare, label: "WhatsApp" }
     ];
 
     return (

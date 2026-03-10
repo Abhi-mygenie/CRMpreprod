@@ -23,6 +23,7 @@ import ItemAnalyticsPage from "@/pages/ItemAnalyticsPage";
 import CustomerLifecyclePage from "@/pages/CustomerLifecyclePage";
 import ProfilePage from "@/pages/ProfilePage";
 import MigrationPage from "@/pages/MigrationPage";
+import WalletPage from "@/pages/WalletPage";
 
 // Components
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -56,6 +57,7 @@ function App() {
                         <Route path="/customer-lifecycle" element={<ProtectedRoute><CustomerLifecyclePage /></ProtectedRoute>} />
                         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                         <Route path="/migration" element={<ProtectedRoute><MigrationPage /></ProtectedRoute>} />
+                        <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
 
                         {/* Fallback */}
                         <Route path="*" element={<Navigate to="/" />} />
