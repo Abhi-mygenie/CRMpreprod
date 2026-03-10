@@ -113,6 +113,13 @@ const StageBadge = ({ stage }) => {
     );
 };
 
+// Helper to format customer name (show NA for @mygenie.online emails)
+const formatCustomerName = (name) => {
+    if (!name) return "—";
+    if (name.includes("@mygenie.online")) return "NA";
+    return name;
+};
+
 // Custom tooltip for chart
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -527,7 +534,7 @@ export default function CustomerLifecyclePage() {
                                             >
                                                 <td className="px-4 py-3">
                                                     <div>
-                                                        <p className="font-medium text-gray-900">{customer.name || "—"}</p>
+                                                        <p className="font-medium text-gray-900">{formatCustomerName(customer.name)}</p>
                                                         <p className="text-xs text-gray-500">{customer.phone}</p>
                                                     </div>
                                                 </td>
@@ -605,7 +612,7 @@ export default function CustomerLifecyclePage() {
                                         <CardContent className="p-4">
                                             <div className="flex justify-between items-start mb-3">
                                                 <div>
-                                                    <p className="font-medium text-gray-900">{customer.name || "—"}</p>
+                                                    <p className="font-medium text-gray-900">{formatCustomerName(customer.name)}</p>
                                                     <p className="text-xs text-gray-500">{customer.phone}</p>
                                                 </div>
                                                 <StageBadge stage={customer.stage} />

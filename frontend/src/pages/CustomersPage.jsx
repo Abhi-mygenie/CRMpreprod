@@ -25,6 +25,20 @@ import { ComingSoonOverlay } from "@/components/shared/ComingSoonOverlay";
 import { COUNTRY_CODES, GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
 import { SegmentsPageContent } from "@/pages/SegmentsPage";
 
+// Helper to format customer name (show NA for @mygenie.online emails)
+const formatCustomerName = (name) => {
+    if (!name) return "—";
+    if (name.includes("@mygenie.online")) return "NA";
+    return name;
+};
+
+// Helper to check if email should be shown
+const shouldShowEmail = (email) => {
+    if (!email) return false;
+    if (email.includes("@mygenie.online")) return false;
+    return true;
+};
+
 export default function CustomersPage() {
     const { api, isDemoMode } = useAuth();
     const navigate = useNavigate();
@@ -1330,12 +1344,12 @@ export default function CustomersPage() {
                                                                     ? "bg-[#F26B33]/10 text-[#F26B33]" 
                                                                     : "bg-[#329937]/10 text-[#329937]"
                                                             }`}>
-                                                                {customer.customer_type === "corporate" ? <Building2 className="w-4 h-4" /> : customer.name.charAt(0)}
+                                                                {customer.customer_type === "corporate" ? <Building2 className="w-4 h-4" /> : (formatCustomerName(customer.name) === "NA" ? "?" : customer.name.charAt(0))}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <div>
-                                                            <p className="font-medium text-[#1A1A1A] text-sm">{customer.name}</p>
-                                                            {customer.email && <p className="text-xs text-gray-400">{customer.email}</p>}
+                                                            <p className="font-medium text-[#1A1A1A] text-sm">{formatCustomerName(customer.name)}</p>
+                                                            {shouldShowEmail(customer.email) && <p className="text-xs text-gray-400">{customer.email}</p>}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -1420,12 +1434,12 @@ export default function CustomersPage() {
                                                     ? "bg-[#F26B33]/10 text-[#F26B33]" 
                                                     : "bg-[#329937]/10 text-[#329937]"
                                             }`}>
-                                                {customer.customer_type === "corporate" ? <Building2 className="w-5 h-5" /> : customer.name.charAt(0)}
+                                                {customer.customer_type === "corporate" ? <Building2 className="w-5 h-5" /> : (formatCustomerName(customer.name) === "NA" ? "?" : customer.name.charAt(0))}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <p className="font-medium text-[#1A1A1A] truncate">{customer.name}</p>
+                                                <p className="font-medium text-[#1A1A1A] truncate">{formatCustomerName(customer.name)}</p>
                                                 <button
                                                     onClick={(e) => openEditModal(customer, e)}
                                                     className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#F26B33]/10 transition-colors"
