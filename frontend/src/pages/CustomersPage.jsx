@@ -35,7 +35,7 @@ const formatCustomerName = (name) => {
 // Helper to check if email should be shown
 const shouldShowEmail = (email) => {
     if (!email) return false;
-    if (email.includes("@mygenie.online")) return false;
+    if (email.includes("@mygenie")) return false;
     return true;
 };
 
