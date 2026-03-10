@@ -700,74 +700,52 @@ export default function CustomersPage() {
                     </Button>
                 </div>
 
-                {/* Sorting Tabs - Smaller compact chips */}
-                <div className="flex gap-1.5 lg:gap-2 overflow-x-auto pb-3 lg:pb-4 mb-3 lg:mb-4 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
-                    <button
-                        onClick={() => setFilters({...filters, sort_by: "created_at", sort_order: "desc", inactive_days: null, most_loyal: false})}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all font-body ${
-                            filters.sort_by === "created_at" && !filters.inactive_days && !filters.most_loyal
-                                ? 'bg-[#329937] text-white' 
-                                : 'bg-[#F5F5F5] text-[#F26B33] hover:bg-[#F26B33]/10'
-                        }`}
-                        data-testid="sort-tab-recent"
+                {/* Combined Filter Row - Search, Sort Dropdown, Tier Stats */}
+                <div className="flex flex-wrap items-center gap-3 mb-4 lg:mb-5">
+                    {/* Sort Dropdown */}
+                    <Select 
+                        value={filters.inactive_days === 30 ? "inactive_30d" : filters.most_loyal ? "most_loyal" : `${filters.sort_by}_${filters.sort_order}`}
+                        onValueChange={(value) => {
+                            if (value === "inactive_30d") {
+                                setFilters({...filters, inactive_days: 30, most_loyal: false, sort_by: "last_visit", sort_order: "asc"});
+                            } else if (value === "most_loyal") {
+                                setFilters({...filters, most_loyal: true, inactive_days: null, sort_by: "avg_visits_per_month", sort_order: "desc"});
+                            } else {
+                                const [sortBy, sortOrder] = value.split("_desc").length > 1 ? [value.replace("_desc", ""), "desc"] : [value.replace("_asc", ""), "asc"];
+                                setFilters({...filters, sort_by: sortBy || "created_at", sort_order: sortOrder || "desc", inactive_days: null, most_loyal: false});
+                            }
+                        }}
                     >
-                        Recent {filters.sort_by === "created_at" && !filters.inactive_days && !filters.most_loyal && <Check className="w-3 h-3" />}
-                    </button>
-                    <button
-                        onClick={() => setFilters({...filters, most_loyal: true, inactive_days: null, sort_by: "avg_visits_per_month", sort_order: "desc"})}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all font-body ${
-                            filters.most_loyal
-                                ? 'bg-[#8B5CF6] text-white' 
-                                : 'bg-[#F5F5F5] text-[#8B5CF6] hover:bg-[#8B5CF6]/10'
-                        }`}
-                        data-testid="sort-tab-most-loyal"
-                    >
-                        Most Loyal {filters.most_loyal && <Check className="w-3 h-3" />}
-                    </button>
-                    <button
-                        onClick={() => setFilters({...filters, sort_by: "total_visits", sort_order: "desc", inactive_days: null, most_loyal: false})}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all font-body ${
-                            filters.sort_by === "total_visits" && !filters.most_loyal
-                                ? 'bg-[#329937] text-white' 
-                                : 'bg-[#F5F5F5] text-[#F26B33] hover:bg-[#F26B33]/10'
-                        }`}
-                        data-testid="sort-tab-most-visited"
-                    >
-                        Visits {filters.sort_by === "total_visits" && !filters.most_loyal && <Check className="w-3 h-3" />}
-                    </button>
-                    <button
-                        onClick={() => setFilters({...filters, sort_by: "total_spent", sort_order: "desc", inactive_days: null, most_loyal: false})}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all font-body ${
-                            filters.sort_by === "total_spent" && !filters.most_loyal
-                                ? 'bg-[#329937] text-white' 
-                                : 'bg-[#F5F5F5] text-[#F26B33] hover:bg-[#F26B33]/10'
-                        }`}
-                        data-testid="sort-tab-most-spent"
-                    >
-                        Spend {filters.sort_by === "total_spent" && !filters.most_loyal && <Check className="w-3 h-3" />}
-                    </button>
-                    <button
-                        onClick={() => setFilters({...filters, sort_by: "total_points", sort_order: "desc", inactive_days: null, most_loyal: false})}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all font-body ${
-                            filters.sort_by === "total_points" && !filters.most_loyal
-                                ? 'bg-[#329937] text-white' 
-                                : 'bg-[#F5F5F5] text-[#F26B33] hover:bg-[#F26B33]/10'
-                        }`}
-                        data-testid="sort-tab-highest-points"
-                    >
-                        Points {filters.sort_by === "total_points" && !filters.most_loyal && <Check className="w-3 h-3" />}
-                    </button>
-                    <button
-                        onClick={() => setFilters({...filters, inactive_days: 30, most_loyal: false, sort_by: "last_visit", sort_order: "asc"})}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all font-body ${
-                            filters.inactive_days === 30
-                                ? 'bg-[#EF4444] text-white' 
-                                : 'bg-[#F5F5F5] text-[#EF4444] hover:bg-[#EF4444]/10'
-                        }`}
-                        data-testid="sort-tab-inactive"
-                    >
-                        Inactive (30d) {filters.inactive_days === 30 && <Check className="w-3 h-3" />}
-                    </button>
+                        <SelectTrigger className="w-[160px] h-9 text-sm" data-testid="sort-dropdown">
+                            <SelectValue placeholder="Sort by..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="created_at_desc">Recent</SelectItem>
+                            <SelectItem value="most_loyal">Most Loyal</SelectItem>
+                            <SelectItem value="inactive_30d">Inactive (30d)</SelectItem>
+                            <SelectItem value="total_visits_desc">Most Visits</SelectItem>
+                            <SelectItem value="total_spent_desc">Highest Spend</SelectItem>
+                            <SelectItem value="points_balance_desc">Most Points</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Tier Stats - Inline */}
+                    {segments && (
+                        <div className="flex gap-2 items-center">
+                            <div className="px-3 py-1.5 bg-gray-100 rounded-full text-xs font-medium text-[#52525B]">
+                                Total: {segments.total?.toLocaleString()}
+                            </div>
+                            <div className="px-3 py-1.5 bg-amber-50 rounded-full text-xs font-medium text-amber-700">
+                                Bronze: {segments.by_tier?.bronze || 0}
+                            </div>
+                            <div className="px-3 py-1.5 bg-gray-200 rounded-full text-xs font-medium text-gray-700">
+                                Silver: {segments.by_tier?.silver || 0}
+                            </div>
+                            <div className="px-3 py-1.5 bg-yellow-50 rounded-full text-xs font-medium text-yellow-700">
+                                Gold: {segments.by_tier?.gold || 0}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Compact Filter Drawer */}
@@ -1227,24 +1205,6 @@ export default function CustomersPage() {
                                     </Button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Segment Stats Bar */}
-                {segments && (
-                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-                        <div className="flex-shrink-0 px-3 py-1.5 bg-gray-100 rounded-full text-xs font-medium text-[#52525B]">
-                            Total: {segments.total?.toLocaleString()}
-                        </div>
-                        <div className="flex-shrink-0 px-3 py-1.5 bg-amber-50 rounded-full text-xs font-medium text-amber-700">
-                            Bronze: {segments.by_tier?.bronze || 0}
-                        </div>
-                        <div className="flex-shrink-0 px-3 py-1.5 bg-gray-200 rounded-full text-xs font-medium text-gray-700">
-                            Silver: {segments.by_tier?.silver || 0}
-                        </div>
-                        <div className="flex-shrink-0 px-3 py-1.5 bg-yellow-50 rounded-full text-xs font-medium text-yellow-700">
-                            Gold: {segments.by_tier?.gold || 0}
                         </div>
                     </div>
                 )}
