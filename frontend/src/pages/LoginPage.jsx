@@ -263,6 +263,7 @@ export default function LoginPage() {
                         Demo Login
                     </Button>
                 </form>
+                <p className="text-[10px] text-gray-400 text-right mt-4">Beta Version 0.1</p>
             </div>
 
             {/* Forgot Password Modal */}
