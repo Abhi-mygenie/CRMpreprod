@@ -52,10 +52,52 @@
 
 ## Prioritized Backlog
 - P0: Application running with Item Analytics ✅
-- P1: Additional analytics (customer lifecycle, cohort analysis)
+- P1: Additional analytics (see Analytics Roadmap below)
 - P2: AI-powered recommendations based on item performance
+
+---
+
+## Analytics Roadmap (Planned Features)
+
+### Customer Analytics
+| # | Feature | Description | Priority | Status |
+|---|---------|-------------|----------|--------|
+| 1 | Customer Lifecycle Dashboard | New vs Returning vs Churned customers over time | P1 | Planned |
+| 2 | Cohort Analysis | Retention rates by signup month | P1 | Planned |
+| 3 | RFM Segmentation | Recency, Frequency, Monetary scoring (VIPs, At-Risk, Lost) | P1 | Planned |
+| 4 | Churn Prediction | Customers likely to churn based on declining visit frequency | P2 | Planned |
+
+### Revenue Analytics
+| # | Feature | Description | Priority | Status |
+|---|---------|-------------|----------|--------|
+| 5 | Revenue by Customer Segment | Which tier (Bronze/Silver/Gold/Platinum) drives most revenue | P1 | Planned |
+| 6 | Average Order Value Trends | AOV over time, by day of week, by customer type | P1 | Planned |
+| 7 | Basket Analysis | Items frequently bought together (cross-sell opportunities) | P2 | Planned |
+
+### Loyalty & Engagement Analytics
+| # | Feature | Description | Priority | Status |
+|---|---------|-------------|----------|--------|
+| 8 | Points Economy Dashboard | Points issued vs redeemed, liability, redemption rate | P1 | Planned |
+| 9 | Coupon Performance | Which coupons drive conversions, ROI per coupon | P1 | Planned |
+| 10 | Feedback Sentiment Analysis | Rating trends, common complaint keywords | P2 | Planned |
+
+### Operational Analytics
+| # | Feature | Description | Priority | Status |
+|---|---------|-------------|----------|--------|
+| 11 | Peak Hours Heatmap | Orders by hour/day to optimize staffing | P1 | Planned |
+| 12 | Channel Performance | Dine-in vs Takeaway vs Delivery revenue split | P1 | Planned |
+| 13 | Lead Source ROI | Which acquisition channels bring highest LTV customers | P2 | Planned |
+
+### Predictive/AI Analytics
+| # | Feature | Description | Priority | Status |
+|---|---------|-------------|----------|--------|
+| 14 | Next Best Offer | Personalized recommendations per customer | P3 | Planned |
+| 15 | Demand Forecasting | Predict item demand for inventory planning | P3 | Planned |
+
+---
 
 ## Next Tasks
 - Test category filtering
 - Add drill-down to see which customers ordered specific items
 - Trend sparklines for items over time
+- Pick next analytics feature from roadmap
