@@ -75,7 +75,8 @@ const TestTemplateModal = memo(function TestTemplateModal({ open, onClose, templ
             });
             setTestResult(response.data);
             if (response.data.success) {
-                toast.success("Test message sent successfully!");
+                const authMsg = response.data.response_data?.Message || "Sent successfully";
+                toast.success(authMsg);
             } else {
                 const errorMsg = typeof response.data.error === 'string' ? response.data.error : JSON.stringify(response.data.error);
                 toast.error(errorMsg || "Failed to send test message");
@@ -190,7 +191,8 @@ const TestTemplateModal = memo(function TestTemplateModal({ open, onClose, templ
                                 <div className="flex items-center gap-2">
                                     <Check className="w-5 h-5 text-green-600" />
                                     <div>
-                                        <p className="text-sm font-medium text-green-700">Test sent successfully!</p>
+                                        <p className="text-sm font-medium text-green-700">{testResult.response_data?.Message || "Submitted"}</p>
+                                        {testResult.response_data?.LogID && <p className="text-xs text-green-600">LogID: {testResult.response_data.LogID}</p>}
                                         {testResult.message_id && <p className="text-xs text-green-600">Message ID: {String(testResult.message_id)}</p>}
                                     </div>
                                 </div>
