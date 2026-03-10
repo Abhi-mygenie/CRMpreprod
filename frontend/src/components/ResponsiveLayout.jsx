@@ -23,15 +23,6 @@ export const ResponsiveLayout = ({ children }) => {
     const navItems = [
         { path: "/", icon: LayoutDashboard, label: "Dashboard" },
         { path: "/customers", icon: Users, label: "Customers" },
-        { 
-            icon: BarChart3, 
-            label: "Analytics",
-            group: "analytics",
-            children: [
-                { path: "/customer-lifecycle", icon: Activity, label: "Lifecycle" },
-                { path: "/item-analytics", icon: BarChart3, label: "Item Analytics" },
-            ]
-        },
         { path: "/loyalty-settings", icon: Award, label: "Loyalty" },
         { path: "/coupons", icon: Gift, label: "Coupons" },
         { path: "/wallet", icon: Wallet, label: "Wallet" },
@@ -44,6 +35,15 @@ export const ResponsiveLayout = ({ children }) => {
                 { path: "/templates", icon: FileText, label: "Templates" },
                 { path: "/whatsapp-automation", icon: Zap, label: "Automation" },
                 { path: "/segments", icon: Users, label: "Segments" },
+            ]
+        },
+        { 
+            icon: BarChart3, 
+            label: "Analytics",
+            group: "analytics",
+            children: [
+                { path: "/customer-lifecycle", icon: Activity, label: "Lifecycle" },
+                { path: "/item-analytics", icon: BarChart3, label: "Item Analytics" },
             ]
         },
         { path: "/feedback", icon: MessageSquare, label: "Feedback" },
