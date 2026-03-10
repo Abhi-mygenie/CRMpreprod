@@ -1,0 +1,207 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* MyGenie Brand Colors */
+        --background: 0 0% 96%; /* #F5F5F5 Light Grey */
+        --foreground: 0 0% 17%; /* #2B2B2B Dark Grey */
+        
+        --card: 0 0% 100%; /* White */
+        --card-foreground: 0 0% 17%; /* #2B2B2B */
+        
+        --popover: 0 0% 100%;
+        --popover-foreground: 0 0% 17%;
+        
+        /* Brand Orange Primary */
+        --primary: 16 89% 58%; /* #F26B33 */
+        --primary-foreground: 0 0% 100%;
+        
+        /* Brand Green Secondary */
+        --secondary: 122 53% 40%; /* #329937 */
+        --secondary-foreground: 0 0% 100%;
+        
+        /* Genie Blue Accent */
+        --accent: 199 73% 64%; /* #62B5E5 */
+        --accent-foreground: 0 0% 100%;
+        
+        --muted: 0 0% 96%; /* #F5F5F5 */
+        --muted-foreground: 240 4% 46%; /* #52525B */
+        
+        --destructive: 0 72% 51%; /* #DC2626 */
+        --destructive-foreground: 0 0% 100%;
+        
+        --success: 122 53% 40%; /* #329937 */
+        --success-foreground: 0 0% 100%;
+        
+        --border: 0 0% 90%;
+        --input: 0 0% 96%; /* #F5F5F5 */
+        --ring: 16 89% 58%;
+        
+        --chart-1: 16 89% 58%; /* Orange */
+        --chart-2: 122 53% 40%; /* Green */
+        --chart-3: 199 73% 64%; /* Genie Blue */
+        --chart-4: 0 72% 51%;
+        --chart-5: 240 4% 46%;
+        
+        --radius: 0.75rem;
+        
+        /* Brand Colors as CSS variables */
+        --brand-orange: #F26B33;
+        --brand-green: #329937;
+        --brand-blue: #62B5E5;
+        --brand-dark: #2B2B2B;
+        --brand-light: #F5F5F5;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    
+    body {
+        @apply bg-background text-foreground;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        color: #2B2B2B;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        font-family: Georgia, 'Times New Roman', serif;
+        color: #2B2B2B;
+    }
+    
+    .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    /* Georgia for headings utility class */
+    .font-heading {
+        font-family: Georgia, 'Times New Roman', serif;
+    }
+    
+    /* Inter for body utility class */
+    .font-body {
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #E5E7EB;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #D1D5DB;
+}
+
+/* Mobile Bottom Safe Area */
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+/* Active state for buttons */
+.active-scale {
+    transition: transform 0.1s ease;
+}
+
+.active-scale:active {
+    transform: scale(0.95);
+}
+
+/* Loyalty Card Gradient */
+.loyalty-card-gradient {
+    background: linear-gradient(135deg, #F26B33 0%, #329937 100%);
+}
+
+/* Tier Colors */
+.tier-bronze {
+    color: #CD7F32;
+}
+
+.tier-silver {
+    color: #C0C0C0;
+}
+
+.tier-gold {
+    color: #FFD700;
+}
+
+.tier-platinum {
+    color: #2B2B2B; /* Dark Grey for Platinum */
+}
+
+/* Glass morphism effect */
+.glass {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Animation keyframes */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-slide-up {
+    animation: slideUp 0.3s ease-out forwards;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* Stagger animation */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Input focus ring override */
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(242, 107, 51, 0.2);
+}
+
+/* Bottom nav safe area */
+.bottom-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+}
+
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+}
