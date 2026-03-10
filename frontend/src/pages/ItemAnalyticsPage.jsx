@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { 
     BarChart3, TrendingUp, Users, ArrowUpDown, Search, 
-    Filter, Download, RefreshCw, ChevronUp, ChevronDown
+    Filter, Download, RefreshCw, ChevronUp, ChevronDown,
+    Send, X, MessageSquare, Loader2
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
 // Stats card component
@@ -69,6 +71,15 @@ export default function ItemAnalyticsPage() {
     });
     const [sortBy, setSortBy] = useState("repeat_rate");
     const [sortOrder, setSortOrder] = useState("desc");
+    
+    // Campaign modal state
+    const [showCampaignModal, setShowCampaignModal] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [itemCustomers, setItemCustomers] = useState({ total_customers: 0, whatsapp_enabled: 0, customers: [] });
+    const [templates, setTemplates] = useState([]);
+    const [selectedTemplate, setSelectedTemplate] = useState("");
+    const [campaignLoading, setCampaignLoading] = useState(false);
+    const [sendingCampaign, setSendingCampaign] = useState(false);
     
     // Fetch data
     const fetchData = useCallback(async () => {
@@ -143,6 +154,79 @@ export default function ItemAnalyticsPage() {
             toast.success("Export downloaded successfully");
         } catch (err) {
             toast.error("Failed to export data");
+        }
+    };
+    
+    // Open campaign modal
+    const handleOpenCampaign = async (item) => {
+        setSelectedItem(item);
+        setShowCampaignModal(true);
+        setCampaignLoading(true);
+        setSelectedTemplate("");
+        
+        try {
+            // Fetch customers for this item and templates in parallel
+            const [customersRes, templatesRes] = await Promise.all([
+                api.get(`/analytics/item-customers/${encodeURIComponent(item.item_name)}?time_period=${filters.time_period}`),
+                api.get('/whatsapp/templates')
+            ]);
+            
+            setItemCustomers(customersRes.data);
+            setTemplates(templatesRes.data.templates || []);
+        } catch (err) {
+            console.error("Failed to fetch campaign data:", err);
+            toast.error("Failed to load campaign data");
+        } finally {
+            setCampaignLoading(false);
+        }
+    };
+    
+    // Send campaign
+    const handleSendCampaign = async () => {
+        if (!selectedTemplate) {
+            toast.error("Please select a template");
+            return;
+        }
+        
+        const whatsappCustomers = itemCustomers.customers.filter(c => c.whatsapp_opt_in && c.phone);
+        
+        if (whatsappCustomers.length === 0) {
+            toast.error("No customers with WhatsApp opt-in found");
+            return;
+        }
+        
+        setSendingCampaign(true);
+        
+        try {
+            // Send to each customer
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (const customer of whatsappCustomers) {
+                try {
+                    await api.post('/whatsapp/send', {
+                        customer_id: customer.id,
+                        template_id: selectedTemplate,
+                        phone: customer.phone
+                    });
+                    successCount++;
+                } catch (err) {
+                    failCount++;
+                }
+            }
+            
+            if (successCount > 0) {
+                toast.success(`Campaign sent to ${successCount} customers${failCount > 0 ? ` (${failCount} failed)` : ''}`);
+            } else {
+                toast.error("Failed to send campaign");
+            }
+            
+            setShowCampaignModal(false);
+        } catch (err) {
+            console.error("Failed to send campaign:", err);
+            toast.error("Failed to send campaign");
+        } finally {
+            setSendingCampaign(false);
         }
     };
     
@@ -273,7 +357,7 @@ export default function ItemAnalyticsPage() {
                             <table className="w-full text-sm text-left" data-testid="item-analytics-table">
                                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-4 py-3 w-[30%]">Item</th>
+                                        <th className="px-4 py-3 w-[25%]">Item</th>
                                         <SortableHeader 
                                             label="Total Orders" 
                                             field="total_orders" 
@@ -309,20 +393,21 @@ export default function ItemAnalyticsPage() {
                                             currentOrder={sortOrder} 
                                             onSort={handleSort} 
                                         />
+                                        <th className="px-4 py-3 text-center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {loading ? (
                                         [...Array(8)].map((_, i) => (
                                             <tr key={i} className="border-b">
-                                                <td colSpan={6} className="px-4 py-4">
+                                                <td colSpan={7} className="px-4 py-4">
                                                     <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
                                                 </td>
                                             </tr>
                                         ))
                                     ) : items.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
+                                            <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                                                 <BarChart3 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                                                 <p>No item data found</p>
                                                 <p className="text-xs mt-1">Try adjusting your filters</p>
@@ -354,6 +439,17 @@ export default function ItemAnalyticsPage() {
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-600">
                                                     {item.return_visits.toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="text-[#F26B33] border-[#F26B33] hover:bg-[#F26B33] hover:text-white"
+                                                        onClick={() => handleOpenCampaign(item)}
+                                                        data-testid={`send-campaign-${idx}`}
+                                                    >
+                                                        <Send className="w-3 h-3 mr-1" /> Send Campaign
+                                                    </Button>
                                                 </td>
                                             </tr>
                                         ))
@@ -391,7 +487,7 @@ export default function ItemAnalyticsPage() {
                                             {item.repeat_rate}%
                                         </span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                                         <div className="bg-gray-50 p-2 rounded">
                                             <span className="text-gray-500">Total Orders</span>
                                             <p className="font-semibold text-gray-900">{item.total_orders}</p>
@@ -409,6 +505,13 @@ export default function ItemAnalyticsPage() {
                                             <p className="font-semibold text-gray-900">{item.return_visits}</p>
                                         </div>
                                     </div>
+                                    <Button
+                                        size="sm"
+                                        className="w-full bg-[#F26B33] hover:bg-[#D85A2A]"
+                                        onClick={() => handleOpenCampaign(item)}
+                                    >
+                                        <Send className="w-3 h-3 mr-1" /> Send Campaign
+                                    </Button>
                                 </CardContent>
                             </Card>
                         ))
@@ -422,6 +525,103 @@ export default function ItemAnalyticsPage() {
                     </p>
                 )}
             </div>
+            
+            {/* Send Campaign Modal */}
+            <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Send className="w-5 h-5 text-[#F26B33]" />
+                            Send Campaign
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    {campaignLoading ? (
+                        <div className="py-8 text-center">
+                            <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#F26B33]" />
+                            <p className="text-sm text-gray-500 mt-2">Loading campaign data...</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {/* Item Info */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <p className="text-sm text-gray-500">Item</p>
+                                <p className="font-semibold text-lg text-gray-900">{selectedItem?.item_name}</p>
+                            </div>
+                            
+                            {/* Customer Stats */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-blue-50 p-3 rounded-lg text-center">
+                                    <p className="text-2xl font-bold text-blue-700">{itemCustomers.total_customers}</p>
+                                    <p className="text-xs text-blue-600">Total Customers</p>
+                                </div>
+                                <div className="bg-green-50 p-3 rounded-lg text-center">
+                                    <p className="text-2xl font-bold text-green-700">{itemCustomers.whatsapp_enabled}</p>
+                                    <p className="text-xs text-green-600">WhatsApp Enabled</p>
+                                </div>
+                            </div>
+                            
+                            {/* Template Selection */}
+                            <div>
+                                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                    Select Template
+                                </label>
+                                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                                    <SelectTrigger data-testid="campaign-template-select">
+                                        <SelectValue placeholder="Choose a template..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {templates.length === 0 ? (
+                                            <SelectItem value="none" disabled>No templates available</SelectItem>
+                                        ) : (
+                                            templates.map(template => (
+                                                <SelectItem key={template.id} value={template.id}>
+                                                    {template.name}
+                                                </SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            {/* Warning if no WhatsApp customers */}
+                            {itemCustomers.whatsapp_enabled === 0 && (
+                                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                                    <p className="text-sm text-amber-700">
+                                        No customers with WhatsApp opt-in found for this item. Campaign cannot be sent.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowCampaignModal(false)}
+                            disabled={sendingCampaign}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSendCampaign}
+                            disabled={campaignLoading || sendingCampaign || itemCustomers.whatsapp_enabled === 0 || !selectedTemplate}
+                            className="bg-[#F26B33] hover:bg-[#D85A2A]"
+                            data-testid="send-campaign-btn"
+                        >
+                            {sendingCampaign ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Sending...
+                                </>
+                            ) : (
+                                <>
+                                    <MessageSquare className="w-4 h-4 mr-1" /> Send to {itemCustomers.whatsapp_enabled} Customers
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </ResponsiveLayout>
     );
 }

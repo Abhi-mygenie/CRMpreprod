@@ -713,13 +713,13 @@ class WhatsAppTemplate(BaseModel):
     id: str
     user_id: str
     name: str
-    message: str
+    message: Optional[str] = ""
     media_type: Optional[str] = None
     media_url: Optional[str] = None
     variables: Optional[List[str]] = None
     is_active: bool = True
     created_at: str
-    updated_at: str
+    updated_at: Optional[str] = None
 
 # Automation Rule Models
 class AutomationRuleCreate(BaseModel):

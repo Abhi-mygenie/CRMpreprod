@@ -89,10 +89,25 @@ async def create_template(template_data: WhatsAppTemplateCreate, user: dict = De
     await db.whatsapp_templates.insert_one(template_doc)
     return WhatsAppTemplate(**template_doc)
 
-@router.get("/templates", response_model=List[WhatsAppTemplate])
+@router.get("/templates")
 async def list_templates(user: dict = Depends(get_current_user)):
     templates = await db.whatsapp_templates.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(100)
-    return [WhatsAppTemplate(**t) for t in templates]
+    # Return templates with proper structure
+    result = []
+    for t in templates:
+        result.append({
+            "id": t.get("id", ""),
+            "user_id": t.get("user_id", ""),
+            "name": t.get("name", "Unnamed Template"),
+            "message": t.get("message", ""),
+            "media_type": t.get("media_type"),
+            "media_url": t.get("media_url"),
+            "variables": t.get("variables", []),
+            "is_active": t.get("is_active", True),
+            "created_at": t.get("created_at", ""),
+            "updated_at": t.get("updated_at", t.get("created_at", ""))
+        })
+    return {"templates": result}
 
 @router.get("/templates/{template_id}", response_model=WhatsAppTemplate)
 async def get_template(template_id: str, user: dict = Depends(get_current_user)):

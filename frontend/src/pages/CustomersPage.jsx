@@ -39,6 +39,27 @@ const shouldShowEmail = (email) => {
     return true;
 };
 
+// Sortable column header component
+const SortableHeader = ({ label, field, currentSort, currentOrder, onSort, align = "left" }) => {
+    const isActive = currentSort === field;
+    const alignClass = align === "center" ? "justify-center" : "justify-start";
+    return (
+        <th 
+            className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none ${align === "center" ? "text-center" : "text-left"}`}
+            onClick={() => onSort(field)}
+            data-testid={`sort-${field}`}
+        >
+            <div className={`flex items-center gap-1 ${alignClass}`}>
+                <span>{label}</span>
+                <div className="flex flex-col">
+                    <ChevronUp className={`w-3 h-3 -mb-1 ${isActive && currentOrder === 'asc' ? 'text-[#F26B33]' : 'text-gray-300'}`} />
+                    <ChevronDown className={`w-3 h-3 ${isActive && currentOrder === 'desc' ? 'text-[#F26B33]' : 'text-gray-300'}`} />
+                </div>
+            </div>
+        </th>
+    );
+};
+
 export default function CustomersPage() {
     const { api, isDemoMode } = useAuth();
     const navigate = useNavigate();
@@ -224,6 +245,24 @@ export default function CustomersPage() {
             toast.error("Failed to load customers");
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Handle column header sort click
+    const handleSort = (field) => {
+        if (filters.sort_by === field) {
+            // Toggle sort order if same field
+            setFilters(prev => ({
+                ...prev,
+                sort_order: prev.sort_order === "desc" ? "asc" : "desc"
+            }));
+        } else {
+            // New field, default to descending
+            setFilters(prev => ({
+                ...prev,
+                sort_by: field,
+                sort_order: "desc"
+            }));
         }
     };
 
@@ -1294,14 +1333,63 @@ export default function CustomersPage() {
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b border-gray-100">
                                     <tr>
-                                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+                                        <SortableHeader 
+                                            label="Customer" 
+                                            field="name" 
+                                            currentSort={filters.sort_by} 
+                                            currentOrder={filters.sort_order} 
+                                            onSort={handleSort}
+                                            align="left"
+                                        />
                                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
-                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Visits</th>
-                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Spent</th>
-                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Visit</th>
-                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Points</th>
-                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Wallet</th>
-                                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tier</th>
+                                        <SortableHeader 
+                                            label="Visits" 
+                                            field="total_visits" 
+                                            currentSort={filters.sort_by} 
+                                            currentOrder={filters.sort_order} 
+                                            onSort={handleSort}
+                                            align="center"
+                                        />
+                                        <SortableHeader 
+                                            label="Spent" 
+                                            field="total_spent" 
+                                            currentSort={filters.sort_by} 
+                                            currentOrder={filters.sort_order} 
+                                            onSort={handleSort}
+                                            align="center"
+                                        />
+                                        <SortableHeader 
+                                            label="Last Visit" 
+                                            field="last_visit" 
+                                            currentSort={filters.sort_by} 
+                                            currentOrder={filters.sort_order} 
+                                            onSort={handleSort}
+                                            align="center"
+                                        />
+                                        <SortableHeader 
+                                            label="Points" 
+                                            field="points_balance" 
+                                            currentSort={filters.sort_by} 
+                                            currentOrder={filters.sort_order} 
+                                            onSort={handleSort}
+                                            align="center"
+                                        />
+                                        <SortableHeader 
+                                            label="Wallet" 
+                                            field="wallet_balance" 
+                                            currentSort={filters.sort_by} 
+                                            currentOrder={filters.sort_order} 
+                                            onSort={handleSort}
+                                            align="center"
+                                        />
+                                        <SortableHeader 
+                                            label="Tier" 
+                                            field="tier" 
+                                            currentSort={filters.sort_by} 
+                                            currentOrder={filters.sort_order} 
+                                            onSort={handleSort}
+                                            align="center"
+                                        />
                                         <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>

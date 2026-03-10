@@ -150,6 +150,75 @@ async def export_item_performance(
     }
 
 
+@router.get("/item-customers/{item_name}")
+async def get_item_customers(
+    item_name: str,
+    time_period: str = Query("all", description="Time period: 7d, 30d, 90d, all"),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Get list of customers who ordered a specific item.
+    Used for sending targeted campaigns.
+    """
+    user_id = user["id"]
+    
+    # Build match filter
+    match_filter = {"user_id": user_id, "item_name": item_name}
+    
+    # Time period filter
+    if time_period != "all":
+        days_map = {"7d": 7, "30d": 30, "90d": 90}
+        days = days_map.get(time_period, 30)
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        match_filter["created_at"] = {"$gte": cutoff}
+    
+    # Get distinct customer IDs who ordered this item
+    pipeline = [
+        {"$match": match_filter},
+        {"$group": {
+            "_id": "$customer_id",
+            "order_count": {"$sum": 1},
+            "last_ordered": {"$max": "$created_at"}
+        }},
+        {"$sort": {"order_count": -1}}
+    ]
+    
+    customer_ids_data = await db.order_items.aggregate(pipeline).to_list(1000)
+    customer_ids = [c["_id"] for c in customer_ids_data]
+    
+    # Get customer details
+    customers = await db.customers.find(
+        {"id": {"$in": customer_ids}, "user_id": user_id},
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "whatsapp_opt_in": 1}
+    ).to_list(1000)
+    
+    # Create lookup for order data
+    order_lookup = {c["_id"]: c for c in customer_ids_data}
+    
+    # Merge customer data with order data
+    result = []
+    for customer in customers:
+        order_data = order_lookup.get(customer["id"], {})
+        result.append({
+            "id": customer["id"],
+            "name": customer.get("name", ""),
+            "phone": customer.get("phone", ""),
+            "whatsapp_opt_in": customer.get("whatsapp_opt_in", False),
+            "order_count": order_data.get("order_count", 0),
+            "last_ordered": order_data.get("last_ordered", "")
+        })
+    
+    # Filter only customers with WhatsApp opt-in for campaign
+    whatsapp_enabled = [c for c in result if c.get("whatsapp_opt_in")]
+    
+    return {
+        "item_name": item_name,
+        "total_customers": len(result),
+        "whatsapp_enabled": len(whatsapp_enabled),
+        "customers": result
+    }
+
+
 # =============================================================================
 # CUSTOMER LIFECYCLE ANALYTICS
 # =============================================================================

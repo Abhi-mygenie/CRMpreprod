@@ -688,7 +688,11 @@ async def list_customers(
         query["$and"] = and_conditions
     
     sort_direction = -1 if sort_order == "desc" else 1
-    sort_field = sort_by if sort_by in ["created_at", "last_visit", "total_spent", "total_points", "total_visits", "name", "avg_visits_per_month"] else "created_at"
+    allowed_sort_fields = [
+        "created_at", "last_visit", "total_spent", "total_points", "total_visits", 
+        "name", "avg_visits_per_month", "points_balance", "wallet_balance", "tier"
+    ]
+    sort_field = sort_by if sort_by in allowed_sort_fields else "created_at"
     
     # For avg_visits_per_month, use total_visits as proxy (higher visits = more loyal)
     if sort_field == "avg_visits_per_month":
