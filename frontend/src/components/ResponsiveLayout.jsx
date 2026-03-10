@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { 
     Home, Users, FileText, MessageSquare, Settings, 
     QrCode, Gift, Award, Zap, ChevronLeft, ChevronRight,
-    LayoutDashboard, BarChart3, Activity, LogOut
+    LayoutDashboard, BarChart3, Activity, LogOut, User, RefreshCw
 } from "lucide-react";
 import { DemoModeBanner } from "@/components/shared/DemoModeBanner";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,9 @@ export const ResponsiveLayout = ({ children }) => {
         { path: "/coupons", icon: Gift, label: "Coupons" },
         { path: "/loyalty-settings", icon: Award, label: "Loyalty" },
         { path: "/whatsapp-automation", icon: Zap, label: "Automation" },
-        { path: "/settings", icon: Settings, label: "Settings" }
+        { path: "/settings", icon: Settings, label: "Settings" },
+        { path: "/profile", icon: User, label: "Profile" },
+        { path: "/migration", icon: RefreshCw, label: "Migration" }
     ];
 
     // Bottom nav items (subset for mobile)

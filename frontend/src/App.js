@@ -21,6 +21,8 @@ import CustomerRegistrationPage from "@/pages/CustomerRegistrationPage";
 import MessageStatusPage from "@/pages/MessageStatusPage";
 import ItemAnalyticsPage from "@/pages/ItemAnalyticsPage";
 import CustomerLifecyclePage from "@/pages/CustomerLifecyclePage";
+import ProfilePage from "@/pages/ProfilePage";
+import MigrationPage from "@/pages/MigrationPage";
 
 // Components
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -52,6 +54,8 @@ function App() {
                         <Route path="/message-status" element={<ProtectedRoute><MessageStatusPage /></ProtectedRoute>} />
                         <Route path="/item-analytics" element={<ProtectedRoute><ItemAnalyticsPage /></ProtectedRoute>} />
                         <Route path="/customer-lifecycle" element={<ProtectedRoute><CustomerLifecyclePage /></ProtectedRoute>} />
+                        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                        <Route path="/migration" element={<ProtectedRoute><MigrationPage /></ProtectedRoute>} />
 
                         {/* Fallback */}
                         <Route path="*" element={<Navigate to="/" />} />
