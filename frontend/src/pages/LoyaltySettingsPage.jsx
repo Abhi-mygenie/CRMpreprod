@@ -60,14 +60,9 @@ export default function LoyaltySettingsPage() {
     return (
         <ResponsiveLayout>
             <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
-                <div className="flex items-center gap-3 mb-6">
-                    <button onClick={() => navigate("/settings")} className="p-2 hover:bg-gray-100 rounded-full" data-testid="back-btn">
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="loyalty-title">Loyalty Settings</h1>
-                        <p className="text-sm text-[#52525B]">Points, tiers & bonuses</p>
-                    </div>
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="loyalty-title">Loyalty Settings</h1>
+                    <p className="text-sm text-[#52525B]">Points, tiers & bonuses</p>
                 </div>
 
                 {settings && (
