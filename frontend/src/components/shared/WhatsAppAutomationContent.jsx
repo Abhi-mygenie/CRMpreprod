@@ -1140,9 +1140,8 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                                                                             >
                                                                                 <Eye className="w-4 h-4" />
                                                                             </button>
-                                                                            {/* Test Button - Only for Active templates */}
-                                                                            {isEnabled && (
-                                                                                <button
+                                                                            {/* Test Button */}
+                                                                            <button
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation();
                                                                                         const tpl = authkeyTemplates.find(t => t.wid === mapped.template_id);
@@ -1155,8 +1154,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                                                                                     data-testid={`test-event-${eventKey}`}
                                                                                 >
                                                                                     <FlaskConical className="w-4 h-4" />
-                                                                                </button>
-                                                                            )}
+                                                                            </button>
                                                                             {/* Pause/Resume Button */}
                                                                             <button
                                                                                 onClick={(e) => {
