@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { MessageSquare, Settings, Search, Phone, Check, Edit2, Trash2, Eye, Calendar, Filter, Clock, Save, Wallet, Pause, Play, Send } from "lucide-react";
+import { MessageSquare, Settings, Search, Phone, Check, Edit2, Trash2, Eye, Calendar, Filter, Clock, Save, Wallet, Pause, Play, Send, Plus, Cake, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const SegmentsPageContent = () => {
     const { api } = useAuth();
@@ -46,6 +47,22 @@ export const SegmentsPageContent = () => {
     const [variableModes, setVariableModes] = useState({});
     const [whatsappConfigs, setWhatsappConfigs] = useState({});
     const [segmentFilter, setSegmentFilter] = useState("all");
+
+    // Create Segment state
+    const [showCreateSegment, setShowCreateSegment] = useState(false);
+    const [newSegmentName, setNewSegmentName] = useState("");
+    const defaultFilters = {
+        tier: "all", customer_type: "all", last_visit_days: "all", city: "",
+        total_visits: "all", total_spent: "all", diet_preference: "all",
+        preferred_time_slot: "all", preferred_dining_type: "all",
+        gender: "all", lead_source: "all", whatsapp_opt_in: "all",
+        vip_flag: "all", has_birthday_this_month: false,
+        has_anniversary_this_month: false, search: ""
+    };
+    const [newSegmentFilters, setNewSegmentFilters] = useState({...defaultFilters});
+    const [previewCount, setPreviewCount] = useState(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [savingSegment, setSavingSegment] = useState(false);
 
     // Sample campaigns - in real app, fetch from API
     const campaigns = [
@@ -306,6 +323,67 @@ export const SegmentsPageContent = () => {
         return "";
     };
 
+    // Create Segment functions
+    const previewSegmentCount = async () => {
+        setPreviewLoading(true);
+        try {
+            const res = await api.post('/segments/preview-count', { filters: newSegmentFilters });
+            setPreviewCount(res.data.count);
+        } catch (err) {
+            toast.error("Failed to preview count");
+        } finally {
+            setPreviewLoading(false);
+        }
+    };
+
+    const createNewSegment = async () => {
+        if (!newSegmentName.trim()) {
+            toast.error("Please enter a segment name");
+            return;
+        }
+        setSavingSegment(true);
+        try {
+            await api.post('/segments', {
+                name: newSegmentName,
+                filters: newSegmentFilters,
+                customer_count: previewCount
+            });
+            toast.success(`Segment "${newSegmentName}" created!`);
+            setShowCreateSegment(false);
+            resetCreateForm();
+            fetchSegments();
+        } catch (err) {
+            toast.error("Failed to create segment");
+        } finally {
+            setSavingSegment(false);
+        }
+    };
+
+    const resetCreateForm = () => {
+        setNewSegmentName("");
+        setNewSegmentFilters({...defaultFilters});
+        setPreviewCount(null);
+    };
+
+    const activeNewFiltersCount = [
+        newSegmentFilters.tier !== "all" ? 1 : 0,
+        newSegmentFilters.customer_type !== "all" ? 1 : 0,
+        newSegmentFilters.last_visit_days !== "all" ? 1 : 0,
+        newSegmentFilters.city ? 1 : 0,
+        newSegmentFilters.total_visits !== "all" ? 1 : 0,
+        newSegmentFilters.total_spent !== "all" ? 1 : 0,
+        newSegmentFilters.diet_preference !== "all" ? 1 : 0,
+        newSegmentFilters.preferred_time_slot !== "all" ? 1 : 0,
+        newSegmentFilters.preferred_dining_type !== "all" ? 1 : 0,
+        newSegmentFilters.gender !== "all" ? 1 : 0,
+        newSegmentFilters.lead_source !== "all" ? 1 : 0,
+        newSegmentFilters.whatsapp_opt_in !== "all" ? 1 : 0,
+        newSegmentFilters.vip_flag !== "all" ? 1 : 0,
+        newSegmentFilters.has_birthday_this_month ? 1 : 0,
+        newSegmentFilters.has_anniversary_this_month ? 1 : 0,
+        newSegmentFilters.search ? 1 : 0,
+    ].reduce((a, b) => a + b, 0);
+
     const updateSegment = async () => {
         if (!segmentName.trim()) {
             toast.error("Please enter a segment name");
@@ -381,6 +459,20 @@ export const SegmentsPageContent = () => {
 
     return (
             <div className="p-4 lg:p-6 max-w-6xl mx-auto" data-testid="segments-page">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="segments-title">
+                        Segments
+                    </h1>
+                    <Button 
+                        onClick={() => setShowCreateSegment(true)} 
+                        className="bg-[#F26B33] hover:bg-[#D85A2A] rounded-full h-10 px-4"
+                        data-testid="add-segment-btn"
+                    >
+                        <Plus className="w-4 h-4 mr-1" /> Add Segment
+                    </Button>
+                </div>
+
                 {/* Info Card */}
                 <Card className="rounded-xl border-0 shadow-sm bg-[#25D366]/5 mb-4">
                     <CardContent className="p-4">
@@ -1243,6 +1335,301 @@ export const SegmentsPageContent = () => {
                         </DialogContent>
                     </Dialog>
                 )}
+
+                {/* Create Segment Dialog */}
+                <Dialog open={showCreateSegment} onOpenChange={(open) => { if (!open) { setShowCreateSegment(false); resetCreateForm(); } }}>
+                    <DialogContent className="max-w-lg mx-4 rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle className="font-['Montserrat']">Create Segment</DialogTitle>
+                            <DialogDescription>Define filters to target specific customer groups</DialogDescription>
+                        </DialogHeader>
+                        <ScrollArea className="flex-1 max-h-[60vh] pr-3">
+                            <div className="space-y-4 pb-2">
+                                {/* Segment Name */}
+                                <div>
+                                    <Label className="text-sm font-medium">Segment Name *</Label>
+                                    <Input
+                                        value={newSegmentName}
+                                        onChange={(e) => setNewSegmentName(e.target.value)}
+                                        placeholder="e.g., VIP Gold Customers"
+                                        className="h-11 rounded-xl mt-1"
+                                        data-testid="create-segment-name-input"
+                                    />
+                                </div>
+
+                                {/* Search Filter */}
+                                <div>
+                                    <Label className="text-[10px] text-[#71717A] uppercase font-medium">Search</Label>
+                                    <Input
+                                        value={newSegmentFilters.search}
+                                        onChange={(e) => setNewSegmentFilters({...newSegmentFilters, search: e.target.value})}
+                                        placeholder="Search by name or phone..."
+                                        className="h-8 text-xs mt-1"
+                                        data-testid="create-segment-search"
+                                    />
+                                </div>
+
+                                {/* Basic Filters */}
+                                <div className="space-y-2">
+                                    <p className="text-xs font-bold text-[#1A1A1A] uppercase tracking-wider px-0.5">Basic Filters</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Tier</Label>
+                                            <Select value={newSegmentFilters.tier} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, tier: v})}>
+                                                <SelectTrigger className="h-8 text-xs" data-testid="create-filter-tier"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All tiers</SelectItem>
+                                                    <SelectItem value="Bronze">Bronze</SelectItem>
+                                                    <SelectItem value="Silver">Silver</SelectItem>
+                                                    <SelectItem value="Gold">Gold</SelectItem>
+                                                    <SelectItem value="Platinum">Platinum</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Inactive</Label>
+                                            <Select value={newSegmentFilters.last_visit_days} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, last_visit_days: v})}>
+                                                <SelectTrigger className="h-8 text-xs" data-testid="create-filter-inactive"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="7">7+ days</SelectItem>
+                                                    <SelectItem value="14">14+ days</SelectItem>
+                                                    <SelectItem value="30">30+ days</SelectItem>
+                                                    <SelectItem value="60">60+ days</SelectItem>
+                                                    <SelectItem value="90">90+ days</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Visits</Label>
+                                            <Select value={newSegmentFilters.total_visits} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, total_visits: v})}>
+                                                <SelectTrigger className="h-8 text-xs" data-testid="create-filter-visits"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">Any</SelectItem>
+                                                    <SelectItem value="0">New (0)</SelectItem>
+                                                    <SelectItem value="1-5">1-5</SelectItem>
+                                                    <SelectItem value="6-10">6-10</SelectItem>
+                                                    <SelectItem value="10+">10+</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Spent</Label>
+                                            <Select value={newSegmentFilters.total_spent} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, total_spent: v})}>
+                                                <SelectTrigger className="h-8 text-xs" data-testid="create-filter-spent"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">Any</SelectItem>
+                                                    <SelectItem value="0-500">&lt;500</SelectItem>
+                                                    <SelectItem value="500-2000">500-2K</SelectItem>
+                                                    <SelectItem value="2000-5000">2K-5K</SelectItem>
+                                                    <SelectItem value="5000-10000">5K-10K</SelectItem>
+                                                    <SelectItem value="10000+">10K+</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Advanced Filters */}
+                                <div className="space-y-2">
+                                    <p className="text-xs font-bold text-[#1A1A1A] uppercase tracking-wider px-0.5">Advanced Filters</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">City</Label>
+                                            <Input value={newSegmentFilters.city} onChange={(e) => setNewSegmentFilters({...newSegmentFilters, city: e.target.value})} placeholder="Enter city" className="h-8 text-xs" data-testid="create-filter-city" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Type</Label>
+                                            <Select value={newSegmentFilters.customer_type} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, customer_type: v})}>
+                                                <SelectTrigger className="h-8 text-xs" data-testid="create-filter-type"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All types</SelectItem>
+                                                    <SelectItem value="normal">Normal</SelectItem>
+                                                    <SelectItem value="corporate">Corporate</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Diet</Label>
+                                            <Select value={newSegmentFilters.diet_preference} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, diet_preference: v})}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="veg">Veg</SelectItem>
+                                                    <SelectItem value="non_veg">Non-Veg</SelectItem>
+                                                    <SelectItem value="vegan">Vegan</SelectItem>
+                                                    <SelectItem value="jain">Jain</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Time Slot</Label>
+                                            <Select value={newSegmentFilters.preferred_time_slot} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, preferred_time_slot: v})}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="breakfast">Breakfast</SelectItem>
+                                                    <SelectItem value="lunch">Lunch</SelectItem>
+                                                    <SelectItem value="evening">Evening</SelectItem>
+                                                    <SelectItem value="dinner">Dinner</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Dining</Label>
+                                            <Select value={newSegmentFilters.preferred_dining_type} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, preferred_dining_type: v})}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="Dine-In">Dine-In</SelectItem>
+                                                    <SelectItem value="Takeaway">Takeaway</SelectItem>
+                                                    <SelectItem value="Delivery">Delivery</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Gender</Label>
+                                            <Select value={newSegmentFilters.gender} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, gender: v})}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="male">Male</SelectItem>
+                                                    <SelectItem value="female">Female</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">Source</Label>
+                                            <Select value={newSegmentFilters.lead_source} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, lead_source: v})}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="Walk-in">Walk-in</SelectItem>
+                                                    <SelectItem value="Swiggy">Swiggy</SelectItem>
+                                                    <SelectItem value="Zomato">Zomato</SelectItem>
+                                                    <SelectItem value="Instagram">Instagram</SelectItem>
+                                                    <SelectItem value="Referral">Referral</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">WhatsApp</Label>
+                                            <Select value={newSegmentFilters.whatsapp_opt_in} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, whatsapp_opt_in: v})}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="true">Opted-In</SelectItem>
+                                                    <SelectItem value="false">Not Opted</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium">VIP</Label>
+                                            <Select value={newSegmentFilters.vip_flag} onValueChange={(v) => setNewSegmentFilters({...newSegmentFilters, vip_flag: v})}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All</SelectItem>
+                                                    <SelectItem value="true">VIP Only</SelectItem>
+                                                    <SelectItem value="false">Non-VIP</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    {/* Checkboxes */}
+                                    <div className="flex flex-wrap gap-3 pt-1">
+                                        <label className="flex items-center gap-1.5 text-xs">
+                                            <Checkbox 
+                                                checked={newSegmentFilters.has_birthday_this_month}
+                                                onCheckedChange={(checked) => setNewSegmentFilters({...newSegmentFilters, has_birthday_this_month: checked})}
+                                                className="h-3.5 w-3.5"
+                                            />
+                                            <Cake className="w-3 h-3 text-pink-500" />
+                                            Birthday this month
+                                        </label>
+                                        <label className="flex items-center gap-1.5 text-xs">
+                                            <Checkbox 
+                                                checked={newSegmentFilters.has_anniversary_this_month}
+                                                onCheckedChange={(checked) => setNewSegmentFilters({...newSegmentFilters, has_anniversary_this_month: checked})}
+                                                className="h-3.5 w-3.5"
+                                            />
+                                            <Heart className="w-3 h-3 text-red-500" />
+                                            Anniversary this month
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Preview Count */}
+                                <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between">
+                                    <p className="text-sm font-medium text-[#1A1A1A]">
+                                        Matching: <span className="text-[#F26B33] font-bold" data-testid="preview-count-value">{previewCount !== null ? previewCount : '—'}</span> customers
+                                    </p>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={previewSegmentCount} 
+                                        disabled={previewLoading} 
+                                        className="h-8 text-xs"
+                                        data-testid="preview-count-btn"
+                                    >
+                                        {previewLoading ? "Counting..." : "Preview"}
+                                    </Button>
+                                </div>
+
+                                {/* Active Filters Summary */}
+                                {activeNewFiltersCount > 0 && (
+                                    <div className="bg-gray-50 rounded-lg p-3">
+                                        <p className="text-xs font-medium text-[#52525B] mb-1">Active Filters ({activeNewFiltersCount}):</p>
+                                        <div className="space-y-0.5 text-xs text-[#1A1A1A]">
+                                            {newSegmentFilters.tier !== "all" && <p>Tier: {newSegmentFilters.tier}</p>}
+                                            {newSegmentFilters.last_visit_days !== "all" && <p>Inactive: {newSegmentFilters.last_visit_days}+ days</p>}
+                                            {newSegmentFilters.total_visits !== "all" && <p>Visits: {newSegmentFilters.total_visits}</p>}
+                                            {newSegmentFilters.total_spent !== "all" && <p>Spent: {newSegmentFilters.total_spent}</p>}
+                                            {newSegmentFilters.city && <p>City: {newSegmentFilters.city}</p>}
+                                            {newSegmentFilters.customer_type !== "all" && <p>Type: {newSegmentFilters.customer_type}</p>}
+                                            {newSegmentFilters.diet_preference !== "all" && <p>Diet: {newSegmentFilters.diet_preference}</p>}
+                                            {newSegmentFilters.preferred_time_slot !== "all" && <p>Time: {newSegmentFilters.preferred_time_slot}</p>}
+                                            {newSegmentFilters.preferred_dining_type !== "all" && <p>Dining: {newSegmentFilters.preferred_dining_type}</p>}
+                                            {newSegmentFilters.gender !== "all" && <p>Gender: {newSegmentFilters.gender}</p>}
+                                            {newSegmentFilters.lead_source !== "all" && <p>Source: {newSegmentFilters.lead_source}</p>}
+                                            {newSegmentFilters.whatsapp_opt_in !== "all" && <p>WhatsApp: {newSegmentFilters.whatsapp_opt_in === "true" ? "Opted-In" : "Not Opted"}</p>}
+                                            {newSegmentFilters.vip_flag !== "all" && <p>VIP: {newSegmentFilters.vip_flag === "true" ? "Yes" : "No"}</p>}
+                                            {newSegmentFilters.has_birthday_this_month && <p>Birthday this month</p>}
+                                            {newSegmentFilters.has_anniversary_this_month && <p>Anniversary this month</p>}
+                                            {newSegmentFilters.search && <p>Search: {newSegmentFilters.search}</p>}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </ScrollArea>
+                        <div className="flex gap-2 pt-4 border-t">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => { setShowCreateSegment(false); resetCreateForm(); }} 
+                                className="flex-1 rounded-xl"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={createNewSegment} 
+                                disabled={!newSegmentName.trim() || savingSegment} 
+                                className="flex-1 bg-[#F26B33] hover:bg-[#D85A2A] rounded-xl"
+                                data-testid="create-segment-save-btn"
+                            >
+                                {savingSegment ? "Saving..." : "Create Segment"}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Edit Segment Modal */}
                 {showEditDialog && editingSegment && (

@@ -115,7 +115,7 @@ const StageBadge = ({ stage }) => {
 
 // Helper to format customer name (show NA for @mygenie.online emails)
 const formatCustomerName = (name) => {
-    if (!name) return "—";
+    if (!name) return "NA";
     if (name.includes("@mygenie.online")) return "NA";
     return name;
 };

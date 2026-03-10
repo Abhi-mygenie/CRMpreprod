@@ -868,7 +868,7 @@ qr_router = APIRouter(prefix="/qr", tags=["QR Code"])
 @qr_router.get("/generate")
 async def generate_customer_qr(user: dict = Depends(get_current_user)):
     """Generate QR code for customer registration"""
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://crm-staging-meta.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://crm-preview-19.preview.emergentagent.com')
     registration_url = f"{frontend_url}/register-customer/{user['id']}"
     
     qr_base64 = generate_qr_code(registration_url)
@@ -1086,6 +1086,13 @@ async def list_segments(user: dict = Depends(get_current_user)):
         )
     
     return [Segment(**s) for s in segments]
+
+@segments_router.post("/preview-count")
+async def preview_segment_count(data: dict, user: dict = Depends(get_current_user)):
+    """Preview customer count for a set of filters before creating a segment"""
+    filters = data.get("filters", {})
+    count = await count_customers_by_filters(user["id"], filters)
+    return {"count": count}
 
 @segments_router.get("/{segment_id}", response_model=Segment)
 async def get_segment(segment_id: str, user: dict = Depends(get_current_user)):

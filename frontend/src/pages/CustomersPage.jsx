@@ -26,7 +26,7 @@ import { COUNTRY_CODES, GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants
 
 // Helper to format customer name (show NA for @mygenie.online emails)
 const formatCustomerName = (name) => {
-    if (!name) return "—";
+    if (!name) return "NA";
     if (name.includes("@mygenie.online")) return "NA";
     return name;
 };
@@ -200,10 +200,6 @@ export default function CustomersPage() {
     });
     const [editData, setEditData] = useState({});
     const [submitting, setSubmitting] = useState(false);
-    const [showSaveSegmentDialog, setShowSaveSegmentDialog] = useState(false);
-    const [segmentName, setSegmentName] = useState("");
-    const [savedSegments, setSavedSegments] = useState([]);
-    const [selectedSegment, setSelectedSegment] = useState(null);
 
     const buildQueryString = () => {
         const params = new URLSearchParams();
@@ -277,88 +273,10 @@ export default function CustomersPage() {
         }
     };
 
-    const saveAsSegment = async () => {
-        if (!segmentName.trim()) {
-            toast.error("Please enter a segment name");
-            return;
-        }
-
-        try {
-            // Save ALL filter values (including "all")
-            const segmentFilters = {
-                tier: filters.tier,
-                customer_type: filters.customer_type,
-                last_visit_days: filters.last_visit_days,
-                city: filters.city || "",
-                total_visits: filters.total_visits,
-                total_spent: filters.total_spent,
-                diet_preference: filters.diet_preference,
-                preferred_time_slot: filters.preferred_time_slot,
-                preferred_dining_type: filters.preferred_dining_type,
-                gender: filters.gender,
-                lead_source: filters.lead_source,
-                whatsapp_opt_in: filters.whatsapp_opt_in,
-                vip_flag: filters.vip_flag,
-                has_birthday_this_month: filters.has_birthday_this_month,
-                has_anniversary_this_month: filters.has_anniversary_this_month,
-                search: search || ""
-            };
-
-            await api.post('/segments', {
-                name: segmentName,
-                filters: segmentFilters,
-                customer_count: customers.length  // Pass displayed count
-            });
-
-            toast.success(`Segment "${segmentName}" saved successfully!`);
-            setShowSaveSegmentDialog(false);
-            setShowFilters(false);
-            setSegmentName("");
-            fetchSegments();
-        } catch (err) {
-            toast.error("Failed to save segment");
-        }
-    };
-
-    const loadSegment = async (segment) => {
-        setSelectedSegment(segment);
-        const segmentFilters = segment.filters;
-        
-        setFilters({
-            tier: segmentFilters.tier || "all",
-            customer_type: segmentFilters.customer_type || "all",
-            last_visit_days: segmentFilters.last_visit_days || "all",
-            city: segmentFilters.city || "",
-            sort_by: "created_at",
-            sort_order: "desc"
-        });
-        setSearch(segmentFilters.search || "");
-    };
-
-    const deleteSegment = async (segmentId) => {
-        if (!window.confirm("Are you sure you want to delete this segment?")) return;
-        
-        try {
-            await api.delete(`/segments/${segmentId}`);
-            toast.success("Segment deleted");
-            fetchSegments();
-            if (selectedSegment?.id === segmentId) {
-                setSelectedSegment(null);
-            }
-        } catch (err) {
-            toast.error("Failed to delete segment");
-        }
-    };
-
     const fetchSegments = async () => {
         try {
-            // Fetch segment stats for analytics
             const statsRes = await api.get("/customers/segments/stats");
             setSegments(statsRes.data);
-            
-            // Fetch saved segments for filtering
-            const segmentsRes = await api.get('/segments');
-            setSavedSegments(segmentsRes.data);
         } catch (err) {
             console.error("Failed to load segments:", err);
         }
@@ -1096,42 +1014,11 @@ export default function CustomersPage() {
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* Saved Segments */}
-                                    {savedSegments.length > 0 && (
-                                        <div className="pt-1.5">
-                                            <Label className="text-[10px] text-[#71717A] uppercase font-medium px-0.5">Saved Segments</Label>
-                                            <div className="flex flex-wrap gap-1.5 mt-1">
-                                                {savedSegments.map(segment => (
-                                                    <button
-                                                        key={segment.id}
-                                                        onClick={() => {
-                                                            loadSegment(segment);
-                                                            setShowFilters(false);
-                                                        }}
-                                                        className="px-2.5 py-1 text-[11px] bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-                                                    >
-                                                        {segment.name} ({segment.customer_count})
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
 
                             {/* Footer */}
                             <div className="px-3 py-2.5 border-t border-gray-100 bg-white flex gap-2">
-                                {activeFiltersCount > 0 && (
-                                    <Button 
-                                        onClick={() => setShowSaveSegmentDialog(true)}
-                                        variant="outline"
-                                        className="flex-1 h-9 rounded-xl border-[#F26B33] text-[#F26B33] text-xs font-semibold"
-                                        data-testid="save-segment-btn"
-                                    >
-                                        <Save className="w-3.5 h-3.5 mr-1" /> Save Segment
-                                    </Button>
-                                )}
                                 <Button 
                                     onClick={() => setShowFilters(false)}
                                     className="flex-1 h-9 rounded-xl bg-[#F26B33] hover:bg-[#D85A2A] text-white font-semibold text-xs"
@@ -1139,71 +1026,6 @@ export default function CustomersPage() {
                                 >
                                     Show {customers.length} Customers
                                 </Button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Save Segment Dialog */}
-                {showSaveSegmentDialog && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10002] p-4" onClick={() => setShowSaveSegmentDialog(false)}>
-                        <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="text-lg font-semibold mb-4">Save Segment</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <Label className="text-sm font-medium">Segment Name</Label>
-                                    <Input
-                                        type="text"
-                                        placeholder="e.g., VIP Customers"
-                                        value={segmentName}
-                                        onChange={(e) => setSegmentName(e.target.value)}
-                                        className="mt-1 h-11 rounded-xl"
-                                        data-testid="segment-name-input"
-                                    />
-                                </div>
-                                <div className="bg-gray-50 p-3 rounded-lg max-h-40 overflow-y-auto">
-                                    <p className="text-xs font-medium text-[#52525B] mb-2">Current Filters:</p>
-                                    <div className="space-y-1 text-xs text-[#1A1A1A]">
-                                        {filters.tier !== "all" && <p>• Tier: {filters.tier}</p>}
-                                        {filters.customer_type !== "all" && <p>• Type: {filters.customer_type}</p>}
-                                        {filters.last_visit_days !== "all" && <p>• Inactive: {filters.last_visit_days}+ days</p>}
-                                        {filters.city && <p>• City: {filters.city}</p>}
-                                        {filters.whatsapp_opt_in !== "all" && <p>• WhatsApp: {filters.whatsapp_opt_in === "true" ? "Opted-In" : "Not Opted"}</p>}
-                                        {filters.vip_flag !== "all" && <p>• VIP: {filters.vip_flag === "true" ? "Yes" : "No"}</p>}
-                                        {filters.diet_preference !== "all" && <p>• Diet: {filters.diet_preference}</p>}
-                                        {filters.lead_source !== "all" && <p>• Source: {filters.lead_source}</p>}
-                                        {filters.preferred_time_slot !== "all" && <p>• Time Slot: {filters.preferred_time_slot}</p>}
-                                        {filters.preferred_dining_type !== "all" && <p>• Dining: {filters.preferred_dining_type}</p>}
-                                        {filters.has_birthday_this_month && <p>• Birthday this month</p>}
-                                        {filters.has_anniversary_this_month && <p>• Anniversary this month</p>}
-                                        {filters.total_visits !== "all" && <p>• Visits: {filters.total_visits}</p>}
-                                        {filters.complaint_flag !== "all" && <p>• Complaints: {filters.complaint_flag === "true" ? "Yes" : "No"}</p>}
-                                        {filters.gender !== "all" && <p>• Gender: {filters.gender}</p>}
-                                        {filters.total_spent !== "all" && <p>• Spent: {filters.total_spent}</p>}
-                                        {filters.is_blocked !== "all" && <p>• Blocked: {filters.is_blocked === "true" ? "Yes" : "No"}</p>}
-                                        {filters.blacklist_flag !== "all" && <p>• Blacklist: {filters.blacklist_flag === "true" ? "Yes" : "No"}</p>}
-                                        {search && <p>• Search: {search}</p>}
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setShowSaveSegmentDialog(false);
-                                            setSegmentName("");
-                                        }}
-                                        className="flex-1"
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        onClick={saveAsSegment}
-                                        className="flex-1 bg-[#F26B33] hover:bg-[#D85A2A]"
-                                        data-testid="save-segment-confirm-btn"
-                                    >
-                                        Save Segment
-                                    </Button>
-                                </div>
                             </div>
                         </div>
                     </div>
