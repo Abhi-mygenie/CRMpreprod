@@ -1338,12 +1338,12 @@ export const SegmentsPageContent = () => {
 
                 {/* Create Segment Dialog */}
                 <Dialog open={showCreateSegment} onOpenChange={(open) => { if (!open) { setShowCreateSegment(false); resetCreateForm(); } }}>
-                    <DialogContent className="max-w-lg mx-4 rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogContent className="max-w-lg mx-4 rounded-2xl max-h-[85vh] flex flex-col">
                         <DialogHeader>
                             <DialogTitle className="font-['Montserrat']">Create Segment</DialogTitle>
                             <DialogDescription>Define filters to target specific customer groups</DialogDescription>
                         </DialogHeader>
-                        <ScrollArea className="flex-1 max-h-[60vh] pr-3">
+                        <div className="flex-1 overflow-y-auto min-h-0 pr-2" data-testid="create-segment-scroll">
                             <div className="space-y-4 pb-2">
                                 {/* Segment Name */}
                                 <div>
@@ -1610,7 +1610,7 @@ export const SegmentsPageContent = () => {
                                     </div>
                                 )}
                             </div>
-                        </ScrollArea>
+                        </div>
                         <div className="flex gap-2 pt-4 border-t">
                             <Button 
                                 variant="outline" 
