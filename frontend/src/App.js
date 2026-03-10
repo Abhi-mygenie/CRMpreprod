@@ -9,7 +9,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
 import CustomersPage from "@/pages/CustomersPage";
 import CustomerDetailPage from "@/pages/CustomerDetailPage";
-import { SegmentsPage } from "@/pages/SegmentsPage";
+import SegmentsPage from "@/pages/SegmentsPage";
 import TemplatesPage from "@/pages/TemplatesPage";
 import QRCodePage from "@/pages/QRCodePage";
 import FeedbackPage from "@/pages/FeedbackPage";

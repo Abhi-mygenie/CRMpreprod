@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { MessageSquare, Settings, Search, Phone, Check, Edit2, Trash2, Eye, Calendar, Filter, Clock, Save, Wallet, Pause, Play, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
 export const SegmentsPageContent = () => {
     const { api } = useAuth();
@@ -356,7 +357,7 @@ export const SegmentsPageContent = () => {
 
     if (loading) {
         return (
-                <div className="p-4 max-w-lg mx-auto">
+                <div className="p-4 lg:p-6 max-w-6xl mx-auto">
                     <div className="flex items-center justify-center h-64">
                         <p className="text-[#52525B]">Loading segments...</p>
                     </div>
@@ -379,7 +380,7 @@ export const SegmentsPageContent = () => {
     });
 
     return (
-            <div className="p-4 max-w-lg mx-auto" data-testid="segments-page">
+            <div className="p-4 lg:p-6 max-w-6xl mx-auto" data-testid="segments-page">
                 {/* Info Card */}
                 <Card className="rounded-xl border-0 shadow-sm bg-[#25D366]/5 mb-4">
                     <CardContent className="p-4">
@@ -396,7 +397,7 @@ export const SegmentsPageContent = () => {
                 </Card>
 
                 {/* Filter Tabs */}
-                <div className="flex gap-2 mb-4 border-b border-gray-200 pb-3">
+                <div className="flex flex-wrap gap-2 mb-4 border-b border-gray-200 pb-3">
                     <button
                         onClick={() => setSegmentFilter("all")}
                         className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
@@ -433,9 +434,9 @@ export const SegmentsPageContent = () => {
                 </div>
 
                 {/* Segments List */}
-                <div className="space-y-3" data-testid="segments-list">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-testid="segments-list">
                     {filteredSegments.length === 0 ? (
-                        <Card className="rounded-xl">
+                        <Card className="rounded-xl col-span-full">
                             <CardContent className="p-8 text-center">
                                 <p className="text-[#52525B]">No segments match this filter</p>
                             </CardContent>
@@ -1292,6 +1293,10 @@ export const SegmentsPageContent = () => {
 }
 
 
-export function SegmentsPage() {
-    return <Navigate to="/customers" />;
+export default function SegmentsPage() {
+    return (
+        <ResponsiveLayout>
+            <SegmentsPageContent />
+        </ResponsiveLayout>
+    );
 }

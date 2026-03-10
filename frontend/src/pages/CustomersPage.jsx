@@ -23,7 +23,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 import { ComingSoonOverlay } from "@/components/shared/ComingSoonOverlay";
 import { COUNTRY_CODES, GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/constants";
-import { SegmentsPageContent } from "@/pages/SegmentsPage";
 
 // Helper to format customer name (show NA for @mygenie.online emails)
 const formatCustomerName = (name) => {
@@ -205,7 +204,6 @@ export default function CustomersPage() {
     const [segmentName, setSegmentName] = useState("");
     const [savedSegments, setSavedSegments] = useState([]);
     const [selectedSegment, setSelectedSegment] = useState(null);
-    const [customerTab, setCustomerTab] = useState("customers"); // "customers" or "segments"
 
     const buildQueryString = () => {
         const params = new URLSearchParams();
@@ -317,8 +315,6 @@ export default function CustomersPage() {
             setShowFilters(false);
             setSegmentName("");
             fetchSegments();
-            // Redirect to Segments tab
-            setCustomerTab("segments");
         } catch (err) {
             toast.error("Failed to save segment");
         }
@@ -651,9 +647,8 @@ export default function CustomersPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4 lg:mb-6">
                     <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="customers-title">
-                        {customerTab === "customers" ? "Customers" : "Segments"}
+                        Customers
                     </h1>
-                    {customerTab === "customers" ? (
                     <div className="flex gap-2">
                         {/* Sync button only shows when NOT in demo mode AND no customers exist */}
                         {!isDemoMode && !loading && customers.length === 0 && (
@@ -674,45 +669,8 @@ export default function CustomersPage() {
                             <Plus className="w-4 h-4 mr-1" /> Add
                         </Button>
                     </div>
-                    ) : (
-                    <Button 
-                        onClick={() => { setCustomerTab("customers"); setShowFilters(true); }}
-                        className="bg-[#F26B33] hover:bg-[#D85A2A] rounded-full h-10 px-4"
-                        data-testid="add-segment-btn"
-                    >
-                        <Plus className="w-4 h-4 mr-1" /> Add
-                    </Button>
-                    )}
                 </div>
 
-                {/* Tab switcher */}
-                <div className="flex gap-2 mb-4 lg:mb-6 max-w-md">
-                    <button
-                        onClick={() => setCustomerTab("customers")}
-                        className={`flex-1 py-2 lg:py-2.5 text-sm font-medium rounded-full transition-colors ${
-                            customerTab === "customers"
-                                ? "bg-[#1A1A1A] text-white"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                        data-testid="tab-customers"
-                    >
-                        Customers
-                    </button>
-                    <button
-                        onClick={() => setCustomerTab("segments")}
-                        className={`flex-1 py-2 lg:py-2.5 text-sm font-medium rounded-full transition-colors ${
-                            customerTab === "segments"
-                                ? "bg-[#1A1A1A] text-white"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        }`}
-                        data-testid="tab-segments"
-                    >
-                        Segments
-                    </button>
-                </div>
-
-                {customerTab === "customers" && (
-                <>
                 {/* Search & Filter Row */}
                 <div className="flex gap-2 lg:gap-4 mb-3 lg:mb-4">
                     <div className="relative flex-1 lg:max-w-md">
@@ -1561,13 +1519,7 @@ export default function CustomersPage() {
                         </div>
                     </>
                 )}
-            </>
-            )}
             </div>
-            
-            {customerTab === "segments" && (
-                <SegmentsPageContent />
-            )}
 
             {/* Add Customer Modal */}
             <Dialog open={showAddModal} onOpenChange={(open) => { setShowAddModal(open); if (!open) resetForm(); }}>
