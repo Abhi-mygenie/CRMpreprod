@@ -83,7 +83,7 @@ async def send_single_message(
             
             response_data = response.json() if response.text else {}
             
-            # AuthKey returns different success indicators
+            logger.info(f"AuthKey RAW response for {message.phone}: status_code={response.status_code}, body={response_data}")
             # Check for explicit failure first
             status_val = response_data.get("status") or response_data.get("Status")
             is_fail = (
