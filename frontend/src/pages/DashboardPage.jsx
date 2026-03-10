@@ -212,59 +212,61 @@ export default function DashboardPage() {
             )}
             
             <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6 lg:mb-8">
+                {/* Compact Header */}
+                <div className="flex items-center justify-between mb-5 lg:mb-6">
                     <div>
-                        <p className="text-[#52525B] text-sm lg:text-base font-body">Welcome</p>
-                        <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#2B2B2B] font-heading" data-testid="restaurant-name">
-                            {user?.restaurant_name}
+                        <h1 className="text-xl lg:text-2xl font-bold text-[#1A1A1A] font-['Georgia']" data-testid="dashboard-title">
+                            Dashboard
                         </h1>
+                        <p className="text-gray-500 text-sm">Welcome back, {user?.restaurant_name}</p>
                     </div>
-                    <div className="flex items-center gap-3 lg:gap-4">
-                        <Avatar className="w-10 h-10 lg:w-12 lg:h-12 bg-[#F26B33]">
-                            <AvatarFallback className="bg-[#F26B33] text-white font-semibold text-lg lg:text-xl">
-                                {user?.restaurant_name?.charAt(0)}
-                            </AvatarFallback>
-                        </Avatar>
-                        {/* Hamburger Menu */}
-                        <div className="relative">
-                            <button 
-                                onClick={() => setMenuOpen(!menuOpen)}
-                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                                data-testid="hamburger-menu"
-                            >
-                                <Menu className="w-6 h-6 text-[#52525B]" />
-                            </button>
-                            {menuOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                                    <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
-                                        <div className="p-3 border-b border-gray-100">
-                                            <p className="text-sm font-medium text-[#2B2B2B] font-body">User</p>
-                                            <p className="text-xs text-[#52525B] font-body truncate">{user?.email}</p>
-                                        </div>
-                                        <div className="py-1">
-                                            <button
-                                                onClick={() => { setMenuOpen(false); setShowResetPassword(true); }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
-                                                data-testid="reset-password-btn"
-                                            >
-                                                <KeyRound className="w-4 h-4 text-[#F26B33]" />
-                                                <span className="text-sm text-[#2B2B2B] font-body">Reset Password</span>
-                                            </button>
-                                            <button
-                                                onClick={handleLogout}
-                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
-                                                data-testid="logout-btn"
-                                            >
-                                                <LogOut className="w-4 h-4 text-red-500" />
-                                                <span className="text-sm text-red-500 font-body">Logout</span>
-                                            </button>
-                                        </div>
+                    
+                    {/* Profile Dropdown */}
+                    <div className="relative">
+                        <button 
+                            onClick={() => setMenuOpen(!menuOpen)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                            data-testid="profile-dropdown"
+                        >
+                            <Avatar className="w-8 h-8 bg-[#F26B33]">
+                                <AvatarFallback className="bg-[#F26B33] text-white font-semibold text-sm">
+                                    {user?.restaurant_name?.charAt(0)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="hidden md:inline text-sm font-medium text-gray-700 max-w-[150px] truncate">
+                                {user?.restaurant_name}
+                            </span>
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                        </button>
+                        {menuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                                <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+                                    <div className="p-3 border-b border-gray-100">
+                                        <p className="text-sm font-medium text-[#2B2B2B] font-body">{user?.restaurant_name}</p>
+                                        <p className="text-xs text-[#52525B] font-body truncate">{user?.email}</p>
                                     </div>
-                                </>
-                            )}
-                        </div>
+                                    <div className="py-1">
+                                        <button
+                                            onClick={() => { setMenuOpen(false); setShowResetPassword(true); }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                                            data-testid="reset-password-btn"
+                                        >
+                                            <KeyRound className="w-4 h-4 text-[#F26B33]" />
+                                            <span className="text-sm text-[#2B2B2B] font-body">Reset Password</span>
+                                        </button>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                                            data-testid="logout-btn"
+                                        >
+                                            <LogOut className="w-4 h-4 text-red-500" />
+                                            <span className="text-sm text-red-500 font-body">Logout</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
