@@ -174,6 +174,9 @@ async def get_expiring_points(customer_id: str, user: dict = Depends(get_current
     
     for tx in transactions:
         tx_date = datetime.fromisoformat(tx["created_at"].replace("Z", "+00:00")) if isinstance(tx["created_at"], str) else tx["created_at"]
+        # Ensure tx_date is timezone-aware for comparison
+        if tx_date.tzinfo is None:
+            tx_date = tx_date.replace(tzinfo=timezone.utc)
         
         if tx_date < expiry_cutoff:
             already_expired += tx["points"]
