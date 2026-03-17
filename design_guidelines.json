@@ -1,0 +1,106 @@
+{
+  "theme": "light",
+  "colors": {
+    "primary": "#F26B33",
+    "secondary": "#329937",
+    "accent": "#62B5E5",
+    "background": "#F5F5F5",
+    "foreground": "#2B2B2B",
+    "status": {
+      "approved": {
+        "bg": "#DCFCE7",
+        "text": "#166534",
+        "border": "#86EFAC"
+      },
+      "pending": {
+        "bg": "#FEF9C3",
+        "text": "#854D0E",
+        "border": "#FDE047"
+      },
+      "rejected": {
+        "bg": "#FEE2E2",
+        "text": "#991B1B",
+        "border": "#FECACA"
+      }
+    }
+  },
+  "typography": {
+    "headings": {
+      "fontFamily": "Georgia, 'Times New Roman', serif",
+      "weight": "bold",
+      "tracking": "tight"
+    },
+    "body": {
+      "fontFamily": "'Inter', system-ui, sans-serif"
+    }
+  },
+  "spacing": {
+    "containerPadding": "p-4 md:p-8",
+    "elementGap": "gap-6",
+    "cardPadding": "p-6"
+  },
+  "layout": {
+    "type": "bento_grid",
+    "mode": "high_density",
+    "gridCols": "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
+    "gap": "gap-4"
+  },
+  "components": {
+    "StatsCard": {
+      "style": "bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200",
+      "elements": ["icon", "label", "value", "trend"]
+    },
+    "FilterBar": {
+      "style": "flex flex-col md:flex-row gap-4 mb-6 items-end md:items-center bg-white p-4 rounded-lg shadow-sm border border-gray-100",
+      "elements": ["DateRangePicker", "StatusSelect", "EventTypeSelect", "SearchInput"]
+    },
+    "MessageTable": {
+      "style": "w-full text-sm text-left text-gray-500",
+      "headerStyle": "text-xs text-gray-700 uppercase bg-gray-50",
+      "rowStyle": "bg-white border-b hover:bg-gray-50",
+      "columns": ["Customer Phone", "Template Name", "Event Type", "Status", "Timestamp"]
+    }
+  },
+  "visual_enhancers": {
+    "glass": "bg-white/90 backdrop-blur-md border-white/20",
+    "shadows": "shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+    "animation": "animate-slide-up"
+  },
+  "icons": {
+    "library": "lucide-react",
+    "mapping": {
+      "approved": "CheckCircle",
+      "pending": "Clock",
+      "rejected": "XCircle",
+      "total": "MessageSquare",
+      "filter": "Filter",
+      "calendar": "Calendar"
+    }
+  },
+  "image_urls": {},
+  "instructions_to_main_agent": [
+    "Create a new page 'MessageStatusPage' in /app/frontend/src/pages/.",
+    "Add route '/message-status' to App.js protected routes.",
+    "Use existing Shadcn UI components from /components/ui where possible (Table, Select, Card, Button).",
+    "If Shadcn components are missing, build custom using Tailwind based on existing designs.",
+    "Mock data for now, but structure it to be easily replaced by API calls.",
+    "Ensure 'Mobile First' responsiveness. Stack stats cards on mobile.",
+    "Use the specified 'Georgia' font for the Page Title ('Message Status Dashboard').",
+    "Use 'Inter' for all table data and stats numbers.",
+    "Implement the Status Badge as a pill with the specified color codes (bg + text + border).",
+    "Add 'data-testid' to all interactive elements."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic outputs. Avoid this.",
+    "Don't make generic centered layouts.",
+    "Create depth through layered design elements.",
+    "Every interaction needs micro-animations.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Subtle grain textures, noise overlays, custom cursors: separates good from extraordinary.",
+    "NEVER: use AI assistant Emoji characters.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Components MUST use named exports.",
+    "Pages MUST use default exports.",
+    "Use 'sonner' for toasts."
+  ]
+}
