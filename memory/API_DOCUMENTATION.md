@@ -236,7 +236,32 @@ curl -X POST "https://your-domain.com/api/customer/verify-otp" \
   "customer": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "name": "John Doe",
-    "phone": "9876543210"
+    "phone": "9876543210",
+    "email": "john@email.com",
+    "country_code": "+91",
+    
+    "dob": "1990-05-15",
+    "anniversary": "2015-06-20",
+    "gender": "male",
+    
+    "tier": "Gold",
+    "total_points": 1500,
+    "points_value": 375.00,
+    "wallet_balance": 250.00,
+    
+    "total_visits": 25,
+    "total_spent": 35000.00,
+    "last_visit": "2026-04-10T14:30:00+00:00",
+    
+    "address": "123 Main Street",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "pincode": "400001",
+    
+    "allergies": ["peanuts", "shellfish"],
+    "favorites": ["Butter Chicken", "Naan"],
+    
+    "restaurant_id": "pos_0001_restaurant_709"
   }
 }
 ```

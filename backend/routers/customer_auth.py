@@ -167,6 +167,17 @@ async def verify_otp(request: VerifyOTPRequest):
     # Generate token
     token = create_customer_token(customer["id"], phone)
     
+    # Get loyalty settings for points value calculation
+    loyalty_settings = await db.loyalty_settings.find_one(
+        {"user_id": customer.get("user_id")}, 
+        {"_id": 0, "redemption_value": 1}
+    )
+    redemption_value = loyalty_settings.get("redemption_value", 0.25) if loyalty_settings else 0.25
+    
+    # Calculate points value
+    total_points = customer.get("total_points", 0)
+    points_value = round(total_points * redemption_value, 2)
+    
     return {
         "success": True,
         "message": "OTP verified successfully",
@@ -174,9 +185,40 @@ async def verify_otp(request: VerifyOTPRequest):
         "token_type": "bearer",
         "expires_in_hours": CUSTOMER_TOKEN_EXPIRE_HOURS,
         "customer": {
-            "id": customer["id"],
+            "id": customer.get("id"),
             "name": customer.get("name"),
-            "phone": customer.get("phone")
+            "phone": customer.get("phone"),
+            "email": customer.get("email"),
+            "country_code": customer.get("country_code", "+91"),
+            
+            # Personal
+            "dob": customer.get("dob"),
+            "anniversary": customer.get("anniversary"),
+            "gender": customer.get("gender"),
+            
+            # Loyalty
+            "tier": customer.get("tier", "Bronze"),
+            "total_points": total_points,
+            "points_value": points_value,
+            "wallet_balance": customer.get("wallet_balance", 0.0),
+            
+            # Stats
+            "total_visits": customer.get("total_visits", 0),
+            "total_spent": customer.get("total_spent", 0.0),
+            "last_visit": customer.get("last_visit"),
+            
+            # Address (single - current structure)
+            "address": customer.get("address"),
+            "city": customer.get("city"),
+            "state": customer.get("state"),
+            "pincode": customer.get("pincode"),
+            
+            # Preferences
+            "allergies": customer.get("allergies", []),
+            "favorites": customer.get("favorites", []),
+            
+            # Restaurant info
+            "restaurant_id": customer.get("user_id")
         }
     }
 
