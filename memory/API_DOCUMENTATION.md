@@ -166,9 +166,11 @@ X-API-Key: {api_key}
 ```
 1. Customer enters phone number
 2. POST /customer/send-otp → OTP sent via WhatsApp/SMS
-3. POST /customer/verify-otp → Returns customer_token
-4. GET /customer/me (Header: Authorization: Bearer {customer_token})
+3. POST /customer/verify-otp → Returns customer_token + FULL customer details
+4. GET /customer/me → Same details (optional - use to refresh data later)
 ```
+
+**Note:** `/verify-otp` returns full customer details, so no immediate `/me` call needed after login.
 
 ---
 
@@ -273,11 +275,38 @@ curl -X POST "https://your-domain.com/api/customer/verify-otp" \
 | 400 | OTP expired. Please request a new one. |
 | 404 | Customer not found |
 
+**Customer Object Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | Customer UUID |
+| name | string | Customer name |
+| phone | string | Phone number |
+| email | string | Email address |
+| country_code | string | Country code (e.g., +91) |
+| dob | string | Date of birth (YYYY-MM-DD) |
+| anniversary | string | Anniversary date |
+| gender | string | Gender |
+| tier | string | Loyalty tier (Bronze/Silver/Gold/Platinum) |
+| total_points | int | Current points balance |
+| points_value | float | Monetary value of points |
+| wallet_balance | float | Current wallet balance |
+| total_visits | int | Total visit count |
+| total_spent | float | Lifetime spend |
+| last_visit | string | Last visit timestamp (ISO 8601) |
+| address | string | Primary address |
+| city | string | City |
+| state | string | State |
+| pincode | string | Pincode |
+| allergies | array | List of allergies |
+| favorites | array | Favorite items |
+| restaurant_id | string | Associated restaurant ID |
+
 ---
 
 ### GET `/customer/me`
-**Description:** Get current customer details  
-**Auth Required:** Yes (Customer Token)
+**Description:** Get current customer details (same data as verify-otp response)  
+**Auth Required:** Yes (Customer Token)  
+**Use Case:** Refresh customer data after initial login
 
 **Headers:**
 | Header | Value |
@@ -290,7 +319,8 @@ curl -X GET "https://your-domain.com/api/customer/me" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..."
 ```
 
-**Response (200):**
+**Response (200):** Same as `/verify-otp` customer object
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -323,27 +353,6 @@ curl -X GET "https://your-domain.com/api/customer/me" \
   "restaurant_id": "pos_0001_restaurant_709"
 }
 ```
-
-**Response Fields:**
-| Field | Type | Description |
-|-------|------|-------------|
-| id | string | Customer UUID |
-| name | string | Customer name |
-| phone | string | Phone number |
-| email | string | Email address |
-| tier | string | Loyalty tier (Bronze/Silver/Gold/Platinum) |
-| total_points | int | Current points balance |
-| points_value | float | Monetary value of points |
-| wallet_balance | float | Current wallet balance |
-| total_visits | int | Total visit count |
-| total_spent | float | Lifetime spend |
-| last_visit | string | Last visit timestamp |
-| address | string | Primary address |
-| city | string | City |
-| pincode | string | Pincode |
-| allergies | array | List of allergies |
-| favorites | array | Favorite items |
-| restaurant_id | string | Associated restaurant ID |
 
 **Errors:**
 | Code | Message |
@@ -1569,6 +1578,15 @@ Or for validation errors:
 ---
 
 ## Changelog
+
+### v1.1 (2026-04-11)
+- Added **Section 2: Customer Self-Service** (3 new endpoints)
+  - `POST /customer/send-otp` - Send OTP to customer phone
+  - `POST /customer/verify-otp` - Verify OTP & return token + full customer details
+  - `GET /customer/me` - Get customer details (refresh)
+- `/verify-otp` now returns full customer object (same as `/me`)
+- Added customer token authentication type
+- Updated section numbering (now 14 sections)
 
 ### v1.0 (2026-03-17)
 - Initial API documentation

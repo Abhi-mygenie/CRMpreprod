@@ -81,7 +81,7 @@
 | # | Endpoint | Method | Priority | Status | Notes |
 |---|----------|--------|----------|--------|-------|
 | 2.4.1 | `/customer/send-otp` | POST | High | 🟢 Completed | Send OTP to customer phone. Body: `{ "phone": "9876543210" }` |
-| 2.4.2 | `/customer/verify-otp` | POST | High | 🟢 Completed | Verify OTP & return token. Body: `{ "phone": "...", "otp": "123456" }` |
+| 2.4.2 | `/customer/verify-otp` | POST | High | 🟢 Completed | Verify OTP & return token + **full customer details** (same as /me) |
 | 2.4.3 | `/customer/me` | GET | High | 🟢 Completed | Get own details (requires customer token from OTP verify) |
 | 2.4.4 | `/customer/me/addresses` | GET | Medium | 🔴 Pending | Get own addresses (after addresses array implemented) |
 | 2.4.5 | `/customer/me/points` | GET | Medium | 🔴 Pending | Get own points balance & history |
@@ -92,11 +92,11 @@
 ```
 1. Customer enters phone number
 2. POST /customer/send-otp → OTP sent via WhatsApp/SMS
-3. POST /customer/verify-otp → Returns customer_token
-4. GET /customer/me (Header: Authorization: Bearer {customer_token})
+3. POST /customer/verify-otp → Returns customer_token + FULL customer details
+4. GET /customer/me → Same full details (optional, for refresh)
 ```
 
-**Note:** This is separate from restaurant owner authentication. Customers get limited access to their own data only.
+**Note:** `/verify-otp` and `/me` return identical customer data. No need for separate `/me` call after verify.
 
 ---
 
@@ -128,6 +128,10 @@
 | 2026-03-17 | Created checklist | - |
 | 2026-03-17 | Added POS API requirements for multiple addresses | - |
 | 2026-03-17 | Documented unmapped fields in API docs | - |
+| 2026-04-11 | Added Address Management Endpoints (2.3.x) | - |
+| 2026-04-11 | Added Customer Self-Service Endpoints (2.4.x) | - |
+| 2026-04-11 | Completed 2.4.1, 2.4.2, 2.4.3 (OTP & /me endpoints) | - |
+| 2026-04-11 | Updated verify-otp to return full customer details | - |
 
 ---
 
