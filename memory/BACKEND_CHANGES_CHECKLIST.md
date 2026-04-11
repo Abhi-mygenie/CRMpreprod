@@ -48,7 +48,7 @@
 
 | # | Change Required | Priority | Status | Notes |
 |---|-----------------|----------|--------|-------|
-| 2.1.1 | Add `addresses` array field | High | 🔴 Pending | To store multiple addresses |
+| 2.1.1 | Add `addresses` array field | High | 🔴 Pending | To store multiple addresses. Depends on POS API returning multiple addresses (1.1.1) |
 | 2.1.2 | Add `f_name` and `l_name` fields | Low | 🔴 Pending | Keep `name` for display, add these for forms |
 | 2.1.3 | Add `alternate_phone` field | Medium | 🔴 Pending | Secondary contact |
 | 2.1.4 | Add `profile_image` field | Low | 🔴 Pending | Profile picture URL |
@@ -61,6 +61,42 @@
 | 2.2.1 | Update customer sync to handle multiple addresses | High | 🔴 Pending | Depends on 1.1.1 |
 | 2.2.2 | Map all new fields from POS response | Medium | 🔴 Pending | After POS API updates |
 | 2.2.3 | Add validation for address array | Medium | 🔴 Pending | Max addresses, required fields |
+
+### 2.3 Address Management Endpoints (NEW)
+
+**Prerequisite:** Complete 1.1.1 (POS returns multiple addresses) and 2.1.1 (addresses array in schema)
+
+| # | Endpoint | Method | Priority | Status | Notes |
+|---|----------|--------|----------|--------|-------|
+| 2.3.1 | `/customers/{customer_id}/addresses` | GET | High | 🔴 Pending | List all addresses for customer |
+| 2.3.2 | `/customers/{customer_id}/addresses` | POST | High | 🔴 Pending | Add new address |
+| 2.3.3 | `/customers/{customer_id}/addresses/{address_id}` | PUT | High | 🔴 Pending | Update address |
+| 2.3.4 | `/customers/{customer_id}/addresses/{address_id}` | DELETE | Medium | 🔴 Pending | Delete address |
+| 2.3.5 | `/customers/{customer_id}/addresses/{address_id}/set-default` | POST | Medium | 🔴 Pending | Set as default address |
+
+### 2.4 Customer Self-Service Endpoints (NEW)
+
+**Purpose:** Allow customers to login with phone number and access their own data
+
+| # | Endpoint | Method | Priority | Status | Notes |
+|---|----------|--------|----------|--------|-------|
+| 2.4.1 | `/customer/send-otp` | POST | High | 🔴 Pending | Send OTP to customer phone. Body: `{ "phone": "9876543210" }` |
+| 2.4.2 | `/customer/verify-otp` | POST | High | 🔴 Pending | Verify OTP & return token. Body: `{ "phone": "...", "otp": "123456" }` |
+| 2.4.3 | `/customer/me` | GET | High | 🔴 Pending | Get own details (requires customer token from OTP verify) |
+| 2.4.4 | `/customer/me/addresses` | GET | Medium | 🔴 Pending | Get own addresses |
+| 2.4.5 | `/customer/me/points` | GET | Medium | 🔴 Pending | Get own points balance & history |
+| 2.4.6 | `/customer/me/wallet` | GET | Medium | 🔴 Pending | Get own wallet balance & history |
+| 2.4.7 | `/customer/me/orders` | GET | Low | 🔴 Pending | Get own order history |
+
+**Authentication Flow:**
+```
+1. Customer enters phone number
+2. POST /customer/send-otp → OTP sent via WhatsApp/SMS
+3. POST /customer/verify-otp → Returns customer_token
+4. GET /customer/me (Header: Authorization: Bearer {customer_token})
+```
+
+**Note:** This is separate from restaurant owner authentication. Customers get limited access to their own data only.
 
 ---
 
