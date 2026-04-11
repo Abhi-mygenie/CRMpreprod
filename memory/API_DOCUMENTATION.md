@@ -1222,7 +1222,7 @@ X-API-Key: {api_key}
 
 | POS Field | Reason | Action Required |
 |-----------|--------|-----------------|
-| **delivery_address** | Only address_id returned, not full address | POS API needs to return full address object |
+| **delivery_address** | Only `address_id` returned, NOT full address details | POS API needs to return full address object (address_line, city, pincode, landmark, lat/lng). **Note:** Customer sync DOES return address - this is only missing in Order sync |
 | **feedback/rating** | Not included in order response | POS API should include if available |
 | **points_earned** | Not returned, CRM calculates | POS should return actual points earned |
 | **points_redeemed** | Not returned | POS should return points used in order |

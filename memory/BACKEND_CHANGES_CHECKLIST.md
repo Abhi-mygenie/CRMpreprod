@@ -34,7 +34,7 @@
 
 | # | Change Required | Priority | Status | Notes |
 |---|-----------------|----------|--------|-------|
-| 1.2.1 | Return `delivery_address` with full details | High | 🔴 Pending | Currently order has address_id but not full address |
+| 1.2.1 | Return `delivery_address` with full details | High | 🔴 Pending | **Currently only `address_id` is returned, NOT the full address.** We need: address_line_1, address_line_2, city, state, pincode, landmark, lat/lng. (Note: Customer sync DOES return address - this is only missing in Order sync) |
 | 1.2.2 | Return `feedback/rating` if given for order | Medium | 🔴 Pending | To sync order-level feedback |
 | 1.2.3 | Return `points_earned` per order | Medium | 🔴 Pending | Currently we calculate, but POS should return actual |
 | 1.2.4 | Return `points_redeemed` per order | Medium | 🔴 Pending | How many points used in this order |
