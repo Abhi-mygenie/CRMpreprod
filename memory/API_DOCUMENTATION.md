@@ -1,37 +1,43 @@
 # MyGenie CRM API Documentation
 
 **Base URL:** `https://your-domain.com/api`  
-**Version:** v1.0  
-**Last Updated:** 2026-03-17
+**Version:** v1.1  
+**Last Updated:** 2026-04-11
 
 ---
 
 ## Table of Contents
 
 1. [Authentication](#1-authentication)
-2. [Customers](#2-customers)
-3. [Segments](#3-segments)
-4. [Points & Loyalty](#4-points--loyalty)
-5. [Wallet](#5-wallet)
-6. [Coupons](#6-coupons)
-7. [Feedback](#7-feedback)
-8. [Analytics](#8-analytics)
-9. [WhatsApp](#9-whatsapp)
-10. [POS Gateway](#10-pos-gateway)
-11. [Migration](#11-migration)
-12. [QR Code](#12-qr-code)
-13. [Cron Jobs](#13-cron-jobs)
+2. [Customer Self-Service](#2-customer-self-service)
+3. [Customers](#3-customers)
+4. [Segments](#4-segments)
+5. [Points & Loyalty](#5-points--loyalty)
+6. [Wallet](#6-wallet)
+7. [Coupons](#7-coupons)
+8. [Feedback](#8-feedback)
+9. [Analytics](#9-analytics)
+10. [WhatsApp](#10-whatsapp)
+11. [POS Gateway](#11-pos-gateway)
+12. [Migration](#12-migration)
+13. [QR Code](#13-qr-code)
+14. [Cron Jobs](#14-cron-jobs)
 
 ---
 
 ## Authentication Header
 
-All authenticated endpoints require:
+**Restaurant Owner/Admin endpoints:**
 ```
 Authorization: Bearer {access_token}
 ```
 
-POS Gateway endpoints require:
+**Customer Self-Service endpoints:**
+```
+Authorization: Bearer {customer_token}
+```
+
+**POS Gateway endpoints:**
 ```
 X-API-Key: {api_key}
 ```
@@ -152,7 +158,190 @@ X-API-Key: {api_key}
 
 ---
 
-## 2. Customers
+## 2. Customer Self-Service
+
+**Purpose:** Allow customers to login with phone number (OTP) and access their own data.
+
+**Authentication Flow:**
+```
+1. Customer enters phone number
+2. POST /customer/send-otp → OTP sent via WhatsApp/SMS
+3. POST /customer/verify-otp → Returns customer_token
+4. GET /customer/me (Header: Authorization: Bearer {customer_token})
+```
+
+---
+
+### POST `/customer/send-otp`
+**Description:** Send OTP to customer phone number  
+**Auth Required:** No
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone | string | Yes | Customer phone number |
+| country_code | string | No | Country code (default: 91) |
+
+**Example Request:**
+```bash
+curl -X POST "https://your-domain.com/api/customer/send-otp" \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "9876543210", "country_code": "91"}'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "OTP sent to +91 9876543210",
+  "expires_in_minutes": 10
+}
+```
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 404 | Customer not found. Please contact the restaurant to register. |
+
+**Note:** Customer must already exist in database (registered by restaurant).
+
+---
+
+### POST `/customer/verify-otp`
+**Description:** Verify OTP and get customer token  
+**Auth Required:** No
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone | string | Yes | Customer phone number |
+| otp | string | Yes | 6-digit OTP received |
+| country_code | string | No | Country code (default: 91) |
+
+**Example Request:**
+```bash
+curl -X POST "https://your-domain.com/api/customer/verify-otp" \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "9876543210", "otp": "123456"}'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in_hours": 24,
+  "customer": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "John Doe",
+    "phone": "9876543210"
+  }
+}
+```
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 400 | Invalid OTP |
+| 400 | OTP expired. Please request a new one. |
+| 404 | Customer not found |
+
+---
+
+### GET `/customer/me`
+**Description:** Get current customer details  
+**Auth Required:** Yes (Customer Token)
+
+**Headers:**
+| Header | Value |
+|--------|-------|
+| Authorization | Bearer {customer_token} |
+
+**Example Request:**
+```bash
+curl -X GET "https://your-domain.com/api/customer/me" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..."
+```
+
+**Response (200):**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "John Doe",
+  "phone": "9876543210",
+  "email": "john@email.com",
+  "country_code": "+91",
+  
+  "dob": "1990-05-15",
+  "anniversary": "2015-06-20",
+  "gender": "male",
+  
+  "tier": "Gold",
+  "total_points": 1500,
+  "points_value": 375.00,
+  "wallet_balance": 250.00,
+  
+  "total_visits": 25,
+  "total_spent": 35000.00,
+  "last_visit": "2026-04-10T14:30:00+00:00",
+  
+  "address": "123 Main Street",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "pincode": "400001",
+  
+  "allergies": ["peanuts", "shellfish"],
+  "favorites": ["Butter Chicken", "Naan"],
+  
+  "restaurant_id": "pos_0001_restaurant_709"
+}
+```
+
+**Response Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | Customer UUID |
+| name | string | Customer name |
+| phone | string | Phone number |
+| email | string | Email address |
+| tier | string | Loyalty tier (Bronze/Silver/Gold/Platinum) |
+| total_points | int | Current points balance |
+| points_value | float | Monetary value of points |
+| wallet_balance | float | Current wallet balance |
+| total_visits | int | Total visit count |
+| total_spent | float | Lifetime spend |
+| last_visit | string | Last visit timestamp |
+| address | string | Primary address |
+| city | string | City |
+| pincode | string | Pincode |
+| allergies | array | List of allergies |
+| favorites | array | Favorite items |
+| restaurant_id | string | Associated restaurant ID |
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 401 | Authorization header required |
+| 401 | Token expired |
+| 401 | Invalid token |
+| 404 | Customer not found |
+
+---
+
+### Future Endpoints (Planned)
+
+| Endpoint | Method | Status | Description |
+|----------|--------|--------|-------------|
+| `/customer/me/addresses` | GET | 🔴 Pending | Get customer's addresses |
+| `/customer/me/points` | GET | 🔴 Pending | Get points history |
+| `/customer/me/wallet` | GET | 🔴 Pending | Get wallet history |
+| `/customer/me/orders` | GET | 🔴 Pending | Get order history |
+
+---
+
+## 3. Customers
 
 ### POST `/customers`
 **Description:** Create new customer  
@@ -289,7 +478,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 3. Segments
+## 4. Segments
 
 ### POST `/segments`
 **Description:** Create customer segment  
@@ -366,7 +555,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 4. Points & Loyalty
+## 5. Points & Loyalty
 
 ### POST `/points/transaction`
 **Description:** Create points transaction (earn/redeem/bonus)  
@@ -478,7 +667,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 5. Wallet
+## 6. Wallet
 
 ### POST `/wallet/transaction`
 **Description:** Create wallet transaction  
@@ -507,7 +696,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 6. Coupons
+## 7. Coupons
 
 ### POST `/coupons`
 **Description:** Create coupon  
@@ -593,7 +782,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 7. Feedback
+## 8. Feedback
 
 ### POST `/feedback`
 **Description:** Create feedback entry  
@@ -624,7 +813,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 8. Analytics
+## 9. Analytics
 
 ### GET `/analytics/dashboard`
 **Description:** Get comprehensive dashboard stats  
@@ -725,7 +914,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 9. WhatsApp
+## 10. WhatsApp
 
 ### GET `/whatsapp/templates`
 **Description:** List WhatsApp templates  
@@ -908,7 +1097,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 10. POS Gateway
+## 11. POS Gateway
 
 **Note:** All POS endpoints use `X-API-Key` header instead of Bearer token.
 
@@ -1046,7 +1235,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 11. Migration
+## 12. Migration
 
 ### GET `/migration/status`
 **Description:** Get migration status  
@@ -1246,7 +1435,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 12. QR Code
+## 13. QR Code
 
 ### GET `/qr/generate`
 **Description:** Generate customer registration QR code  
@@ -1271,7 +1460,7 @@ X-API-Key: {api_key}
 
 ---
 
-## 13. Cron Jobs
+## 14. Cron Jobs
 
 ### GET `/cron/status`
 **Description:** Get scheduler status and recent logs  
