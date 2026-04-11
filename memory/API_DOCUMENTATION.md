@@ -1109,6 +1109,143 @@ X-API-Key: {api_key}
 
 ---
 
+### Migration Field Mapping - Customer Sync
+
+**POS API:** `POST /api/v1/vendoremployee/whatsappcrm/customer-migration`
+
+#### Fields MAPPED (Stored in CRM) ✅
+
+| POS Field | CRM Field | Notes |
+|-----------|-----------|-------|
+| id | pos_customer_id | POS unique ID |
+| name | name | Full name |
+| phone | phone | Primary phone |
+| country_code | country_code | Default: +91 |
+| email | email | Email address |
+| dob | dob | Date of birth |
+| anniversary | anniversary | Anniversary date |
+| gst_name | gst_name | GST registered name |
+| gst_number | gst_number | GST number |
+| loyalty_point | total_points | Current points (int) |
+| total_points_earned | total_points_earned | Lifetime earned (string→int) |
+| total_points_redeemed | total_points_redeemed | Lifetime redeemed (string→int) |
+| wallet_balance | wallet_balance | Current wallet (int→float) |
+| total_wallet_received | total_wallet_received | Lifetime credits (string→float) |
+| total_wallet_used | total_wallet_used | Lifetime usage (string→float) |
+| total_coupon_used | total_coupon_used | Coupons used count |
+| customer_type | customer_type | normal/corporate |
+| address | address | Single address only |
+| city | city | City |
+| pincode | pincode | Pincode |
+| pos_id | pos_id | POS system ID |
+| restaurant_id | pos_restaurant_id | Restaurant ID in POS |
+| created_time | created_at | Creation timestamp |
+| updated_time | last_updated_at | Last update |
+
+#### Fields NOT MAPPED (Not stored) ❌
+
+| POS Field | Reason | Action Required |
+|-----------|--------|-----------------|
+| **Multiple addresses** | POS returns single address only | POS API needs to return address array |
+| f_name | Combined into `name` | Consider storing separately |
+| l_name | Combined into `name` | Consider storing separately |
+| alternate_phone | Not captured | Add field to schema |
+| profile_image | Not captured | Add field to schema |
+| company_name | Not captured (different from gst_name) | Add field to schema |
+| tags/labels | Not returned by POS | Request from POS team |
+| preferred_language | Not returned by POS | Request from POS team |
+| gender | Not returned by POS | Request from POS team |
+| membership_details | Partially mapped | Review completeness |
+
+#### Auto-Calculated Fields (CRM side)
+
+| CRM Field | Calculation |
+|-----------|-------------|
+| tier | Based on total_points: Bronze(<500), Silver(500-1499), Gold(1500-4999), Platinum(5000+) |
+| mygenie_synced | Set to `true` |
+| last_synced_at | Current timestamp |
+
+---
+
+### Migration Field Mapping - Order Sync
+
+**POS API:** `POST /api/v1/vendoremployee/whatsappcrm/customer-order-migration`
+
+#### Fields MAPPED (Stored in CRM) ✅
+
+| POS Field | CRM Field | Notes |
+|-----------|-----------|-------|
+| id | pos_order_id | POS order ID |
+| restaurant_order_id | restaurant_order_id | Display order number |
+| user_id | pos_customer_id | POS customer reference |
+| restaurant_id | pos_restaurant_id | Restaurant ID |
+| order_amount | order_amount | Total amount |
+| delivery_charge | delivery_charge | Delivery fee |
+| coupon_code | coupon_code | Applied coupon |
+| coupon_discount_amount | coupon_discount | Discount amount |
+| payment_method | payment_method | Payment mode |
+| payment_status | payment_status | Payment status |
+| order_status | order_status | Order status |
+| order_type | order_type | dine_in/takeaway/delivery |
+| table_id | table_id | Table number |
+| waiter_id | waiter_id | Waiter ID |
+| employee_id | employee_id | Employee who created |
+| print_kot | print_kot | KOT printed |
+| print_bill_status | print_bill_status | Bill printed |
+| order_note | order_notes | Order notes |
+| created_at | order_created_at | Order creation time |
+| updated_at | order_updated_at | Order update time |
+| orderDetails | items | Array of items |
+
+**Order Items (from orderDetails):**
+| POS Field | CRM Field |
+|-----------|-----------|
+| food_details.name | item_name |
+| food_details.id | pos_food_id |
+| food_details.category_id | item_category |
+| quantity | item_qty |
+| price/unit_price | item_price |
+| variation | variation |
+| add_ons | add_ons |
+| station | station |
+| item_type | item_type |
+| food_level_notes | item_notes |
+| food_details.veg | is_veg |
+| food_details.tax | tax |
+| food_details.tax_type | tax_type |
+| food_status | food_status |
+| ready_at | ready_at |
+| serve_at | serve_at |
+| cancel_at | cancel_at |
+
+#### Fields NOT MAPPED (Not stored) ❌
+
+| POS Field | Reason | Action Required |
+|-----------|--------|-----------------|
+| **delivery_address** | Only address_id returned, not full address | POS API needs to return full address object |
+| **feedback/rating** | Not included in order response | POS API should include if available |
+| **points_earned** | Not returned, CRM calculates | POS should return actual points earned |
+| **points_redeemed** | Not returned | POS should return points used in order |
+| **wallet_used** | Not returned in migration | POS should return wallet amount used |
+| customer full details | Only user_id reference | Acceptable - linked via pos_customer_id |
+| item images | Not returned | Low priority |
+| item description | Not returned | Low priority |
+
+#### Auto-Calculated Fields (CRM side)
+
+| CRM Field | Calculation |
+|-----------|-------------|
+| customer_id | Matched via pos_customer_id or phone |
+| points_earned | Calculated based on loyalty settings |
+| mygenie_synced | Set to `true` |
+| last_synced_at | Current timestamp |
+
+---
+
+> **⚠️ IMPORTANT:** See `BACKEND_CHANGES_CHECKLIST.md` for detailed action items required from POS team to address unmapped fields.
+
+---
+
 ## 12. QR Code
 
 ### GET `/qr/generate`
