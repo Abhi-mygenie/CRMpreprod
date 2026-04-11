@@ -80,10 +80,10 @@
 
 | # | Endpoint | Method | Priority | Status | Notes |
 |---|----------|--------|----------|--------|-------|
-| 2.4.1 | `/customer/send-otp` | POST | High | 🔴 Pending | Send OTP to customer phone. Body: `{ "phone": "9876543210" }` |
-| 2.4.2 | `/customer/verify-otp` | POST | High | 🔴 Pending | Verify OTP & return token. Body: `{ "phone": "...", "otp": "123456" }` |
-| 2.4.3 | `/customer/me` | GET | High | 🔴 Pending | Get own details (requires customer token from OTP verify) |
-| 2.4.4 | `/customer/me/addresses` | GET | Medium | 🔴 Pending | Get own addresses |
+| 2.4.1 | `/customer/send-otp` | POST | High | 🟢 Completed | Send OTP to customer phone. Body: `{ "phone": "9876543210" }` |
+| 2.4.2 | `/customer/verify-otp` | POST | High | 🟢 Completed | Verify OTP & return token. Body: `{ "phone": "...", "otp": "123456" }` |
+| 2.4.3 | `/customer/me` | GET | High | 🟢 Completed | Get own details (requires customer token from OTP verify) |
+| 2.4.4 | `/customer/me/addresses` | GET | Medium | 🔴 Pending | Get own addresses (after addresses array implemented) |
 | 2.4.5 | `/customer/me/points` | GET | Medium | 🔴 Pending | Get own points balance & history |
 | 2.4.6 | `/customer/me/wallet` | GET | Medium | 🔴 Pending | Get own wallet balance & history |
 | 2.4.7 | `/customer/me/orders` | GET | Low | 🔴 Pending | Get own order history |

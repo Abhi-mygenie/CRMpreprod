@@ -1,0 +1,237 @@
+"""
+Customer Self-Service API - OTP based authentication for customers
+"""
+from fastapi import APIRouter, HTTPException, Depends, Header
+from pydantic import BaseModel
+from datetime import datetime, timezone, timedelta
+import uuid
+import random
+import jwt
+import os
+
+from core.database import db
+
+router = APIRouter(prefix="/customer", tags=["Customer Self-Service"])
+
+# JWT Secret for customer tokens (separate from admin tokens)
+CUSTOMER_JWT_SECRET = os.environ.get("CUSTOMER_JWT_SECRET", "customer-secret-key-change-in-production")
+CUSTOMER_TOKEN_EXPIRE_HOURS = 24
+
+# OTP expiry in minutes
+OTP_EXPIRY_MINUTES = 10
+
+
+class SendOTPRequest(BaseModel):
+    phone: str
+    country_code: str = "91"
+
+
+class VerifyOTPRequest(BaseModel):
+    phone: str
+    otp: str
+    country_code: str = "91"
+
+
+def generate_otp() -> str:
+    """Generate 6-digit OTP"""
+    return str(random.randint(100000, 999999))
+
+
+def create_customer_token(customer_id: str, phone: str) -> str:
+    """Create JWT token for customer"""
+    expire = datetime.now(timezone.utc) + timedelta(hours=CUSTOMER_TOKEN_EXPIRE_HOURS)
+    payload = {
+        "customer_id": customer_id,
+        "phone": phone,
+        "exp": expire,
+        "type": "customer"
+    }
+    return jwt.encode(payload, CUSTOMER_JWT_SECRET, algorithm="HS256")
+
+
+async def get_current_customer(authorization: str = Header(None)):
+    """Dependency to get current customer from token"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    
+    try:
+        # Remove "Bearer " prefix if present
+        token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
+        
+        payload = jwt.decode(token, CUSTOMER_JWT_SECRET, algorithms=["HS256"])
+        
+        if payload.get("type") != "customer":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        
+        customer_id = payload.get("customer_id")
+        if not customer_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        # Get customer from database
+        customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+        if not customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        
+        return customer
+    
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@router.post("/send-otp")
+async def send_otp(request: SendOTPRequest):
+    """
+    Send OTP to customer phone number.
+    Customer must exist in database (registered via restaurant).
+    """
+    phone = request.phone.strip().replace(" ", "")
+    
+    # Find customer by phone (across all restaurants)
+    customer = await db.customers.find_one({"phone": phone}, {"_id": 0, "id": 1, "name": 1, "phone": 1})
+    
+    if not customer:
+        raise HTTPException(
+            status_code=404, 
+            detail="Customer not found. Please contact the restaurant to register."
+        )
+    
+    # Generate OTP
+    otp = generate_otp()
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
+    
+    # Store OTP in database
+    otp_doc = {
+        "id": str(uuid.uuid4()),
+        "phone": phone,
+        "otp": otp,
+        "customer_id": customer["id"],
+        "expires_at": expires_at.isoformat(),
+        "verified": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Remove old OTPs for this phone
+    await db.customer_otps.delete_many({"phone": phone})
+    
+    # Insert new OTP
+    await db.customer_otps.insert_one(otp_doc)
+    
+    # TODO: Send OTP via WhatsApp/SMS using AuthKey or other provider
+    # For now, return OTP in response (REMOVE IN PRODUCTION)
+    
+    return {
+        "success": True,
+        "message": f"OTP sent to +{request.country_code} {phone}",
+        "expires_in_minutes": OTP_EXPIRY_MINUTES,
+        # REMOVE IN PRODUCTION - only for testing
+        "debug_otp": otp
+    }
+
+
+@router.post("/verify-otp")
+async def verify_otp(request: VerifyOTPRequest):
+    """
+    Verify OTP and return customer token.
+    """
+    phone = request.phone.strip().replace(" ", "")
+    
+    # Find OTP record
+    otp_record = await db.customer_otps.find_one({
+        "phone": phone,
+        "otp": request.otp,
+        "verified": False
+    })
+    
+    if not otp_record:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # Check expiry
+    expires_at = datetime.fromisoformat(otp_record["expires_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+    
+    # Mark OTP as verified
+    await db.customer_otps.update_one(
+        {"id": otp_record["id"]},
+        {"$set": {"verified": True}}
+    )
+    
+    # Get customer
+    customer = await db.customers.find_one({"id": otp_record["customer_id"]}, {"_id": 0})
+    
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Generate token
+    token = create_customer_token(customer["id"], phone)
+    
+    return {
+        "success": True,
+        "message": "OTP verified successfully",
+        "token": token,
+        "token_type": "bearer",
+        "expires_in_hours": CUSTOMER_TOKEN_EXPIRE_HOURS,
+        "customer": {
+            "id": customer["id"],
+            "name": customer.get("name"),
+            "phone": customer.get("phone")
+        }
+    }
+
+
+@router.get("/me")
+async def get_customer_details(customer: dict = Depends(get_current_customer)):
+    """
+    Get current customer details.
+    Requires valid customer token from OTP verification.
+    """
+    # Get loyalty settings for the restaurant
+    loyalty_settings = await db.loyalty_settings.find_one(
+        {"user_id": customer.get("user_id")}, 
+        {"_id": 0, "redemption_value": 1}
+    )
+    redemption_value = loyalty_settings.get("redemption_value", 0.25) if loyalty_settings else 0.25
+    
+    # Calculate points value
+    total_points = customer.get("total_points", 0)
+    points_value = round(total_points * redemption_value, 2)
+    
+    # Return customer details (excluding sensitive/internal fields)
+    return {
+        "id": customer.get("id"),
+        "name": customer.get("name"),
+        "phone": customer.get("phone"),
+        "email": customer.get("email"),
+        "country_code": customer.get("country_code", "+91"),
+        
+        # Personal
+        "dob": customer.get("dob"),
+        "anniversary": customer.get("anniversary"),
+        "gender": customer.get("gender"),
+        
+        # Loyalty
+        "tier": customer.get("tier", "Bronze"),
+        "total_points": total_points,
+        "points_value": points_value,
+        "wallet_balance": customer.get("wallet_balance", 0.0),
+        
+        # Stats
+        "total_visits": customer.get("total_visits", 0),
+        "total_spent": customer.get("total_spent", 0.0),
+        "last_visit": customer.get("last_visit"),
+        
+        # Address (single - current structure)
+        "address": customer.get("address"),
+        "city": customer.get("city"),
+        "state": customer.get("state"),
+        "pincode": customer.get("pincode"),
+        
+        # Preferences
+        "allergies": customer.get("allergies", []),
+        "favorites": customer.get("favorites", []),
+        
+        # Restaurant info
+        "restaurant_id": customer.get("user_id")
+    }

@@ -7,7 +7,7 @@ import logging
 
 from core.database import db, close_db_connection
 from core.scheduler import start_scheduler, stop_scheduler
-from routers import auth, customers, points, wallet, coupons, feedback, whatsapp, pos, migration, analytics
+from routers import auth, customers, points, wallet, coupons, feedback, whatsapp, pos, migration, analytics, customer_auth
 
 
 @asynccontextmanager
@@ -45,6 +45,7 @@ api_router.include_router(pos.router)
 api_router.include_router(pos.messaging_router)
 api_router.include_router(migration.router)
 api_router.include_router(analytics.router)
+api_router.include_router(customer_auth.router)
 
 # Root routes
 @api_router.get("/")
