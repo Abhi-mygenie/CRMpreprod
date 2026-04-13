@@ -20,7 +20,7 @@
 
 | # | Change Required | Priority | Status | Notes |
 |---|-----------------|----------|--------|-------|
-| 1.1.1 | Return **multiple addresses** per customer | High | 🟢 **Completed** | POS now returns `customer_addresses[]` array |
+| 1.1.1 | Return **multiple addresses** per customer | High | 🟢 **Completed** | POS returns `customer_addresses[]` array with full details (id, address, city, pincode, house, floor, road, lat/lng, contact_person, zone_id) |
 | 1.1.2 | Return `f_name` and `l_name` separately | Low | 🔴 Pending | Currently we combine, but separate fields useful for personalization |
 | 1.1.3 | Return `alternate_phone` if available | Medium | 🔴 Pending | For backup contact |
 | 1.1.4 | Return `profile_image` URL | Low | 🔴 Pending | For customer display |
@@ -34,7 +34,7 @@
 
 | # | Change Required | Priority | Status | Notes |
 |---|-----------------|----------|--------|-------|
-| 1.2.1 | Return `delivery_address` with full details | High | 🔴 Pending | **Currently only `address_id` is returned, NOT the full address.** We need: address_line_1, address_line_2, city, state, pincode, landmark, lat/lng. (Note: Customer sync DOES return address - this is only missing in Order sync) |
+| 1.2.1 | Return `delivery_address` with full details | High | 🟢 **Completed** | POS already returns full `delivery_address` object for delivery orders (verified Apr 2026). Fields: contact_person_name, contact_person_number, address_type, address, pincode, house, floor, road, lat, lng. CRM migration.py now captures this. |
 | 1.2.2 | Return `feedback/rating` if given for order | Medium | 🔴 Pending | To sync order-level feedback |
 | 1.2.3 | Return `points_earned` per order | Medium | 🔴 Pending | Currently we calculate, but POS should return actual |
 | 1.2.4 | Return `points_redeemed` per order | Medium | 🔴 Pending | How many points used in this order |
@@ -142,6 +142,12 @@
 | 2026-04-11 | Added Customer Self-Service Endpoints (2.4.x) | - |
 | 2026-04-11 | Completed 2.4.1, 2.4.2, 2.4.3 (OTP & /me endpoints) | - |
 | 2026-04-11 | Updated verify-otp to return full customer details | - |
+| 2026-04-13 | Frontend Address CRUD: Addresses tab on CustomerDetailPage, Add/Edit modals use addresses API | - |
+| 2026-04-13 | CustomersPage Add/Edit modals updated for addresses array | - |
+| 2026-04-13 | Verified POS Order API returns full delivery_address (not just address_id) — updated 1.2.1 to Completed | - |
+| 2026-04-13 | Fixed migration.py to capture delivery_address from POS order sync | - |
+| 2026-04-13 | Fixed address list endpoint projection bug (false 404 for customers without addresses) | - |
+| 2026-04-13 | Full smoke test passed: Backend 22/22, Frontend 15+ pages — all green | - |
 
 ---
 

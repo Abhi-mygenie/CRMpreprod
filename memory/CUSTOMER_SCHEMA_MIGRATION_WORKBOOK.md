@@ -102,17 +102,18 @@ total_visits, total_wallet_deposit, user_id, wallet_balance, wallet_used
 
 ## SECTION 6: Address & Location
 
+> **UPDATE (Apr 2026):** Single address fields (`address`, `city`, `pincode`, etc.) have been replaced by an `addresses[]` array on the Customer schema. Each address object contains: id, pos_address_id, is_default, address_type, address, house, floor, road, city, state, pincode, country, latitude, longitude, contact_person_name, contact_person_number, delivery_instructions, zone_id. Address CRUD endpoints available at `/customers/{id}/addresses`.
+
 | New Field | Existing Field | Status | Notes |
 |-----------|---------------|--------|-------|
-| Address Line 1 | `address` | ✅ Mapped | - |
-| Address Line 2 | - | 🆕 Add | - |
-| City | `city` | ✅ Mapped | - |
-| State | - | 🆕 Add | - |
-| Pincode | `pincode` | ✅ Mapped | - |
-| Country | - | 🆕 Add | `country_code` has +91, need name |
-| Country Code | `country_code` | ✅ Mapped | +91, +1, etc. |
-| Delivery Instructions | - | 🆕 Add | - |
-| Google Map Location | - | 🆕 Add | {lat, lng} object |
+| addresses[] | `address`, `city`, `pincode` | 🟢 **Migrated** | Array replaces flat fields. Full CRUD API available. Frontend Addresses tab on detail page. |
+| Address Line 2 | - | 🟢 In addresses[] | Part of address object |
+| State | - | 🟢 In addresses[] | Part of address object |
+| Country | - | 🟢 In addresses[] | Part of address object (default: India) |
+| Country Code | `country_code` | ✅ Mapped | +91, +1, etc. (on customer, not address) |
+| Delivery Instructions | - | 🟢 In addresses[] | Per-address delivery notes |
+| Latitude/Longitude | - | 🟢 In addresses[] | Per-address GPS coordinates |
+| Contact Person | - | 🟢 In addresses[] | Per-address contact name & number |
 
 ---
 

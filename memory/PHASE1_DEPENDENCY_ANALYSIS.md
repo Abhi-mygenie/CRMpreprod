@@ -210,11 +210,14 @@ total_spent, tier, created_at, last_visit, pos_customer_id, mygenie_synced
 - ✅ Existing customers load correctly (Pydantic handles missing fields with defaults)
 - ✅ New customers will have all new fields populated
 
-### Next Steps (Phase 2+)
-- Add UI form fields for new customer properties
-- Add filters for new fields (gender, whatsapp_opt_in, is_blocked, etc.)
-- Implement referral code generation logic
-- Add membership management UI
+### Next Steps (Roadmap)
+- Orders list/detail view per customer (with delivery_address display)
+- Top items display per customer
+- Order notes view
+- City filter to search within addresses array
+- Address fields on QR registration page
+- WhatsApp campaign integration
+- Advanced analytics/AI insights
 
 ---
 

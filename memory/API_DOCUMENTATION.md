@@ -259,10 +259,19 @@ curl -X POST "https://your-domain.com/api/customer/verify-otp" \
     "total_spent": 35000.00,
     "last_visit": "2026-04-10T14:30:00+00:00",
     
-    "address": "123 Main Street",
-    "city": "Mumbai",
-    "state": "Maharashtra",
-    "pincode": "400001",
+    "addresses": [
+      {
+        "id": "addr_abc123",
+        "pos_address_id": 101,
+        "is_default": true,
+        "address_type": "Home",
+        "address": "123 Main Street",
+        "city": "Mumbai",
+        "state": "Maharashtra",
+        "pincode": "400001",
+        "country": "India"
+      }
+    ],
     
     "allergies": ["peanuts", "shellfish"],
     "favorites": ["Butter Chicken", "Naan"],
@@ -297,10 +306,7 @@ curl -X POST "https://your-domain.com/api/customer/verify-otp" \
 | total_visits | int | Total visit count |
 | total_spent | float | Lifetime spend |
 | last_visit | string | Last visit timestamp (ISO 8601) |
-| address | string | Primary address |
-| city | string | City |
-| state | string | State |
-| pincode | string | Pincode |
+| addresses | array | Array of address objects (id, address_type, address, city, state, pincode, is_default, etc.) |
 | allergies | array | List of allergies |
 | favorites | array | Favorite items |
 | restaurant_id | string | Associated restaurant ID |
@@ -346,10 +352,17 @@ curl -X GET "https://your-domain.com/api/customer/me" \
   "total_spent": 35000.00,
   "last_visit": "2026-04-10T14:30:00+00:00",
   
-  "address": "123 Main Street",
-  "city": "Mumbai",
-  "state": "Maharashtra",
-  "pincode": "400001",
+  "addresses": [
+    {
+      "id": "addr_abc123",
+      "is_default": true,
+      "address_type": "Home",
+      "address": "123 Main Street",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "pincode": "400001"
+    }
+  ],
   
   "allergies": ["peanuts", "shellfish"],
   "favorites": ["Butter Chicken", "Naan"],
@@ -372,7 +385,7 @@ curl -X GET "https://your-domain.com/api/customer/me" \
 
 | Endpoint | Method | Status | Description |
 |----------|--------|--------|-------------|
-| `/customer/me/addresses` | GET | 🔴 Pending | Get customer's addresses |
+| `/customer/me/addresses` | GET | 🟢 **Completed** | Get customer's addresses |
 | `/customer/me/points` | GET | 🔴 Pending | Get points history |
 | `/customer/me/wallet` | GET | 🔴 Pending | Get wallet history |
 | `/customer/me/orders` | GET | 🔴 Pending | Get order history |
@@ -1486,7 +1499,6 @@ curl -X GET "https://your-domain.com/api/customer/me" \
 
 | POS Field | Reason | Action Required |
 |-----------|--------|-----------------|
-| **Multiple addresses** | POS returns single address only | POS API needs to return address array |
 | f_name | Combined into `name` | Consider storing separately |
 | l_name | Combined into `name` | Consider storing separately |
 | alternate_phone | Not captured | Add field to schema |
@@ -1496,6 +1508,12 @@ curl -X GET "https://your-domain.com/api/customer/me" \
 | preferred_language | Not returned by POS | Request from POS team |
 | gender | Not returned by POS | Request from POS team |
 | membership_details | Partially mapped | Review completeness |
+
+#### Fields NEWLY MAPPED (Apr 2026) ✅
+
+| POS Field | CRM Field | Notes |
+|-----------|-----------|-------|
+| customer_addresses[] | addresses[] | Full array of addresses mapped via `address_utils.py`. Each address: pos_address_id, address_type, address, city, pincode, house, floor, road, lat, lng, contact_person_name, contact_person_number, zone_id |
 
 #### Auto-Calculated Fields (CRM side)
 
@@ -1562,7 +1580,6 @@ curl -X GET "https://your-domain.com/api/customer/me" \
 
 | POS Field | Reason | Action Required |
 |-----------|--------|-----------------|
-| **delivery_address** | Only `address_id` returned, NOT full address details | POS API needs to return full address object (address_line, city, pincode, landmark, lat/lng). **Note:** Customer sync DOES return address - this is only missing in Order sync |
 | **feedback/rating** | Not included in order response | POS API should include if available |
 | **points_earned** | Not returned, CRM calculates | POS should return actual points earned |
 | **points_redeemed** | Not returned | POS should return points used in order |
@@ -1570,6 +1587,12 @@ curl -X GET "https://your-domain.com/api/customer/me" \
 | customer full details | Only user_id reference | Acceptable - linked via pos_customer_id |
 | item images | Not returned | Low priority |
 | item description | Not returned | Low priority |
+
+#### Fields NEWLY MAPPED (Apr 2026) ✅
+
+| POS Field | CRM Field | Notes |
+|-----------|-----------|-------|
+| delivery_address | delivery_address | Full address object for delivery orders (contact_person_name, address, pincode, house, floor, road, lat, lng). `None` for pos/take_away orders. |
 
 #### Auto-Calculated Fields (CRM side)
 
@@ -1695,6 +1718,22 @@ Or for validation errors:
 ---
 
 ## Changelog
+
+### v1.3 (2026-04-13)
+- **Order Migration - delivery_address**
+  - POS order API verified to return full `delivery_address` object for delivery orders
+  - `migration.py` now captures `delivery_address` in order_doc during sync
+  - Contains: contact_person_name, contact_person_number, address_type, address, pincode, house, floor, road, lat, lng
+- **Frontend Address Management**
+  - CustomerDetailPage: New "Addresses" tab with full CRUD (add/edit/delete/set-default)
+  - CustomersPage Add Modal: Creates addresses via CRUD API after customer creation
+  - CustomersPage Edit Modal: Shows addresses array summary with "Manage addresses" link
+- **Bug Fixes**
+  - Fixed GET `/customers/{id}/addresses` returning false 404 for customers without addresses field (MongoDB projection issue)
+- **Full Smoke Test Passed**
+  - Backend: 22/22 endpoints (100%)
+  - Frontend: 15+ pages all loading correctly
+  - Migration verified: 532 customers, 7989 orders for pav2
 
 ### v1.2 (2026-04-13)
 - **Multiple Addresses Feature**
