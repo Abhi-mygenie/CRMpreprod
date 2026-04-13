@@ -883,7 +883,7 @@ async def list_customer_addresses(customer_id: str, user: dict = Depends(get_cur
     """Get all addresses for a customer"""
     customer = await db.customers.find_one(
         {"id": customer_id, "user_id": user["id"]}, 
-        {"_id": 0, "addresses": 1}
+        {"_id": 0, "id": 1, "addresses": 1}
     )
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
