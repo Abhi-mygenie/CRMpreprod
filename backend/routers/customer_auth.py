@@ -207,11 +207,14 @@ async def verify_otp(request: VerifyOTPRequest):
             "total_spent": customer.get("total_spent", 0.0),
             "last_visit": customer.get("last_visit"),
             
-            # Address (single - current structure)
+            # Address (single - legacy)
             "address": customer.get("address"),
             "city": customer.get("city"),
             "state": customer.get("state"),
             "pincode": customer.get("pincode"),
+            
+            # Multiple Addresses (new)
+            "addresses": customer.get("addresses", []),
             
             # Preferences
             "allergies": customer.get("allergies", []),
@@ -264,11 +267,14 @@ async def get_customer_details(customer: dict = Depends(get_current_customer)):
         "total_spent": customer.get("total_spent", 0.0),
         "last_visit": customer.get("last_visit"),
         
-        # Address (single - current structure)
+        # Address (single - legacy)
         "address": customer.get("address"),
         "city": customer.get("city"),
         "state": customer.get("state"),
         "pincode": customer.get("pincode"),
+        
+        # Multiple Addresses (new)
+        "addresses": customer.get("addresses", []),
         
         # Preferences
         "allergies": customer.get("allergies", []),
@@ -276,4 +282,18 @@ async def get_customer_details(customer: dict = Depends(get_current_customer)):
         
         # Restaurant info
         "restaurant_id": customer.get("user_id")
+    }
+
+
+@router.get("/me/addresses")
+async def get_customer_addresses(customer: dict = Depends(get_current_customer)):
+    """
+    Get current customer's addresses.
+    Requires valid customer token from OTP verification.
+    """
+    addresses = customer.get("addresses", [])
+    return {
+        "customer_id": customer.get("id"),
+        "addresses": addresses,
+        "total": len(addresses)
     }
