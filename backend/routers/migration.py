@@ -116,6 +116,7 @@ async def background_order_sync(user_id: str, mygenie_token: str):
                         "cust_email": cust_email,
                         "order_amount": float(mygenie_order.get("order_amount") or 0),
                         "delivery_charge": float(mygenie_order.get("delivery_charge") or 0),
+                        "delivery_address": mygenie_order.get("delivery_address"),
                         "coupon_code": mygenie_order.get("coupon_code"),
                         "coupon_discount": float(mygenie_order.get("coupon_discount_amount") or mygenie_order.get("coupon_discount") or 0),
                         "payment_method": mygenie_order.get("payment_method"),

@@ -20,60 +20,38 @@ CRM application for restaurant owners to manage customers, orders, loyalty point
 - Data Migration Tools
 - Analytics Dashboard
 - Customer Self-Service OTP Auth (restaurant-scoped)
-- **Address Management (NEW)** - Full CRUD via addresses array
+- Address Management - Full CRUD via addresses array
+- Order delivery address capture from POS
 
 ## What's Been Implemented
 
-### Backend (Completed)
-- Cloned CRMpreprod repository from dev branch
-- Configured MongoDB connection to external server
-- Customer schema supports both legacy flat address fields AND new `addresses` array
-- Address CRUD endpoints: GET/POST/PUT/DELETE /api/customers/{id}/addresses
+### Backend
+- Customer schema supports `addresses` array with full CRUD endpoints
+- Address CRUD: GET/POST/PUT/DELETE /api/customers/{id}/addresses
 - Set default address: POST /api/customers/{id}/addresses/{address_id}/set-default
 - Customer Self-Service OTP endpoints with restaurant-scoped user_id
 - POS Gateway webhook handlers for address array mapping
-- Address utility functions in /app/backend/core/address_utils.py
-- API Documentation generated at /app/memory/API_DOCUMENTATION.md
+- **Order migration now captures `delivery_address` from POS orders** (Feb 2026)
 
-### Frontend (Completed - Feb 2026)
-- **CustomerDetailPage**: Added "Addresses" tab alongside Points and Wallet tabs
-  - Lists all addresses with default badge, edit/delete/set-default buttons
-  - Add Address modal with full form (type, address, house, floor, road, city, state, pincode, country, contact person, delivery instructions)
-  - Edit Address modal with pre-filled data
-  - Delete address with confirmation
-  - Set default address with toast feedback
-- **CustomersPage Add Modal**: After creating customer, also creates address via CRUD API if address fields are filled
-- **CustomersPage Edit Modal**: Replaced flat address fields with addresses array summary + "Manage addresses" link to detail page
-- **CustomerDetailPage Edit Modal**: Shows addresses summary (read-only, links to Addresses tab for management)
-
-## Tech Stack
-- React 19, Tailwind CSS, Radix UI, Recharts, Shadcn UI
-- FastAPI, APScheduler, Motor (MongoDB)
-- Capacitor for mobile support
+### Frontend (Feb 2026)
+- CustomerDetailPage: "Addresses" tab with full CRUD (add/edit/delete/set-default)
+- CustomersPage Add Modal: Creates addresses via CRUD API after customer creation
+- CustomersPage Edit Modal: Shows addresses array summary with "Manage addresses" link
 
 ## Key DB Schema
-- `users`: {email, password, restaurant_name, phone, ...}
 - `customers`: {id, user_id, name, phone, tier, total_points, addresses: [{id, pos_address_id, address_type, address, city, pincode, is_default, ...}], ...}
-- `customer_otps`: {phone, otp, customer_id, user_id, expires_at}
-- `orders`, `points_transactions`, `wallet_transactions`, `coupons`, `segments`, etc.
+- `orders`: {id, user_id, customer_id, order_amount, order_type, delivery_address: {address, pincode, house, contact_person_name, ...}, ...}
 
-## Key API Endpoints
-- Auth: POST /api/auth/login, POST /api/auth/register
-- Customers: GET/POST/PUT/DELETE /api/customers
-- Address CRUD: GET/POST/PUT/DELETE /api/customers/{id}/addresses
-- Set Default: POST /api/customers/{id}/addresses/{address_id}/set-default
-- Customer Self-Service: POST /api/customer/send-otp, POST /api/customer/verify-otp
-- Dashboard: GET /api/analytics/dashboard
-- Loyalty: GET/PUT /api/loyalty/settings
+## Completed Tasks
+- P0: Frontend address array migration (DONE, tested)
+- P1: Order delivery_address capture in migration.py (DONE - one-line fix)
 
-## Pending Issues
-- Order Migration API from POS lacks full delivery address (BLOCKED - waiting POS team)
-- City filter in backend still uses flat `city` field (addresses array not queried)
-
-## P1/Future Tasks
-- Implement Order Sync address mapping once POS team updates webhook
-- Update city filter to also search within addresses array
-- Customer Registration page (QR-based) - could add address fields
+## Pending/Future Tasks
+- P2: Update backend city filter to search within addresses array
+- P2: Add address fields to QR-based Customer Registration page
+- P2: Frontend display of delivery_address on order detail views
+- WhatsApp campaign integration with customer segments
+- Advanced analytics/AI insights improvements
 
 ## Status: Running
 - Backend: https://mygenie-crm-build-1.preview.emergentagent.com/api
