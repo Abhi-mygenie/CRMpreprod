@@ -1,6 +1,68 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional
 
+# Address Model
+class Address(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str
+    pos_address_id: Optional[int] = None
+    is_default: bool = False
+    address_type: str = "Home"  # Home, Work, Other
+    address: Optional[str] = None
+    house: Optional[str] = None
+    floor: Optional[str] = None
+    road: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    country: Optional[str] = "India"
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    contact_person_name: Optional[str] = None
+    contact_person_number: Optional[str] = None
+    dial_code: Optional[str] = None
+    zone_id: Optional[int] = None
+    delivery_instructions: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+class AddressCreate(BaseModel):
+    address_type: str = "Home"
+    address: Optional[str] = None
+    house: Optional[str] = None
+    floor: Optional[str] = None
+    road: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    country: Optional[str] = "India"
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    contact_person_name: Optional[str] = None
+    contact_person_number: Optional[str] = None
+    dial_code: Optional[str] = None
+    zone_id: Optional[int] = None
+    delivery_instructions: Optional[str] = None
+
+class AddressUpdate(BaseModel):
+    address_type: Optional[str] = None
+    address: Optional[str] = None
+    house: Optional[str] = None
+    floor: Optional[str] = None
+    road: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    country: Optional[str] = None
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    contact_person_name: Optional[str] = None
+    contact_person_number: Optional[str] = None
+    dial_code: Optional[str] = None
+    zone_id: Optional[int] = None
+    delivery_instructions: Optional[str] = None
+
 # Auth Models
 class UserBase(BaseModel):
     email: EmailStr
@@ -320,6 +382,9 @@ class Customer(BaseModel):
     country: Optional[str] = None
     delivery_instructions: Optional[str] = None
     map_location: Optional[dict] = None
+    
+    # Multiple Addresses (new)
+    addresses: Optional[List[Address]] = None
     
     # Preferences
     allergies: Optional[List[str]] = None

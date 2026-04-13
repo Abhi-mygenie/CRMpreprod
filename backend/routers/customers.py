@@ -8,6 +8,7 @@ import httpx
 from core.database import db
 from core.auth import get_current_user
 from core.helpers import generate_qr_code, build_customer_query
+from core.address_utils import map_pos_addresses_to_crm
 from models.schemas import (
     Customer, CustomerCreate, CustomerUpdate,
     Segment, SegmentCreate, SegmentUpdate
@@ -115,6 +116,11 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                 })
                 
                 if existing:
+                    # Update existing customer - preserve addresses if not in new data
+                    existing_addresses = existing.get("addresses", [])
+                    new_addresses = map_pos_addresses_to_crm(mygenie_customer.get("customer_addresses", []))
+                    customer_data["addresses"] = new_addresses if new_addresses else existing_addresses
+                    
                     await db.customers.update_one(
                         {"id": existing["id"]},
                         {"$set": customer_data}
@@ -126,9 +132,8 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                     customer_data["created_at"] = mygenie_customer.get("created_time") or now
                     customer_data["customer_type"] = mygenie_customer.get("customer_type") or "normal"
                     customer_data["notes"] = None
-                    customer_data["address"] = mygenie_customer.get("address")
-                    customer_data["city"] = mygenie_customer.get("city")
-                    customer_data["pincode"] = mygenie_customer.get("pincode")
+                    # Map addresses array from POS
+                    customer_data["addresses"] = map_pos_addresses_to_crm(mygenie_customer.get("customer_addresses", []))
                     customer_data["allergies"] = []
                     customer_data["custom_field_1"] = None
                     customer_data["custom_field_2"] = None
