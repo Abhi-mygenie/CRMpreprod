@@ -8,10 +8,19 @@ import httpx
 from core.database import db
 from core.auth import get_current_user
 from core.helpers import generate_qr_code, build_customer_query
-from core.address_utils import map_pos_addresses_to_crm
+from core.address_utils import (
+    map_pos_addresses_to_crm, 
+    create_new_address, 
+    update_address,
+    set_default_address,
+    find_address_by_id,
+    remove_address_by_id,
+    validate_address
+)
 from models.schemas import (
     Customer, CustomerCreate, CustomerUpdate,
-    Segment, SegmentCreate, SegmentUpdate
+    Segment, SegmentCreate, SegmentUpdate,
+    Address, AddressCreate, AddressUpdate
 )
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
@@ -865,6 +874,163 @@ async def delete_customer(customer_id: str, user: dict = Depends(get_current_use
     
     await db.points_transactions.delete_many({"customer_id": customer_id})
     return {"message": "Customer deleted"}
+
+
+# ==================== ADDRESS CRUD ENDPOINTS ====================
+
+@router.get("/{customer_id}/addresses", response_model=List[Address])
+async def list_customer_addresses(customer_id: str, user: dict = Depends(get_current_user)):
+    """Get all addresses for a customer"""
+    customer = await db.customers.find_one(
+        {"id": customer_id, "user_id": user["id"]}, 
+        {"_id": 0, "addresses": 1}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    addresses = customer.get("addresses") or []
+    return [Address(**a) for a in addresses]
+
+
+@router.post("/{customer_id}/addresses", response_model=Address)
+async def add_customer_address(
+    customer_id: str, 
+    address_data: AddressCreate, 
+    user: dict = Depends(get_current_user)
+):
+    """Add a new address for a customer"""
+    customer = await db.customers.find_one(
+        {"id": customer_id, "user_id": user["id"]}, 
+        {"_id": 0, "addresses": 1}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Validate address
+    is_valid, error_msg = validate_address(address_data.model_dump())
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+    
+    addresses = customer.get("addresses") or []
+    is_first = len(addresses) == 0
+    
+    # Create new address
+    new_address = create_new_address(address_data.model_dump(), is_first=is_first)
+    addresses.append(new_address)
+    
+    # Update customer
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return Address(**new_address)
+
+
+@router.put("/{customer_id}/addresses/{address_id}", response_model=Address)
+async def update_customer_address(
+    customer_id: str,
+    address_id: str,
+    address_data: AddressUpdate,
+    user: dict = Depends(get_current_user)
+):
+    """Update an existing address"""
+    customer = await db.customers.find_one(
+        {"id": customer_id, "user_id": user["id"]}, 
+        {"_id": 0, "addresses": 1}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    addresses = customer.get("addresses") or []
+    existing_address = find_address_by_id(addresses, address_id)
+    
+    if not existing_address:
+        raise HTTPException(status_code=404, detail="Address not found")
+    
+    # Update address
+    update_dict = {k: v for k, v in address_data.model_dump().items() if v is not None}
+    updated_address = update_address(existing_address, update_dict)
+    
+    # Replace in list
+    addresses = [updated_address if a.get("id") == address_id else a for a in addresses]
+    
+    # Update customer
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return Address(**updated_address)
+
+
+@router.delete("/{customer_id}/addresses/{address_id}")
+async def delete_customer_address(
+    customer_id: str,
+    address_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Delete an address"""
+    customer = await db.customers.find_one(
+        {"id": customer_id, "user_id": user["id"]}, 
+        {"_id": 0, "addresses": 1}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    addresses = customer.get("addresses") or []
+    existing_address = find_address_by_id(addresses, address_id)
+    
+    if not existing_address:
+        raise HTTPException(status_code=404, detail="Address not found")
+    
+    # Remove address (handles default reassignment)
+    addresses = remove_address_by_id(addresses, address_id)
+    
+    # Update customer
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Address deleted", "remaining_addresses": len(addresses)}
+
+
+@router.post("/{customer_id}/addresses/{address_id}/set-default", response_model=Address)
+async def set_default_customer_address(
+    customer_id: str,
+    address_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Set an address as the default"""
+    customer = await db.customers.find_one(
+        {"id": customer_id, "user_id": user["id"]}, 
+        {"_id": 0, "addresses": 1}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    addresses = customer.get("addresses") or []
+    existing_address = find_address_by_id(addresses, address_id)
+    
+    if not existing_address:
+        raise HTTPException(status_code=404, detail="Address not found")
+    
+    # Set new default
+    addresses = set_default_address(addresses, address_id)
+    
+    # Update customer
+    await db.customers.update_one(
+        {"id": customer_id},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Return the updated address
+    updated_address = find_address_by_id(addresses, address_id)
+    return Address(**updated_address)
+
+
+# ==================== END ADDRESS CRUD ENDPOINTS ====================
 
 
 # QR Code endpoints
