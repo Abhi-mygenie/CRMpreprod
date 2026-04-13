@@ -23,12 +23,14 @@ OTP_EXPIRY_MINUTES = 10
 
 class SendOTPRequest(BaseModel):
     phone: str
+    user_id: str  # Restaurant ID - REQUIRED
     country_code: str = "91"
 
 
 class VerifyOTPRequest(BaseModel):
     phone: str
     otp: str
+    user_id: str  # Restaurant ID - REQUIRED
     country_code: str = "91"
 
 
@@ -37,12 +39,13 @@ def generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
 
-def create_customer_token(customer_id: str, phone: str) -> str:
+def create_customer_token(customer_id: str, phone: str, user_id: str) -> str:
     """Create JWT token for customer"""
     expire = datetime.now(timezone.utc) + timedelta(hours=CUSTOMER_TOKEN_EXPIRE_HOURS)
     payload = {
         "customer_id": customer_id,
         "phone": phone,
+        "user_id": user_id,  # Restaurant context
         "exp": expire,
         "type": "customer"
     }
@@ -64,11 +67,16 @@ async def get_current_customer(authorization: str = Header(None)):
             raise HTTPException(status_code=401, detail="Invalid token type")
         
         customer_id = payload.get("customer_id")
-        if not customer_id:
+        user_id = payload.get("user_id")
+        
+        if not customer_id or not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
         
-        # Get customer from database
-        customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+        # Get customer from database - scoped by restaurant
+        customer = await db.customers.find_one(
+            {"id": customer_id, "user_id": user_id}, 
+            {"_id": 0}
+        )
         if not customer:
             raise HTTPException(status_code=404, detail="Customer not found")
         
@@ -84,12 +92,21 @@ async def get_current_customer(authorization: str = Header(None)):
 async def send_otp(request: SendOTPRequest):
     """
     Send OTP to customer phone number.
-    Customer must exist in database (registered via restaurant).
+    Customer must exist in database for the specified restaurant.
     """
     phone = request.phone.strip().replace(" ", "")
+    user_id = request.user_id.strip()
     
-    # Find customer by phone (across all restaurants)
-    customer = await db.customers.find_one({"phone": phone}, {"_id": 0, "id": 1, "name": 1, "phone": 1})
+    # Validate restaurant exists
+    restaurant = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "restaurant_name": 1})
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
+    # Find customer by phone - SCOPED BY RESTAURANT
+    customer = await db.customers.find_one(
+        {"phone": phone, "user_id": user_id}, 
+        {"_id": 0, "id": 1, "name": 1, "phone": 1}
+    )
     
     if not customer:
         raise HTTPException(
@@ -101,10 +118,11 @@ async def send_otp(request: SendOTPRequest):
     otp = generate_otp()
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
     
-    # Store OTP in database
+    # Store OTP in database - include restaurant context
     otp_doc = {
         "id": str(uuid.uuid4()),
         "phone": phone,
+        "user_id": user_id,  # Restaurant ID
         "otp": otp,
         "customer_id": customer["id"],
         "expires_at": expires_at.isoformat(),
@@ -112,8 +130,8 @@ async def send_otp(request: SendOTPRequest):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    # Remove old OTPs for this phone
-    await db.customer_otps.delete_many({"phone": phone})
+    # Remove old OTPs for this phone + restaurant combination
+    await db.customer_otps.delete_many({"phone": phone, "user_id": user_id})
     
     # Insert new OTP
     await db.customer_otps.insert_one(otp_doc)
@@ -125,6 +143,7 @@ async def send_otp(request: SendOTPRequest):
         "success": True,
         "message": f"OTP sent to +{request.country_code} {phone}",
         "expires_in_minutes": OTP_EXPIRY_MINUTES,
+        "restaurant_name": restaurant.get("restaurant_name"),
         # REMOVE IN PRODUCTION - only for testing
         "debug_otp": otp
     }
@@ -136,10 +155,12 @@ async def verify_otp(request: VerifyOTPRequest):
     Verify OTP and return customer token.
     """
     phone = request.phone.strip().replace(" ", "")
+    user_id = request.user_id.strip()
     
-    # Find OTP record
+    # Find OTP record - SCOPED BY RESTAURANT
     otp_record = await db.customer_otps.find_one({
         "phone": phone,
+        "user_id": user_id,
         "otp": request.otp,
         "verified": False
     })
@@ -158,14 +179,17 @@ async def verify_otp(request: VerifyOTPRequest):
         {"$set": {"verified": True}}
     )
     
-    # Get customer
-    customer = await db.customers.find_one({"id": otp_record["customer_id"]}, {"_id": 0})
+    # Get customer - SCOPED BY RESTAURANT
+    customer = await db.customers.find_one(
+        {"id": otp_record["customer_id"], "user_id": user_id}, 
+        {"_id": 0}
+    )
     
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     
-    # Generate token
-    token = create_customer_token(customer["id"], phone)
+    # Generate token with restaurant context
+    token = create_customer_token(customer["id"], phone, user_id)
     
     # Get loyalty settings for points value calculation
     loyalty_settings = await db.loyalty_settings.find_one(
