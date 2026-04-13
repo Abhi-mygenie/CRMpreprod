@@ -9,6 +9,7 @@ from core.database import db
 from core.auth import get_current_user, generate_api_key
 from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_peak_bonus
 from core.whatsapp import trigger_whatsapp_event
+from core.address_utils import map_pos_addresses_to_crm
 from models.schemas import (
     POSPaymentWebhook, POSCustomerLookup, POSResponse,
     MessageRequest, POS_EVENTS
@@ -92,15 +93,8 @@ class POSCustomerCreate(BaseModel):
     credit_limit: Optional[float] = None
     payment_terms: Optional[str] = None
     
-    # Address
-    address: Optional[str] = None
-    address_line_2: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    pincode: Optional[str] = None
-    country: Optional[str] = None
-    delivery_instructions: Optional[str] = None
-    map_location: Optional[dict] = None
+    # Multiple Addresses (array)
+    addresses: Optional[List[dict]] = None
     
     # Preferences
     allergies: Optional[List[str]] = None  # List of allergies
@@ -175,15 +169,8 @@ class POSCustomerUpdate(BaseModel):
     credit_limit: Optional[float] = None
     payment_terms: Optional[str] = None
     
-    # Address
-    address: Optional[str] = None
-    address_line_2: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    pincode: Optional[str] = None
-    country: Optional[str] = None
-    delivery_instructions: Optional[str] = None
-    map_location: Optional[dict] = None
+    # Multiple Addresses (array)
+    addresses: Optional[List[dict]] = None
     
     # Preferences
     allergies: Optional[List[str]] = None
@@ -291,15 +278,8 @@ async def pos_create_customer(
         "credit_limit": customer_data.credit_limit,
         "payment_terms": customer_data.payment_terms,
         
-        # Address
-        "address": customer_data.address,
-        "address_line_2": customer_data.address_line_2,
-        "city": customer_data.city,
-        "state": customer_data.state,
-        "pincode": customer_data.pincode,
-        "country": customer_data.country,
-        "delivery_instructions": customer_data.delivery_instructions,
-        "map_location": customer_data.map_location,
+        # Multiple Addresses (array)
+        "addresses": map_pos_addresses_to_crm(customer_data.addresses) if customer_data.addresses else [],
         
         # Preferences
         "allergies": customer_data.allergies or [],
@@ -327,6 +307,7 @@ async def pos_create_customer(
             "customer_id": customer_id,
             "name": customer_data.name,
             "phone": customer_data.phone,
+            "addresses": customer_doc.get("addresses", []),
             "created_at": now
         }
     )
@@ -356,6 +337,10 @@ async def pos_update_customer(
     if "restaurant_id" in update_dict:
         update_dict["pos_restaurant_id"] = update_dict.pop("restaurant_id")
     
+    # Map addresses array if provided
+    if "addresses" in update_dict:
+        update_dict["addresses"] = map_pos_addresses_to_crm(update_dict["addresses"]) if update_dict["addresses"] else []
+    
     # Check phone uniqueness if phone is being updated
     if "phone" in update_dict and update_dict["phone"] != customer.get("phone"):
         existing = await db.customers.find_one({
@@ -373,6 +358,7 @@ async def pos_update_customer(
     if update_dict:
         update_dict["pos_synced"] = True
         update_dict["pos_synced_at"] = datetime.now(timezone.utc).isoformat()
+        update_dict["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.customers.update_one({"id": customer_id}, {"$set": update_dict})
     
     updated = await db.customers.find_one({"id": customer_id}, {"_id": 0})
@@ -384,6 +370,7 @@ async def pos_update_customer(
             "customer_id": customer_id,
             "name": updated.get("name"),
             "phone": updated.get("phone"),
+            "addresses": updated.get("addresses", []),
             "updated_at": update_dict.get("pos_synced_at")
         }
     )
