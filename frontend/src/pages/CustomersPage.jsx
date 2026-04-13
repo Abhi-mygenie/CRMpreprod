@@ -321,20 +321,42 @@ export default function CustomersPage() {
                     credit_limit: newCustomer.credit_limit ? parseFloat(newCustomer.credit_limit) : null,
                     payment_terms: newCustomer.payment_terms || null,
                 }),
-                // Address fields
-                address: newCustomer.address || null,
-                address_line_2: newCustomer.address_line_2 || null,
-                city: newCustomer.city || null,
-                state: newCustomer.state || null,
-                pincode: newCustomer.pincode || null,
-                country: newCustomer.country || null,
-                delivery_instructions: newCustomer.delivery_instructions || null,
                 // Flags
                 vip_flag: newCustomer.vip_flag || false,
                 complaint_flag: newCustomer.complaint_flag || false,
                 blacklist_flag: newCustomer.blacklist_flag || false,
             };
-            await api.post("/customers", customerData);
+            const res = await api.post("/customers", customerData);
+            const createdCustomerId = res.data?.id;
+            
+            // If address fields are filled, create an address via CRUD API
+            const hasAddress = newCustomer.address || newCustomer.city || newCustomer.pincode;
+            if (createdCustomerId && hasAddress) {
+                try {
+                    const addressPayload = {
+                        address_type: "Home",
+                        address: newCustomer.address || null,
+                        city: newCustomer.city || null,
+                        state: newCustomer.state || null,
+                        pincode: newCustomer.pincode || null,
+                        country: newCustomer.country || "India",
+                        delivery_instructions: newCustomer.delivery_instructions || null,
+                    };
+                    // Only include non-empty values
+                    const cleanAddress = {};
+                    for (const [key, value] of Object.entries(addressPayload)) {
+                        if (value !== null && value !== "") {
+                            cleanAddress[key] = value;
+                        }
+                    }
+                    if (Object.keys(cleanAddress).length > 1) { // more than just address_type
+                        await api.post(`/customers/${createdCustomerId}/addresses`, cleanAddress);
+                    }
+                } catch (addrErr) {
+                    console.warn("Address creation after customer add failed:", addrErr);
+                }
+            }
+            
             toast.success("Customer added!");
             setShowAddModal(false);
             resetForm();
@@ -490,15 +512,6 @@ export default function CustomersPage() {
             billing_address: customer.billing_address || "",
             credit_limit: customer.credit_limit || "",
             payment_terms: customer.payment_terms || "",
-            // Address
-            address: customer.address || "",
-            address_line_2: customer.address_line_2 || "",
-            city: customer.city || "",
-            state: customer.state || "",
-            pincode: customer.pincode || "",
-            country: customer.country || "",
-            delivery_instructions: customer.delivery_instructions || "",
-            map_location: customer.map_location || null,
             // Preferences
             allergies: customer.allergies || [],
             favorites: customer.favorites || [],
@@ -531,7 +544,9 @@ export default function CustomersPage() {
             custom_field_2: customer.custom_field_2 || "",
             custom_field_3: customer.custom_field_3 || "",
             // Notes
-            notes: customer.notes || ""
+            notes: customer.notes || "",
+            // Addresses (array)
+            _addresses: customer.addresses || []
         });
         setShowEditModal(true);
     };
@@ -543,6 +558,8 @@ export default function CustomersPage() {
             // Only send fields that have actual values to avoid overwriting with empty strings
             const cleanData = {};
             for (const [key, value] of Object.entries(editData)) {
+                // Skip internal-only fields
+                if (key === "_addresses") continue;
                 if (value !== "" && value !== null && value !== undefined) {
                     cleanData[key] = value;
                 }
@@ -2069,97 +2086,40 @@ export default function CustomersPage() {
                                                 </div>
                                             )}
 
-                                            {/* Address Details Divider */}
+                                            {/* Address Summary - managed via detail page */}
                                             <div className="border-t pt-4 mt-4">
-                                                <p className="text-xs text-gray-500 font-medium mb-3 flex items-center gap-1">
-                                                    <MapPin className="w-3.5 h-3.5" /> Address Details
-                                                </p>
-                                            </div>
-
-                                            {/* Address Line 1 */}
-                                            <div>
-                                                <Label className="form-label">Address Line 1</Label>
-                                                <Textarea
-                                                    placeholder="House/Flat No., Building..."
-                                                    className="rounded-xl resize-none"
-                                                    rows={2}
-                                                    value={editData.address || ""}
-                                                    onChange={(e) => setEditData({...editData, address: e.target.value})}
-                                                    data-testid="edit-customer-address"
-                                                />
-                                            </div>
-
-                                            {/* Address Line 2 */}
-                                            <div>
-                                                <Label className="form-label">Address Line 2</Label>
-                                                <Input
-                                                    placeholder="Street, Area, Landmark"
-                                                    className="h-11 rounded-xl"
-                                                    value={editData.address_line_2 || ""}
-                                                    onChange={(e) => setEditData({...editData, address_line_2: e.target.value})}
-                                                    data-testid="edit-customer-address-line-2"
-                                                />
-                                            </div>
-
-                                            {/* City & State */}
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <Label className="form-label">City</Label>
-                                                    <Input
-                                                        placeholder="City"
-                                                        className="h-11 rounded-xl"
-                                                        value={editData.city || ""}
-                                                        onChange={(e) => setEditData({...editData, city: e.target.value})}
-                                                        data-testid="edit-customer-city"
-                                                    />
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                                                        <MapPin className="w-3.5 h-3.5" /> Addresses
+                                                    </p>
+                                                    {editingCustomer && (
+                                                        <span 
+                                                            className="text-xs text-[#F26B33] cursor-pointer font-medium"
+                                                            onClick={() => { setShowEditModal(false); setEditingCustomer(null); navigate(`/customers/${editingCustomer.id}`); }}
+                                                            data-testid="edit-manage-addresses-link"
+                                                        >
+                                                            Manage addresses
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <div>
-                                                    <Label className="form-label">State</Label>
-                                                    <Input
-                                                        placeholder="State"
-                                                        className="h-11 rounded-xl"
-                                                        value={editData.state || ""}
-                                                        onChange={(e) => setEditData({...editData, state: e.target.value})}
-                                                        data-testid="edit-customer-state"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Pincode & Country */}
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <Label className="form-label">Pincode</Label>
-                                                    <Input
-                                                        placeholder="400001"
-                                                        className="h-11 rounded-xl"
-                                                        value={editData.pincode || ""}
-                                                        onChange={(e) => setEditData({...editData, pincode: e.target.value})}
-                                                        data-testid="edit-customer-pincode"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label className="form-label">Country</Label>
-                                                    <Input
-                                                        placeholder="India"
-                                                        className="h-11 rounded-xl"
-                                                        value={editData.country || ""}
-                                                        onChange={(e) => setEditData({...editData, country: e.target.value})}
-                                                        data-testid="edit-customer-country"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Delivery Instructions */}
-                                            <div>
-                                                <Label className="form-label">Delivery Instructions</Label>
-                                                <Textarea
-                                                    placeholder="Ring doorbell twice, leave at door..."
-                                                    className="rounded-xl resize-none"
-                                                    rows={2}
-                                                    value={editData.delivery_instructions || ""}
-                                                    onChange={(e) => setEditData({...editData, delivery_instructions: e.target.value})}
-                                                    data-testid="edit-customer-delivery-instructions"
-                                                />
+                                                {editData._addresses && editData._addresses.length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        {editData._addresses.slice(0, 3).map((addr) => (
+                                                            <div key={addr.id} className="p-2.5 bg-gray-50 rounded-lg text-xs">
+                                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                                    <span className="font-semibold text-[#1A1A1A]">{addr.address_type || "Home"}</span>
+                                                                    {addr.is_default && <Badge className="bg-[#F26B33] text-white text-[9px] px-1 py-0">Default</Badge>}
+                                                                </div>
+                                                                <p className="text-[#52525B] truncate">
+                                                                    {[addr.house, addr.floor, addr.road, addr.address, addr.city, addr.state, addr.pincode].filter(Boolean).join(", ") || "No details"}
+                                                                </p>
+                                                            </div>
+                                                        ))}
+                                                        {editData._addresses.length > 3 && <p className="text-xs text-gray-400 text-center">+{editData._addresses.length - 3} more</p>}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-gray-400">No addresses. Add from the customer detail page.</p>
+                                                )}
                                             </div>
                                         </div>
                                     </AccordionContent>

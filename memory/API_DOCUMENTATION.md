@@ -1,8 +1,8 @@
 # MyGenie CRM API Documentation
 
 **Base URL:** `https://your-domain.com/api`  
-**Version:** v1.1  
-**Last Updated:** 2026-04-11
+**Version:** v1.2  
+**Last Updated:** 2026-04-13
 
 ---
 
@@ -36,6 +36,7 @@ Authorization: Bearer {access_token}
 ```
 Authorization: Bearer {customer_token}
 ```
+Note: Customer token contains `user_id` (restaurant context)
 
 **POS Gateway endpoints:**
 ```
@@ -160,17 +161,17 @@ X-API-Key: {api_key}
 
 ## 2. Customer Self-Service
 
-**Purpose:** Allow customers to login with phone number (OTP) and access their own data.
+**Purpose:** Allow customers to login with phone number (OTP) and access their own data. All endpoints are scoped by restaurant (user_id).
 
 **Authentication Flow:**
 ```
-1. Customer enters phone number
+1. Customer provides phone number + restaurant_id (user_id)
 2. POST /customer/send-otp → OTP sent via WhatsApp/SMS
 3. POST /customer/verify-otp → Returns customer_token + FULL customer details
 4. GET /customer/me → Same details (optional - use to refresh data later)
 ```
 
-**Note:** `/verify-otp` returns full customer details, so no immediate `/me` call needed after login.
+**Important:** `user_id` (restaurant ID) is **REQUIRED** in send-otp and verify-otp. Customer token contains restaurant context.
 
 ---
 
@@ -182,13 +183,14 @@ X-API-Key: {api_key}
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | phone | string | Yes | Customer phone number |
+| user_id | string | **Yes** | Restaurant ID (e.g., `pos_0001_restaurant_509`) |
 | country_code | string | No | Country code (default: 91) |
 
 **Example Request:**
 ```bash
 curl -X POST "https://your-domain.com/api/customer/send-otp" \
   -H "Content-Type: application/json" \
-  -d '{"phone": "9876543210", "country_code": "91"}'
+  -d '{"phone": "9876543210", "user_id": "pos_0001_restaurant_509"}'
 ```
 
 **Response (200):**
@@ -196,16 +198,17 @@ curl -X POST "https://your-domain.com/api/customer/send-otp" \
 {
   "success": true,
   "message": "OTP sent to +91 9876543210",
-  "expires_in_minutes": 10
+  "expires_in_minutes": 10,
+  "restaurant_name": "My Restaurant"
 }
 ```
 
 **Errors:**
 | Code | Message |
 |------|---------|
+| 404 | Restaurant not found |
 | 404 | Customer not found. Please contact the restaurant to register. |
-
-**Note:** Customer must already exist in database (registered by restaurant).
+| 422 | user_id field required |
 
 ---
 
@@ -218,13 +221,14 @@ curl -X POST "https://your-domain.com/api/customer/send-otp" \
 |-------|------|----------|-------------|
 | phone | string | Yes | Customer phone number |
 | otp | string | Yes | 6-digit OTP received |
+| user_id | string | **Yes** | Restaurant ID |
 | country_code | string | No | Country code (default: 91) |
 
 **Example Request:**
 ```bash
 curl -X POST "https://your-domain.com/api/customer/verify-otp" \
   -H "Content-Type: application/json" \
-  -d '{"phone": "9876543210", "otp": "123456"}'
+  -d '{"phone": "9876543210", "otp": "123456", "user_id": "pos_0001_restaurant_509"}'
 ```
 
 **Response (200):**
@@ -1139,13 +1143,126 @@ curl -X GET "https://your-domain.com/api/customer/me" \
 **Description:** Create customer from POS  
 **Auth:** X-API-Key
 
-**Request Body:** Full customer object with pos_id and restaurant_id
+**Request Body:**
+```json
+{
+  "pos_id": "mygenie",
+  "restaurant_id": "509",
+  "name": "John Doe",
+  "phone": "9876543210",
+  "email": "john@email.com",
+  "country_code": "+91",
+  "dob": "1990-05-15",
+  "anniversary": "2015-06-20",
+  "gender": "male",
+  "customer_type": "normal",
+  "addresses": [
+    {
+      "id": 1,
+      "address_type": "Home",
+      "address": "123 Main Street",
+      "house": "A-101",
+      "floor": "1st",
+      "road": "Main Road",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "pincode": "400001",
+      "latitude": "19.0760",
+      "longitude": "72.8777",
+      "contact_person_name": "John",
+      "contact_person_number": "9876543210",
+      "dial_code": "+91",
+      "zone_id": 6
+    },
+    {
+      "id": 2,
+      "address_type": "Work",
+      "address": "456 Office Park",
+      "city": "Mumbai",
+      "pincode": "400051"
+    }
+  ]
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Customer created successfully",
+  "data": {
+    "customer_id": "uuid",
+    "name": "John Doe",
+    "phone": "9876543210",
+    "addresses": [
+      {
+        "id": "addr_abc123",
+        "pos_address_id": 1,
+        "is_default": true,
+        "address_type": "Home",
+        "address": "123 Main Street",
+        "city": "Mumbai",
+        "pincode": "400001"
+      }
+    ],
+    "created_at": "2026-04-13T..."
+  }
+}
+```
+
+**Address Mapping (POS → CRM):**
+| POS Field | CRM Field |
+|-----------|-----------|
+| id | pos_address_id |
+| (generated) | id (addr_xxx) |
+| (first valid) | is_default: true |
+| address_type | address_type |
+| address | address |
+| city | city |
+| pincode | pincode |
+| latitude | latitude |
+| longitude | longitude |
 
 ---
 
 ### PUT `/pos/customers/{customer_id}`
 **Description:** Update customer from POS  
 **Auth:** X-API-Key
+
+**Request Body:**
+```json
+{
+  "pos_id": "mygenie",
+  "restaurant_id": "509",
+  "phone": "9876543210",
+  "addresses": [
+    {
+      "id": 3,
+      "address_type": "New Address",
+      "address": "789 New Street",
+      "city": "Pune",
+      "pincode": "411001"
+    }
+  ]
+}
+```
+
+**Note:** Providing `addresses` will **replace** existing addresses.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Customer updated successfully",
+  "data": {
+    "customer_id": "uuid",
+    "name": "John Doe",
+    "phone": "9876543210",
+    "addresses": [...],
+    "updated_at": "2026-04-13T..."
+  }
+}
+```
 
 ---
 
@@ -1578,6 +1695,27 @@ Or for validation errors:
 ---
 
 ## Changelog
+
+### v1.2 (2026-04-13)
+- **Multiple Addresses Feature**
+  - Customer schema now uses `addresses[]` array instead of single address fields
+  - Migration sync maps `customer_addresses[]` from POS to `addresses[]`
+  - Added Address CRUD endpoints:
+    - `GET /customers/{id}/addresses`
+    - `POST /customers/{id}/addresses`
+    - `PUT /customers/{id}/addresses/{addr_id}`
+    - `DELETE /customers/{id}/addresses/{addr_id}`
+    - `POST /customers/{id}/addresses/{addr_id}/set-default`
+- **Customer Self-Service - Restaurant Scoping**
+  - `user_id` (restaurant ID) now **REQUIRED** in send-otp and verify-otp
+  - Customer token contains restaurant context
+  - All customer self-service endpoints scoped by restaurant
+  - Added `GET /customer/me/addresses` endpoint
+- **POS Gateway - Addresses Array**
+  - `POST /pos/customers` now accepts `addresses[]` array
+  - `PUT /pos/customers/{id}` now accepts `addresses[]` array
+  - Removed single address fields (address, city, pincode, etc.)
+  - Response includes full `addresses[]` array
 
 ### v1.1 (2026-04-11)
 - Added **Section 2: Customer Self-Service** (3 new endpoints)

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, ChevronRight, ArrowUpRight, ArrowDownRight, Gift, Phone, Mail, Edit2, Save, Wallet, ChevronLeft, TrendingUp, TrendingDown, Clock, CalendarDays, Utensils, Sparkles, MessageCircle, Ticket } from "lucide-react";
+import { Plus, ChevronRight, ArrowUpRight, ArrowDownRight, Gift, Phone, Mail, Edit2, Save, Wallet, ChevronLeft, TrendingUp, TrendingDown, Clock, CalendarDays, Utensils, Sparkles, MessageCircle, Ticket, MapPin, Trash2, Star, Home, Briefcase, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 
 export default function CustomerDetailPage() {
@@ -36,6 +37,153 @@ export default function CustomerDetailPage() {
     const [walletData, setWalletData] = useState({ amount: "", bonus: "", bonusType: "wallet", description: "", payment_method: "cash" });
     const [editData, setEditData] = useState({});
     const [submitting, setSubmitting] = useState(false);
+    
+    // Address management state
+    const [addresses, setAddresses] = useState([]);
+    const [showAddressModal, setShowAddressModal] = useState(false);
+    const [editingAddress, setEditingAddress] = useState(null);
+    const [addressData, setAddressData] = useState({
+        address_type: "Home",
+        address: "",
+        house: "",
+        floor: "",
+        road: "",
+        city: "",
+        state: "",
+        pincode: "",
+        country: "India",
+        contact_person_name: "",
+        contact_person_number: "",
+        delivery_instructions: ""
+    });
+
+    const resetAddressForm = () => {
+        setAddressData({
+            address_type: "Home",
+            address: "",
+            house: "",
+            floor: "",
+            road: "",
+            city: "",
+            state: "",
+            pincode: "",
+            country: "India",
+            contact_person_name: "",
+            contact_person_number: "",
+            delivery_instructions: ""
+        });
+        setEditingAddress(null);
+    };
+
+    const fetchAddresses = async () => {
+        try {
+            const res = await api.get(`/customers/${id}/addresses`);
+            setAddresses(res.data);
+        } catch (err) {
+            // If no addresses endpoint, fall back to customer.addresses
+            if (customer?.addresses) {
+                setAddresses(customer.addresses);
+            }
+        }
+    };
+
+    const handleAddAddress = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const payload = {};
+            for (const [key, value] of Object.entries(addressData)) {
+                if (value !== "" && value !== null && value !== undefined) {
+                    payload[key] = value;
+                }
+            }
+            await api.post(`/customers/${id}/addresses`, payload);
+            toast.success("Address added!");
+            setShowAddressModal(false);
+            resetAddressForm();
+            fetchAddresses();
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to add address");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleUpdateAddress = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const payload = {};
+            for (const [key, value] of Object.entries(addressData)) {
+                if (value !== "" && value !== null && value !== undefined) {
+                    payload[key] = value;
+                }
+            }
+            await api.put(`/customers/${id}/addresses/${editingAddress.id}`, payload);
+            toast.success("Address updated!");
+            setShowAddressModal(false);
+            resetAddressForm();
+            fetchAddresses();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to update address");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteAddress = async (addressId) => {
+        if (!window.confirm("Delete this address?")) return;
+        try {
+            await api.delete(`/customers/${id}/addresses/${addressId}`);
+            toast.success("Address deleted");
+            fetchAddresses();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to delete address");
+        }
+    };
+
+    const handleSetDefault = async (addressId) => {
+        try {
+            await api.post(`/customers/${id}/addresses/${addressId}/set-default`);
+            toast.success("Default address updated");
+            fetchAddresses();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to set default");
+        }
+    };
+
+    const openEditAddress = (addr) => {
+        setEditingAddress(addr);
+        setAddressData({
+            address_type: addr.address_type || "Home",
+            address: addr.address || "",
+            house: addr.house || "",
+            floor: addr.floor || "",
+            road: addr.road || "",
+            city: addr.city || "",
+            state: addr.state || "",
+            pincode: addr.pincode || "",
+            country: addr.country || "India",
+            contact_person_name: addr.contact_person_name || "",
+            contact_person_number: addr.contact_person_number || "",
+            delivery_instructions: addr.delivery_instructions || ""
+        });
+        setShowAddressModal(true);
+    };
+
+    const getAddressTypeIcon = (type) => {
+        switch (type?.toLowerCase()) {
+            case "work": return <Briefcase className="w-4 h-4" />;
+            case "other": return <MoreHorizontal className="w-4 h-4" />;
+            default: return <Home className="w-4 h-4" />;
+        }
+    };
+
+    const formatAddressLine = (addr) => {
+        const parts = [addr.house, addr.floor, addr.road, addr.address, addr.city, addr.state, addr.pincode].filter(Boolean);
+        return parts.join(", ") || "No address details";
+    };
 
     const fetchData = async () => {
         try {
@@ -82,6 +230,7 @@ export default function CustomerDetailPage() {
         fetchData();
         fetchInsights();
         fetchLoyaltyDetails();
+        fetchAddresses();
     }, [id]);
 
     const handlePointsTransaction = async (e) => {
@@ -167,9 +316,6 @@ export default function CustomerDetailPage() {
             customer_type: customer.customer_type || "normal",
             gst_name: customer.gst_name || "",
             gst_number: customer.gst_number || "",
-            address: customer.address || "",
-            city: customer.city || "",
-            pincode: customer.pincode || "",
             allergies: customer.allergies || [],
             notes: customer.notes || ""
         });
@@ -504,9 +650,10 @@ export default function CustomerDetailPage() {
 
                 {/* Tabs for Points & Wallet History */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="points" data-testid="points-tab">Points History</TabsTrigger>
-                        <TabsTrigger value="wallet" data-testid="wallet-tab">Wallet History</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-3 mb-4">
+                        <TabsTrigger value="points" data-testid="points-tab">Points</TabsTrigger>
+                        <TabsTrigger value="wallet" data-testid="wallet-tab">Wallet</TabsTrigger>
+                        <TabsTrigger value="addresses" data-testid="addresses-tab">Addresses</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="points">
@@ -585,6 +732,96 @@ export default function CustomerDetailPage() {
                                     ))}
                                 </CardContent>
                             </Card>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="addresses" data-testid="addresses-tab-content">
+                        <div className="mb-3 flex items-center justify-between">
+                            <p className="text-sm text-[#52525B] font-medium">{addresses.length} address{addresses.length !== 1 ? "es" : ""}</p>
+                            <Button
+                                size="sm"
+                                onClick={() => { resetAddressForm(); setShowAddressModal(true); }}
+                                className="bg-[#F26B33] hover:bg-[#D85A2A] rounded-full h-8 px-3 text-xs"
+                                data-testid="add-address-btn"
+                            >
+                                <Plus className="w-3.5 h-3.5 mr-1" /> Add Address
+                            </Button>
+                        </div>
+                        {addresses.length === 0 ? (
+                            <Card className="rounded-xl border-0 shadow-sm">
+                                <CardContent className="p-8 text-center">
+                                    <MapPin className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                                    <p className="text-[#52525B] text-sm">No addresses added yet</p>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => { resetAddressForm(); setShowAddressModal(true); }}
+                                        className="mt-3 rounded-full text-xs"
+                                        data-testid="add-first-address-btn"
+                                    >
+                                        <Plus className="w-3.5 h-3.5 mr-1" /> Add First Address
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="space-y-3">
+                                {addresses.map((addr) => (
+                                    <Card key={addr.id} className={`rounded-xl border shadow-sm overflow-hidden ${addr.is_default ? "border-[#F26B33]/40 bg-[#F26B33]/5" : "border-gray-200"}`} data-testid={`address-card-${addr.id}`}>
+                                        <CardContent className="p-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex items-start gap-3 flex-1 min-w-0">
+                                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${addr.is_default ? "bg-[#F26B33]/20 text-[#F26B33]" : "bg-gray-100 text-gray-500"}`}>
+                                                        {getAddressTypeIcon(addr.address_type)}
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-sm font-semibold text-[#1A1A1A]">{addr.address_type || "Home"}</span>
+                                                            {addr.is_default && (
+                                                                <Badge className="bg-[#F26B33] text-white text-[10px] px-1.5 py-0" data-testid={`default-badge-${addr.id}`}>Default</Badge>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-[#52525B] leading-relaxed">{formatAddressLine(addr)}</p>
+                                                        {addr.contact_person_name && (
+                                                            <p className="text-xs text-gray-400 mt-1">Contact: {addr.contact_person_name} {addr.contact_person_number ? `(${addr.contact_person_number})` : ""}</p>
+                                                        )}
+                                                        {addr.delivery_instructions && (
+                                                            <p className="text-xs text-amber-600 mt-1 italic">Note: {addr.delivery_instructions}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    {!addr.is_default && (
+                                                        <button
+                                                            onClick={() => handleSetDefault(addr.id)}
+                                                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#F26B33] transition-colors"
+                                                            title="Set as default"
+                                                            data-testid={`set-default-${addr.id}`}
+                                                        >
+                                                            <Star className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => openEditAddress(addr)}
+                                                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500 transition-colors"
+                                                        title="Edit"
+                                                        data-testid={`edit-address-${addr.id}`}
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteAddress(addr.id)}
+                                                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                                                        title="Delete"
+                                                        data-testid={`delete-address-${addr.id}`}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
                         )}
                     </TabsContent>
                 </Tabs>
@@ -962,24 +1199,32 @@ export default function CustomerDetailPage() {
                                     </>
                                 )}
 
-                                <div>
-                                    <Label className="form-label">City</Label>
-                                    <Input
-                                        value={editData.city || ""}
-                                        onChange={(e) => setEditData({...editData, city: e.target.value})}
-                                        placeholder="Mumbai"
-                                        className="h-11 rounded-xl"
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label className="form-label">Address</Label>
-                                    <Input
-                                        value={editData.address || ""}
-                                        onChange={(e) => setEditData({...editData, address: e.target.value})}
-                                        placeholder="Full address"
-                                        className="h-11 rounded-xl"
-                                    />
+                                {/* Addresses Section */}
+                                <div className="border-t pt-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                                            <MapPin className="w-3.5 h-3.5" /> Addresses
+                                        </p>
+                                        <span className="text-xs text-[#F26B33] cursor-pointer" onClick={() => { setShowEditModal(false); setActiveTab("addresses"); }}>
+                                            Manage in detail view
+                                        </span>
+                                    </div>
+                                    {addresses.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {addresses.slice(0, 3).map((addr) => (
+                                                <div key={addr.id} className="p-2.5 bg-gray-50 rounded-lg text-xs">
+                                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                                        <span className="font-semibold text-[#1A1A1A]">{addr.address_type || "Home"}</span>
+                                                        {addr.is_default && <Badge className="bg-[#F26B33] text-white text-[9px] px-1 py-0">Default</Badge>}
+                                                    </div>
+                                                    <p className="text-[#52525B] truncate">{formatAddressLine(addr)}</p>
+                                                </div>
+                                            ))}
+                                            {addresses.length > 3 && <p className="text-xs text-gray-400 text-center">+{addresses.length - 3} more</p>}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-gray-400">No addresses. Add from the Addresses tab.</p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -1009,6 +1254,162 @@ export default function CustomerDetailPage() {
                                 data-testid="save-edit-btn"
                             >
                                 {submitting ? "Saving..." : "Save Changes"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Address Add/Edit Modal */}
+            <Dialog open={showAddressModal} onOpenChange={(open) => { setShowAddressModal(open); if (!open) resetAddressForm(); }}>
+                <DialogContent className="max-w-md mx-4 rounded-2xl max-h-[90vh] overflow-hidden">
+                    <DialogHeader>
+                        <DialogTitle className="font-['Montserrat']">{editingAddress ? "Edit Address" : "Add Address"}</DialogTitle>
+                        <DialogDescription>{editingAddress ? "Update address details" : "Add a new delivery address"}</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress}>
+                        <ScrollArea className="h-[55vh] pr-4">
+                            <div className="space-y-4 py-2">
+                                <div>
+                                    <Label className="form-label">Address Type</Label>
+                                    <Select value={addressData.address_type} onValueChange={(v) => setAddressData({...addressData, address_type: v})}>
+                                        <SelectTrigger className="h-11 rounded-xl" data-testid="address-type-select">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Home">Home</SelectItem>
+                                            <SelectItem value="Work">Work</SelectItem>
+                                            <SelectItem value="Other">Other</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label className="form-label">Address / Street *</Label>
+                                    <Textarea
+                                        placeholder="House/Flat No., Building, Street..."
+                                        className="rounded-xl resize-none"
+                                        rows={2}
+                                        value={addressData.address}
+                                        onChange={(e) => setAddressData({...addressData, address: e.target.value})}
+                                        required
+                                        data-testid="address-street-input"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <Label className="form-label">House / Flat</Label>
+                                        <Input
+                                            placeholder="A-101"
+                                            className="h-11 rounded-xl"
+                                            value={addressData.house}
+                                            onChange={(e) => setAddressData({...addressData, house: e.target.value})}
+                                            data-testid="address-house-input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="form-label">Floor</Label>
+                                        <Input
+                                            placeholder="3rd"
+                                            className="h-11 rounded-xl"
+                                            value={addressData.floor}
+                                            onChange={(e) => setAddressData({...addressData, floor: e.target.value})}
+                                            data-testid="address-floor-input"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label className="form-label">Road / Landmark</Label>
+                                    <Input
+                                        placeholder="Near Metro Station"
+                                        className="h-11 rounded-xl"
+                                        value={addressData.road}
+                                        onChange={(e) => setAddressData({...addressData, road: e.target.value})}
+                                        data-testid="address-road-input"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <Label className="form-label">City</Label>
+                                        <Input
+                                            placeholder="Mumbai"
+                                            className="h-11 rounded-xl"
+                                            value={addressData.city}
+                                            onChange={(e) => setAddressData({...addressData, city: e.target.value})}
+                                            data-testid="address-city-input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="form-label">State</Label>
+                                        <Input
+                                            placeholder="Maharashtra"
+                                            className="h-11 rounded-xl"
+                                            value={addressData.state}
+                                            onChange={(e) => setAddressData({...addressData, state: e.target.value})}
+                                            data-testid="address-state-input"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <Label className="form-label">Pincode</Label>
+                                        <Input
+                                            placeholder="400001"
+                                            className="h-11 rounded-xl"
+                                            value={addressData.pincode}
+                                            onChange={(e) => setAddressData({...addressData, pincode: e.target.value})}
+                                            data-testid="address-pincode-input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="form-label">Country</Label>
+                                        <Input
+                                            placeholder="India"
+                                            className="h-11 rounded-xl"
+                                            value={addressData.country}
+                                            onChange={(e) => setAddressData({...addressData, country: e.target.value})}
+                                            data-testid="address-country-input"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <Label className="form-label">Contact Person</Label>
+                                        <Input
+                                            placeholder="Name"
+                                            className="h-11 rounded-xl"
+                                            value={addressData.contact_person_name}
+                                            onChange={(e) => setAddressData({...addressData, contact_person_name: e.target.value})}
+                                            data-testid="address-contact-name-input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="form-label">Contact Number</Label>
+                                        <Input
+                                            placeholder="9876543210"
+                                            className="h-11 rounded-xl"
+                                            value={addressData.contact_person_number}
+                                            onChange={(e) => setAddressData({...addressData, contact_person_number: e.target.value})}
+                                            data-testid="address-contact-number-input"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label className="form-label">Delivery Instructions</Label>
+                                    <Textarea
+                                        placeholder="Ring doorbell twice, leave at door..."
+                                        className="rounded-xl resize-none"
+                                        rows={2}
+                                        value={addressData.delivery_instructions}
+                                        onChange={(e) => setAddressData({...addressData, delivery_instructions: e.target.value})}
+                                        data-testid="address-delivery-instructions-input"
+                                    />
+                                </div>
+                            </div>
+                        </ScrollArea>
+                        <DialogFooter className="mt-4 gap-2">
+                            <Button type="button" variant="outline" onClick={() => { setShowAddressModal(false); resetAddressForm(); }} className="rounded-full">Cancel</Button>
+                            <Button type="submit" className="rounded-full bg-[#F26B33] hover:bg-[#D85A2A]" disabled={submitting} data-testid="save-address-btn">
+                                {submitting ? "Saving..." : editingAddress ? "Update Address" : "Add Address"}
                             </Button>
                         </DialogFooter>
                     </form>

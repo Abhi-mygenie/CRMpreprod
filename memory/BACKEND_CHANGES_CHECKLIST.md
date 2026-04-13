@@ -1,7 +1,7 @@
 # Backend Team - Changes Required Checklist
 
 **Created:** 2026-03-17  
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-04-13
 
 ---
 
@@ -20,7 +20,7 @@
 
 | # | Change Required | Priority | Status | Notes |
 |---|-----------------|----------|--------|-------|
-| 1.1.1 | Return **multiple addresses** per customer | High | 🔴 Pending | Currently returns single address. Need array of addresses with type (home/work/other), is_default flag |
+| 1.1.1 | Return **multiple addresses** per customer | High | 🟢 **Completed** | POS now returns `customer_addresses[]` array |
 | 1.1.2 | Return `f_name` and `l_name` separately | Low | 🔴 Pending | Currently we combine, but separate fields useful for personalization |
 | 1.1.3 | Return `alternate_phone` if available | Medium | 🔴 Pending | For backup contact |
 | 1.1.4 | Return `profile_image` URL | Low | 🔴 Pending | For customer display |
@@ -48,7 +48,7 @@
 
 | # | Change Required | Priority | Status | Notes |
 |---|-----------------|----------|--------|-------|
-| 2.1.1 | Add `addresses` array field | High | 🔴 Pending | To store multiple addresses. Depends on POS API returning multiple addresses (1.1.1) |
+| 2.1.1 | Add `addresses` array field | High | 🟢 **Completed** | Added to Customer schema, migration sync, and all APIs |
 | 2.1.2 | Add `f_name` and `l_name` fields | Low | 🔴 Pending | Keep `name` for display, add these for forms |
 | 2.1.3 | Add `alternate_phone` field | Medium | 🔴 Pending | Secondary contact |
 | 2.1.4 | Add `profile_image` field | Low | 🔴 Pending | Profile picture URL |
@@ -58,21 +58,21 @@
 
 | # | Change Required | Priority | Status | Notes |
 |---|-----------------|----------|--------|-------|
-| 2.2.1 | Update customer sync to handle multiple addresses | High | 🔴 Pending | Depends on 1.1.1 |
+| 2.2.1 | Update customer sync to handle multiple addresses | High | 🟢 **Completed** | Maps `customer_addresses[]` → `addresses[]` |
 | 2.2.2 | Map all new fields from POS response | Medium | 🔴 Pending | After POS API updates |
-| 2.2.3 | Add validation for address array | Medium | 🔴 Pending | Max addresses, required fields |
+| 2.2.3 | Add validation for address array | Medium | 🟢 **Completed** | Validation in address_utils.py |
 
 ### 2.3 Address Management Endpoints (NEW)
 
-**Prerequisite:** Complete 1.1.1 (POS returns multiple addresses) and 2.1.1 (addresses array in schema)
+**Prerequisite:** ✅ Complete
 
 | # | Endpoint | Method | Priority | Status | Notes |
 |---|----------|--------|----------|--------|-------|
-| 2.3.1 | `/customers/{customer_id}/addresses` | GET | High | 🔴 Pending | List all addresses for customer |
-| 2.3.2 | `/customers/{customer_id}/addresses` | POST | High | 🔴 Pending | Add new address |
-| 2.3.3 | `/customers/{customer_id}/addresses/{address_id}` | PUT | High | 🔴 Pending | Update address |
-| 2.3.4 | `/customers/{customer_id}/addresses/{address_id}` | DELETE | Medium | 🔴 Pending | Delete address |
-| 2.3.5 | `/customers/{customer_id}/addresses/{address_id}/set-default` | POST | Medium | 🔴 Pending | Set as default address |
+| 2.3.1 | `/customers/{customer_id}/addresses` | GET | High | 🟢 **Completed** | List all addresses for customer |
+| 2.3.2 | `/customers/{customer_id}/addresses` | POST | High | 🟢 **Completed** | Add new address |
+| 2.3.3 | `/customers/{customer_id}/addresses/{address_id}` | PUT | High | 🟢 **Completed** | Update address |
+| 2.3.4 | `/customers/{customer_id}/addresses/{address_id}` | DELETE | Medium | 🟢 **Completed** | Delete address |
+| 2.3.5 | `/customers/{customer_id}/addresses/{address_id}/set-default` | POST | Medium | 🟢 **Completed** | Set as default address |
 
 ### 2.4 Customer Self-Service Endpoints (NEW)
 
@@ -80,23 +80,33 @@
 
 | # | Endpoint | Method | Priority | Status | Notes |
 |---|----------|--------|----------|--------|-------|
-| 2.4.1 | `/customer/send-otp` | POST | High | 🟢 Completed | Send OTP to customer phone. Body: `{ "phone": "9876543210" }` |
-| 2.4.2 | `/customer/verify-otp` | POST | High | 🟢 Completed | Verify OTP & return token + **full customer details** (same as /me) |
-| 2.4.3 | `/customer/me` | GET | High | 🟢 Completed | Get own details (requires customer token from OTP verify) |
-| 2.4.4 | `/customer/me/addresses` | GET | Medium | 🔴 Pending | Get own addresses (after addresses array implemented) |
+| 2.4.1 | `/customer/send-otp` | POST | High | 🟢 **Completed** | Requires `user_id` (restaurant). Body: `{ "phone": "...", "user_id": "..." }` |
+| 2.4.2 | `/customer/verify-otp` | POST | High | 🟢 **Completed** | Requires `user_id`. Returns token + full customer with `addresses[]` |
+| 2.4.3 | `/customer/me` | GET | High | 🟢 **Completed** | Returns customer with `addresses[]`. Scoped by restaurant in token |
+| 2.4.4 | `/customer/me/addresses` | GET | Medium | 🟢 **Completed** | Returns `{ customer_id, addresses[], total }` |
 | 2.4.5 | `/customer/me/points` | GET | Medium | 🔴 Pending | Get own points balance & history |
 | 2.4.6 | `/customer/me/wallet` | GET | Medium | 🔴 Pending | Get own wallet balance & history |
 | 2.4.7 | `/customer/me/orders` | GET | Low | 🔴 Pending | Get own order history |
 
 **Authentication Flow:**
 ```
-1. Customer enters phone number
-2. POST /customer/send-otp → OTP sent via WhatsApp/SMS
-3. POST /customer/verify-otp → Returns customer_token + FULL customer details
+1. Customer provides phone + user_id (restaurant_id)
+2. POST /customer/send-otp → OTP sent, validates restaurant exists
+3. POST /customer/verify-otp → Returns customer_token (contains user_id) + FULL customer details with addresses[]
 4. GET /customer/me → Same full details (optional, for refresh)
 ```
 
-**Note:** `/verify-otp` and `/me` return identical customer data. No need for separate `/me` call after verify.
+**Important:** All customer self-service endpoints are SCOPED BY RESTAURANT. `user_id` is required in OTP flow and embedded in token.
+
+---
+
+### 2.5 POS Gateway Updates
+
+| # | Change Required | Priority | Status | Notes |
+|---|-----------------|----------|--------|-------|
+| 2.5.1 | POST /pos/customers accepts `addresses[]` | High | 🟢 **Completed** | Removed single address fields |
+| 2.5.2 | PUT /pos/customers accepts `addresses[]` | High | 🟢 **Completed** | Replaces existing addresses |
+| 2.5.3 | Response includes `addresses[]` | High | 🟢 **Completed** | Full addresses in response |
 
 ---
 
