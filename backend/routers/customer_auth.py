@@ -10,6 +10,15 @@ import jwt
 import os
 
 from core.database import db
+from core.address_utils import (
+    create_new_address,
+    update_address,
+    set_default_address,
+    find_address_by_id,
+    remove_address_by_id,
+    validate_address
+)
+from models.schemas import Address, AddressCreate, AddressUpdate
 
 router = APIRouter(prefix="/customer", tags=["Customer Self-Service"])
 
@@ -321,3 +330,92 @@ async def get_customer_addresses(customer: dict = Depends(get_current_customer))
         "addresses": addresses,
         "total": len(addresses)
     }
+
+
+@router.post("/me/addresses", response_model=Address)
+async def add_customer_address(address_data: AddressCreate, customer: dict = Depends(get_current_customer)):
+    """
+    Add a new delivery address for the logged-in customer.
+    First address is automatically set as default.
+    """
+    is_valid, error_msg = validate_address(address_data.model_dump())
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+
+    addresses = customer.get("addresses") or []
+    is_first = len(addresses) == 0
+
+    new_addr = create_new_address(address_data.model_dump(), is_first=is_first)
+    addresses.append(new_addr)
+
+    await db.customers.update_one(
+        {"id": customer["id"]},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return Address(**new_addr)
+
+
+@router.put("/me/addresses/{address_id}", response_model=Address)
+async def update_customer_address(address_id: str, address_data: AddressUpdate, customer: dict = Depends(get_current_customer)):
+    """
+    Update an existing address for the logged-in customer.
+    """
+    addresses = customer.get("addresses") or []
+    existing = find_address_by_id(addresses, address_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    update_dict = {k: v for k, v in address_data.model_dump().items() if v is not None}
+    updated_addr = update_address(existing, update_dict)
+
+    addresses = [updated_addr if a.get("id") == address_id else a for a in addresses]
+
+    await db.customers.update_one(
+        {"id": customer["id"]},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return Address(**updated_addr)
+
+
+@router.delete("/me/addresses/{address_id}")
+async def delete_customer_address(address_id: str, customer: dict = Depends(get_current_customer)):
+    """
+    Delete an address for the logged-in customer.
+    If deleting the default, next address becomes default.
+    """
+    addresses = customer.get("addresses") or []
+    existing = find_address_by_id(addresses, address_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    addresses = remove_address_by_id(addresses, address_id)
+
+    await db.customers.update_one(
+        {"id": customer["id"]},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return {"message": "Address deleted", "remaining_addresses": len(addresses)}
+
+
+@router.post("/me/addresses/{address_id}/set-default", response_model=Address)
+async def set_default_customer_address(address_id: str, customer: dict = Depends(get_current_customer)):
+    """
+    Set an address as the default delivery address.
+    """
+    addresses = customer.get("addresses") or []
+    existing = find_address_by_id(addresses, address_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    addresses = set_default_address(addresses, address_id)
+
+    await db.customers.update_one(
+        {"id": customer["id"]},
+        {"$set": {"addresses": addresses, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    updated = find_address_by_id(addresses, address_id)
+    return Address(**updated)

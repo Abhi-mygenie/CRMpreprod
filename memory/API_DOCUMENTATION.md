@@ -386,6 +386,10 @@ curl -X GET "https://your-domain.com/api/customer/me" \
 | Endpoint | Method | Status | Description |
 |----------|--------|--------|-------------|
 | `/customer/me/addresses` | GET | 🟢 **Completed** | Get customer's addresses |
+| `/customer/me/addresses` | POST | 🟢 **Completed** | Add new delivery address |
+| `/customer/me/addresses/{id}` | PUT | 🟢 **Completed** | Update existing address |
+| `/customer/me/addresses/{id}` | DELETE | 🟢 **Completed** | Delete address |
+| `/customer/me/addresses/{id}/set-default` | POST | 🟢 **Completed** | Set default delivery address |
 | `/customer/me/points` | GET | 🔴 Pending | Get points history |
 | `/customer/me/wallet` | GET | 🔴 Pending | Get wallet history |
 | `/customer/me/orders` | GET | 🔴 Pending | Get order history |

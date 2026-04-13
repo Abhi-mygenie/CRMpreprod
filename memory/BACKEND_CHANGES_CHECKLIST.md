@@ -84,9 +84,13 @@
 | 2.4.2 | `/customer/verify-otp` | POST | High | 🟢 **Completed** | Requires `user_id`. Returns token + full customer with `addresses[]` |
 | 2.4.3 | `/customer/me` | GET | High | 🟢 **Completed** | Returns customer with `addresses[]`. Scoped by restaurant in token |
 | 2.4.4 | `/customer/me/addresses` | GET | Medium | 🟢 **Completed** | Returns `{ customer_id, addresses[], total }` |
-| 2.4.5 | `/customer/me/points` | GET | Medium | 🔴 Pending | Get own points balance & history |
-| 2.4.6 | `/customer/me/wallet` | GET | Medium | 🔴 Pending | Get own wallet balance & history |
-| 2.4.7 | `/customer/me/orders` | GET | Low | 🔴 Pending | Get own order history |
+| 2.4.5 | `/customer/me/addresses` | POST | Medium | 🟢 **Completed** | Add new address. First address auto-default. |
+| 2.4.6 | `/customer/me/addresses/{id}` | PUT | Medium | 🟢 **Completed** | Update existing address |
+| 2.4.7 | `/customer/me/addresses/{id}` | DELETE | Medium | 🟢 **Completed** | Delete address. Reassigns default if needed. |
+| 2.4.8 | `/customer/me/addresses/{id}/set-default` | POST | Medium | 🟢 **Completed** | Set default delivery address |
+| 2.4.9 | `/customer/me/points` | GET | Medium | 🔴 Pending | Get own points balance & history |
+| 2.4.10 | `/customer/me/wallet` | GET | Medium | 🔴 Pending | Get own wallet balance & history |
+| 2.4.11 | `/customer/me/orders` | GET | Low | 🔴 Pending | Get own order history |
 
 **Authentication Flow:**
 ```
