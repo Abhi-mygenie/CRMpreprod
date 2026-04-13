@@ -1,7 +1,7 @@
 # MyGenie CRM API Documentation
 
 **Base URL:** `https://your-domain.com/api`  
-**Version:** v1.2  
+**Version:** v1.3  
 **Last Updated:** 2026-04-13
 
 ---
@@ -9,7 +9,7 @@
 ## Table of Contents
 
 1. [Authentication](#1-authentication)
-2. [Customer Self-Service](#2-customer-self-service)
+2. [Customer Self-Service](#2-customer-self-service) (11 endpoints: OTP, Profile, Addresses CRUD, Points, Wallet, Orders)
 3. [Customers](#3-customers)
 4. [Segments](#4-segments)
 5. [Points & Loyalty](#5-points--loyalty)
@@ -381,18 +381,368 @@ curl -X GET "https://your-domain.com/api/customer/me" \
 
 ---
 
-### Future Endpoints (Planned)
+### GET `/customer/me/addresses`
+**Description:** Get all saved addresses for the logged-in customer  
+**Auth Required:** Yes (Customer Token)
 
-| Endpoint | Method | Status | Description |
-|----------|--------|--------|-------------|
-| `/customer/me/addresses` | GET | 🟢 **Completed** | Get customer's addresses |
-| `/customer/me/addresses` | POST | 🟢 **Completed** | Add new delivery address |
-| `/customer/me/addresses/{id}` | PUT | 🟢 **Completed** | Update existing address |
-| `/customer/me/addresses/{id}` | DELETE | 🟢 **Completed** | Delete address |
-| `/customer/me/addresses/{id}/set-default` | POST | 🟢 **Completed** | Set default delivery address |
-| `/customer/me/points` | GET | 🔴 Pending | Get points history |
-| `/customer/me/wallet` | GET | 🔴 Pending | Get wallet history |
-| `/customer/me/orders` | GET | 🔴 Pending | Get order history |
+**Example Request:**
+```bash
+curl -X GET "https://your-domain.com/api/customer/me/addresses" \
+  -H "Authorization: Bearer {customer_token}"
+```
+
+**Response (200):**
+```json
+{
+  "customer_id": "550e8400-e29b-41d4-a716-446655440000",
+  "addresses": [
+    {
+      "id": "addr_abc123def456",
+      "pos_address_id": 2010,
+      "is_default": true,
+      "address_type": "Home",
+      "address": "123 Main Street, Shoghi",
+      "house": "A-101",
+      "floor": "1st",
+      "road": "Main Road",
+      "city": "Shimla",
+      "state": "Himachal Pradesh",
+      "pincode": "171219",
+      "country": "India",
+      "latitude": "31.0537",
+      "longitude": "77.1273",
+      "contact_person_name": "John",
+      "contact_person_number": "9876543210",
+      "delivery_instructions": "Ring bell at gate",
+      "created_at": "2026-04-13T10:00:00+00:00",
+      "updated_at": "2026-04-13T10:00:00+00:00"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+### POST `/customer/me/addresses`
+**Description:** Add a new delivery address. First address is automatically set as default.  
+**Auth Required:** Yes (Customer Token)
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| address_type | string | No | Home / Work / Other (default: Home) |
+| address | string | Yes* | Street address |
+| house | string | No | House/Flat number |
+| floor | string | No | Floor |
+| road | string | No | Road / Landmark |
+| city | string | Yes* | City |
+| state | string | No | State |
+| pincode | string | Yes* | Pincode |
+| country | string | No | Country (default: India) |
+| latitude | string | No | GPS latitude |
+| longitude | string | No | GPS longitude |
+| contact_person_name | string | No | Alternate contact name |
+| contact_person_number | string | No | Alternate contact phone |
+| delivery_instructions | string | No | Special delivery notes |
+
+*At least one of `address`, `city`, or `pincode` is required.
+
+**Example Request:**
+```bash
+curl -X POST "https://your-domain.com/api/customer/me/addresses" \
+  -H "Authorization: Bearer {customer_token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "address_type": "Work",
+    "address": "Office Park, Sector 5",
+    "city": "Shimla",
+    "state": "HP",
+    "pincode": "171001"
+  }'
+```
+
+**Response (200):** Address object (same structure as in GET response)
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 400 | At least address, city, or pincode is required |
+| 401 | Invalid/expired token |
+
+---
+
+### PUT `/customer/me/addresses/{address_id}`
+**Description:** Update an existing address  
+**Auth Required:** Yes (Customer Token)
+
+**Path Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| address_id | string | Address ID (e.g., `addr_abc123def456`) |
+
+**Request Body:** Same fields as POST (all optional — only send fields to update)
+
+**Example Request:**
+```bash
+curl -X PUT "https://your-domain.com/api/customer/me/addresses/addr_abc123def456" \
+  -H "Authorization: Bearer {customer_token}" \
+  -H "Content-Type: application/json" \
+  -d '{"delivery_instructions": "Ring bell at gate 2", "floor": "3rd"}'
+```
+
+**Response (200):** Updated address object
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 404 | Address not found |
+| 401 | Invalid/expired token |
+
+---
+
+### DELETE `/customer/me/addresses/{address_id}`
+**Description:** Delete an address. If deleting the default, next address becomes default.  
+**Auth Required:** Yes (Customer Token)
+
+**Example Request:**
+```bash
+curl -X DELETE "https://your-domain.com/api/customer/me/addresses/addr_abc123def456" \
+  -H "Authorization: Bearer {customer_token}"
+```
+
+**Response (200):**
+```json
+{
+  "message": "Address deleted",
+  "remaining_addresses": 2
+}
+```
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 404 | Address not found |
+| 401 | Invalid/expired token |
+
+---
+
+### POST `/customer/me/addresses/{address_id}/set-default`
+**Description:** Set an address as the default delivery address. Unsets all others.  
+**Auth Required:** Yes (Customer Token)
+
+**Example Request:**
+```bash
+curl -X POST "https://your-domain.com/api/customer/me/addresses/addr_abc123def456/set-default" \
+  -H "Authorization: Bearer {customer_token}"
+```
+
+**Response (200):** Updated address object with `is_default: true`
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 404 | Address not found |
+| 401 | Invalid/expired token |
+
+---
+
+### GET `/customer/me/points`
+**Description:** Get points balance, tier, expiring info, and transaction history  
+**Auth Required:** Yes (Customer Token)
+
+**Query Parameters:**
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| limit | int | 50 | Max transactions to return |
+
+**Example Request:**
+```bash
+curl -X GET "https://your-domain.com/api/customer/me/points?limit=10" \
+  -H "Authorization: Bearer {customer_token}"
+```
+
+**Response (200):**
+```json
+{
+  "total_points": 1500,
+  "points_value": 375.00,
+  "total_earned": 2000,
+  "total_redeemed": 500,
+  "tier": "Gold",
+  "expiring_soon": 200,
+  "transactions": [
+    {
+      "id": "tx-uuid-001",
+      "type": "earn",
+      "points": 75,
+      "description": "Points earned from order",
+      "created_at": "2026-04-10T14:30:00+00:00"
+    },
+    {
+      "id": "tx-uuid-002",
+      "type": "bonus",
+      "points": 100,
+      "description": "Birthday bonus",
+      "created_at": "2026-04-05T00:00:00+00:00"
+    },
+    {
+      "id": "tx-uuid-003",
+      "type": "redeem",
+      "points": 200,
+      "description": "Points redeemed on order #4521",
+      "created_at": "2026-03-28T12:15:00+00:00"
+    }
+  ]
+}
+```
+
+**Transaction Type Values:** `earn`, `redeem`, `bonus`, `expired`
+
+---
+
+### GET `/customer/me/wallet`
+**Description:** Get wallet balance and transaction history  
+**Auth Required:** Yes (Customer Token)
+
+**Query Parameters:**
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| limit | int | 50 | Max transactions to return |
+
+**Example Request:**
+```bash
+curl -X GET "https://your-domain.com/api/customer/me/wallet?limit=10" \
+  -H "Authorization: Bearer {customer_token}"
+```
+
+**Response (200):**
+```json
+{
+  "wallet_balance": 250.00,
+  "total_received": 1000.00,
+  "total_used": 750.00,
+  "transactions": [
+    {
+      "id": "wtx-uuid-001",
+      "type": "credit",
+      "amount": 500.00,
+      "description": "Wallet recharge",
+      "payment_method": "upi",
+      "balance_after": 750.00,
+      "created_at": "2026-04-10T14:30:00+00:00"
+    },
+    {
+      "id": "wtx-uuid-002",
+      "type": "debit",
+      "amount": 200.00,
+      "description": "Payment for order #4521",
+      "payment_method": null,
+      "balance_after": 250.00,
+      "created_at": "2026-04-08T12:00:00+00:00"
+    }
+  ]
+}
+```
+
+**Transaction Type Values:** `credit`, `debit`  
+**Payment Method Values:** `cash`, `upi`, `card`, `null`
+
+---
+
+### GET `/customer/me/orders`
+**Description:** Get paginated order history with items and delivery address  
+**Auth Required:** Yes (Customer Token)
+
+**Query Parameters:**
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| limit | int | 50 | Max orders to return |
+| skip | int | 0 | Pagination offset |
+
+**Example Request:**
+```bash
+curl -X GET "https://your-domain.com/api/customer/me/orders?limit=10&skip=0" \
+  -H "Authorization: Bearer {customer_token}"
+```
+
+**Response (200):**
+```json
+{
+  "total_orders": 25,
+  "orders": [
+    {
+      "id": "order-uuid-001",
+      "order_id": "007172",
+      "order_amount": 570.00,
+      "delivery_charge": 30.00,
+      "order_type": "delivery",
+      "order_status": "delivered",
+      "payment_method": "upi",
+      "payment_status": "paid",
+      "coupon_code": "SAVE10",
+      "coupon_discount": 57.00,
+      "points_earned": 25,
+      "delivery_address": {
+        "contact_person_name": "Parikshit",
+        "contact_person_number": "7018342940",
+        "address_type": "Home",
+        "address": "123 Main Street, Shoghi",
+        "pincode": "171219",
+        "house": "first floor",
+        "longitude": "77.1273",
+        "latitude": "31.0537"
+      },
+      "order_notes": "Less spicy please",
+      "items": [
+        {
+          "item_name": "Farm Fresh Pizza",
+          "item_qty": 1,
+          "item_price": 350.00
+        },
+        {
+          "item_name": "Masala Dosa",
+          "item_qty": 2,
+          "item_price": 110.00
+        }
+      ],
+      "created_at": "2026-04-10T14:30:00"
+    },
+    {
+      "id": "order-uuid-002",
+      "order_id": "005914",
+      "order_amount": 350.00,
+      "delivery_charge": 0,
+      "order_type": "take_away",
+      "order_status": "delivered",
+      "payment_method": "upi",
+      "payment_status": "paid",
+      "coupon_code": null,
+      "coupon_discount": 0,
+      "points_earned": 17,
+      "delivery_address": null,
+      "order_notes": null,
+      "items": [
+        {
+          "item_name": "Farm Fresh Pizza",
+          "item_qty": 1,
+          "item_price": 250.00
+        },
+        {
+          "item_name": "Banana Shake",
+          "item_qty": 1,
+          "item_price": 100.00
+        }
+      ],
+      "created_at": "2026-03-28T12:15:00"
+    }
+  ]
+}
+```
+
+**Order Type Values:** `pos` (dine-in), `take_away`, `delivery`  
+**Order Status Values:** `pending`, `confirmed`, `preparing`, `ready`, `dispatched`, `delivered`, `cancelled`  
+**Note:** `delivery_address` is only populated for `delivery` type orders. For `pos` and `take_away`, it is `null`.
 
 ---
 
