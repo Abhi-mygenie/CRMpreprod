@@ -16,9 +16,14 @@
                        │
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  STEP 1: LOGIN (OTP)                                        │
+│  STEP 1: LOGIN (OTP or Password)                            │
 │  POST /customer/send-otp    → Send OTP                      │
 │  POST /customer/verify-otp  → Get token + profile           │
+│  --- OR ---                                                 │
+│  POST /customer/register    → Sign up with password         │
+│  POST /customer/login       → Login with password           │
+│  POST /customer/forgot-password → Send reset OTP            │
+│  POST /customer/reset-password  → OTP + new password        │
 └──────────────────────┬──────────────────────────────────────┘
                        │
                        ▼
@@ -70,6 +75,10 @@ Token is valid for **24 hours** and contains `customer_id`, `phone`, and `user_i
 ---
 
 ## STEP 1: Login
+
+Customers can authenticate via **OTP** (phone only) or **Password** (phone + password). Both return the same `customer_token`.
+
+### Option A: OTP Login
 
 ### POST `/customer/send-otp`
 Send OTP to customer's phone number.
@@ -127,41 +136,145 @@ Verify OTP and receive auth token + full customer profile.
   "token": "eyJhbG...",
   "token_type": "bearer",
   "expires_in_hours": 24,
-  "customer": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Vivan",
-    "phone": "9876543210",
-    "email": "vivan@email.com",
-    "country_code": "+91",
-    "dob": "1990-05-15",
-    "anniversary": null,
-    "gender": "male",
-    "tier": "Gold",
-    "total_points": 1500,
-    "points_value": 375.00,
-    "wallet_balance": 250.00,
-    "total_visits": 25,
-    "total_spent": 35000.00,
-    "last_visit": "2026-04-10T14:30:00+00:00",
-    "addresses": [
-      {
-        "id": "addr_abc123",
-        "is_default": true,
-        "address_type": "Home",
-        "address": "123 Main Street, Shoghi",
-        "city": "Shimla",
-        "state": "HP",
-        "pincode": "171219"
-      }
-    ],
-    "allergies": ["peanuts"],
-    "favorites": ["Farm Fresh Pizza"],
-    "restaurant_id": "pos_0001_restaurant_509"
-  }
+  "customer": { ... full profile ... }
 }
 ```
 
 **Errors:** `400` Invalid OTP | `400` OTP expired
+
+---
+
+### Option B: Password Login
+
+### POST `/customer/register`
+Register with phone + password. If phone already exists → links password. If not → creates new customer.
+
+**Auth:** None
+
+**Request:**
+```json
+{
+  "phone": "9876543210",
+  "password": "mypassword",
+  "user_id": "pos_0001_restaurant_509",
+  "name": "Vivan",
+  "email": "vivan@email.com",
+  "country_code": "+91"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone | string | Yes | Customer phone number |
+| password | string | Yes | Min 6 characters |
+| user_id | string | **Yes** | Restaurant ID from QR code |
+| name | string | No | Customer name (defaults to phone if not provided) |
+| email | string | No | Email address |
+| country_code | string | No | Default: +91 |
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Registration successful",
+  "token": "eyJhbG...",
+  "token_type": "bearer",
+  "expires_in_hours": 24,
+  "is_new_customer": true,
+  "customer": { ... full profile ... }
+}
+```
+
+**Behavior:**
+- Phone exists + no password set → links password to existing customer (`is_new_customer: false`)
+- Phone exists + password already set → returns `400: Account already exists. Please login.`
+- Phone doesn't exist → creates new customer with first-visit bonus if enabled (`is_new_customer: true`)
+
+**Errors:** `400` Password too short | `400` Account already exists | `404` Restaurant not found
+
+---
+
+### POST `/customer/login`
+Login with phone + password.
+
+**Auth:** None
+
+**Request:**
+```json
+{
+  "phone": "9876543210",
+  "password": "mypassword",
+  "user_id": "pos_0001_restaurant_509"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "token": "eyJhbG...",
+  "token_type": "bearer",
+  "expires_in_hours": 24,
+  "customer": { ... full profile ... }
+}
+```
+
+**Errors:** `401` Invalid password | `404` Customer not found | `400` No password set (use OTP)
+
+---
+
+### POST `/customer/forgot-password`
+Send OTP to reset password.
+
+**Auth:** None
+
+**Request:**
+```json
+{
+  "phone": "9876543210",
+  "user_id": "pos_0001_restaurant_509"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "OTP sent to +91 9876543210",
+  "expires_in_minutes": 10,
+  "restaurant_name": "Pav & Pages Cafe"
+}
+```
+
+**Errors:** `404` Restaurant not found | `404` Customer not found
+
+---
+
+### POST `/customer/reset-password`
+Verify OTP and set new password.
+
+**Auth:** None
+
+**Request:**
+```json
+{
+  "phone": "9876543210",
+  "otp": "617417",
+  "user_id": "pos_0001_restaurant_509",
+  "new_password": "newpassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Password reset successful. You can now login with your new password."
+}
+```
+
+**Errors:** `400` Invalid OTP | `400` OTP expired | `400` Password too short
 
 ---
 
@@ -616,8 +729,12 @@ Submit feedback after order delivery.
 
 | Step | Endpoint | Method | Auth | Purpose |
 |------|----------|--------|------|---------|
-| Login | `/customer/send-otp` | POST | None | Send OTP |
-| Login | `/customer/verify-otp` | POST | None | Verify → token + profile |
+| Login (OTP) | `/customer/send-otp` | POST | None | Send OTP |
+| Login (OTP) | `/customer/verify-otp` | POST | None | Verify → token + profile |
+| Login (Password) | `/customer/register` | POST | None | Sign up (or link password to existing) |
+| Login (Password) | `/customer/login` | POST | None | Login with phone + password |
+| Login (Password) | `/customer/forgot-password` | POST | None | Send reset OTP |
+| Login (Password) | `/customer/reset-password` | POST | None | OTP + set new password |
 | Profile | `/customer/me` | GET | Token | Refresh profile |
 | Profile | `/customer/me/points` | GET | Token | Points & history |
 | Profile | `/customer/me/wallet` | GET | Token | Wallet & history |
@@ -632,7 +749,7 @@ Submit feedback after order delivery.
 | Checkout | `/pos/orders` | POST | API Key | Place order |
 | Post-Order | `/feedback` | POST | Token | Submit rating |
 
-**Total: 15 endpoints**
+**Total: 19 endpoints**
 
 ---
 

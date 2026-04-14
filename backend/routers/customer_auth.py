@@ -3,11 +3,13 @@ Customer Self-Service API - OTP based authentication for customers
 """
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime, timezone, timedelta
 import uuid
 import random
 import jwt
 import os
+import bcrypt
 
 from core.database import db
 from core.address_utils import (
@@ -41,6 +43,73 @@ class VerifyOTPRequest(BaseModel):
     otp: str
     user_id: str  # Restaurant ID - REQUIRED
     country_code: str = "91"
+
+
+class CustomerRegisterRequest(BaseModel):
+    phone: str
+    password: str
+    user_id: str  # Restaurant ID - REQUIRED
+    name: Optional[str] = None
+    email: Optional[str] = None
+    country_code: str = "+91"
+
+
+class CustomerLoginRequest(BaseModel):
+    phone: str
+    password: str
+    user_id: str  # Restaurant ID - REQUIRED
+
+
+class CustomerForgotPasswordRequest(BaseModel):
+    phone: str
+    user_id: str
+    country_code: str = "91"
+
+
+class CustomerResetPasswordRequest(BaseModel):
+    phone: str
+    otp: str
+    user_id: str
+    new_password: str
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+
+
+async def build_customer_response(customer: dict) -> dict:
+    """Build standardized customer profile response with points value."""
+    loyalty_settings = await db.loyalty_settings.find_one(
+        {"user_id": customer.get("user_id")},
+        {"_id": 0, "redemption_value": 1}
+    )
+    redemption_value = loyalty_settings.get("redemption_value", 0.25) if loyalty_settings else 0.25
+    total_points = customer.get("total_points", 0)
+    return {
+        "id": customer.get("id"),
+        "name": customer.get("name"),
+        "phone": customer.get("phone"),
+        "email": customer.get("email"),
+        "country_code": customer.get("country_code", "+91"),
+        "dob": customer.get("dob"),
+        "anniversary": customer.get("anniversary"),
+        "gender": customer.get("gender"),
+        "tier": customer.get("tier", "Bronze"),
+        "total_points": total_points,
+        "points_value": round(total_points * redemption_value, 2),
+        "wallet_balance": customer.get("wallet_balance", 0.0),
+        "total_visits": customer.get("total_visits", 0),
+        "total_spent": customer.get("total_spent", 0.0),
+        "last_visit": customer.get("last_visit"),
+        "addresses": customer.get("addresses", []),
+        "allergies": customer.get("allergies", []),
+        "favorites": customer.get("favorites", []),
+        "restaurant_id": customer.get("user_id")
+    }
 
 
 def generate_otp() -> str:
@@ -200,62 +269,227 @@ async def verify_otp(request: VerifyOTPRequest):
     # Generate token with restaurant context
     token = create_customer_token(customer["id"], phone, user_id)
     
-    # Get loyalty settings for points value calculation
-    loyalty_settings = await db.loyalty_settings.find_one(
-        {"user_id": customer.get("user_id")}, 
-        {"_id": 0, "redemption_value": 1}
-    )
-    redemption_value = loyalty_settings.get("redemption_value", 0.25) if loyalty_settings else 0.25
-    
-    # Calculate points value
-    total_points = customer.get("total_points", 0)
-    points_value = round(total_points * redemption_value, 2)
-    
     return {
         "success": True,
         "message": "OTP verified successfully",
         "token": token,
         "token_type": "bearer",
         "expires_in_hours": CUSTOMER_TOKEN_EXPIRE_HOURS,
-        "customer": {
-            "id": customer.get("id"),
-            "name": customer.get("name"),
-            "phone": customer.get("phone"),
-            "email": customer.get("email"),
-            "country_code": customer.get("country_code", "+91"),
-            
-            # Personal
-            "dob": customer.get("dob"),
-            "anniversary": customer.get("anniversary"),
-            "gender": customer.get("gender"),
-            
-            # Loyalty
-            "tier": customer.get("tier", "Bronze"),
-            "total_points": total_points,
-            "points_value": points_value,
-            "wallet_balance": customer.get("wallet_balance", 0.0),
-            
-            # Stats
-            "total_visits": customer.get("total_visits", 0),
-            "total_spent": customer.get("total_spent", 0.0),
-            "last_visit": customer.get("last_visit"),
-            
-            # Address (single - legacy)
-            "address": customer.get("address"),
-            "city": customer.get("city"),
-            "state": customer.get("state"),
-            "pincode": customer.get("pincode"),
-            
-            # Multiple Addresses (new)
-            "addresses": customer.get("addresses", []),
-            
-            # Preferences
-            "allergies": customer.get("allergies", []),
-            "favorites": customer.get("favorites", []),
-            
-            # Restaurant info
-            "restaurant_id": customer.get("user_id")
+        "customer": await build_customer_response(customer)
+    }
+
+
+# ==================== PASSWORD-BASED AUTH ====================
+
+
+@router.post("/register")
+async def customer_register(request: CustomerRegisterRequest):
+    """
+    Register a new customer with phone + password.
+    If phone already exists for this restaurant, links password to existing record.
+    If not, creates a new customer.
+    Requires user_id (restaurant ID).
+    """
+    phone = request.phone.strip().replace(" ", "")
+    user_id = request.user_id.strip()
+
+    if len(request.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    # Validate restaurant exists
+    restaurant = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "restaurant_name": 1})
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+
+    # Check if customer already exists for this restaurant
+    existing = await db.customers.find_one({"phone": phone, "user_id": user_id}, {"_id": 0})
+
+    if existing:
+        # Link password to existing customer
+        if existing.get("password_hash"):
+            raise HTTPException(status_code=400, detail="Account already exists. Please login.")
+        await db.customers.update_one(
+            {"id": existing["id"]},
+            {"$set": {"password_hash": hash_password(request.password), "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        customer = await db.customers.find_one({"id": existing["id"]}, {"_id": 0})
+    else:
+        # Create new customer
+        now = datetime.now(timezone.utc).isoformat()
+        customer_id = str(uuid.uuid4())
+
+        # Check for first visit bonus
+        settings = await db.loyalty_settings.find_one({"user_id": user_id}, {"_id": 0})
+        first_visit_bonus = 0
+        if settings and settings.get("first_visit_bonus_enabled", False):
+            first_visit_bonus = settings.get("first_visit_bonus_points", 50)
+
+        customer = {
+            "id": customer_id,
+            "user_id": user_id,
+            "name": request.name or phone,
+            "phone": phone,
+            "email": request.email,
+            "country_code": request.country_code,
+            "password_hash": hash_password(request.password),
+            "customer_type": "normal",
+            "tier": "Bronze",
+            "total_points": first_visit_bonus,
+            "total_points_earned": 0,
+            "total_points_redeemed": 0,
+            "wallet_balance": 0.0,
+            "total_wallet_received": 0.0,
+            "total_wallet_used": 0.0,
+            "total_coupon_used": 0,
+            "total_visits": 0,
+            "total_spent": 0.0,
+            "avg_order_value": 0.0,
+            "addresses": [],
+            "allergies": [],
+            "favorites": [],
+            "created_at": now,
+            "updated_at": now,
+            "first_visit_date": now,
+            "first_visit_bonus_awarded": first_visit_bonus > 0
         }
+        await db.customers.insert_one(customer)
+
+        if first_visit_bonus > 0:
+            await db.points_transactions.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "customer_id": customer_id,
+                "points": first_visit_bonus,
+                "transaction_type": "bonus",
+                "description": "First visit bonus - Welcome reward",
+                "created_at": now
+            })
+
+    token = create_customer_token(customer["id"], phone, user_id)
+
+    return {
+        "success": True,
+        "message": "Registration successful",
+        "token": token,
+        "token_type": "bearer",
+        "expires_in_hours": CUSTOMER_TOKEN_EXPIRE_HOURS,
+        "is_new_customer": existing is None,
+        "customer": await build_customer_response(customer)
+    }
+
+
+@router.post("/login")
+async def customer_login(request: CustomerLoginRequest):
+    """
+    Login with phone + password.
+    Returns same token and profile as OTP verify.
+    Requires user_id (restaurant ID).
+    """
+    phone = request.phone.strip().replace(" ", "")
+    user_id = request.user_id.strip()
+
+    # Find customer scoped by restaurant
+    customer = await db.customers.find_one({"phone": phone, "user_id": user_id}, {"_id": 0})
+
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found. Please register first.")
+
+    if not customer.get("password_hash"):
+        raise HTTPException(status_code=400, detail="No password set. Please use OTP login or register with a password.")
+
+    if not verify_password(request.password, customer["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid password")
+
+    token = create_customer_token(customer["id"], phone, user_id)
+
+    return {
+        "success": True,
+        "message": "Login successful",
+        "token": token,
+        "token_type": "bearer",
+        "expires_in_hours": CUSTOMER_TOKEN_EXPIRE_HOURS,
+        "customer": await build_customer_response(customer)
+    }
+
+
+@router.post("/forgot-password")
+async def customer_forgot_password(request: CustomerForgotPasswordRequest):
+    """
+    Send OTP for password reset. Reuses OTP infrastructure.
+    """
+    phone = request.phone.strip().replace(" ", "")
+    user_id = request.user_id.strip()
+
+    restaurant = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "restaurant_name": 1})
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+
+    customer = await db.customers.find_one({"phone": phone, "user_id": user_id}, {"_id": 0, "id": 1})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    otp = generate_otp()
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
+
+    await db.customer_otps.delete_many({"phone": phone, "user_id": user_id})
+    await db.customer_otps.insert_one({
+        "id": str(uuid.uuid4()),
+        "phone": phone,
+        "user_id": user_id,
+        "otp": otp,
+        "customer_id": customer["id"],
+        "purpose": "password_reset",
+        "expires_at": expires_at.isoformat(),
+        "verified": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+    return {
+        "success": True,
+        "message": f"OTP sent to +{request.country_code} {phone}",
+        "expires_in_minutes": OTP_EXPIRY_MINUTES,
+        "restaurant_name": restaurant.get("restaurant_name"),
+        "debug_otp": otp
+    }
+
+
+@router.post("/reset-password")
+async def customer_reset_password(request: CustomerResetPasswordRequest):
+    """
+    Verify OTP and set new password.
+    """
+    phone = request.phone.strip().replace(" ", "")
+    user_id = request.user_id.strip()
+
+    if len(request.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    otp_record = await db.customer_otps.find_one({
+        "phone": phone,
+        "user_id": user_id,
+        "otp": request.otp,
+        "verified": False
+    })
+
+    if not otp_record:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    expires_at = datetime.fromisoformat(otp_record["expires_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+
+    # Mark OTP used
+    await db.customer_otps.update_one({"id": otp_record["id"]}, {"$set": {"verified": True}})
+
+    # Set new password
+    await db.customers.update_one(
+        {"id": otp_record["customer_id"], "user_id": user_id},
+        {"$set": {"password_hash": hash_password(request.new_password), "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+    return {
+        "success": True,
+        "message": "Password reset successful. You can now login with your new password."
     }
 
 
@@ -263,59 +497,9 @@ async def verify_otp(request: VerifyOTPRequest):
 async def get_customer_details(customer: dict = Depends(get_current_customer)):
     """
     Get current customer details.
-    Requires valid customer token from OTP verification.
+    Requires valid customer token from OTP or password login.
     """
-    # Get loyalty settings for the restaurant
-    loyalty_settings = await db.loyalty_settings.find_one(
-        {"user_id": customer.get("user_id")}, 
-        {"_id": 0, "redemption_value": 1}
-    )
-    redemption_value = loyalty_settings.get("redemption_value", 0.25) if loyalty_settings else 0.25
-    
-    # Calculate points value
-    total_points = customer.get("total_points", 0)
-    points_value = round(total_points * redemption_value, 2)
-    
-    # Return customer details (excluding sensitive/internal fields)
-    return {
-        "id": customer.get("id"),
-        "name": customer.get("name"),
-        "phone": customer.get("phone"),
-        "email": customer.get("email"),
-        "country_code": customer.get("country_code", "+91"),
-        
-        # Personal
-        "dob": customer.get("dob"),
-        "anniversary": customer.get("anniversary"),
-        "gender": customer.get("gender"),
-        
-        # Loyalty
-        "tier": customer.get("tier", "Bronze"),
-        "total_points": total_points,
-        "points_value": points_value,
-        "wallet_balance": customer.get("wallet_balance", 0.0),
-        
-        # Stats
-        "total_visits": customer.get("total_visits", 0),
-        "total_spent": customer.get("total_spent", 0.0),
-        "last_visit": customer.get("last_visit"),
-        
-        # Address (single - legacy)
-        "address": customer.get("address"),
-        "city": customer.get("city"),
-        "state": customer.get("state"),
-        "pincode": customer.get("pincode"),
-        
-        # Multiple Addresses (new)
-        "addresses": customer.get("addresses", []),
-        
-        # Preferences
-        "allergies": customer.get("allergies", []),
-        "favorites": customer.get("favorites", []),
-        
-        # Restaurant info
-        "restaurant_id": customer.get("user_id")
-    }
+    return await build_customer_response(customer)
 
 
 @router.get("/me/addresses")
