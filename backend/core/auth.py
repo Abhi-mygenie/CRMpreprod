@@ -24,6 +24,19 @@ def verify_password(password: str, hashed: str) -> bool:
 def create_token(user_id: str) -> str:
     payload = {
         "user_id": user_id,
+        "type": "staff",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def create_customer_token(customer_id: str, restaurant_id: str, phone: str) -> str:
+    """Create JWT for scan-and-order customer. Includes type=customer claim."""
+    payload = {
+        "customer_id": customer_id,
+        "restaurant_id": restaurant_id,
+        "phone": phone,
+        "type": "customer",
         "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -42,6 +55,9 @@ async def verify_api_key(api_key: str):
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        # Reject customer tokens on staff endpoints
+        if payload.get("type") == "customer":
+            raise HTTPException(status_code=401, detail="Invalid token. Customer tokens cannot access staff endpoints.")
         user_id = payload.get("user_id")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -54,6 +70,24 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+async def verify_customer_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify customer JWT token. Returns {customer_id, restaurant_id, phone}."""
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "customer":
+            raise HTTPException(status_code=401, detail="Invalid customer token")
+        customer_id = payload.get("customer_id")
+        restaurant_id = payload.get("restaurant_id")
+        phone = payload.get("phone")
+        if not customer_id or not restaurant_id:
+            raise HTTPException(status_code=401, detail="Invalid customer token")
+        return {"customer_id": customer_id, "restaurant_id": restaurant_id, "phone": phone}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid customer token")
 
 
 async def verify_pos_auth(
@@ -76,6 +110,8 @@ async def verify_pos_auth(
     if credentials:
         try:
             payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            if payload.get("type") == "customer":
+                raise HTTPException(status_code=401, detail="Customer tokens cannot access POS endpoints")
             user_id = payload.get("user_id")
             if not user_id:
                 raise HTTPException(status_code=401, detail="Invalid token")

@@ -1971,10 +1971,11 @@ async def pos_add_address(customer_id: str, addr_data: CustomerAddressCreate, us
 
     # If this is default, unset others
     if addr_doc.get("is_default"):
-        await db.customers.update_one(
-            {"id": customer_id},
-            {"$set": {"addresses.$[].is_default": False}}
-        )
+        if existing_addresses:
+            await db.customers.update_one(
+                {"id": customer_id},
+                {"$set": {"addresses.$[].is_default": False}}
+            )
     elif not existing_addresses:
         # First address is always default
         addr_doc["is_default"] = True

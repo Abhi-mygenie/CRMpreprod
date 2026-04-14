@@ -55,8 +55,26 @@ MyGenie CRM is a full-featured Customer Relationship Management platform with a 
 - **Phase 7: Coupons** — B8.1 (validate), B8.2 (apply) with full checks
 - **Phase 8: Cleanup** — B3.3 (soft delete), B5.1 (cross-restaurant address lookup)
 
-### Test Results
-All 28 POS endpoints verified:
+### April 14, 2026 - Section C: Scan & Order Implementation (Phases 1-8)
+- **Phase 1: Customer Token Auth** — `verify_customer_token` with `type: "customer"` claim. Token isolation: customer tokens rejected on CRM/POS endpoints, staff/POS tokens rejected on scan endpoints.
+- **Phase 2: OTP Auth (C1.1-C1.2)** — Request OTP (6-digit, 10-min expiry, rate limited 3/5min), Verify OTP (auto-creates customer if new), restaurant_id normalization (short→full format)
+- **Phase 3: Profile (C1.3, C2.1-C2.2)** — Get me, Get/Update profile (cannot change phone)
+- **Phase 4: Addresses (C3.1-C3.5)** — List, Add (dedup), Update, Delete, Set Default. Shared array with POS. Fixed empty-array `$set` bug.
+- **Phase 5: App Config (C4.1-C4.2) + Dietary Tags (C5.1-C5.2)** — Public read, CRM admin write. Dual restaurant_id lookup (short/full).
+- **Phase 6: Loyalty/History (C2.3-C2.8)** — Loyalty summary, Points history, Wallet history, Order history, Order detail, Available coupons.
+- **Phase 7: Password Auth (C1.4-C1.5)** — Register with password, Login with password. Compatible with existing bcrypt hashes.
+- **Phase 8: Actions (C6.1-C6.3)** — Submit feedback, Call waiter, Request bill. Events logged to `pos_event_logs`.
+
+### Test Results — Section C
+All 22 scan-and-order endpoints verified:
+- Auth: OTP request, verify (auto-create), rate limit (429 on 4th), token isolation (both directions) — all correct
+- Password auth: register, login, wrong password, existing bcrypt hash — all working
+- Profile: get, update, loyalty summary — all working  
+- Addresses: add (with empty-array fix), dedup, update, delete, set default — all working
+- App config: public read (short+full ID), admin write (JWT), customer rejected — all correct
+- Dietary tags: read existing mappings, empty for unknown — correct
+- Actions: feedback, call waiter, request bill — all working
+- Regression: CRM health, POS lookup, staff JWT auth — zero breakage
 - Auth: API Key, JWT, no auth, invalid key — all correct
 - Address CRUD: add, dedup, update, set default, delete — all working
 - Search: name partial, phone partial — both working
@@ -95,9 +113,9 @@ See `/app/memory/API_DOC_OTHER_APP.md` for scan-and-order app data patterns
 - Deprecated webhook flagging
 
 ### P2 (Remaining)
-- Scan & Order endpoints (Section C — 22 planned)
 - CRM address CRUD (Section A — 4 planned)
 - Address dedup cleanup on existing data (some customers have 100+ near-duplicate addresses)
+- OTP delivery via WhatsApp (currently dev mode — returns OTP in response)
 
 ### Future / Backlog
 - B6.2 deprecation header on legacy payment webhook
