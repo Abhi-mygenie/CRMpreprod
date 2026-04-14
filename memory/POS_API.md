@@ -714,7 +714,36 @@ POST /api/pos/orders
 
 ---
 
-### 5.2 Customer Order History
+### 5.2 Legacy Payment Webhook
+
+> **STATUS: DEPRECATED — May still be in active use by MyGenie POS.**
+>
+> This endpoint will continue to work but should NOT be used for new integrations.
+> Use `POST /pos/orders` (Section 5.1) instead.
+
+```
+POST /api/pos/webhook/payment-received
+```
+
+**Why deprecated:**
+- Missing coupon validation checks (`per_user_limit`, `specific_users`, `applicable_channels`, `min_order_value`)
+- No item-level data support (no `items[]` array)
+- No wallet deduction
+- No WhatsApp event triggers
+- No off-peak bonus calculation
+- Coupon validation logic diverges from `/coupons/validate`
+
+**Migration path:**
+1. Switch MyGenie POS from `POST /pos/webhook/payment-received` to `POST /pos/orders`
+2. Ensure order payload includes `items[]` array for item-level analytics
+3. Move coupon processing to `POST /pos/coupons/validate` + `POST /pos/coupons/apply`
+4. Once confirmed no traffic on old endpoint, it can be removed
+
+**Current behavior:** Still processes payments, creates customers, calculates points, records orders — but with fewer validations than `/pos/orders`.
+
+---
+
+### 5.3 Customer Order History
 
 ```
 GET /api/pos/customers/{customer_id}/orders?limit=10
@@ -1101,7 +1130,8 @@ POST /api/pos/api-key/regenerate
 | 4.1 | POST | `/pos/address-lookup` | Address lookup by phone (all restaurants) |
 | **Orders** | | | |
 | 5.1 | POST | `/pos/orders` | Submit order (webhook) |
-| 5.2 | GET | `/pos/customers/{id}/orders?limit=` | Order history |
+| 5.2 | POST | `/pos/webhook/payment-received` | **DEPRECATED** — Legacy payment webhook. Use 5.1 instead. |
+| 5.3 | GET | `/pos/customers/{id}/orders?limit=` | Order history |
 | **Loyalty** | | | |
 | 6.1 | POST | `/pos/max-redeemable` | Max redeemable points for bill |
 | 6.2 | GET | `/pos/customers/{id}/loyalty` | Loyalty summary |
@@ -1117,7 +1147,7 @@ POST /api/pos/api-key/regenerate
 | 10.1 | GET | `/pos/api-key` | Get API key (JWT only) |
 | 10.2 | POST | `/pos/api-key/regenerate` | Regenerate key (JWT only) |
 
-**Total: 23 endpoints**
+**Total: 24 endpoints** (23 active + 1 deprecated)
 
 ---
 
@@ -1138,8 +1168,72 @@ POST /api/pos/api-key/regenerate
 ## Integration Checklist
 
 1. Get your API key from CRM Dashboard → Settings → POS Integration
+   - **MyGenie POS:** API key is returned automatically in the login response (`pos_config.api_key`) — no manual copy needed
+   - **Other POS:** Copy from CRM Settings. See `EXTERNAL_POS_INTEGRATION_GUIDE.md`
 2. Test auth: `curl -H "X-API-Key: your-key" https://your-domain/api/pos/customers?search=test`
-3. Start sending orders via `POST /pos/orders`
+3. Start sending orders via `POST /pos/orders` (**not** `/pos/webhook/payment-received` — that endpoint is deprecated)
 4. Enable WhatsApp events via `POST /pos/events` (requires WhatsApp templates configured in CRM)
 5. Use address endpoints for delivery order flows
 6. Display customer notes in POS UI for personalization
+
+---
+
+## Appendix A: MyGenie POS Handshake
+
+> **Status: Planned — ready for implementation**
+
+When a restaurant owner logs into CRM via MyGenie SSO, the login response includes `pos_config` so MyGenie auto-configures POS → CRM API calls without manual key copy.
+
+### Login Response (with pos_config)
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "pos_0001_restaurant_509",
+    "email": "owner@restaurant.com",
+    "restaurant_name": "Pav & Pages Cafe",
+    "phone": "9876543210",
+    "pos_id": "0001",
+    "pos_name": "MyGenie",
+    "created_at": "2026-04-14T..."
+  },
+  "pos_config": {
+    "api_key": "dp_live_xxxxxxxxxxxxxxxxxx",
+    "api_base_url": "https://{crm-domain}/api/pos",
+    "webhook_endpoints": {
+      "orders": "/pos/orders",
+      "customer_lookup": "/pos/customer-lookup",
+      "events": "/pos/events",
+      "max_redeemable": "/pos/max-redeemable",
+      "customers": "/pos/customers",
+      "customer_search": "/pos/customers?search=",
+      "address_lookup": "/pos/address-lookup",
+      "coupon_validate": "/pos/coupons/validate",
+      "coupon_apply": "/pos/coupons/apply"
+    }
+  },
+  "is_demo": false
+}
+```
+
+### How MyGenie Uses This
+
+1. Owner logs into CRM → MyGenie SSO validates → CRM returns `pos_config`
+2. MyGenie stores `api_key` and `api_base_url` for this restaurant
+3. MyGenie uses `api_key` in `X-API-Key` header for all POS API calls
+4. MyGenie uses `webhook_endpoints` to know which CRM routes to call
+5. No manual configuration needed — fully automatic on login
+
+### For Non-MyGenie POS
+
+`pos_config` is only populated for MyGenie SSO logins. External POS systems use manual API key setup (see `EXTERNAL_POS_INTEGRATION_GUIDE.md` for details and OAuth2 roadmap).
+
+---
+
+## Appendix B: Deprecated Endpoints
+
+| Endpoint | Status | Replacement | Notes |
+|----------|--------|-------------|-------|
+| `POST /pos/webhook/payment-received` | **DEPRECATED** | `POST /pos/orders` | Missing coupon validations, no items, no wallet, no WhatsApp. May still be in active use by MyGenie. See Section 5.2 for full details. |
+

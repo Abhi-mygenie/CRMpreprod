@@ -445,7 +445,7 @@
 | # | Status | Method | Route | Purpose |
 |---|--------|--------|-------|---------|
 | B6.1 | Existing | POST | `/pos/orders` | Full order webhook (items, points, wallet, WhatsApp triggers) |
-| B6.2 | Deprecated | POST | `/pos/webhook/payment-received` | Legacy payment webhook. Missing validations (coupon, wallet). Use B6.1 instead. |
+| B6.2 | **DEPRECATED** | POST | `/pos/webhook/payment-received` | Legacy payment webhook. Missing coupon validations, no items, no wallet, no WhatsApp. **May still be in active use by MyGenie POS.** Use B6.1 `/pos/orders` instead. See POS_API.md Section 5.2 for migration path. |
 | B6.3 | Planned | GET | `/pos/customers/{id}/orders?limit=` | Order history for a customer (POS needs this for "previous orders" display) |
 
 **B6.1 Gap:** The `address_id` field exists in the order schema (`POSOrderWebhook.address_id`) but is stored as-is without resolving to an actual address. POS should send `address_id` referencing a customer's `addresses[].id`, and the order should store the resolved address snapshot.
@@ -501,7 +501,11 @@
 
 ---
 
-### POS Section Totals: 11 Existing + 12 Planned = 23
+### POS Section Totals: 11 Existing + 12 Planned + 1 Deprecated = 24
+
+### MyGenie Handshake (Planned)
+
+Login response (`POST /api/auth/login`) will include `pos_config` with `api_key`, `api_base_url`, and `webhook_endpoints` — enabling MyGenie POS to auto-configure CRM API calls on login. See POS_API.md Appendix A for details.
 
 ---
 ---

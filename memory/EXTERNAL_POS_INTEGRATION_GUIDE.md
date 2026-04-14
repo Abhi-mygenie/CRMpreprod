@@ -265,7 +265,7 @@ curl -X POST https://{domain}/api/pos/customer-lookup \
 | Priority | Flow | Endpoints |
 |----------|------|-----------|
 | P0 | Customer sync | `POST /pos/customers`, `POST /pos/customer-lookup` |
-| P0 | Order sync | `POST /pos/orders` |
+| P0 | Order sync | `POST /pos/orders` (**not** `/pos/webhook/payment-received` — that endpoint is deprecated) |
 | P1 | Loyalty display | `GET /pos/customers/{id}/loyalty`, `POST /pos/max-redeemable` |
 | P1 | Delivery addresses | `GET /pos/customers/{id}/addresses` |
 | P2 | Coupon integration | `POST /pos/coupons/validate`, `POST /pos/coupons/apply` |
