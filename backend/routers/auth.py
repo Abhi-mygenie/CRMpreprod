@@ -12,6 +12,35 @@ from models.schemas import UserCreate, UserLogin, UserResponse, TokenResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+# POS webhook endpoints list (for handshake)
+POS_WEBHOOK_ENDPOINTS = {
+    "orders": "/pos/orders",
+    "customer_lookup": "/pos/customer-lookup",
+    "events": "/pos/events",
+    "max_redeemable": "/pos/max-redeemable",
+    "customers_create": "/pos/customers",
+    "customers_search": "/pos/customers?search=",
+    "customers_detail": "/pos/customers/{customer_id}",
+    "addresses": "/pos/customers/{customer_id}/addresses",
+    "address_lookup": "/pos/address-lookup",
+    "coupon_validate": "/pos/coupons/validate",
+    "coupon_apply": "/pos/coupons/apply",
+    "loyalty": "/pos/customers/{customer_id}/loyalty",
+    "order_history": "/pos/customers/{customer_id}/orders",
+    "notes_items": "/pos/customers/{customer_id}/notes/items",
+    "notes_orders": "/pos/customers/{customer_id}/notes/orders"
+}
+
+
+def _build_pos_config(api_key: str) -> dict:
+    """Build pos_config for login response handshake."""
+    base_url = os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("CRM_EXTERNAL_URL", "")
+    return {
+        "api_key": api_key,
+        "api_base_url": f"{base_url}/api/pos" if base_url else "/api/pos",
+        "webhook_endpoints": POS_WEBHOOK_ENDPOINTS
+    }
+
 # Demo user credentials
 DEMO_EMAIL = "demo@restaurant.com"
 DEMO_PASSWORD = "demo123"
@@ -307,6 +336,7 @@ async def mygenie_login(credentials: UserLogin):
                         pos_name=existing_user.get("pos_name", ""),
                         created_at=existing_user["created_at"]
                     ),
+                    pos_config=_build_pos_config(existing_user.get("api_key", "")),
                     is_demo=False
                 )
             
@@ -385,6 +415,7 @@ async def mygenie_login(credentials: UserLogin):
                     pos_name=pos_name,
                     created_at=now
                 ),
+                pos_config=_build_pos_config(api_key),
                 is_demo=False
             )
             

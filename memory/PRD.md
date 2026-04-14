@@ -79,6 +79,12 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 ### Bugs Fixed
 - `$set addresses.$[].is_default` crash when customer has no existing addresses array (both POS and Scan)
 
+### April 14, 2026 - MyGenie Handshake
+- `TokenResponse` schema extended with optional `pos_config` field
+- `mygenie_login` returns `api_key`, `api_base_url` (from env), and 15 `webhook_endpoints` in login response
+- Backwards compatible — `pos_config` is `null` for demo login, frontend ignores it
+- Both return paths covered (existing user + new user first login)
+
 ### Test Results
 - All 23 POS endpoints verified with real data
 - All 22 Scan & Order endpoints verified
@@ -100,38 +106,9 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 | WhatsApp events | MyGenie → CRM | Working — `POST /pos/events` |
 | Payment webhook | MyGenie → CRM | **DEPRECATED** — `POST /pos/webhook/payment-received` (missing coupon validations, no item support). Use `/pos/orders` instead. May still be in active use by MyGenie. |
 
-### Phase 1: Handshake (Next — Ready to Implement)
+### Phase 1: Handshake (Implemented)
 
-**Goal:** When restaurant owner logs into CRM via MyGenie SSO, return `pos_config` in the login response so MyGenie auto-configures POS → CRM API calls.
-
-**What changes:**
-- `TokenResponse` adds `pos_config` field
-- `mygenie_login` populates it from user record
-- Additive change — frontend ignores new field, MyGenie picks it up
-
-**Login response will include:**
-```json
-{
-  "access_token": "jwt...",
-  "user": { ... },
-  "pos_config": {
-    "api_key": "dp_live_xxxxx",
-    "api_base_url": "https://{domain}/api/pos",
-    "webhook_endpoints": {
-      "orders": "/pos/orders",
-      "customer_lookup": "/pos/customer-lookup",
-      "events": "/pos/events",
-      "max_redeemable": "/pos/max-redeemable",
-      "customers": "/pos/customers",
-      "customer_search": "/pos/customers?search=",
-      "address_lookup": "/pos/address-lookup",
-      "coupon_validate": "/pos/coupons/validate",
-      "coupon_apply": "/pos/coupons/apply"
-    }
-  },
-  "is_demo": false
-}
-```
+**Done.** Login response includes `pos_config` with `api_key`, `api_base_url`, and 15 webhook endpoint paths. MyGenie captures this on login and auto-configures POS → CRM calls. Backwards compatible — `pos_config` is `null` for demo login.
 
 ### Phase 1.5: Webhook Registration (Next after handshake)
 
@@ -166,8 +143,7 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 ## Prioritized Backlog
 
 ### P0 — Next Up
-- **MyGenie handshake** — Return `pos_config` (api_key + endpoints) in login response
-- **Webhook registration** — CRM stores where MyGenie sends real-time orders
+- **Webhook registration** — CRM stores where MyGenie sends real-time orders (if needed beyond handshake)
 
 ### P1 — Near Term
 - CRM address CRUD (Section A — 4 planned, staff can view/manage addresses from dashboard)

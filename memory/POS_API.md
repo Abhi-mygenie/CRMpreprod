@@ -1180,7 +1180,7 @@ POST /api/pos/api-key/regenerate
 
 ## Appendix A: MyGenie POS Handshake
 
-> **Status: Planned — ready for implementation**
+> **Status: Implemented**
 
 When a restaurant owner logs into CRM via MyGenie SSO, the login response includes `pos_config` so MyGenie auto-configures POS → CRM API calls without manual key copy.
 
@@ -1206,11 +1206,17 @@ When a restaurant owner logs into CRM via MyGenie SSO, the login response includ
       "customer_lookup": "/pos/customer-lookup",
       "events": "/pos/events",
       "max_redeemable": "/pos/max-redeemable",
-      "customers": "/pos/customers",
-      "customer_search": "/pos/customers?search=",
+      "customers_create": "/pos/customers",
+      "customers_search": "/pos/customers?search=",
+      "customers_detail": "/pos/customers/{customer_id}",
+      "addresses": "/pos/customers/{customer_id}/addresses",
       "address_lookup": "/pos/address-lookup",
       "coupon_validate": "/pos/coupons/validate",
-      "coupon_apply": "/pos/coupons/apply"
+      "coupon_apply": "/pos/coupons/apply",
+      "loyalty": "/pos/customers/{customer_id}/loyalty",
+      "order_history": "/pos/customers/{customer_id}/orders",
+      "notes_items": "/pos/customers/{customer_id}/notes/items",
+      "notes_orders": "/pos/customers/{customer_id}/notes/orders"
     }
   },
   "is_demo": false
@@ -1222,8 +1228,9 @@ When a restaurant owner logs into CRM via MyGenie SSO, the login response includ
 1. Owner logs into CRM → MyGenie SSO validates → CRM returns `pos_config`
 2. MyGenie stores `api_key` and `api_base_url` for this restaurant
 3. MyGenie uses `api_key` in `X-API-Key` header for all POS API calls
-4. MyGenie uses `webhook_endpoints` to know which CRM routes to call
-5. No manual configuration needed — fully automatic on login
+4. MyGenie constructs full URLs: `api_base_url` + endpoint path (e.g., `https://{domain}/api/pos/orders`)
+5. For endpoints with `{customer_id}`, replace with actual customer ID
+6. No manual configuration needed — fully automatic on login
 
 ### For Non-MyGenie POS
 

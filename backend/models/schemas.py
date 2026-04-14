@@ -96,6 +96,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+    pos_config: Optional[dict] = None
     is_demo: bool = False
 
 # Customer Models

@@ -503,9 +503,9 @@
 
 ### POS Section Totals: 11 Existing + 12 Planned + 1 Deprecated = 24
 
-### MyGenie Handshake (Planned)
+### MyGenie Handshake (Implemented)
 
-Login response (`POST /api/auth/login`) will include `pos_config` with `api_key`, `api_base_url`, and `webhook_endpoints` — enabling MyGenie POS to auto-configure CRM API calls on login. See POS_API.md Appendix A for details.
+Login response (`POST /api/auth/login`) includes `pos_config` with `api_key`, `api_base_url`, and 15 `webhook_endpoints` — enabling MyGenie POS to auto-configure CRM API calls on login. `pos_config` is `null` for demo login. See POS_API.md Appendix A for full response spec.
 
 ---
 ---
