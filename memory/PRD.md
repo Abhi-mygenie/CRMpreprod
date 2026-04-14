@@ -85,6 +85,11 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 - Backwards compatible — `pos_config` is `null` for demo login, frontend ignores it
 - Both return paths covered (existing user + new user first login)
 
+### April 14, 2026 - Address Schema Fix
+- Fixed `CustomerAddress.pos_address_id` and `zone_id` type: `str` → `object` (existing data has integers, written by scan-and-order app)
+- `GET /customers/{id}` and `GET /customers` now correctly return `addresses[]` array (was crashing on Pydantic validation)
+- CRM staff can now see customer addresses in API responses
+
 ### Test Results
 - All 23 POS endpoints verified with real data
 - All 22 Scan & Order endpoints verified
@@ -143,12 +148,12 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 ## Prioritized Backlog
 
 ### P0 — Next Up
-- **Webhook registration** — CRM stores where MyGenie sends real-time orders (if needed beyond handshake)
+- **Frontend: Address management UI** in CustomerDetailPage — display and manage addresses using existing POS address endpoints (`/pos/customers/{id}/addresses/*`)
 
 ### P1 — Near Term
-- CRM address CRUD (Section A — 4 planned, staff can view/manage addresses from dashboard)
-- Payment webhook deprecation — coordinate with MyGenie to migrate from `/pos/webhook/payment-received` to `/pos/orders`
+- Payment webhook migration — coordinate with MyGenie to switch from deprecated `/pos/webhook/payment-received` to `/pos/orders`
 - OTP delivery via WhatsApp (currently dev mode)
+- Webhook registration — CRM stores where MyGenie sends real-time orders (if needed beyond handshake)
 
 ### P2 — Later
 - Address dedup cleanup on existing data (some customers have 100+ near-duplicates)
@@ -158,6 +163,7 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 - Menu sync from MyGenie
 
 ### Parked
+- CRM-specific address endpoints (`/customers/{id}/addresses/*`) — POS address endpoints already work for CRM staff via JWT. Only needed if CRM address behavior diverges from POS in future.
 - Postman collection / OpenAPI export for POS team
 - OAuth2 Client Credentials for external POS (Phase 2 of external POS guide)
 - POS Marketplace (Phase 3 of external POS guide)

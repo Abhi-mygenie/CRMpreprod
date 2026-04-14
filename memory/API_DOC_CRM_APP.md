@@ -59,10 +59,10 @@
 
 | # | Status | Method | Route | Purpose |
 |---|--------|--------|-------|---------|
-| A2.12 | Planned | GET | `/customers/{id}/addresses` | List customer's addresses (read the existing `addresses[]` array) |
-| A2.13 | Planned | POST | `/customers/{id}/addresses` | Add address from CRM |
-| A2.14 | Planned | PUT | `/customers/{id}/addresses/{addr_id}` | Edit address from CRM |
-| A2.15 | Planned | DELETE | `/customers/{id}/addresses/{addr_id}` | Delete address from CRM |
+| A2.12 | Parked | GET | `/customers/{id}/addresses` | **Parked.** Use `GET /pos/customers/{id}/addresses` instead (works with staff JWT). Separate CRM endpoint only needed if behavior diverges from POS. |
+| A2.13 | Parked | POST | `/customers/{id}/addresses` | **Parked.** Use `POST /pos/customers/{id}/addresses` |
+| A2.14 | Parked | PUT | `/customers/{id}/addresses/{addr_id}` | **Parked.** Use `PUT /pos/customers/{id}/addresses/{addr_id}` |
+| A2.15 | Parked | DELETE | `/customers/{id}/addresses/{addr_id}` | **Parked.** Use `DELETE /pos/customers/{id}/addresses/{addr_id}` |
 
 ---
 
