@@ -1,15 +1,15 @@
 # MyGenie CRM API Documentation
 
 **Base URL:** `https://your-domain.com/api`  
-**Version:** v1.3  
-**Last Updated:** 2026-04-13
+**Version:** v1.4  
+**Last Updated:** 2026-04-14
 
 ---
 
 ## Table of Contents
 
 1. [Authentication](#1-authentication)
-2. [Customer Self-Service](#2-customer-self-service) (11 endpoints: OTP, Profile, Addresses CRUD, Points, Wallet, Orders)
+2. [Customer Self-Service](#2-customer-self-service) (15 endpoints: OTP, Password Auth, Profile, Addresses CRUD, Points, Wallet, Orders)
 3. [Customers](#3-customers)
 4. [Segments](#4-segments)
 5. [Points & Loyalty](#5-points--loyalty)
@@ -161,17 +161,24 @@ X-API-Key: {api_key}
 
 ## 2. Customer Self-Service
 
-**Purpose:** Allow customers to login with phone number (OTP) and access their own data. All endpoints are scoped by restaurant (user_id).
+**Purpose:** Allow customers to login (OTP or password), manage addresses, and access their loyalty data. All endpoints are scoped by restaurant (user_id).
 
-**Authentication Flow:**
+**Authentication Options:**
 ```
-1. Customer provides phone number + restaurant_id (user_id)
-2. POST /customer/send-otp → OTP sent via WhatsApp/SMS
-3. POST /customer/verify-otp → Returns customer_token + FULL customer details
-4. GET /customer/me → Same details (optional - use to refresh data later)
+Option A: OTP Login
+  1. POST /customer/send-otp → OTP sent via WhatsApp/SMS
+  2. POST /customer/verify-otp → Returns customer_token + profile
+
+Option B: Password Login
+  1. POST /customer/register → Sign up (or link password to existing)
+  2. POST /customer/login → Returns customer_token + profile
+
+Password Reset:
+  1. POST /customer/forgot-password → OTP sent
+  2. POST /customer/reset-password → Verify OTP + new password
 ```
 
-**Important:** `user_id` (restaurant ID) is **REQUIRED** in send-otp and verify-otp. Customer token contains restaurant context.
+**Important:** `user_id` (restaurant ID) is **REQUIRED** in all auth endpoints. Customer token contains restaurant context.
 
 ---
 
@@ -310,6 +317,180 @@ curl -X POST "https://your-domain.com/api/customer/verify-otp" \
 | allergies | array | List of allergies |
 | favorites | array | Favorite items |
 | restaurant_id | string | Associated restaurant ID |
+
+---
+
+### POST `/customer/register`
+**Description:** Register customer with phone + password. If phone already exists for this restaurant, links password to existing record. If phone is new, creates a new customer.  
+**Auth Required:** No
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone | string | Yes | Customer phone number |
+| password | string | Yes | Password (min 6 characters) |
+| user_id | string | **Yes** | Restaurant ID |
+| name | string | No | Customer name (defaults to phone) |
+| email | string | No | Email address |
+| country_code | string | No | Country code (default: +91) |
+
+**Example Request:**
+```bash
+curl -X POST "https://your-domain.com/api/customer/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "9876543210",
+    "password": "mypassword",
+    "user_id": "pos_0001_restaurant_509",
+    "name": "Vivan",
+    "email": "vivan@email.com"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Registration successful",
+  "token": "eyJhbG...",
+  "token_type": "bearer",
+  "expires_in_hours": 24,
+  "is_new_customer": true,
+  "customer": {
+    "id": "550e8400-...",
+    "name": "Vivan",
+    "phone": "9876543210",
+    "tier": "Bronze",
+    "total_points": 50,
+    "addresses": [],
+    "restaurant_id": "pos_0001_restaurant_509"
+  }
+}
+```
+
+**Behavior:**
+- Phone exists + no password → links password (`is_new_customer: false`)
+- Phone exists + password set → `400: Account already exists. Please login.`
+- Phone new → creates customer with first-visit bonus if enabled (`is_new_customer: true`)
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 400 | Password must be at least 6 characters |
+| 400 | Account already exists. Please login. |
+| 404 | Restaurant not found |
+
+---
+
+### POST `/customer/login`
+**Description:** Login with phone + password. Returns same token and profile as OTP verify.  
+**Auth Required:** No
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone | string | Yes | Customer phone number |
+| password | string | Yes | Password |
+| user_id | string | **Yes** | Restaurant ID |
+
+**Example Request:**
+```bash
+curl -X POST "https://your-domain.com/api/customer/login" \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "9876543210", "password": "mypassword", "user_id": "pos_0001_restaurant_509"}'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "token": "eyJhbG...",
+  "token_type": "bearer",
+  "expires_in_hours": 24,
+  "customer": { ... full profile ... }
+}
+```
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 401 | Invalid password |
+| 404 | Customer not found. Please register first. |
+| 400 | No password set. Please use OTP login or register with a password. |
+
+---
+
+### POST `/customer/forgot-password`
+**Description:** Send OTP to phone for password reset. Reuses OTP infrastructure.  
+**Auth Required:** No
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone | string | Yes | Customer phone number |
+| user_id | string | **Yes** | Restaurant ID |
+| country_code | string | No | Country code (default: 91) |
+
+**Example Request:**
+```bash
+curl -X POST "https://your-domain.com/api/customer/forgot-password" \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "9876543210", "user_id": "pos_0001_restaurant_509"}'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "OTP sent to +91 9876543210",
+  "expires_in_minutes": 10,
+  "restaurant_name": "Pav & Pages Cafe"
+}
+```
+
+**Errors:** `404` Restaurant not found | `404` Customer not found
+
+---
+
+### POST `/customer/reset-password`
+**Description:** Verify OTP and set new password.  
+**Auth Required:** No
+
+**Request Body:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone | string | Yes | Customer phone number |
+| otp | string | Yes | 6-digit OTP from forgot-password |
+| user_id | string | **Yes** | Restaurant ID |
+| new_password | string | Yes | New password (min 6 characters) |
+
+**Example Request:**
+```bash
+curl -X POST "https://your-domain.com/api/customer/reset-password" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "9876543210",
+    "otp": "617417",
+    "user_id": "pos_0001_restaurant_509",
+    "new_password": "newpassword123"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Password reset successful. You can now login with your new password."
+}
+```
+
+**Errors:**
+| Code | Message |
+|------|---------|
+| 400 | Invalid OTP |
+| 400 | OTP expired. Please request a new one. |
+| 400 | Password must be at least 6 characters |
 
 ---
 
@@ -2072,6 +2253,18 @@ Or for validation errors:
 ---
 
 ## Changelog
+
+### v1.4 (2026-04-14)
+- **Customer Password Authentication** (4 new endpoints)
+  - `POST /customer/register` — Sign up with phone + password (links to existing or creates new)
+  - `POST /customer/login` — Login with phone + password
+  - `POST /customer/forgot-password` — Send OTP for password reset
+  - `POST /customer/reset-password` — Verify OTP + set new password
+  - Password stored as bcrypt hash in customer record
+  - Both OTP and password login return identical token + profile response
+  - Customer self-service now has **15 endpoints** total
+- **Code Refactor**
+  - Extracted `build_customer_response()` helper to deduplicate profile response across verify-otp, login, register, and /me
 
 ### v1.3 (2026-04-13)
 - **Order Migration - delivery_address**
