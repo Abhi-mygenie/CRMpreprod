@@ -5,6 +5,7 @@
 2. React, Python and MongoDB stack
 3. Set env variables (external MongoDB at 52.66.232.149)
 4. Build and run as-is
+5. Plan and implement POS Gateway endpoints
 
 ## Project Overview
 MyGenie CRM is a full-featured Customer Relationship Management platform with a loyalty program engine, built for restaurant businesses. It integrates with the MyGenie POS/ordering platform for customer data sync, WhatsApp messaging automation, and order analytics.
@@ -19,94 +20,88 @@ MyGenie CRM is a full-featured Customer Relationship Management platform with a 
 ```
 /app/
 ├── backend/
-│   ├── core/           # Auth (JWT/bcrypt), DB, Scheduler, WhatsApp, Helpers
-│   ├── models/         # Pydantic schemas (Customer, Points, Wallet, Coupons, etc.)
+│   ├── core/           # Auth (JWT/bcrypt/dual POS auth), DB, Scheduler, WhatsApp, Helpers
+│   ├── models/         # Pydantic schemas (Customer, Address, Points, Wallet, Coupons, etc.)
 │   ├── routers/        # API routes
 │   │   ├── auth.py         # Login (MyGenie SSO + demo), Register, Forgot Password (OTP)
-│   │   ├── customers.py    # CRUD, Sync from MyGenie, QR registration, Segments, AI Insights
-│   │   ├── points.py       # Earn/Redeem/Expire points, Loyalty settings, Birthday/Anniversary bonuses
+│   │   ├── customers.py    # CRUD, Sync, QR registration, Segments, AI Insights
+│   │   ├── points.py       # Earn/Redeem/Expire points, Loyalty settings
 │   │   ├── wallet.py       # Credit/Debit wallet
 │   │   ├── coupons.py      # Coupon CRUD, Apply/Validate
-│   │   ├── feedback.py     # Collect & analyze feedback
-│   │   ├── whatsapp.py     # Templates, Automation rules, Campaign send
-│   │   ├── pos.py          # Order sync from MyGenie POS
-│   │   ├── analytics.py    # Dashboard stats, Revenue, Trends
-│   │   ├── migration.py    # Data migration utilities
-│   │   └── cron.py         # Scheduler admin (view/trigger jobs)
+│   │   ├── feedback.py     # Feedback + Dashboard analytics
+│   │   ├── whatsapp.py     # Templates, Automation, Campaigns
+│   │   ├── pos.py          # POS Gateway (ALL new endpoints here)
+│   │   ├── analytics.py    # Item analytics, Customer lifecycle
+│   │   ├── migration.py    # Data migration
+│   │   └── cron.py         # Scheduler admin
 │   └── services/       # Analytics aggregation, Feedback analysis
-├── frontend/
-│   └── src/
-│       ├── contexts/AuthContext.jsx   # Auth state, API client
-│       ├── pages/                     # 18+ pages
-│       │   ├── LoginPage, RegisterPage
-│       │   ├── DashboardPage          # Analytics overview
-│       │   ├── CustomersPage          # Customer list with advanced filters
-│       │   ├── CustomerDetailPage     # Single customer view + AI insights
-│       │   ├── SegmentsPage           # Dynamic customer segments
-│       │   ├── TemplatesPage          # WhatsApp message templates
-│       │   ├── QRCodePage             # QR for customer self-registration
-│       │   ├── FeedbackPage           # Feedback collection & analytics
-│       │   ├── CouponsPage            # Coupon management
-│       │   ├── WalletPage             # Wallet management
-│       │   ├── SettingsPage           # App settings + WhatsApp config
-│       │   ├── LoyaltySettingsPage    # Points program configuration
-│       │   ├── ItemAnalyticsPage      # Menu item insights
-│       │   ├── CustomerLifecyclePage  # Customer journey tracking
-│       │   ├── MessageStatusPage      # WhatsApp delivery status
-│       │   ├── ProfilePage            # User profile
-│       │   └── MigrationPage          # Data migration UI
-│       ├── components/
-│       │   ├── ui/          # shadcn/Radix primitives
-│       │   ├── shared/      # WhatsApp automation content
-│       │   └── customers/   # Customer-specific components
-│       └── hooks/           # Toast hook
+├── frontend/           # React CRM dashboard
+└── memory/             # API docs, PRD
 ```
 
-## Key Features
-1. **Authentication**: MyGenie SSO login (via preprod.mygenie.online API), Demo login, Registration, Forgot password (OTP-based)
-2. **Customer Management**: Full CRUD, Advanced filtering (30+ filters), Phone-based dedup, QR self-registration
-3. **Customer Sync**: Background sync from MyGenie POS (customers + orders + order items)
-4. **Loyalty Points System**: Tier-based earning (Bronze/Silver/Gold/Platinum), Redemption, Expiry, Birthday/Anniversary bonuses
-5. **Wallet Management**: Credit/Debit digital wallet per customer
-6. **Coupon Management**: Create/Apply coupons with discount rules
-7. **Customer Segments**: Dynamic segments with filter-based rules, WhatsApp automation per segment
-8. **WhatsApp Integration**: Template management, Automation rules (triggers: new customer, points earned, tier upgrade, etc.), Campaign broadcasting
-9. **Analytics Dashboard**: Revenue trends, Customer growth, Tier distribution, Top customers
-10. **Item Analytics**: Menu item performance from order data
-11. **Customer Lifecycle**: Journey/lifecycle stage tracking
-12. **Feedback System**: Collect and analyze customer feedback, NPS scores
-13. **POS Integration**: Order sync from MyGenie POS, Order item-level analytics
-14. **Scheduled Jobs**: Daily cron for birthday/anniversary bonuses, points expiry reminders
-15. **AI Insights**: Per-customer insights (top items, preferred day/time, spending trends, order frequency)
+## What's Been Implemented
 
-## What's Been Implemented (April 14, 2026)
-- Cloned repository from GitHub (main branch)
-- Updated backend .env with external MongoDB credentials
-- Frontend .env configured with REACT_APP_BACKEND_URL
-- Installed all backend Python dependencies (127 packages)
-- Installed all frontend Node dependencies (via yarn)
-- Both services running successfully via supervisor
-- Backend health check: OK
-- Frontend compiled and serving login page
+### April 14, 2026 - Initial Setup
+- Cloned repo, configured external MongoDB, installed dependencies
+- Both services running successfully
+
+### April 14, 2026 - POS Gateway Implementation (Phases 1-8)
+- **Phase 1: Auth Refactor** — `verify_pos_auth` dual auth (JWT + API Key) on all POS endpoints
+- **Phase 2: Address CRUD** — B4.1-B4.5 (List, Add, Edit, Delete, Set Default) with dedup
+- **Phase 3: Fix Existing** — B2.1 (addresses in lookup), B3.1/B3.2 (accept addresses in create/update)
+- **Phase 4: Customer Search** — B2.2 (lightweight typeahead), B2.3 (full details with loyalty + orders)
+- **Phase 5: Notes Aggregation** — B10.1 (item-level notes), B10.2 (order-level notes) with case-insensitive grouping
+- **Phase 6: Loyalty + Orders** — B7.2 (loyalty summary), B6.3 (order history)
+- **Phase 7: Coupons** — B8.1 (validate), B8.2 (apply) with full checks
+- **Phase 8: Cleanup** — B3.3 (soft delete), B5.1 (cross-restaurant address lookup)
+
+### Test Results
+All 28 POS endpoints verified:
+- Auth: API Key, JWT, no auth, invalid key — all correct
+- Address CRUD: add, dedup, update, set default, delete — all working
+- Search: name partial, phone partial — both working
+- Full details: loyalty computed fields, addresses, recent orders — all present
+- Notes: item-level and order-level aggregation — working with real data
+- Cross-restaurant: address lookup by phone — deduped, with source restaurant
+- Coupons: validate/apply with full checks — working
+- Soft delete: customer excluded from search — confirmed
+- CRM frontend: no regression — login page loads correctly
+
+## API Documentation
+See `/app/memory/API_DOC_CRM_APP.md` for complete endpoint listing (3 sections: CRM, POS, Scan & Order)
+See `/app/memory/API_DOC_OTHER_APP.md` for scan-and-order app data patterns
 
 ## Access URLs
 - **Frontend**: https://react-mongo-crm.preview.emergentagent.com
 - **Backend API**: https://react-mongo-crm.preview.emergentagent.com/api
-- **Health Check**: https://react-mongo-crm.preview.emergentagent.com/api/health
 
-## MongoDB Collections Used
-- users, customers, loyalty_settings, points_transactions, wallet_transactions
-- coupons, coupon_usage, segments, segment_whatsapp_config
-- whatsapp_templates, automation_rules, whatsapp_message_log
-- feedback, orders, order_items, otp_tokens
+## Prioritized Backlog
 
-## Status: RUNNING
+### P0 (Done)
+- POS auth refactor
+- Address CRUD
+- Customer search (light + full)
+- Fix existing endpoints
 
-## Next Action Items
-- None requested — app deployed as-is per user instructions
+### P1 (Done)
+- Notes aggregation
+- Loyalty summary
+- Order history
+- Coupon validate/apply
 
-## Backlog / Future Enhancements
-- Production WhatsApp OTP delivery (currently testing mode)
-- Production deployment configuration
-- Rate limiting and security hardening
-- Export/reporting features
+### P2 (Done)
+- Cross-restaurant address lookup
+- Soft delete
+- Deprecated webhook flagging
+
+### P2 (Remaining)
+- Scan & Order endpoints (Section C — 22 planned)
+- CRM address CRUD (Section A — 4 planned)
+- Address dedup cleanup on existing data (some customers have 100+ near-duplicate addresses)
+
+### Future / Backlog
+- B6.2 deprecation header on legacy payment webhook
+- Address cap enforcement (max per customer)
+- Customer app config endpoints (C4)
+- Dietary tags endpoints (C5)
+- Customer OTP auth endpoints (C1)

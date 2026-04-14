@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
@@ -6,12 +6,13 @@ import uuid
 import asyncio
 
 from core.database import db
-from core.auth import get_current_user, generate_api_key
+from core.auth import get_current_user, generate_api_key, verify_pos_auth
 from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_peak_bonus
 from core.whatsapp import trigger_whatsapp_event
 from models.schemas import (
     POSPaymentWebhook, POSCustomerLookup, POSResponse,
-    MessageRequest, POS_EVENTS
+    MessageRequest, POS_EVENTS,
+    CustomerAddress, CustomerAddressCreate, CustomerAddressUpdate
 )
 
 router = APIRouter(prefix="/pos", tags=["POS Gateway"])
@@ -24,17 +25,9 @@ def _tier_rank_pos(tier: str) -> int:
     return ranks.get(tier, 0)
 
 
-# API Key Authentication Dependency
-async def verify_pos_api_key(x_api_key: str = Header(None, alias="X-API-Key")):
-    print(f"DEBUG: Received API key: {x_api_key}")
-    if not x_api_key:
-        raise HTTPException(status_code=401, detail="API key required in X-API-Key header")
-    
-    user = await db.users.find_one({"api_key": x_api_key}, {"_id": 0})
-    print(f"DEBUG: User found: {user is not None}")
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return user
+def _generate_addr_id() -> str:
+    """Generate address ID with addr_ prefix"""
+    return f"addr_{uuid.uuid4().hex[:12]}"
 
 
 # ============================================
@@ -92,7 +85,7 @@ class POSCustomerCreate(BaseModel):
     credit_limit: Optional[float] = None
     payment_terms: Optional[str] = None
     
-    # Address
+    # Address (flat - legacy)
     address: Optional[str] = None
     address_line_2: Optional[str] = None
     city: Optional[str] = None
@@ -101,6 +94,9 @@ class POSCustomerCreate(BaseModel):
     country: Optional[str] = None
     delivery_instructions: Optional[str] = None
     map_location: Optional[dict] = None
+    
+    # Addresses (array - new)
+    addresses: Optional[List[CustomerAddressCreate]] = None
     
     # Preferences
     allergies: Optional[List[str]] = None  # List of allergies
@@ -175,7 +171,7 @@ class POSCustomerUpdate(BaseModel):
     credit_limit: Optional[float] = None
     payment_terms: Optional[str] = None
     
-    # Address
+    # Address (flat - legacy)
     address: Optional[str] = None
     address_line_2: Optional[str] = None
     city: Optional[str] = None
@@ -184,6 +180,9 @@ class POSCustomerUpdate(BaseModel):
     country: Optional[str] = None
     delivery_instructions: Optional[str] = None
     map_location: Optional[dict] = None
+    
+    # Addresses (array - new, only set if explicitly provided)
+    addresses: Optional[List[CustomerAddressCreate]] = None
     
     # Preferences
     allergies: Optional[List[str]] = None
@@ -201,7 +200,7 @@ class POSCustomerUpdate(BaseModel):
 @router.post("/customers", response_model=POSResponse)
 async def pos_create_customer(
     customer_data: POSCustomerCreate,
-    user: dict = Depends(verify_pos_api_key)
+    user: dict = Depends(verify_pos_auth)
 ):
     """
     API for POS (MyGenie/others) to create a customer in our database.
@@ -318,6 +317,25 @@ async def pos_create_customer(
         "pos_synced_at": now
     }
     
+    # Add addresses array if provided
+    if customer_data.addresses:
+        addr_list = []
+        for addr in customer_data.addresses:
+            addr_doc = addr.model_dump()
+            addr_doc["id"] = _generate_addr_id()
+            addr_doc["created_at"] = now
+            addr_doc["updated_at"] = now
+            addr_list.append(addr_doc)
+        # Ensure only one default
+        defaults = [a for a in addr_list if a.get("is_default")]
+        if len(defaults) > 1:
+            for a in addr_list:
+                a["is_default"] = False
+            addr_list[0]["is_default"] = True
+        elif not defaults and addr_list:
+            addr_list[0]["is_default"] = True
+        customer_doc["addresses"] = addr_list
+    
     await db.customers.insert_one(customer_doc)
     
     return POSResponse(
@@ -336,7 +354,7 @@ async def pos_create_customer(
 async def pos_update_customer(
     customer_id: str,
     update_data: POSCustomerUpdate,
-    user: dict = Depends(verify_pos_api_key)
+    user: dict = Depends(verify_pos_auth)
 ):
     """
     API for POS (MyGenie/others) to update a customer in our database.
@@ -351,6 +369,9 @@ async def pos_update_customer(
         )
     
     update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
+    
+    # Handle addresses separately — only write if explicitly provided
+    addresses_update = update_dict.pop("addresses", None)
     
     # Map restaurant_id to pos_restaurant_id for storage
     if "restaurant_id" in update_dict:
@@ -370,10 +391,23 @@ async def pos_update_customer(
                 data=None
             )
     
+    now = datetime.now(timezone.utc).isoformat()
+    
     if update_dict:
         update_dict["pos_synced"] = True
-        update_dict["pos_synced_at"] = datetime.now(timezone.utc).isoformat()
+        update_dict["pos_synced_at"] = now
         await db.customers.update_one({"id": customer_id}, {"$set": update_dict})
+    
+    # Process addresses if explicitly provided
+    if addresses_update is not None:
+        addr_list = []
+        for addr_data in addresses_update:
+            addr_doc = addr_data if isinstance(addr_data, dict) else addr_data
+            addr_doc["id"] = addr_doc.get("id") or _generate_addr_id()
+            addr_doc["created_at"] = addr_doc.get("created_at") or now
+            addr_doc["updated_at"] = now
+            addr_list.append(addr_doc)
+        await db.customers.update_one({"id": customer_id}, {"$set": {"addresses": addr_list}})
     
     updated = await db.customers.find_one({"id": customer_id}, {"_id": 0})
     
@@ -403,7 +437,7 @@ class POSMaxRedeemableRequest(BaseModel):
 @router.post("/max-redeemable", response_model=POSResponse)
 async def pos_max_redeemable(
     request: POSMaxRedeemableRequest,
-    user: dict = Depends(verify_pos_api_key)
+    user: dict = Depends(verify_pos_auth)
 ):
     """
     Check maximum loyalty points redeemable for a given bill.
@@ -1006,7 +1040,7 @@ class POSOrderWebhook(BaseModel):
 @router.post("/orders", response_model=POSResponse)
 async def pos_order_webhook(
     order_data: POSOrderWebhook,
-    user: dict = Depends(verify_pos_api_key)
+    user: dict = Depends(verify_pos_auth)
 ):
     """
     Webhook for MyGenie/POS to send order data.
@@ -1155,7 +1189,7 @@ async def pos_order_webhook(
 @router.post("/webhook/payment-received", response_model=POSResponse)
 async def pos_payment_received(
     webhook_data: POSPaymentWebhook,
-    user: dict = Depends(verify_pos_api_key)
+    user: dict = Depends(verify_pos_auth)
 ):
     """
     Main POS webhook endpoint - processes payments and manages loyalty points
@@ -1490,7 +1524,7 @@ async def pos_payment_received(
 @router.post("/customer-lookup", response_model=POSResponse)
 async def pos_customer_lookup(
     lookup_data: POSCustomerLookup,
-    user: dict = Depends(verify_pos_api_key)
+    user: dict = Depends(verify_pos_auth)
 ):
     """
     Look up customer by phone number for POS display
@@ -1526,7 +1560,8 @@ async def pos_customer_lookup(
             "total_spent": customer.get("total_spent", 0.0),
             "allergies": customer.get("allergies", []),
             "favorites": customer.get("favorites", []),
-            "last_visit": customer.get("last_visit")
+            "last_visit": customer.get("last_visit"),
+            "addresses": customer.get("addresses", [])
         }
     )
 
@@ -1572,7 +1607,7 @@ class POSEventWebhook(BaseModel):
 @router.post("/events", response_model=POSResponse)
 async def pos_event_webhook(
     event_data: POSEventWebhook,
-    user: dict = Depends(verify_pos_api_key)
+    user: dict = Depends(verify_pos_auth)
 ):
     """
     Single webhook for POS to trigger WhatsApp messages for various events.
@@ -1778,6 +1813,530 @@ async def pos_event_webhook(
             message=f"Event processing failed: {str(e)}",
             data=None
         )
+
+
+# ============================================
+# B2.2 - Customer Search (Lightweight)
+# ============================================
+
+@router.get("/customers", response_model=POSResponse)
+async def pos_search_customers(
+    search: str = "",
+    limit: int = 10,
+    user: dict = Depends(verify_pos_auth)
+):
+    """
+    Search customers by name or phone (partial match).
+    Lightweight response for POS cashier typeahead.
+    """
+    if not search or len(search) < 2:
+        return POSResponse(success=True, message="Provide at least 2 characters", data={"customers": [], "total": 0})
+
+    query = {
+        "user_id": user["id"],
+        "is_blocked": {"$ne": True},
+        "$or": [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}}
+        ]
+    }
+    customers = await db.customers.find(
+        query,
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "tier": 1, "total_points": 1, "wallet_balance": 1, "last_visit": 1}
+    ).sort("last_visit", -1).limit(min(limit, 50)).to_list(min(limit, 50))
+
+    return POSResponse(
+        success=True,
+        message=f"{len(customers)} customers found",
+        data={"customers": customers, "total": len(customers)}
+    )
+
+
+# ============================================
+# B2.3 - Customer Full Details
+# ============================================
+
+@router.get("/customers/{customer_id}", response_model=POSResponse)
+async def pos_get_customer_full(
+    customer_id: str,
+    user: dict = Depends(verify_pos_auth)
+):
+    """
+    Get full customer details including addresses, loyalty, and recent orders.
+    """
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"_id": 0})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    # Loyalty computed fields
+    settings = await db.loyalty_settings.find_one({"user_id": user["id"]}, {"_id": 0})
+    redemption_value = settings.get("redemption_value", 0.25) if settings else 0.25
+    tier = customer.get("tier", "Bronze")
+    total_points = customer.get("total_points", 0)
+    earn_percent = get_earn_percent_for_tier(tier, settings or {})
+
+    tier_thresholds = {"Bronze": ("Silver", settings.get("tier_silver_min", 500) if settings else 500),
+                       "Silver": ("Gold", settings.get("tier_gold_min", 1500) if settings else 1500),
+                       "Gold": ("Platinum", settings.get("tier_platinum_min", 5000) if settings else 5000),
+                       "Platinum": (None, 0)}
+    next_tier, next_min = tier_thresholds.get(tier, (None, 0))
+
+    # Recent orders
+    recent_orders = await db.orders.find(
+        {"customer_id": customer_id, "user_id": user["id"]},
+        {"_id": 0, "id": 1, "pos_order_id": 1, "order_amount": 1, "order_type": 1, "items": 1, "points_earned": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(5).to_list(5)
+
+    customer["loyalty"] = {
+        "total_points": total_points,
+        "points_monetary_value": round(total_points * redemption_value, 2),
+        "tier": tier,
+        "next_tier": next_tier,
+        "points_to_next_tier": max(0, next_min - total_points) if next_tier else 0,
+        "wallet_balance": customer.get("wallet_balance", 0.0),
+        "earn_rate_percent": earn_percent,
+        "redemption_value_per_point": redemption_value
+    }
+    customer["recent_orders"] = recent_orders
+    customer["addresses"] = customer.get("addresses", [])
+
+    return POSResponse(success=True, message="Customer found", data=customer)
+
+
+# ============================================
+# B3.3 - Soft Delete Customer
+# ============================================
+
+@router.delete("/customers/{customer_id}", response_model=POSResponse)
+async def pos_soft_delete_customer(
+    customer_id: str,
+    user: dict = Depends(verify_pos_auth)
+):
+    """Soft-delete: sets is_blocked=true, preserves data."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    await db.customers.update_one({"id": customer_id}, {"$set": {"is_blocked": True}})
+    return POSResponse(success=True, message="Customer deactivated", data={"customer_id": customer_id})
+
+
+# ============================================
+# B4 - Customer Address CRUD
+# ============================================
+
+@router.get("/customers/{customer_id}/addresses", response_model=POSResponse)
+async def pos_list_addresses(customer_id: str, user: dict = Depends(verify_pos_auth)):
+    """List all addresses for a customer."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"_id": 0, "addresses": 1})
+    if customer is None:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    addresses = customer.get("addresses", [])
+    # Sort: default first, then most recent
+    addresses.sort(key=lambda a: (not a.get("is_default", False), a.get("created_at", "")), reverse=False)
+    # Put default first (is_default=True sorts before False when negated)
+    addresses.sort(key=lambda a: not a.get("is_default", False))
+
+    return POSResponse(success=True, message=f"{len(addresses)} addresses found", data={"customer_id": customer_id, "addresses": addresses, "total": len(addresses)})
+
+
+@router.post("/customers/{customer_id}/addresses", response_model=POSResponse)
+async def pos_add_address(customer_id: str, addr_data: CustomerAddressCreate, user: dict = Depends(verify_pos_auth)):
+    """Add a new address. Dedup by address+pincode."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    now = datetime.now(timezone.utc).isoformat()
+    existing_addresses = customer.get("addresses", [])
+
+    # Dedup check: same address + pincode = update instead of duplicate
+    for existing in existing_addresses:
+        if (existing.get("address", "").strip().lower() == (addr_data.address or "").strip().lower()
+                and existing.get("pincode", "").strip() == (addr_data.pincode or "").strip()
+                and (addr_data.pincode or "").strip()):
+            # Update existing address's last_used timestamp
+            await db.customers.update_one(
+                {"id": customer_id, "addresses.id": existing["id"]},
+                {"$set": {"addresses.$.updated_at": now}}
+            )
+            return POSResponse(success=True, message="Address already exists, updated timestamp",
+                               data={"address_id": existing["id"], "deduplicated": True})
+
+    addr_doc = addr_data.model_dump()
+    addr_doc["id"] = _generate_addr_id()
+    addr_doc["created_at"] = now
+    addr_doc["updated_at"] = now
+
+    # If this is default, unset others
+    if addr_doc.get("is_default"):
+        await db.customers.update_one(
+            {"id": customer_id},
+            {"$set": {"addresses.$[].is_default": False}}
+        )
+    elif not existing_addresses:
+        # First address is always default
+        addr_doc["is_default"] = True
+
+    await db.customers.update_one({"id": customer_id}, {"$push": {"addresses": addr_doc}})
+
+    return POSResponse(success=True, message="Address added", data={"address_id": addr_doc["id"], "address": addr_doc})
+
+
+@router.put("/customers/{customer_id}/addresses/{addr_id}", response_model=POSResponse)
+async def pos_update_address(customer_id: str, addr_id: str, addr_data: CustomerAddressUpdate, user: dict = Depends(verify_pos_auth)):
+    """Update a specific address."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    addresses = customer.get("addresses", [])
+    addr_found = any(a.get("id") == addr_id for a in addresses)
+    if not addr_found:
+        return POSResponse(success=False, message="Address not found", data=None)
+
+    now = datetime.now(timezone.utc).isoformat()
+    update_fields = {k: v for k, v in addr_data.model_dump().items() if v is not None}
+    update_fields["updated_at"] = now
+
+    # If setting as default, unset others first
+    if update_fields.get("is_default"):
+        await db.customers.update_one(
+            {"id": customer_id},
+            {"$set": {"addresses.$[].is_default": False}}
+        )
+
+    # Build positional update
+    set_ops = {f"addresses.$.{k}": v for k, v in update_fields.items()}
+    await db.customers.update_one(
+        {"id": customer_id, "addresses.id": addr_id},
+        {"$set": set_ops}
+    )
+
+    return POSResponse(success=True, message="Address updated", data={"address_id": addr_id})
+
+
+@router.delete("/customers/{customer_id}/addresses/{addr_id}", response_model=POSResponse)
+async def pos_delete_address(customer_id: str, addr_id: str, user: dict = Depends(verify_pos_auth)):
+    """Delete a specific address."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    addresses = customer.get("addresses", [])
+    addr = next((a for a in addresses if a.get("id") == addr_id), None)
+    if not addr:
+        return POSResponse(success=False, message="Address not found", data=None)
+
+    was_default = addr.get("is_default", False)
+
+    await db.customers.update_one({"id": customer_id}, {"$pull": {"addresses": {"id": addr_id}}})
+
+    # If deleted was default, make the most recent remaining one default
+    if was_default:
+        remaining = [a for a in addresses if a.get("id") != addr_id]
+        if remaining:
+            remaining.sort(key=lambda a: a.get("updated_at", a.get("created_at", "")), reverse=True)
+            await db.customers.update_one(
+                {"id": customer_id, "addresses.id": remaining[0]["id"]},
+                {"$set": {"addresses.$.is_default": True}}
+            )
+
+    return POSResponse(success=True, message="Address deleted", data={"address_id": addr_id})
+
+
+@router.put("/customers/{customer_id}/addresses/{addr_id}/default", response_model=POSResponse)
+async def pos_set_default_address(customer_id: str, addr_id: str, user: dict = Depends(verify_pos_auth)):
+    """Set an address as default."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    addresses = customer.get("addresses", [])
+    if not any(a.get("id") == addr_id for a in addresses):
+        return POSResponse(success=False, message="Address not found", data=None)
+
+    # Unset all defaults, then set target
+    await db.customers.update_one({"id": customer_id}, {"$set": {"addresses.$[].is_default": False}})
+    await db.customers.update_one(
+        {"id": customer_id, "addresses.id": addr_id},
+        {"$set": {"addresses.$.is_default": True}}
+    )
+
+    return POSResponse(success=True, message="Default address set", data={"address_id": addr_id})
+
+
+# ============================================
+# B5.1 - Cross-Restaurant Address Lookup
+# ============================================
+
+class CrossRestaurantAddressLookup(BaseModel):
+    phone: str
+    country_code: str = "+91"
+
+
+@router.post("/address-lookup", response_model=POSResponse)
+async def pos_cross_restaurant_address_lookup(lookup: CrossRestaurantAddressLookup, user: dict = Depends(verify_pos_auth)):
+    """Lookup addresses by phone across all restaurants. Deduped, sorted by recency."""
+    pipeline = [
+        {"$match": {"phone": lookup.phone, "addresses": {"$exists": True, "$ne": []}}},
+        {"$project": {"_id": 0, "addresses": 1, "user_id": 1}},
+    ]
+    results = await db.customers.aggregate(pipeline).to_list(50)
+
+    # Collect all addresses with source, dedup by address+pincode
+    seen = {}
+    for doc in results:
+        # Get restaurant name for source
+        restaurant = await db.users.find_one({"id": doc["user_id"]}, {"_id": 0, "restaurant_name": 1})
+        source_name = restaurant.get("restaurant_name", "Unknown") if restaurant else "Unknown"
+
+        for addr in doc.get("addresses", []):
+            dedup_key = f"{(addr.get('address', '') or '').strip().lower()}|{(addr.get('pincode', '') or '').strip()}"
+            existing = seen.get(dedup_key)
+            addr_time = addr.get("updated_at") or addr.get("created_at") or ""
+            if not existing or addr_time > existing.get("_time", ""):
+                seen[dedup_key] = {
+                    "address": addr.get("address"),
+                    "city": addr.get("city"),
+                    "state": addr.get("state"),
+                    "pincode": addr.get("pincode"),
+                    "country": addr.get("country"),
+                    "latitude": addr.get("latitude"),
+                    "longitude": addr.get("longitude"),
+                    "address_type": addr.get("address_type"),
+                    "last_used_at": addr_time,
+                    "source_restaurant": source_name,
+                    "_time": addr_time,
+                }
+
+    addresses = sorted(seen.values(), key=lambda a: a.get("_time", ""), reverse=True)
+    for a in addresses:
+        a.pop("_time", None)
+
+    return POSResponse(success=True, message=f"{len(addresses)} addresses found", data={"phone": lookup.phone, "addresses": addresses})
+
+
+# ============================================
+# B6.3 - Customer Order History
+# ============================================
+
+@router.get("/customers/{customer_id}/orders", response_model=POSResponse)
+async def pos_customer_orders(customer_id: str, limit: int = 10, user: dict = Depends(verify_pos_auth)):
+    """Get order history for a customer."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"_id": 0, "id": 1})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    orders = await db.orders.find(
+        {"customer_id": customer_id, "user_id": user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(min(limit, 50)).to_list(min(limit, 50))
+
+    total = await db.orders.count_documents({"customer_id": customer_id, "user_id": user["id"]})
+
+    return POSResponse(success=True, message=f"{len(orders)} orders found", data={"orders": orders, "total": total})
+
+
+# ============================================
+# B7.2 - Loyalty Summary
+# ============================================
+
+@router.get("/customers/{customer_id}/loyalty", response_model=POSResponse)
+async def pos_customer_loyalty(customer_id: str, user: dict = Depends(verify_pos_auth)):
+    """Get loyalty summary for a customer."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"_id": 0})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    settings = await db.loyalty_settings.find_one({"user_id": user["id"]}, {"_id": 0})
+    redemption_value = settings.get("redemption_value", 0.25) if settings else 0.25
+    tier = customer.get("tier", "Bronze")
+    total_points = customer.get("total_points", 0)
+    earn_percent = get_earn_percent_for_tier(tier, settings or {})
+
+    tier_thresholds = {
+        "Bronze": ("Silver", settings.get("tier_silver_min", 500) if settings else 500),
+        "Silver": ("Gold", settings.get("tier_gold_min", 1500) if settings else 1500),
+        "Gold": ("Platinum", settings.get("tier_platinum_min", 5000) if settings else 5000),
+        "Platinum": (None, 0)
+    }
+    next_tier, next_min = tier_thresholds.get(tier, (None, 0))
+
+    return POSResponse(success=True, message="Loyalty summary", data={
+        "total_points": total_points,
+        "points_monetary_value": round(total_points * redemption_value, 2),
+        "tier": tier,
+        "next_tier": next_tier,
+        "points_to_next_tier": max(0, next_min - total_points) if next_tier else 0,
+        "wallet_balance": customer.get("wallet_balance", 0.0),
+        "total_visits": customer.get("total_visits", 0),
+        "total_spent": customer.get("total_spent", 0.0),
+        "earn_rate_percent": earn_percent,
+        "redemption_value_per_point": redemption_value
+    })
+
+
+# ============================================
+# B8 - Coupon Operations (POS auth)
+# ============================================
+
+@router.post("/coupons/validate", response_model=POSResponse)
+async def pos_validate_coupon(
+    code: str, customer_id: str, order_value: float, channel: str = "pos",
+    user: dict = Depends(verify_pos_auth)
+):
+    """Validate coupon with full checks (POS auth version)."""
+    coupon = await db.coupons.find_one({"user_id": user["id"], "code": code.upper(), "is_active": True}, {"_id": 0})
+    if not coupon:
+        return POSResponse(success=False, message="Invalid coupon code", data=None)
+
+    now = datetime.now(timezone.utc).isoformat()
+    if coupon["start_date"] > now:
+        return POSResponse(success=False, message="Coupon not yet active", data=None)
+    if coupon["end_date"] < now:
+        return POSResponse(success=False, message="Coupon has expired", data=None)
+    if coupon.get("usage_limit") and coupon.get("total_used", 0) >= coupon["usage_limit"]:
+        return POSResponse(success=False, message="Coupon usage limit reached", data=None)
+
+    user_usage = await db.coupon_usage.count_documents({"coupon_id": coupon["id"], "customer_id": customer_id})
+    if user_usage >= coupon.get("per_user_limit", 1):
+        return POSResponse(success=False, message="Customer already used this coupon", data=None)
+    if order_value < coupon.get("min_order_value", 0):
+        return POSResponse(success=False, message=f"Minimum order value is Rs.{coupon['min_order_value']}", data=None)
+    if channel not in coupon.get("applicable_channels", ["delivery", "takeaway", "dine_in", "pos"]):
+        return POSResponse(success=False, message="Coupon not valid for this channel", data=None)
+    if coupon.get("specific_users") and customer_id not in coupon["specific_users"]:
+        return POSResponse(success=False, message="Coupon not valid for this customer", data=None)
+
+    if coupon["discount_type"] == "percentage":
+        discount = (order_value * coupon["discount_value"]) / 100
+        if coupon.get("max_discount"):
+            discount = min(discount, coupon["max_discount"])
+    else:
+        discount = min(coupon["discount_value"], order_value)
+
+    return POSResponse(success=True, message="Coupon valid", data={
+        "code": code.upper(),
+        "discount": round(discount, 2),
+        "final_amount": round(order_value - discount, 2),
+        "discount_type": coupon["discount_type"],
+        "discount_value": coupon["discount_value"]
+    })
+
+
+@router.post("/coupons/apply", response_model=POSResponse)
+async def pos_apply_coupon(
+    code: str, customer_id: str, order_value: float, channel: str = "pos",
+    user: dict = Depends(verify_pos_auth)
+):
+    """Apply coupon + record usage (POS auth version)."""
+    # Validate first
+    validation = await pos_validate_coupon(code, customer_id, order_value, channel, user)
+    if not validation.success:
+        return validation
+
+    coupon = await db.coupons.find_one({"user_id": user["id"], "code": code.upper()})
+    now = datetime.now(timezone.utc).isoformat()
+
+    usage_doc = {
+        "id": str(uuid.uuid4()),
+        "coupon_id": coupon["id"],
+        "customer_id": customer_id,
+        "order_value": order_value,
+        "discount_applied": validation.data["discount"],
+        "channel": channel,
+        "used_at": now
+    }
+    await db.coupon_usage.insert_one(usage_doc)
+    await db.coupons.update_one({"id": coupon["id"]}, {"$inc": {"total_used": 1}})
+
+    return POSResponse(success=True, message="Coupon applied", data={
+        "usage_id": usage_doc["id"],
+        "discount": validation.data["discount"],
+        "final_amount": validation.data["final_amount"]
+    })
+
+
+# ============================================
+# B10 - Customer Notes (Historical Pattern Lookup)
+# ============================================
+
+@router.get("/customers/{customer_id}/notes/items", response_model=POSResponse)
+async def pos_customer_item_notes(customer_id: str, user: dict = Depends(verify_pos_auth)):
+    """
+    Aggregate item-level notes across all orders for a customer.
+    Groups by item_name and note (case-insensitive), sorted by frequency.
+    """
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"_id": 0, "id": 1, "name": 1})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    pipeline = [
+        {"$match": {"customer_id": customer_id, "user_id": user["id"], "item_notes": {"$nin": [None, ""]}}},
+        {"$addFields": {"note_lower": {"$toLower": "$item_notes"}}},
+        {"$group": {
+            "_id": {"item_name": "$item_name", "note": "$note_lower"},
+            "count": {"$sum": 1},
+            "last_ordered": {"$max": "$created_at"},
+            "original_note": {"$first": "$item_notes"}
+        }},
+        {"$group": {
+            "_id": "$_id.item_name",
+            "notes": {"$push": {"note": "$original_note", "count": "$count", "last_ordered": "$last_ordered"}},
+            "total_notes": {"$sum": "$count"}
+        }},
+        {"$sort": {"total_notes": -1}},
+        {"$project": {"_id": 0, "item_name": "$_id", "notes": 1, "total_notes": 1}}
+    ]
+
+    results = await db.order_items.aggregate(pipeline).to_list(100)
+    # Sort notes within each item by count desc
+    for item in results:
+        item["notes"].sort(key=lambda n: n["count"], reverse=True)
+
+    return POSResponse(success=True, message=f"{len(results)} items with notes", data={
+        "customer_id": customer_id,
+        "customer_name": customer.get("name", ""),
+        "item_notes": results,
+        "total_unique_items_with_notes": len(results)
+    })
+
+
+@router.get("/customers/{customer_id}/notes/orders", response_model=POSResponse)
+async def pos_customer_order_notes(customer_id: str, user: dict = Depends(verify_pos_auth)):
+    """
+    Aggregate order-level notes across all orders for a customer.
+    Groups by note text (case-insensitive), sorted by frequency.
+    """
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"_id": 0, "id": 1, "name": 1})
+    if not customer:
+        return POSResponse(success=False, message="Customer not found", data=None)
+
+    pipeline = [
+        {"$match": {"customer_id": customer_id, "user_id": user["id"],
+                     "order_notes": {"$exists": True, "$nin": [None, ""]}}},
+        {"$addFields": {"note_lower": {"$toLower": "$order_notes"}}},
+        {"$group": {
+            "_id": "$note_lower",
+            "count": {"$sum": 1},
+            "last_used": {"$max": "$created_at"},
+            "original_note": {"$first": "$order_notes"}
+        }},
+        {"$sort": {"count": -1}},
+        {"$project": {"_id": 0, "note": "$original_note", "count": 1, "last_used": 1}}
+    ]
+
+    results = await db.orders.aggregate(pipeline).to_list(100)
+    total_orders_with_notes = sum(r["count"] for r in results)
+
+    return POSResponse(success=True, message=f"{len(results)} unique order notes", data={
+        "customer_id": customer_id,
+        "customer_name": customer.get("name", ""),
+        "order_notes": results,
+        "total_orders_with_notes": total_orders_with_notes
+    })
 
 
 # Messaging routes

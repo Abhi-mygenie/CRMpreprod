@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, Header, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone, timedelta
 import jwt
@@ -13,6 +13,7 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -53,3 +54,38 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+async def verify_pos_auth(
+    x_api_key: str = Header(None, alias="X-API-Key"),
+    credentials: HTTPAuthorizationCredentials = Depends(optional_security)
+):
+    """
+    Dual auth for POS endpoints: accepts API Key OR JWT Bearer token.
+    API Key checked first (primary POS auth), then JWT fallback.
+    Both resolve to the same restaurant user.
+    """
+    # Try API Key first
+    if x_api_key:
+        user = await db.users.find_one({"api_key": x_api_key}, {"_id": 0})
+        if user:
+            return user
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    # Try JWT Bearer token
+    if credentials:
+        try:
+            payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            user_id = payload.get("user_id")
+            if not user_id:
+                raise HTTPException(status_code=401, detail="Invalid token")
+            user = await db.users.find_one({"id": user_id}, {"_id": 0})
+            if not user:
+                raise HTTPException(status_code=401, detail="User not found")
+            return user
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token expired")
+        except jwt.InvalidTokenError:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+    raise HTTPException(status_code=401, detail="Authentication required. Provide X-API-Key header or Bearer token.")

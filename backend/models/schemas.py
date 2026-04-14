@@ -1,6 +1,74 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional
 
+
+# Address Models
+class CustomerAddressCreate(BaseModel):
+    address_type: str = "Home"  # Home, Office, Other
+    address: str
+    house: Optional[str] = None
+    floor: Optional[str] = None
+    road: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    country: Optional[str] = "India"
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    contact_person_name: Optional[str] = None
+    contact_person_number: Optional[str] = None
+    dial_code: Optional[str] = None
+    zone_id: Optional[str] = None
+    delivery_instructions: Optional[str] = None
+    is_default: bool = False
+    pos_address_id: Optional[str] = None
+
+
+class CustomerAddressUpdate(BaseModel):
+    address_type: Optional[str] = None
+    address: Optional[str] = None
+    house: Optional[str] = None
+    floor: Optional[str] = None
+    road: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    country: Optional[str] = None
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    contact_person_name: Optional[str] = None
+    contact_person_number: Optional[str] = None
+    dial_code: Optional[str] = None
+    zone_id: Optional[str] = None
+    delivery_instructions: Optional[str] = None
+    is_default: Optional[bool] = None
+    pos_address_id: Optional[str] = None
+
+
+class CustomerAddress(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    pos_address_id: Optional[str] = None
+    is_default: bool = False
+    address_type: str = "Home"
+    address: str = ""
+    house: Optional[str] = None
+    floor: Optional[str] = None
+    road: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    country: Optional[str] = "India"
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    contact_person_name: Optional[str] = None
+    contact_person_number: Optional[str] = None
+    dial_code: Optional[str] = None
+    zone_id: Optional[str] = None
+    delivery_instructions: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
 # Auth Models
 class UserBase(BaseModel):
     email: EmailStr
@@ -364,6 +432,9 @@ class Customer(BaseModel):
     # MyGenie Sync
     pos_customer_id: Optional[int] = None
     mygenie_synced: Optional[bool] = None
+
+    # Addresses
+    addresses: Optional[List[CustomerAddress]] = None
 
 # Wallet Transaction Models
 class WalletTransactionCreate(BaseModel):
