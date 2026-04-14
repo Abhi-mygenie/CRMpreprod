@@ -48,7 +48,7 @@ class CustomerAddressUpdate(BaseModel):
 class CustomerAddress(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
-    pos_address_id: Optional[str] = None
+    pos_address_id: Optional[object] = None
     is_default: bool = False
     address_type: str = "Home"
     address: str = ""
@@ -64,7 +64,7 @@ class CustomerAddress(BaseModel):
     contact_person_name: Optional[str] = None
     contact_person_number: Optional[str] = None
     dial_code: Optional[str] = None
-    zone_id: Optional[str] = None
+    zone_id: Optional[object] = None
     delivery_instructions: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
