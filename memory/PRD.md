@@ -141,9 +141,9 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 | Other App Data | `/app/memory/API_DOC_OTHER_APP.md` | Internal — data patterns from scan-and-order app |
 
 ## Access URLs
-- **Frontend**: https://react-mongo-crm.preview.emergentagent.com
-- **Backend API**: https://react-mongo-crm.preview.emergentagent.com/api
-- **Swagger**: https://react-mongo-crm.preview.emergentagent.com/api/docs
+- **Frontend**: https://customer-loyalty-11.preview.emergentagent.com
+- **Backend API**: https://customer-loyalty-11.preview.emergentagent.com/api
+- **Swagger**: https://customer-loyalty-11.preview.emergentagent.com/api/docs
 
 ## Prioritized Backlog
 
