@@ -42,197 +42,205 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
     
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{mygenie_api_url}/api/v1/vendoremployee/whatsappcrm/customer-migration",
-                headers={
-                    "Authorization": f"Bearer {mygenie_token}",
-                    "Content-Type": "application/json; charset=UTF-8",
-                    "X-localization": "en"
-                },
-                json={},
-                timeout=60.0
-            )
-            
-            if response.status_code != 200:
-                customer_sync_status[user_id]["status"] = "failed"
-                customer_sync_status[user_id]["error"] = f"API error: {response.status_code}"
-                return
-            
-            data = response.json()
-            customer_list = data.get("customers", [])
-            total_customers = data.get("total_customers", len(customer_list))
-            customer_sync_status[user_id]["total_customers"] = total_customers
-            
-            # Store total from POS in user record
-            await db.users.update_one(
-                {"id": user_id},
-                {"$set": {"total_customers_in_pos": total_customers}}
-            )
-            
-            for i, mygenie_customer in enumerate(customer_list):
-                customer_data = {
-                    "user_id": user_id,
-                    "name": mygenie_customer.get("name") or "Unknown",
-                    "phone": mygenie_customer.get("phone") or "",
-                    "country_code": mygenie_customer.get("country_code") or "+91",
-                    "email": mygenie_customer.get("email") or f"customer{mygenie_customer['id']}@mygenie.local",
-                    "dob": mygenie_customer.get("dob"),
-                    "anniversary": mygenie_customer.get("anniversary"),
-                    "gst_name": mygenie_customer.get("gst_name"),
-                    "gst_number": mygenie_customer.get("gst_number"),
-                    # Points - loyalty_point is int, others are strings
-                    "total_points": mygenie_customer.get("loyalty_point", 0),
-                    "total_points_earned": int(mygenie_customer.get("total_points_earned") or 0),
-                    "total_points_redeemed": int(mygenie_customer.get("total_points_redeemed") or 0),
-                    # Wallet - wallet_balance is int, others are strings
-                    "wallet_balance": float(mygenie_customer.get("wallet_balance") or 0),
-                    "total_wallet_received": float(mygenie_customer.get("total_wallet_received") or 0),
-                    "total_wallet_used": float(mygenie_customer.get("total_wallet_used") or 0),
-                    # Coupons
-                    "total_coupon_used": mygenie_customer.get("total_coupon_used", 0),
-                    # POS IDs
-                    "pos_customer_id": mygenie_customer["id"],
-                    "pos_id": mygenie_customer.get("pos_id"),
-                    "pos_restaurant_id": mygenie_customer.get("restaurant_id"),
-                    # Sync metadata
-                    "mygenie_synced": True,
-                    "last_synced_at": now,
-                    "last_updated_at": mygenie_customer.get("updated_time"),
-                }
+            page = 1
+            last_page = 1
+            customer_index = 0
 
-                # Map customer_addresses from MyGenie into CRM addresses[] format
-                mygenie_addresses = mygenie_customer.get("customer_addresses", [])
-                crm_addresses = []
-                for idx, mg_addr in enumerate(mygenie_addresses):
-                    crm_addr = {
-                        "id": f"addr_{uuid.uuid4().hex[:12]}",
-                        "pos_address_id": str(mg_addr.get("id", "")),
-                        "address_type": mg_addr.get("address_type") or "Other",
-                        "address": mg_addr.get("address") or "",
-                        "house": mg_addr.get("house") or None,
-                        "floor": mg_addr.get("floor") or None,
-                        "road": mg_addr.get("road") or None,
-                        "city": mg_addr.get("city") or None,
-                        "state": None,
-                        "pincode": mg_addr.get("pincode") or None,
-                        "country": "India",
-                        "latitude": mg_addr.get("latitude") or None,
-                        "longitude": mg_addr.get("longitude") or None,
-                        "contact_person_name": mg_addr.get("contact_person_name") or None,
-                        "contact_person_number": mg_addr.get("contact_person_number") or None,
-                        "dial_code": mg_addr.get("dial_code") or None,
-                        "zone_id": str(mg_addr["zone_id"]) if mg_addr.get("zone_id") is not None else None,
-                        "delivery_instructions": None,
-                        "is_default": idx == 0,
-                        "created_at": mg_addr.get("created_at") or now,
-                        "updated_at": mg_addr.get("updated_at") or now,
-                    }
-                    crm_addresses.append(crm_addr)
-                customer_data["addresses"] = crm_addresses
+            while page <= last_page:
+                response = await client.post(
+                    f"{mygenie_api_url}/api/v1/vendoremployee/whatsappcrm/customer-migration?page={page}",
+                    headers={
+                        "Authorization": f"Bearer {mygenie_token}",
+                        "Content-Type": "application/json; charset=UTF-8",
+                        "X-localization": "en"
+                    },
+                    json={},
+                    timeout=60.0
+                )
 
-                # Determine tier
-                points = customer_data["total_points"]
-                if points >= 5000:
-                    tier = "Platinum"
-                elif points >= 1500:
-                    tier = "Gold"
-                elif points >= 500:
-                    tier = "Silver"
-                else:
-                    tier = "Bronze"
-                customer_data["tier"] = tier
-                
-                # Check if exists
-                existing = await db.customers.find_one({
-                    "user_id": user_id,
-                    "pos_customer_id": mygenie_customer["id"]
-                })
-                
-                if existing:
-                    await db.customers.update_one(
-                        {"id": existing["id"]},
-                        {"$set": customer_data}
+                if response.status_code != 200:
+                    customer_sync_status[user_id]["status"] = "failed"
+                    customer_sync_status[user_id]["error"] = f"API error on page {page}: {response.status_code}"
+                    return
+
+                data = response.json()
+                customer_list = data.get("customers", [])
+                last_page = data.get("last_page", 1)
+                total_customers = data.get("total_customers", len(customer_list))
+
+                # Update progress
+                customer_sync_status[user_id]["total_customers"] = total_customers
+                customer_sync_status[user_id]["current_page"] = page
+                customer_sync_status[user_id]["total_pages"] = last_page
+
+                # Store total from POS in user record (only on first page)
+                if page == 1:
+                    await db.users.update_one(
+                        {"id": user_id},
+                        {"$set": {"total_customers_in_pos": total_customers}}
                     )
-                    updated_count += 1
-                    customer_id = existing["id"]
-                else:
-                    customer_data["id"] = str(uuid.uuid4())
-                    customer_data["created_at"] = mygenie_customer.get("created_time") or now
-                    customer_data["customer_type"] = mygenie_customer.get("customer_type") or "normal"
-                    customer_data["notes"] = None
-                    customer_data["address"] = mygenie_customer.get("address")
-                    customer_data["city"] = mygenie_customer.get("city")
-                    customer_data["pincode"] = mygenie_customer.get("pincode")
-                    customer_data["allergies"] = []
-                    customer_data["custom_field_1"] = None
-                    customer_data["custom_field_2"] = None
-                    customer_data["custom_field_3"] = None
-                    customer_data["favorites"] = []
-                    # These will be calculated from orders sync
-                    customer_data["total_visits"] = 0
-                    customer_data["total_spent"] = 0.0  # Calculated from orders
-                    customer_data["last_visit"] = None  # Updated from orders
-                    
-                    await db.customers.insert_one(customer_data)
-                    synced_count += 1
-                    customer_id = customer_data["id"]
-                
-                # Create transaction records from customer totals (only for new customers)
-                if not existing:
-                    customer_created_at = customer_data.get("created_at", now)
-                    
-                    # Points earned transaction
-                    if customer_data.get("total_points_earned", 0) > 0:
-                        await db.points_transactions.insert_one({
-                            "id": str(uuid.uuid4()),
-                            "user_id": user_id,
-                            "customer_id": customer_id,
-                            "transaction_type": "earn",
-                            "points": customer_data["total_points_earned"],
-                            "description": "Historical points (synced from MyGenie)",
-                            "created_at": customer_created_at
-                        })
-                    
-                    # Points redeemed transaction
-                    if customer_data.get("total_points_redeemed", 0) > 0:
-                        await db.points_transactions.insert_one({
-                            "id": str(uuid.uuid4()),
-                            "user_id": user_id,
-                            "customer_id": customer_id,
-                            "transaction_type": "redeem",
-                            "points": customer_data["total_points_redeemed"],
-                            "description": "Historical redemption (synced from MyGenie)",
-                            "created_at": customer_created_at
-                        })
-                    
-                    # Wallet credit transaction
-                    if customer_data.get("total_wallet_received", 0) > 0:
-                        await db.wallet_transactions.insert_one({
-                            "id": str(uuid.uuid4()),
-                            "user_id": user_id,
-                            "customer_id": customer_id,
-                            "transaction_type": "credit",
-                            "amount": customer_data["total_wallet_received"],
-                            "description": "Historical wallet credit (synced from MyGenie)",
-                            "created_at": customer_created_at
-                        })
-                    
-                    # Wallet debit transaction
-                    if customer_data.get("total_wallet_used", 0) > 0:
-                        await db.wallet_transactions.insert_one({
-                            "id": str(uuid.uuid4()),
-                            "user_id": user_id,
-                            "customer_id": customer_id,
-                            "transaction_type": "debit",
-                            "amount": customer_data["total_wallet_used"],
-                            "description": "Historical wallet usage (synced from MyGenie)",
-                            "created_at": customer_created_at
-                        })
-                
-                # Update progress every 10 customers
-                if (i + 1) % 10 == 0:
-                    customer_sync_status[user_id]["synced"] = synced_count
-                    customer_sync_status[user_id]["updated"] = updated_count
+
+                for i, mygenie_customer in enumerate(customer_list):
+                    customer_data = {
+                        "user_id": user_id,
+                        "name": mygenie_customer.get("name") or "Unknown",
+                        "phone": mygenie_customer.get("phone") or "",
+                        "country_code": mygenie_customer.get("country_code") or "+91",
+                        "email": mygenie_customer.get("email") or f"customer{mygenie_customer['id']}@mygenie.local",
+                        "dob": mygenie_customer.get("dob"),
+                        "anniversary": mygenie_customer.get("anniversary"),
+                        "gst_name": mygenie_customer.get("gst_name"),
+                        "gst_number": mygenie_customer.get("gst_number"),
+                        "total_points": mygenie_customer.get("loyalty_point", 0),
+                        "total_points_earned": int(mygenie_customer.get("total_points_earned") or 0),
+                        "total_points_redeemed": int(mygenie_customer.get("total_points_redeemed") or 0),
+                        "wallet_balance": float(mygenie_customer.get("wallet_balance") or 0),
+                        "total_wallet_received": float(mygenie_customer.get("total_wallet_received") or 0),
+                        "total_wallet_used": float(mygenie_customer.get("total_wallet_used") or 0),
+                        "total_coupon_used": mygenie_customer.get("total_coupon_used", 0),
+                        "pos_customer_id": mygenie_customer["id"],
+                        "pos_id": mygenie_customer.get("pos_id"),
+                        "pos_restaurant_id": mygenie_customer.get("restaurant_id"),
+                        "mygenie_synced": True,
+                        "last_synced_at": now,
+                        "last_updated_at": mygenie_customer.get("updated_time"),
+                    }
+
+                    # Map customer_addresses from MyGenie into CRM addresses[] format
+                    mygenie_addresses = mygenie_customer.get("customer_addresses", [])
+                    crm_addresses = []
+                    for idx, mg_addr in enumerate(mygenie_addresses):
+                        crm_addr = {
+                            "id": f"addr_{uuid.uuid4().hex[:12]}",
+                            "pos_address_id": str(mg_addr.get("id", "")),
+                            "address_type": mg_addr.get("address_type") or "Other",
+                            "address": mg_addr.get("address") or "",
+                            "house": mg_addr.get("house") or None,
+                            "floor": mg_addr.get("floor") or None,
+                            "road": mg_addr.get("road") or None,
+                            "city": mg_addr.get("city") or None,
+                            "state": None,
+                            "pincode": mg_addr.get("pincode") or None,
+                            "country": "India",
+                            "latitude": mg_addr.get("latitude") or None,
+                            "longitude": mg_addr.get("longitude") or None,
+                            "contact_person_name": mg_addr.get("contact_person_name") or None,
+                            "contact_person_number": mg_addr.get("contact_person_number") or None,
+                            "dial_code": mg_addr.get("dial_code") or None,
+                            "zone_id": str(mg_addr["zone_id"]) if mg_addr.get("zone_id") is not None else None,
+                            "delivery_instructions": None,
+                            "is_default": idx == 0,
+                            "created_at": mg_addr.get("created_at") or now,
+                            "updated_at": mg_addr.get("updated_at") or now,
+                        }
+                        crm_addresses.append(crm_addr)
+                    customer_data["addresses"] = crm_addresses
+
+                    # Determine tier
+                    points = customer_data["total_points"]
+                    if points >= 5000:
+                        tier = "Platinum"
+                    elif points >= 1500:
+                        tier = "Gold"
+                    elif points >= 500:
+                        tier = "Silver"
+                    else:
+                        tier = "Bronze"
+                    customer_data["tier"] = tier
+
+                    # Check if exists
+                    existing = await db.customers.find_one({
+                        "user_id": user_id,
+                        "pos_customer_id": mygenie_customer["id"]
+                    })
+
+                    if existing:
+                        await db.customers.update_one(
+                            {"id": existing["id"]},
+                            {"$set": customer_data}
+                        )
+                        updated_count += 1
+                        customer_id = existing["id"]
+                    else:
+                        customer_data["id"] = str(uuid.uuid4())
+                        customer_data["created_at"] = mygenie_customer.get("created_time") or now
+                        customer_data["customer_type"] = mygenie_customer.get("customer_type") or "normal"
+                        customer_data["notes"] = None
+                        customer_data["address"] = mygenie_customer.get("address")
+                        customer_data["city"] = mygenie_customer.get("city")
+                        customer_data["pincode"] = mygenie_customer.get("pincode")
+                        customer_data["allergies"] = []
+                        customer_data["custom_field_1"] = None
+                        customer_data["custom_field_2"] = None
+                        customer_data["custom_field_3"] = None
+                        customer_data["favorites"] = []
+                        customer_data["total_visits"] = 0
+                        customer_data["total_spent"] = 0.0
+                        customer_data["last_visit"] = None
+
+                        await db.customers.insert_one(customer_data)
+                        synced_count += 1
+                        customer_id = customer_data["id"]
+
+                    # Create transaction records from customer totals (only for new customers)
+                    if not existing:
+                        customer_created_at = customer_data.get("created_at", now)
+
+                        if customer_data.get("total_points_earned", 0) > 0:
+                            await db.points_transactions.insert_one({
+                                "id": str(uuid.uuid4()),
+                                "user_id": user_id,
+                                "customer_id": customer_id,
+                                "transaction_type": "earn",
+                                "points": customer_data["total_points_earned"],
+                                "description": "Historical points (synced from MyGenie)",
+                                "created_at": customer_created_at
+                            })
+
+                        if customer_data.get("total_points_redeemed", 0) > 0:
+                            await db.points_transactions.insert_one({
+                                "id": str(uuid.uuid4()),
+                                "user_id": user_id,
+                                "customer_id": customer_id,
+                                "transaction_type": "redeem",
+                                "points": customer_data["total_points_redeemed"],
+                                "description": "Historical redemption (synced from MyGenie)",
+                                "created_at": customer_created_at
+                            })
+
+                        if customer_data.get("total_wallet_received", 0) > 0:
+                            await db.wallet_transactions.insert_one({
+                                "id": str(uuid.uuid4()),
+                                "user_id": user_id,
+                                "customer_id": customer_id,
+                                "transaction_type": "credit",
+                                "amount": customer_data["total_wallet_received"],
+                                "description": "Historical wallet credit (synced from MyGenie)",
+                                "created_at": customer_created_at
+                            })
+
+                        if customer_data.get("total_wallet_used", 0) > 0:
+                            await db.wallet_transactions.insert_one({
+                                "id": str(uuid.uuid4()),
+                                "user_id": user_id,
+                                "customer_id": customer_id,
+                                "transaction_type": "debit",
+                                "amount": customer_data["total_wallet_used"],
+                                "description": "Historical wallet usage (synced from MyGenie)",
+                                "created_at": customer_created_at
+                            })
+
+                    # Update progress every 10 customers
+                    if (customer_index + 1) % 10 == 0:
+                        customer_sync_status[user_id]["synced"] = synced_count
+                        customer_sync_status[user_id]["updated"] = updated_count
+                    customer_index += 1
+
+                # Update progress after each page
+                customer_sync_status[user_id]["synced"] = synced_count
+                customer_sync_status[user_id]["updated"] = updated_count
+
+                page += 1
             
             # Final update
             await db.users.update_one(
