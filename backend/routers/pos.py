@@ -2099,7 +2099,11 @@ async def pos_cross_restaurant_address_lookup(lookup: CrossRestaurantAddressLook
             addr_time = addr.get("updated_at") or addr.get("created_at") or ""
             if not existing or addr_time > existing.get("_time", ""):
                 seen[dedup_key] = {
+                    "pos_address_id": addr.get("pos_address_id"),
                     "address": addr.get("address"),
+                    "house": addr.get("house"),
+                    "floor": addr.get("floor"),
+                    "road": addr.get("road"),
                     "city": addr.get("city"),
                     "state": addr.get("state"),
                     "pincode": addr.get("pincode"),
@@ -2107,6 +2111,11 @@ async def pos_cross_restaurant_address_lookup(lookup: CrossRestaurantAddressLook
                     "latitude": addr.get("latitude"),
                     "longitude": addr.get("longitude"),
                     "address_type": addr.get("address_type"),
+                    "zone_id": addr.get("zone_id"),
+                    "contact_person_name": addr.get("contact_person_name"),
+                    "contact_person_number": addr.get("contact_person_number"),
+                    "dial_code": addr.get("dial_code"),
+                    "delivery_instructions": addr.get("delivery_instructions"),
                     "last_used_at": addr_time,
                     "source_restaurant": source_name,
                     "_time": addr_time,
