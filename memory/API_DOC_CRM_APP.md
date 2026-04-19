@@ -399,7 +399,7 @@
 
 | # | Status | Method | Route | Purpose |
 |---|--------|--------|-------|---------|
-| B5.1 | Planned | POST | `/pos/address-lookup` | Lookup addresses by phone across all restaurants |
+| B5.1 | **Implemented** | POST | `/pos/address-lookup` | Lookup addresses by phone across all restaurants |
 
 **Request:**
 ```json
@@ -417,13 +417,23 @@
     "phone": "9876543210",
     "addresses": [
       {
+        "pos_address_id": "497",
         "address": "123 MG Road",
+        "house": "A-101",
+        "floor": "1st",
+        "road": "MG Road",
         "city": "Bangalore",
         "state": "Karnataka",
         "pincode": "560001",
+        "country": "India",
         "latitude": "12.97",
         "longitude": "77.59",
         "address_type": "Home",
+        "zone_id": "6",
+        "contact_person_name": "John",
+        "contact_person_number": "9876543210",
+        "dial_code": "+91",
+        "delivery_instructions": "Ring bell",
         "last_used_at": "2026-04-10T...",
         "source_restaurant": "Pizzeria Roma"
       }
@@ -434,9 +444,10 @@
 
 **Design Notes:**
 - Queries `customers` collection across all `user_id` values, matching by `phone`
-- Aggregates and deduplicates `addresses[]` entries
+- Aggregates and deduplicates `addresses[]` entries by `address + pincode`
 - Returns `source_restaurant` for POS context (B2B — restaurants are on the same platform)
-- Does NOT return `contact_person_*` or `delivery_instructions` (those are restaurant-specific)
+- `pos_address_id` is the MyGenie POS address identifier (string, cast from integer)
+- Returns all address fields including `house`, `floor`, `road`, `zone_id`, `contact_person_*`, `dial_code`, `delivery_instructions`
 
 ---
 

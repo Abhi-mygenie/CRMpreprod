@@ -96,6 +96,19 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 - Token isolation confirmed (both directions)
 - Zero regression on CRM frontend
 
+### April 19, 2026 - Migration Address Sync + Pagination Fix
+- **Customer Migration now syncs `customer_addresses[]`** — MyGenie API sends full address arrays per customer via `customer_addresses` field. Migration now maps each address into CRM `addresses[]` format with `pos_address_id` (MyGenie address `id` → string).
+- **Fields mapped during migration**: `pos_address_id`, `address`, `house`, `floor`, `road`, `city`, `pincode`, `latitude`, `longitude`, `contact_person_name`, `contact_person_number`, `dial_code`, `zone_id`, `address_type`, `created_at`, `updated_at`, `is_default` (first address = default).
+- **Customer sync pagination fix** — Customer migration was only fetching page 1 (e.g., 11 of 54 customers). Added `while page <= last_page` pagination loop with `?page={page}` param, mirroring the order sync pattern in `migration.py`. All pages now fetched.
+- **Cross-Restaurant Address Lookup response expanded** — `/pos/address-lookup` now returns 9 additional fields: `pos_address_id`, `zone_id`, `house`, `floor`, `road`, `contact_person_name`, `contact_person_number`, `dial_code`, `delivery_instructions`.
+- **Orphaned dead code cleanup** — Removed unreachable code block at end of `customers.py` (duplicate `Customizations` section after `return`).
+
+### Bugs Fixed (April 19, 2026)
+- Customer sync only fetching first page of customers from MyGenie API (pagination missing)
+- `customer_addresses` array from MyGenie not being imported during migration (addresses were lost)
+- `/pos/address-lookup` response missing `pos_address_id` and 8 other address fields
+- Orphaned syntax error in `customers.py` (dead code after `return insights`)
+
 ## MyGenie POS ↔ CRM Integration
 
 ### Current State (Working)
@@ -167,3 +180,8 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 - Postman collection / OpenAPI export for POS team
 - OAuth2 Client Credentials for external POS (Phase 2 of external POS guide)
 - POS Marketplace (Phase 3 of external POS guide)
+
+### Completed (April 19, 2026)
+- ~~Customer migration address sync~~ — `customer_addresses[]` now fully mapped with `pos_address_id`
+- ~~Customer sync pagination~~ — All pages fetched via `?page={page}` loop
+- ~~Address lookup response fields~~ — 9 missing fields added to `/pos/address-lookup`

@@ -595,7 +595,11 @@ POST /api/pos/address-lookup
     "phone": "9876543210",
     "addresses": [
       {
+        "pos_address_id": "497",
         "address": "123 MG Road, Bangalore, Karnataka",
+        "house": "A-101",
+        "floor": "1st",
+        "road": "MG Road",
         "city": "Bangalore",
         "state": "Karnataka",
         "pincode": "560001",
@@ -603,6 +607,11 @@ POST /api/pos/address-lookup
         "latitude": "12.97",
         "longitude": "77.59",
         "address_type": "Home",
+        "zone_id": "6",
+        "contact_person_name": "John",
+        "contact_person_number": "9876543210",
+        "dial_code": "+91",
+        "delivery_instructions": "Ring bell twice",
         "last_used_at": "2026-04-10T12:00:00+00:00",
         "source_restaurant": "Pizzeria Roma"
       }
@@ -615,7 +624,7 @@ POST /api/pos/address-lookup
 - Deduplicated by `address + pincode` — same address from multiple restaurants appears once
 - Sorted by `last_used_at` descending (most recent first)
 - `source_restaurant` shows which restaurant collected the address
-- `contact_person_*` and `delivery_instructions` are NOT included (privacy — those are restaurant-specific)
+- `pos_address_id` is the MyGenie POS address identifier (string, cast from integer)
 - Returns empty array for unknown phone (doesn't reveal if phone exists)
 
 ---
