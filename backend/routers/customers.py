@@ -4,6 +4,10 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import os
 import httpx
+import json
+import logging
+
+logger = logging.getLogger("customer_sync")
 
 from core.database import db
 from core.auth import get_current_user
@@ -66,6 +70,13 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
             )
             
             for i, mygenie_customer in enumerate(customer_list):
+                # Log full raw payload for first 3 customers
+                if i < 3:
+                    logger.info(f"=== RAW MYGENIE CUSTOMER [{i}] ALL KEYS: {list(mygenie_customer.keys())}")
+                    logger.info(f"=== RAW MYGENIE CUSTOMER [{i}] FULL PAYLOAD: {json.dumps(mygenie_customer, default=str)}")
+                    # Specifically check address-related fields
+                    addr_fields = {k: v for k, v in mygenie_customer.items() if 'address' in k.lower() or 'addr' in k.lower()}
+                    logger.info(f"=== RAW MYGENIE CUSTOMER [{i}] ADDRESS FIELDS: {json.dumps(addr_fields, default=str)}")
                 customer_data = {
                     "user_id": user_id,
                     "name": mygenie_customer.get("name") or "Unknown",
