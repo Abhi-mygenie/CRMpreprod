@@ -278,6 +278,60 @@ async def get_customer_sync_status(user: dict = Depends(get_current_user)):
     return customer_sync_status[user_id]
 
 
+@router.get("/debug-mygenie-raw-payload")
+async def debug_mygenie_raw_payload(user: dict = Depends(get_current_user)):
+    """
+    DEBUG ENDPOINT: Fetches raw customer data from MyGenie API and returns it as-is.
+    Shows first 3 customers with all fields so we can identify missing mappings.
+    Remove this endpoint after debugging.
+    """
+    user_record = await db.users.find_one({"id": user["id"]})
+    mygenie_token = user_record.get("mygenie_token") if user_record else None
+    if not mygenie_token:
+        return {"success": False, "message": "MyGenie token not found. Please login again."}
+
+    mygenie_api_url = os.getenv("MYGENIE_API_URL", "https://preprod.mygenie.online")
+    endpoint = f"{mygenie_api_url}/api/v1/vendoremployee/whatsappcrm/customer-migration"
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            endpoint,
+            headers={
+                "Authorization": f"Bearer {mygenie_token}",
+                "Content-Type": "application/json; charset=UTF-8",
+                "X-localization": "en"
+            },
+            json={},
+            timeout=60.0
+        )
+        if resp.status_code != 200:
+            return {"success": False, "message": f"MyGenie API returned {resp.status_code}", "body": resp.text}
+
+        data = resp.json()
+        customer_list = data.get("customers", [])
+        total = data.get("total_customers", len(customer_list))
+
+        # Return first 3 customers raw + summary of all keys across all customers
+        sample = customer_list[:3]
+        all_keys = set()
+        address_samples = []
+        for c in customer_list:
+            all_keys.update(c.keys())
+            # Collect any address-related fields
+            for k, v in c.items():
+                if 'address' in k.lower() or 'addr' in k.lower():
+                    if v and len(address_samples) < 5:
+                        address_samples.append({"customer_id": c.get("id"), "key": k, "value": v, "type": type(v).__name__})
+
+        return {
+            "success": True,
+            "total_customers": total,
+            "all_keys_in_payload": sorted(list(all_keys)),
+            "address_related_samples": address_samples,
+            "first_3_raw_customers": sample
+        }
+
+
 @router.post("", response_model=Customer)
 async def create_customer(customer_data: CustomerCreate, user: dict = Depends(get_current_user)):
     # Check if phone exists for this user
