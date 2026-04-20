@@ -295,6 +295,59 @@ async def verify_otp(req: OTPVerify):
     })
 
 
+class SkipOTPRequest(BaseModel):
+    phone: str
+    restaurant_id: str
+
+
+@router.post("/auth/skip-otp")
+async def skip_otp_login(req: SkipOTPRequest):
+    """Silent login without OTP. Finds or creates customer by phone, returns full token."""
+    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
+    now = datetime.now(timezone.utc).isoformat()
+
+    customer = await db.customers.find_one(
+        {"phone": req.phone, "user_id": full_restaurant_id},
+        {"_id": 0, "id": 1, "name": 1}
+    )
+
+    is_new = False
+    if not customer:
+        customer_id = str(uuid.uuid4())
+        customer_doc = {
+            "id": customer_id,
+            "user_id": full_restaurant_id,
+            "name": "",
+            "phone": req.phone,
+            "country_code": "+91",
+            "email": None,
+            "tier": "Bronze",
+            "total_points": 0,
+            "wallet_balance": 0.0,
+            "total_visits": 0,
+            "total_spent": 0.0,
+            "allergies": [],
+            "favorites": [],
+            "customer_type": "normal",
+            "whatsapp_opt_in": False,
+            "is_blocked": False,
+            "created_at": now,
+            "updated_at": now
+        }
+        await db.customers.insert_one(customer_doc)
+        is_new = True
+    else:
+        customer_id = customer["id"]
+
+    token = create_customer_token(customer_id, full_restaurant_id, req.phone)
+    return _resp(True, "Login successful", {
+        "token": token,
+        "customer_id": customer_id,
+        "is_new_customer": is_new,
+        "phone": req.phone
+    })
+
+
 @router.get("/auth/me")
 async def get_me(auth: dict = Depends(verify_customer_token)):
     """Get authenticated customer profile."""
