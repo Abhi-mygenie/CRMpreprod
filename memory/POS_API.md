@@ -13,7 +13,7 @@ All POS endpoints accept **two authentication methods**. Use whichever suits you
 ### Option 1: API Key (Recommended for POS systems)
 
 ```
-X-API-Key: dp_live_xxxxxxxxxxxxxxxxxx
+X-API-Key: YOUR_API_KEY_HERE
 ```
 
 - Long-lived, doesn't expire until regenerated
@@ -1090,7 +1090,7 @@ GET /api/pos/api-key
 
 ```json
 {
-  "api_key": "dp_live_xxxxxxxxxxxxxxxxxx"
+  "api_key": "YOUR_API_KEY_HERE"
 }
 ```
 
@@ -1109,7 +1109,7 @@ POST /api/pos/api-key/regenerate
 ```json
 {
   "message": "API key regenerated successfully",
-  "api_key": "dp_live_new_key_here",
+  "api_key": "YOUR_NEW_API_KEY_HERE",
   "warning": "Make sure to update your POS system with the new key"
 }
 ```
@@ -1208,7 +1208,7 @@ When a restaurant owner logs into CRM via MyGenie SSO, the login response includ
     "created_at": "2026-04-14T..."
   },
   "pos_config": {
-    "api_key": "dp_live_xxxxxxxxxxxxxxxxxx",
+    "api_key": "YOUR_API_KEY_HERE",
     "api_base_url": "https://{crm-domain}/api/pos",
     "webhook_endpoints": {
       "orders": "/pos/orders",

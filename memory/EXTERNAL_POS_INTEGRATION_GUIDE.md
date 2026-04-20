@@ -40,7 +40,7 @@ This guide covers how external POS systems connect to the CRM, the available int
 **For the Restaurant Owner:**
 
 1. Log into CRM Dashboard → Settings → POS Integration
-2. Copy the API key shown (format: `dp_live_xxxxxxxxxx`)
+2. Copy the API key shown (format: `dp_live_xxx...`)
 3. Log into your POS system (Petpooja, Ezzo, etc.)
 4. Go to Integrations / Webhooks / CRM settings
 5. Enter:
@@ -53,7 +53,7 @@ This guide covers how external POS systems connect to the CRM, the available int
 All API calls must include the API key in the `X-API-Key` header:
 
 ```
-X-API-Key: dp_live_xxxxxxxxxxxxxxxxxx
+X-API-Key: YOUR_API_KEY_HERE
 ```
 
 Refer to **POS_API.md** for the complete endpoint reference (23 endpoints).
@@ -253,7 +253,7 @@ Contact the restaurant owner to obtain:
 
 ```bash
 curl -X POST https://{domain}/api/pos/customer-lookup \
-  -H "X-API-Key: dp_live_xxxxx" \
+  -H "X-API-Key: YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{"phone": "9876543210"}'
 ```
@@ -303,3 +303,4 @@ For integration support:
 - **API Documentation:** `POS_API.md`
 - **OpenAPI Spec:** `https://{domain}/api/docs` (Swagger UI)
 - **Technical Contact:** (to be configured per restaurant)
+ant)
