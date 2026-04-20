@@ -390,6 +390,7 @@ users (1)
 
 **Document count**: 33
 **Rate limit**: Max 3 OTPs per phone per restaurant per 5 minutes
+**Note**: The `skip-otp` flow (`POST /scan/auth/skip-otp`) does NOT create any OTP records — it directly issues a token by phone + restaurant_id.
 
 ---
 
@@ -627,7 +628,7 @@ users (1)
 | **Embedded arrays** | `addresses[]` inside `customers`, `items[]` inside `orders` — atomic reads, no joins |
 | **Dual ID system** | CRM `id` (UUID) + POS `pos_customer_id` / `pos_address_id` (integer to string) |
 | **Cross-restaurant lookup** | `phone` number used for address-lookup across tenants |
-| **3 auth systems** | Staff JWT, API Key, Customer OTP Token — all token-scoped differently |
+| **3 auth systems** | Staff JWT, API Key, Customer OTP Token (+ Skip-OTP) — all token-scoped differently |
 | **Event sourcing (light)** | `points_transactions` and `wallet_transactions` as append-only ledgers |
 | **Denormalization** | `order.items[]` embedded snapshot, `customer.total_*` pre-aggregated counters, `order_items` flattened for analytics |
 | **Soft delete** | `is_blocked: true` on customers (data preserved) |

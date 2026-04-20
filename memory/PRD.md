@@ -49,6 +49,7 @@ MyGenie CRM is a full-featured Customer Relationship Management platform with a 
 | CRM Staff JWT | Restaurant owner/staff | Login via MyGenie SSO → JWT with `type: "staff"` | CRM dashboard, admin endpoints |
 | POS Dual Auth | POS systems | API Key (`X-API-Key`) OR Staff JWT | All `/pos/*` endpoints |
 | Customer OTP Token | End customers | OTP verify → JWT with `type: "customer"` | All `/scan/*` endpoints |
+| Customer Skip-OTP Token | End customers | Phone + restaurant_id → JWT with `type: "customer"` (no OTP) | All `/scan/*` endpoints (same rights as OTP) |
 
 Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens rejected on scan, POS API keys rejected on scan.
 
@@ -152,7 +153,7 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 |----------|------|----------|
 | CRM Full Reference | `/app/memory/API_DOC_CRM_APP.md` | Internal — all 3 sections (CRM, POS, Scan & Order) |
 | POS API | `/app/memory/POS_API.md` | POS integration teams (23 endpoints) |
-| Scan & Order API | `/app/memory/SCAN_ORDER_API.md` | Frontend/mobile team (22 endpoints) |
+| Scan & Order API | `/app/memory/SCAN_ORDER_API.md` | Frontend/mobile team (23 endpoints) |
 | External POS Guide | `/app/memory/EXTERNAL_POS_INTEGRATION_GUIDE.md` | Third-party POS vendors (Petpooja, Ezzo) |
 | Other App Data | `/app/memory/API_DOC_OTHER_APP.md` | Internal — data patterns from scan-and-order app |
 
@@ -184,7 +185,8 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 - OAuth2 Client Credentials for external POS (Phase 2 of external POS guide)
 - POS Marketplace (Phase 3 of external POS guide)
 
-### Completed (April 19, 2026)
+### Completed (April 19-20, 2026)
 - ~~Customer migration address sync~~ — `customer_addresses[]` now fully mapped with `pos_address_id`
 - ~~Customer sync pagination~~ — All pages fetched via `?page={page}` loop
-- ~~Address lookup response fields~~ — 9 missing fields added to `/pos/address-lookup`
+- ~~Address lookup response fields~~ — All DB fields now returned in `/pos/address-lookup`
+- ~~Skip OTP silent login~~ — `POST /scan/auth/skip-otp` for passwordless login without OTP verification
