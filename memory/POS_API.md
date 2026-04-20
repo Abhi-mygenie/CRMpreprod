@@ -23,7 +23,7 @@ X-API-Key: dp_live_xxxxxxxxxxxxxxxxxx
 ### Option 2: JWT Bearer Token
 
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+Authorization: Bearer <YOUR_STAFF_JWT_TOKEN>
 ```
 
 - Short-lived (24 hours), obtained from CRM login flow
@@ -1197,7 +1197,7 @@ When a restaurant owner logs into CRM via MyGenie SSO, the login response includ
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "access_token": "<JWT_TOKEN>",
   "user": {
     "id": "pos_0001_restaurant_509",
     "email": "owner@restaurant.com",

@@ -30,7 +30,7 @@ The Scan & Order API uses **Customer JWT Token** — different from CRM staff JW
 ### Using the token
 
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+Authorization: Bearer <YOUR_CUSTOMER_JWT_TOKEN>
 ```
 
 ### Token claims
@@ -149,7 +149,7 @@ POST /api/scan/auth/verify-otp
   "success": true,
   "message": "OTP verified",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "token": "<JWT_TOKEN>",
     "customer_id": "c4530678-647c-42d1-b959-3e457323cab4",
     "is_new_customer": true,
     "phone": "9876543210"
@@ -164,7 +164,7 @@ POST /api/scan/auth/verify-otp
   "success": true,
   "message": "OTP verified",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "token": "<JWT_TOKEN>",
     "customer_id": "existing-uuid",
     "is_new_customer": false,
     "phone": "9876543210"
@@ -213,7 +213,7 @@ POST /api/scan/auth/skip-otp
   "success": true,
   "message": "Login successful",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "token": "<JWT_TOKEN>",
     "customer_id": "b853cea3-3a5a-4567-aec2-f69a91467ab4",
     "is_new_customer": false,
     "phone": "9876543210"
@@ -228,7 +228,7 @@ POST /api/scan/auth/skip-otp
   "success": true,
   "message": "Login successful",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "token": "<JWT_TOKEN>",
     "customer_id": "f0b02a21-1ba0-427a-aee9-ebd840e808bf",
     "is_new_customer": true,
     "phone": "9876543210"
@@ -302,7 +302,7 @@ POST /api/scan/auth/register
 {
   "phone": "9876543210",
   "name": "Raj Kumar",
-  "password": "securepass123",
+  "password": "example_password",
   "restaurant_id": "509",
   "email": "raj@example.com"
 }
@@ -317,7 +317,7 @@ POST /api/scan/auth/register
   "success": true,
   "message": "Registration successful",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "token": "<JWT_TOKEN>",
     "customer_id": "66c10655-cadb-4ef2-a128-1da6f3e95c84"
   }
 }
@@ -344,7 +344,7 @@ POST /api/scan/auth/login
 ```json
 {
   "phone": "9876543210",
-  "password": "securepass123",
+  "password": "example_password",
   "restaurant_id": "509"
 }
 ```
@@ -356,7 +356,7 @@ POST /api/scan/auth/login
   "success": true,
   "message": "Login successful",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "token": "<JWT_TOKEN>",
     "customer_id": "ed08325b-3798-49fa-899e-f43730af6f75"
   }
 }
