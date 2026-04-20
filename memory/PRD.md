@@ -103,6 +103,9 @@ Token isolation enforced: customer tokens rejected on CRM/POS, staff tokens reje
 - **Cross-Restaurant Address Lookup response expanded** — `/pos/address-lookup` now returns 9 additional fields: `pos_address_id`, `zone_id`, `house`, `floor`, `road`, `contact_person_name`, `contact_person_number`, `dial_code`, `delivery_instructions`.
 - **Orphaned dead code cleanup** — Removed unreachable code block at end of `customers.py` (duplicate `Customizations` section after `return`).
 
+### April 20, 2026 - Skip OTP Silent Login
+- **New endpoint: `POST /api/scan/auth/skip-otp`** — Silent login without OTP verification. Customer provides phone + restaurant_id, backend finds or auto-creates customer and returns a full customer JWT token. Token has identical rights to OTP-verified token. Used when customer taps "Skip" on the Scan & Order login screen.
+
 ### Bugs Fixed (April 19, 2026)
 - Customer sync only fetching first page of customers from MyGenie API (pagination missing)
 - `customer_addresses` array from MyGenie not being imported during migration (addresses were lost)

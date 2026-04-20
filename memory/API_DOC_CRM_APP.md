@@ -533,15 +533,16 @@ Login response (`POST /api/auth/login`) includes `pos_config` with `api_key`, `a
 
 ## C1. Customer Authentication
 
-> **Auth flow:** Customer enters phone → receives OTP → verifies → gets session token scoped to a restaurant
+> **Auth flow:** Customer enters phone → receives OTP → verifies → gets session token scoped to a restaurant. Alternatively, customer can skip OTP for silent login.
 
 | # | Status | Method | Route | Purpose |
 |---|--------|--------|-------|---------|
-| C1.1 | Planned | POST | `/scan/auth/request-otp` | Send OTP to customer phone (per restaurant context) |
-| C1.2 | Planned | POST | `/scan/auth/verify-otp` | Verify OTP, return customer session token |
-| C1.3 | Planned | GET | `/scan/auth/me` | Get customer profile (authenticated) |
-| C1.4 | Planned | POST | `/scan/auth/register` | Register new customer with password (optional, OTP is primary) |
-| C1.5 | Planned | POST | `/scan/auth/login` | Login with phone + password (alternative to OTP) |
+| C1.1 | **Implemented** | POST | `/scan/auth/request-otp` | Send OTP to customer phone (per restaurant context) |
+| C1.2 | **Implemented** | POST | `/scan/auth/verify-otp` | Verify OTP, return customer session token |
+| C1.2b | **Implemented** | POST | `/scan/auth/skip-otp` | Silent login without OTP — returns full token with same rights |
+| C1.3 | **Implemented** | GET | `/scan/auth/me` | Get customer profile (authenticated) |
+| C1.4 | **Implemented** | POST | `/scan/auth/register` | Register new customer with password (optional, OTP is primary) |
+| C1.5 | **Implemented** | POST | `/scan/auth/login` | Login with phone + password (alternative to OTP) |
 
 **Data exists:** `customer_otps` collection (14 docs), `customers.password_hash` (8 customers)
 
@@ -554,6 +555,13 @@ Login response (`POST /api/auth/login`) includes `pos_config` with `api_key`, `a
 - Request: `{ "phone": "9876543210", "otp": "490781", "restaurant_id": "..." }`
 - Returns JWT token with `customer_id` + `restaurant_id` claims
 - Creates customer record if first time (links to restaurant)
+
+**C1.2b Design Notes (Skip OTP):**
+- Request: `{ "phone": "9876543210", "restaurant_id": "509" }`
+- Returns identical JWT token as OTP verify — full customer access
+- Finds existing customer or auto-creates new one
+- No OTP generated, no rate limiting, no `customer_otps` record
+- Use case: Customer taps "Skip" on login screen
 
 ---
 

@@ -21,6 +21,12 @@ The Scan & Order API uses **Customer JWT Token** — different from CRM staff JW
 1. `POST /scan/auth/register` → creates account with password
 2. `POST /scan/auth/login` → login with phone + password
 
+**Option C: Skip OTP (Silent Login)**
+1. `POST /scan/auth/skip-otp` → phone + restaurant_id → returns full token without OTP
+   - Used when customer taps "Skip" on login screen
+   - Auto-creates customer if phone is new
+   - Token has same rights as OTP-verified token
+
 ### Using the token
 
 ```
@@ -178,6 +184,64 @@ POST /api/scan/auth/verify-otp
 **Notes:**
 - If `is_new_customer: true`, the app should prompt the customer to complete their profile (name, email, etc.)
 - The same phone at a different restaurant creates a separate token (different `restaurant_id` scope)
+
+---
+
+### 1.2b Skip OTP (Silent Login)
+
+Silent login without OTP verification. Used when the customer taps "Skip" on the login screen. Finds or auto-creates a customer by phone number and returns a full customer JWT token with identical rights to an OTP-verified token.
+
+```
+POST /api/scan/auth/skip-otp
+```
+
+**Auth:** None (public)
+
+**Request:**
+
+```json
+{
+  "phone": "9876543210",
+  "restaurant_id": "509"
+}
+```
+
+**Response (success — existing customer):**
+
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "customer_id": "b853cea3-3a5a-4567-aec2-f69a91467ab4",
+    "is_new_customer": false,
+    "phone": "9876543210"
+  }
+}
+```
+
+**Response (success — new customer auto-created):**
+
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "customer_id": "f0b02a21-1ba0-427a-aee9-ebd840e808bf",
+    "is_new_customer": true,
+    "phone": "9876543210"
+  }
+}
+```
+
+**Notes:**
+- Phone number is always required — this is NOT anonymous access
+- Token is identical to OTP-verified token (`type: "customer"`) — all `/scan/*` endpoints work
+- Auto-creates customer record if phone doesn't exist at this restaurant (same as OTP verify flow)
+- No rate limiting (unlike OTP request which limits to 3 per 5 minutes)
+- No OTP record is created in `customer_otps` collection
 
 ---
 
