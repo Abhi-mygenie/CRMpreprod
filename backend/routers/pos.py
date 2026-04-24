@@ -837,9 +837,14 @@ async def _save_order_and_transactions(
         
         # Order Meta
         "order_type": order_data.order_type,
+        "order_status": order_data.order_status,
         "table_id": order_data.table_id,
         "waiter_id": order_data.waiter_id,
+        "employee_id": order_data.employee_id,
+        "employee_name": order_data.employee_name,
         "print_kot": order_data.print_kot,
+        "print_bill_status": order_data.print_bill_status,
+        "restaurant_order_id": order_data.restaurant_order_id,
         
         # Room/Address (for future use)
         "paid_room": order_data.paid_room,
@@ -855,6 +860,8 @@ async def _save_order_and_transactions(
         "off_peak_bonus": off_peak_bonus,
         
         # Timestamps
+        "order_created_at": order_data.order_created_at,
+        "order_updated_at": order_data.order_updated_at,
         "created_at": now,
     }
     
@@ -965,9 +972,21 @@ class OrderItem(BaseModel):
     # Taxes
     gst_amount: float = 0.0
     vat_amount: float = 0.0
+    tax: Optional[float] = None  # food_details.tax (migration field)
+    tax_type: Optional[str] = None  # "GST", "VAT" (migration field)
     
     # Kitchen
     station: Optional[str] = None  # "OTHER", "BAR", "KITCHEN"
+    item_type: Optional[str] = None  # "OTHER", etc. (migration field)
+    
+    # Status & Timestamps
+    food_status: Optional[int] = None  # Kitchen status code (migration field)
+    ready_at: Optional[str] = None  # When item was ready
+    serve_at: Optional[str] = None  # When item was served
+    cancel_at: Optional[str] = None  # When item was cancelled
+    
+    # Flags
+    is_veg: Optional[object] = None  # bool or int (0/1) from POS
     
     # Notes
     item_notes: Optional[str] = None  # food_level_notes
@@ -982,6 +1001,7 @@ class POSOrderWebhook(BaseModel):
     
     # Order Identification
     order_id: str
+    restaurant_order_id: Optional[str] = None  # Restaurant's internal order number
     
     # Customer Info
     cust_mobile: str
@@ -1021,16 +1041,26 @@ class POSOrderWebhook(BaseModel):
     payment_type: Optional[str] = None  # "prepaid", "postpaid"
     transaction_id: Optional[str] = None
     
+    # Order Status
+    order_status: Optional[str] = None  # "queue", "confirmed", "completed", etc.
+    
     # Order Meta
     order_type: Optional[str] = "pos"  # pos, dine_in, takeaway, delivery
     table_id: Optional[str] = None
     waiter_id: Optional[str] = None
+    employee_id: Optional[str] = None  # Employee who created order
+    employee_name: Optional[str] = None  # Employee name
     print_kot: Optional[str] = None  # "Yes", "No"
+    print_bill_status: Optional[str] = None  # "Yes", "No"
     
     # Room/Address (for future use)
     paid_room: Optional[str] = None
     room_id: Optional[str] = None
     address_id: Optional[str] = None
+    
+    # Timestamps (POS original timestamps)
+    order_created_at: Optional[str] = None  # Original order creation time in POS
+    order_updated_at: Optional[str] = None  # Original order update time in POS
     
     # Notes & Items
     order_notes: Optional[str] = None  # order_note
