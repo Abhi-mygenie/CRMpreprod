@@ -12,31 +12,22 @@ Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git from 30-April bran
 ## What's Been Implemented (2026-05-20)
 - Cloned repo from `30-April` branch
 - Configured backend .env with external MongoDB connection
-- Installed all backend Python dependencies
-- Installed all frontend Node.js dependencies (yarn)
+- Installed all backend Python dependencies + frontend Node.js dependencies
 - Both services running and healthy
-- **Login flow investigation** completed — full trace documented at `/app/memory/crm/CRM_LATEST_BRANCH_LOGIN_FLOW_EXPLANATION.md`
+- **Login flow investigation** → `/app/memory/crm/CRM_LATEST_BRANCH_LOGIN_FLOW_EXPLANATION.md`
+- **CR-001 implementation plan** → `/app/memory/crm/CR_001_RESTAURANT_CRM_TOKEN_PUSH_IMPLEMENTATION_PLAN.md`
 
 ## Key Modules
 - Auth (MyGenie POS login + local user management)
 - Customers, Points/Loyalty, Wallet, Coupons, Feedback
 - WhatsApp integration, POS Gateway, Migration, Analytics, Scan, Cron/Scheduler
 
-## Login Flow Summary
-- `/api/auth/login` → delegates to `mygenie_login()`
-- Calls MyGenie POS login + profile on every real login
-- Creates local user + api_key + loyalty settings + templates on first login
-- Updates mygenie_token + password_hash on subsequent logins
-- Returns CRM JWT + pos_config (but frontend ignores pos_config)
-- `restaurant-crm-token` push: NOT IMPLEMENTED (CR-001 PLANNED)
-
 ## Prioritized Backlog
 ### P0
-- Implement CR-001: Push CRM token to MyGenie on first login
+- **CR-001: Push CRM token to MyGenie on login** — Plan ready, awaiting owner approval
 - Fix `api_base_url` — set `CRM_EXTERNAL_URL` in backend .env
 
 ### P1
-- Add api_key backfill for existing users without one
 - Multi-restaurant support (currently hardcoded to restaurants[0])
 
 ### P2
@@ -44,6 +35,7 @@ Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git from 30-April bran
 - Clean up unused pos_config from frontend login response handling
 
 ## Status
-- Backend: RUNNING (health check passing)
-- Frontend: RUNNING (webpack compiled with warnings only)
+- Backend: RUNNING
+- Frontend: RUNNING
 - Database: Connected to external MongoDB (mygenie)
+- CR-001: PLANNED → implementation_plan_ready_for_owner_approval
