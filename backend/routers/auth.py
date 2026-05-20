@@ -41,6 +41,93 @@ def _build_pos_config(api_key: str) -> dict:
         "webhook_endpoints": POS_WEBHOOK_ENDPOINTS
     }
 
+import logging
+_cr001_logger = logging.getLogger("cr001")
+
+
+async def _register_crm_token_with_pos(
+    client,
+    mygenie_api_url: str,
+    restaurant_id: str,
+    api_key: str,
+    mygenie_token: str,
+    user_id: str
+):
+    """
+    CR-001: Push CRM API key to MyGenie POS as crm_token.
+    Fire-and-forget — never raises, never blocks login.
+    Treats 2xx and 409 as success.
+    Persists registration status on users doc.
+    """
+    if not restaurant_id or not api_key:
+        _cr001_logger.warning(
+            f"CR-001 skip: missing restaurant_id={restaurant_id} or api_key for user={user_id}"
+        )
+        return
+
+    crm_token_endpoint = os.getenv(
+        "MYGENIE_CRM_TOKEN_ENDPOINT",
+        "/api/v1/auth/restaurant-crm-token"
+    )
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        headers = {"Content-Type": "application/json"}
+        if mygenie_token:
+            headers["Authorization"] = f"Bearer {mygenie_token}"
+
+        resp = await client.post(
+            f"{mygenie_api_url}{crm_token_endpoint}",
+            json={
+                "restaurant_id": restaurant_id,
+                "crm_token": api_key
+            },
+            headers=headers,
+            timeout=10.0
+        )
+
+        success = 200 <= resp.status_code < 300 or resp.status_code == 409
+
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {
+                "crm_token_registered_with_pos": success,
+                "crm_token_registered_at": now,
+                "pos_crm_token_response": {
+                    "status_code": resp.status_code,
+                    "body": resp.text[:500],
+                    "timestamp": now
+                }
+            }}
+        )
+
+        if success:
+            _cr001_logger.info(
+                f"CR-001 OK: crm_token pushed for user={user_id} restaurant={restaurant_id} status={resp.status_code}"
+            )
+        else:
+            _cr001_logger.warning(
+                f"CR-001 FAIL: status={resp.status_code} body={resp.text[:200]} user={user_id}"
+            )
+
+    except Exception as e:
+        _cr001_logger.error(f"CR-001 ERROR: {type(e).__name__}: {e} user={user_id}")
+        try:
+            await db.users.update_one(
+                {"id": user_id},
+                {"$set": {
+                    "crm_token_registered_with_pos": False,
+                    "crm_token_registered_at": now,
+                    "pos_crm_token_response": {
+                        "error": f"{type(e).__name__}: {str(e)[:300]}",
+                        "timestamp": now
+                    }
+                }}
+            )
+        except Exception:
+            pass  # Absolute last resort — never crash login
+
+
 # Demo user credentials
 DEMO_EMAIL = "demo@restaurant.com"
 DEMO_PASSWORD = "demo123"
@@ -324,6 +411,22 @@ async def mygenie_login(credentials: UserLogin):
                         "last_login": datetime.now(timezone.utc).isoformat()
                     }}
                 )
+
+                # CR-001: Backfill api_key if missing (legacy users)
+                api_key = existing_user.get("api_key")
+                if not api_key:
+                    api_key = generate_api_key()
+                    await db.users.update_one(
+                        {"id": existing_user["id"]},
+                        {"$set": {"api_key": api_key}}
+                    )
+
+                # CR-001: Push CRM token to MyGenie POS
+                await _register_crm_token_with_pos(
+                    client, mygenie_api_url, restaurant_id,
+                    api_key, mygenie_token, existing_user["id"]
+                )
+
                 token = create_token(existing_user["id"])
                 return TokenResponse(
                     access_token=token,
@@ -336,7 +439,7 @@ async def mygenie_login(credentials: UserLogin):
                         pos_name=existing_user.get("pos_name", ""),
                         created_at=existing_user["created_at"]
                     ),
-                    pos_config=_build_pos_config(existing_user.get("api_key", "")),
+                    pos_config=_build_pos_config(api_key),
                     is_demo=False
                 )
             
@@ -361,6 +464,12 @@ async def mygenie_login(credentials: UserLogin):
                 "last_login": now
             }
             await db.users.insert_one(user_doc)
+            
+            # CR-001: Push CRM token to MyGenie POS (first-time user)
+            await _register_crm_token_with_pos(
+                client, mygenie_api_url, restaurant_id,
+                api_key, mygenie_token, user_id
+            )
             
             # Create default loyalty settings
             settings_doc = {
