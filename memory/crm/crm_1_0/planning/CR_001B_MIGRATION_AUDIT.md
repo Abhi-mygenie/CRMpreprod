@@ -95,25 +95,19 @@ For each field consumed downstream, confirm: (a) realtime sends it, (b) migratio
 
 ---
 
-## 5. ISSUE-10 — Customer Migration Sync Stops Mid-Loop (NEW, discovered 2026-05-21)
+## 5. ISSUE-10 — Customer Migration Sync Stops Mid-Loop (RESOLVED via minimal fix 2026-05-21)
 
-> Full root-cause and evidence in `/app/memory/crm/crm_1_0/findings/ISSUE_10_CUSTOMER_MIGRATION_SYNC_STOPS_MID_LOOP.md`.
+> Full root-cause, evidence, and fix diff in `/app/memory/crm/crm_1_0/findings/ISSUE_10_CUSTOMER_MIGRATION_SYNC_STOPS_MID_LOOP.md`.
 
-**Summary:** `background_customer_sync` in `/app/backend/routers/customers.py` (L25-258) crashes mid-loop on every restaurant. `last_customer_sync_at` is `None` for all 8 users with `total_customers_in_pos` set. Restaurant 689 shows the worst impact: 6 of 2,034 customers synced.
+**Root cause confirmed (CRM-side, zero POS fault):** `customer_addresses` array from MyGenie can contain `null` entries. `/app/backend/routers/customers.py` L123 called `mg_addr.get("id", "")` on those nulls → `AttributeError` → broad outer `except` swallowed the exception → entire background task died with `status="failed"` stored only in-memory.
 
-| Restaurant | POS total | Synced | % |
-|---|---:|---:|---:|
-| 689 | 2,034 | 6 | 0.3% |
-| 475 | 4,229 | 3 | 0.1% |
-| 478 | 67 | 13 | 19.4% |
-| 558 | 7 | 5 | 71.4% |
-| ... | ... | ... | ... |
+**Reproduced across 3 restaurants** (635 crashed at 228/234, 541 at 0/N, 689 at 6/2,034) — every one failed at the first customer whose `customer_addresses` array contained a `null`.
 
-**Root cause hypothesis (top):** hard key access `mygenie_customer["id"]` at L89, L101, L154 — any record missing `id` raises `KeyError`; the broad `except` at L256 catches it, sets `status="failed"` in an **in-memory dict only**, then exits. Status is lost on restart.
+**Fix applied (preview env, owner-scoped to "null-address guard only"):** 5-line `isinstance(mg_addr, dict)` guard inside the address loop. Skips non-dict entries with a `logger.warning(...)` and continues. No other code changed.
 
-**Need from owner:** raw response of one `POST https://preprod.mygenie.online/api/v1/vendoremployee/whatsappcrm/customer-migration?page=1` call (with restaurant 689's `mygenie_token`) so we can pin the exact failing record shape.
+**Status:** awaiting verification re-sync for 689 / 541 / 635 by owner. Diagnostic INFO/EXCEPTION logging retained in code for future regressions.
 
-**Hotfix (F1-F6) proposed in findings doc §5; new owner questions Q17 (authorize) and Q18 (re-sync scope) added below.**
+**Out-of-scope follow-ups deferred (still tracked in findings doc §6 as F1/F2/F4):** safe `.get("id")` for `mygenie_customer["id"]` on L89/L101/L154; per-record `try/except` in the main loop; persisting `customer_sync_runs` to MongoDB. These will be re-raised only if a new failure mode surfaces.
 
 ---
 

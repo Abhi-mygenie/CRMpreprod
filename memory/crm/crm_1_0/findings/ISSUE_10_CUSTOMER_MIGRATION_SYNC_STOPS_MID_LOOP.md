@@ -35,58 +35,109 @@ For restaurant 689, the 6 inserted customers have `pos_customer_id` values `[22,
 
 ---
 
-## 3. Likely root causes (ranked)
+## 3. Root cause — CONFIRMED (2026-05-21, via diagnostic logging)
 
-### 3.1 Top hypothesis — Hard key access on missing field
+**Verdict: 100% CRM-side bug. Zero POS fault.**
 
-The loop body uses `mygenie_customer["id"]` (square-bracket, raises `KeyError` if missing) at three places:
+Stack trace from `/var/log/supervisor/backend.err.log` (preview env, after diagnostic patch was applied):
 
-- L89 (email fallback): `f"customer{mygenie_customer['id']}@mygenie.local"`
-- L101 (assignment): `"pos_customer_id": mygenie_customer["id"]`
-- L154 (dedup lookup): `"pos_customer_id": mygenie_customer["id"]`
+```
+Traceback (most recent call last):
+  File "/app/backend/routers/customers.py", line 123, in background_customer_sync
+    "pos_address_id": str(mg_addr.get("id", "")),
+                          ^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'
+```
 
-If even one record from MyGenie comes back without an `id`, the loop raises and the catch at L256 ends the entire sync. No partial commit because each successful customer is `insert_one` / `update_one` atomically — explaining why we see a non-trivial count of inserted records before the crash.
+### 3.1 Offending code (pre-fix)
 
-### 3.2 Other plausible causes
+`/app/backend/routers/customers.py` L110-113:
 
-- L94 `int(mygenie_customer.get("total_points_earned") or 0)` — fails on non-numeric strings like `"-"` or `""`.
-- L97-99 same risk on `wallet_balance`, `total_wallet_received`, `total_wallet_used` via `float(...)`.
-- L130 `str(mg_addr["zone_id"])` is inside an `if zone_id is not None` guard but uses `mg_addr["zone_id"]` (bracket) instead of `.get("zone_id")` — still OK because of the prior `mg_addr.get("zone_id") is not None`.
-- L141 `tier = "Bronze"` / `"Gold"` — needs numeric `points`; the L94 cast must succeed first.
-- L181 `db.customers.insert_one(customer_data)` — fails if any unique index conflicts (e.g., `email` unique). Customer email defaults to `customer{id}@mygenie.local` if missing — collision with another tenant's customer that has the same `id` could trigger duplicate-key error.
-- L190-231 — four `insert_one` calls into `points_transactions` / `wallet_transactions` inside the same try block; any of these can fail with unindexed-write errors.
+```python
+mygenie_addresses = mygenie_customer.get("customer_addresses", [])
+crm_addresses = []
+for idx, mg_addr in enumerate(mygenie_addresses):
+    crm_addr = {
+        "id": f"addr_{uuid.uuid4().hex[:12]}",
+        "pos_address_id": str(mg_addr.get("id", "")),   # ← crashes if mg_addr is None
+```
 
-### 3.3 Why the error is invisible
+MyGenie's `customer_addresses` array can contain `null` entries (likely soft-deleted addresses that were kept as `null` placeholders in the array). Our parser assumed every element was a dict → `AttributeError` on `mg_addr.get(...)`.
 
-- `customer_sync_status` (L23) is a module-level dict — process-local memory. Restart clears it.
-- L256-258 `except Exception as e: customer_sync_status[user_id]["status"] = "failed"; ...["error"] = str(e)` — does not log, does not persist to DB, does not bubble up.
-- The `sync-status` endpoint (L298 in `customers.py`) reads from the same in-memory dict — so the UI sees `failed` only during the same process lifetime. After a restart the UI sees nothing and shows `completed` (or whatever the default is).
+The exception propagates to the outer `try` at L43-258 → `except` at L256 catches it → `customer_sync_status[user_id]["status"] = "failed"` (in-memory only) → loop terminates → **no further customers processed**.
+
+### 3.2 Reproduction proof — 3 restaurants, same line, same exception
+
+Captured by diagnostic logger after the user clicked Sync Again:
+
+| Restaurant | Synced before crash | Failing customer (`pos_customer_id`, name) | Crash line |
+|---|---:|---|---|
+| 635 | 228 of 234 | `13509` "Jehs Dormitory" | L123 |
+| 541 | 0 of N | `19` "sagar" | L123 |
+| 689 | 6 of 2,034 | `16511` "meet" | L123 |
+
+The pattern previously observed (every restaurant stalls partway, scattered `pos_customer_id`s, `last_customer_sync_at = None` everywhere) is fully explained by this single bug.
 
 ---
 
-## 4. What we need to confirm root cause
+## 4. Fix applied (2026-05-21)
 
-**Need from owner (read-only artifact):** the raw JSON response of one call:
+### 4.1 Scope (authorized by owner: "apply this fix only, no other edit")
 
+A single 5-line guard inside the `customer_addresses` loop. **No other code changed.** Specifically: did NOT add `.get("id")` safety on `mygenie_customer["id"]`, did NOT add a per-record `try/except`, did NOT persist sync status to MongoDB. Those remain proposals (F1, F2, F4 in §6) if the owner authorizes a wider hotfix later.
+
+### 4.2 Diff
+
+`/app/backend/routers/customers.py` ~L110-L114:
+
+```python
+                    # Map customer_addresses from MyGenie into CRM addresses[] format
+                    mygenie_addresses = mygenie_customer.get("customer_addresses", [])
+                    crm_addresses = []
+                    for idx, mg_addr in enumerate(mygenie_addresses):
++                       if not isinstance(mg_addr, dict):
++                           logger.warning(
++                               "customer_sync skipping non-dict address user_id=%s pos_customer_id=%s idx=%s value=%r",
++                               user_id, mygenie_customer.get("id"), idx, mg_addr,
++                           )
++                           continue
+                        crm_addr = {
 ```
-POST https://preprod.mygenie.online/api/v1/vendoremployee/whatsappcrm/customer-migration?page=1
-Headers: Authorization: Bearer <restaurant_689_mygenie_token>
-         Content-Type: application/json; charset=UTF-8
-         X-localization: en
-Body: {}
-```
 
-Specifically we want:
-- Top-level keys: confirm `customers`, `total_customers`, `last_page` are present.
-- For each `customers[]` entry: presence of `id`, types of `loyalty_point`, `total_points_earned`, `total_points_redeemed`, `wallet_balance`, `total_wallet_received`, `total_wallet_used`, `total_coupon_used`. Look for nulls / dashes / non-numeric strings.
-- Shape of `customer_addresses[]`: any record where `id` is missing or where `zone_id` is a non-castable value?
-- Any duplicate `id` within a page?
+Behavior change: null (or any non-dict) address entries are skipped with a logged warning. The rest of the customer record continues to insert normally. Subsequent customers in the loop are unaffected.
 
-If the owner cannot share the full response, a redacted sample of the **first 20 records** (with PII masked) is enough.
+### 4.3 Diagnostic logging also retained from the earlier patch
+
+Two lines added before this fix (authorized 2026-05-21, same session):
+- INFO log at the start of every per-customer iteration → makes any future per-record failure pinpointable.
+- `logger.exception(...)` in the outer `except` block → makes any future task-level crash visible with full traceback.
+
+These were the lines that pinned the root cause in under 2 minutes. They will stay in code.
+
+### 4.4 Verification plan
+
+After fix deploy:
+
+1. Owner re-triggers Sync Customers for restaurant 689 (was 6/2,034) on the preview env (`https://crm-planning-v1.preview.emergentagent.com`).
+2. Read `/var/log/supervisor/backend.err.log` and confirm:
+   - Per-customer INFO lines progress beyond `pos_customer_id=16511` (the previous crash point).
+   - One or more `customer_sync skipping non-dict address` warnings appear (counts how many null addresses we skipped).
+   - No `background_task_failed` ERROR line for this run.
+   - Final DB count: `customers` where `user_id='pos_0001_restaurant_689'` and `mygenie_synced=true` is close to `total_customers_in_pos=2034`.
+3. Repeat for 541 and 635.
+
+### 4.5 Limitations of this fix (intentional, per owner scope)
+
+This fix only addresses the one null-address failure mode. If MyGenie's API ever returns a customer record where:
+- the top-level `id` is missing → `mygenie_customer["id"]` at L89/L101/L154 still crashes the loop, or
+- `loyalty_point` / `total_points_earned` / `wallet_balance` / etc. is a non-castable string → `int(...)` / `float(...)` at L94-100 still crashes, or
+- `db.customers.insert_one` raises a duplicate-key error → still crashes
+
+…the loop will still die silently and we'll be back here. F1 + F2 from §6 (per-record `try/except` + safe `.get()` + safe numeric coercions) are still recommended as the next increment.
 
 ---
 
-## 5. Recommended remediation (Phase 1.5 — bundled with CR-001B)
+## 5. Original recommended remediation (Phase 1.5 — partial; superseded by §4 for the immediate fix)
 
 | # | Action | Risk |
 |---|---|---|
@@ -115,7 +166,23 @@ Optional but recommended:
 ## 7. Status
 
 ```
-issue_10_awaiting_owner_payload_for_rca
+issue_10_minimal_fix_deployed_awaiting_verification
 ```
 
-Once the raw MyGenie response is provided, root cause will be pinned (likely on a specific record shape) and F1–F6 will be locked. F1+F2+F4 are safe enough to ship even without the raw response.
+- ✅ Root cause identified (CRM-side, null entry in `customer_addresses` array).
+- ✅ Diagnostic logging added (per-iteration INFO + outer `logger.exception`).
+- ✅ Minimal fix deployed to preview env (`/app/backend/routers/customers.py` L114-119 null-address guard).
+- ⏳ Awaiting verification re-sync by owner for restaurants 689 / 541 / 635.
+- ⏳ Owner has explicitly scoped this fix to the null-address guard only; F1/F2/F4 in §6 remain proposals (will be re-raised if any other failure mode surfaces).
+- ⏳ Production deployment not yet done (preview-only).
+
+## 8. Change log
+
+| Date / Time (UTC) | Author | Change |
+|---|---|---|
+| 2026-05-21 ~10:24 | CR-001 planning continuation | Initial document, hypothesis-only. |
+| 2026-05-21 ~11:11 | Same | Diagnostic logging patch deployed (INFO per iteration + `logger.exception` on outer catch). |
+| 2026-05-21 ~11:13-11:18 | Owner | Triggered sync for restaurants 635, 541, 689 from preview UI. |
+| 2026-05-21 ~11:19 | Same | Root cause confirmed: `mg_addr.get()` on `None` at L123. Hypothesis 3.1 (hard key access on `id`) **disproven**; bug was in address loop instead. |
+| 2026-05-21 ~11:21 | Same | Minimal null-address guard deployed (5 lines added). Backend reloaded. |
+| 2026-05-21 — pending | Owner | Re-sync verification for 689 / 541 / 635. |
