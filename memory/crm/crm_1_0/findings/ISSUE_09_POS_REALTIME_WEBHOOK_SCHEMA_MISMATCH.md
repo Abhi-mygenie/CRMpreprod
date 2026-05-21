@@ -3,7 +3,7 @@
 > **Type:** P0 Production Data Quality Bug (long-standing, newly visible)
 > **Discovered:** 2026-05-21 — via first ever live `/api/pos/orders` payload capture
 > **Discovered by:** CR-001 planning continuation (raw payload investigation)
-> **Status:** Open — awaiting owner authorization for hotfix (Q13)
+> **Status:** Forward-only fix authorized by owner (2026-05-21). Old broken realtime item data will remain as-is — **explicit owner decision, not an implementation gap.**
 > **Related:** CR-001 §20, §21 of `/app/memory/crm/crm_1_0/planning/CR_001_ORDER_DATA_MAPPING_PLAN.md`
 
 ---
@@ -101,9 +101,17 @@ All 23 realtime items came from 17 realtime orders, all on `2026-05-21`, across 
 
 ---
 
-## 4. Recommended remediation
+## 4. Recommended remediation — FORWARD-ONLY (owner decision 2026-05-21)
 
-### 4.1 Hotfix (Phase 1.5 — minimal, additive, safe)
+> **Owner decision (recorded 2026-05-21):** The fix is **forward-looking only**. Old broken realtime order/item data will **NOT** be backfilled, marked, or cleaned up. This is an explicit owner decision, not an implementation gap.
+>
+> - ❌ Do **not** backfill the 1 recoverable realtime order (`pos_order_id=868862`).
+> - ❌ Do **not** mark the 16 unrecoverable realtime orders with `item_data_lost`.
+> - ❌ Do **not** run any historical correction script for old realtime orders.
+> - ❌ Do **not** mutate old `orders` / `order_items` data as part of this sprint.
+> - ✅ Implement only the forward fix so every **future** realtime POS webhook order maps correctly.
+
+### 4.1 In-scope (forward-only) hotfix
 
 1. **Add Pydantic validation aliases** on `POSOrderWebhook` and `OrderItem` in `/app/backend/routers/pos.py`:
 
@@ -126,16 +134,22 @@ All 23 realtime items came from 17 realtime orders, all on `2026-05-21`, across 
 
    Note: `pos_food_id` type may need to change from `Optional[int]` to `Optional[str]` since POS sends `"2248345"` as a string. Confirm with one more captured payload.
 
-2. **One-off backfill** — only 1 realtime order has its raw payload (`pos_order_id=868862` in `pos_request_logs`). Re-parse it and update its `orders.items[]` to populate `pos_food_id`, `item_qty`, `item_price`, plus top-level `order_created_at`.
+2. **Add a schema-drift CI/QA guard (if feasible)** — replay the last N `pos_request_logs.request_body` entries through `POSOrderWebhook(**body)` and assert `model_extra` is empty. Prevents recurrence on any future POS contract additions. If a CI integration is not feasible in this sprint, defer this as a stretch item; it does not block the forward fix.
 
-3. **Mark the 16 unrecoverable orders** — set `items[].item_data_lost = true` on the other 16 realtime orders (placed before CR-002 logging was enabled, so their raw payloads are gone). This keeps dashboards honest.
+### 4.2 Out of scope (owner-deferred)
 
-4. **Add a schema-drift CI test** — replay the last N `pos_request_logs.request_body` entries through `POSOrderWebhook(**body)` and assert `model_extra` is empty. Prevents recurrence on any future POS contract additions.
+The following items were previously proposed in this section and are now **explicitly removed from CR-001A implementation scope** per the 2026-05-21 owner decision:
 
-### 4.2 Operational follow-ups
+- ~~One-off backfill of `pos_order_id=868862` from `pos_request_logs`~~ — owner: not approved.
+- ~~Mark `items[].item_data_lost = true` on the 16 unrecoverable realtime orders~~ — owner: not approved.
+- ~~Any historical correction / replay script for pre-fix realtime orders~~ — owner: not approved.
 
-- Keep `POS_REQUEST_LOGGING_ENABLED=true` on production at least until §4.1 step 4 is in place.
-- Capture one each of: `take_away`, `dinein`, `WalkIn`, and (if possible) `room/hotel` realtime orders to confirm no other silent-drop fields exist for those order types.
+The 17 affected realtime orders (1 recoverable + 16 unrecoverable, 2026-05-21 cohort across restaurants 478 / 523 / 675) remain in the database with `items[].item_price=0`, `item_qty=1`, `pos_food_id=null`, and `order_created_at=null`. Downstream consumers (dashboards, analytics, reporting) should treat this as known historical data noise.
+
+### 4.3 Operational follow-ups (unchanged)
+
+- Keep `POS_REQUEST_LOGGING_ENABLED=true` on production for at least the duration of CR-001A.
+- Capture one each of `take_away`, `dinein`, `WalkIn`, and (if possible) `room/hotel` realtime orders to confirm no other silent-drop fields exist for those order types.
 - Document POS's actual field-name contract in `/app/memory/crm/crm_1_0/POS_REALTIME_WEBHOOK_CONTRACT.md` (new doc, owner-approved).
 
 ---
@@ -152,15 +166,15 @@ Implication: there is no zero-POS-change path that puts the operator-selected de
 
 ---
 
-## 6. Owner decisions pending
+## 6. Owner decisions
 
-| Q# | Topic | Recommended |
+| Q# | Topic | Decision / Recommended |
 |---|---|---|
-| **Q10** | Room schema timing — wait for one real room payload? | B (wait) |
-| **Q11** | Delivery address strategy given POS sends no address data on order | B (no POS change; rely on existing `POST /api/pos/customers/{id}/addresses`) or A (request POS to add address fields on order) |
-| **Q11.1** | Snapshot address on order doc | (a) best-effort copy from `customers.addresses[]` at ingest, (b) require POS to send, (c) leave null |
-| **Q12** | Authorize alias fix for `created_at`→`order_created_at` and `item_id`→`pos_food_id` | A (add aliases) |
-| **Q13** | Authorize full hotfix for ISSUE-09 (§4.1 steps 1–4) | A (authorize all) |
+| **Q10** | Room schema timing — wait for one real room payload? | Pending — recommend B (wait) |
+| **Q11** | Delivery address strategy given POS sends no address data on order | Pending — recommend B (no POS change) |
+| **Q11.1** | Snapshot address on order doc | Pending — recommend (c) leave null if Q11=B |
+| **Q12** | Authorize alias fix for `created_at`→`order_created_at` and `item_id`→`pos_food_id` | Pending — recommend A (add aliases) |
+| **Q13** | Authorize full hotfix for ISSUE-09 | **DECIDED 2026-05-21 — forward-only fix authorized. Aliases (§4.1 step 1) and schema-drift QA guard (§4.1 step 2) in scope; backfill and item_data_lost marker explicitly OUT of scope.** |
 
 ---
 
@@ -169,3 +183,4 @@ Implication: there is no zero-POS-change path that puts the operator-selected de
 | Date | Author | Change |
 |---|---|---|
 | 2026-05-21 | CR-001 planning continuation | Initial document. Findings derived from live capture of order 868862 and DB-wide aggregation across `orders` (`pos_request_logs.id`, `mygenie_synced` flag, item-level price/qty distribution). |
+| 2026-05-21 | Owner decision recorded | Forward-only fix authorized. Backfill of `pos_order_id=868862`, `item_data_lost` marker on 16 orders, and any historical correction script — **all explicitly removed from CR-001A scope**. Old realtime broken item data will remain as-is. Status: `docs_updated_forward_only_fix_owner_decision_recorded`. |
