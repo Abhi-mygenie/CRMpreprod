@@ -22,7 +22,7 @@ CR-001 grew to span three distinct domains with different urgency, risk profiles
 | Sub-CR | Title | Status | Priority | Owner area | Planning doc |
 |---|---|---|---|---|---|
 | **CR-001A** | Realtime POS Webhook Data Mapping | `cr001a_forward_only_fix_owner_decision_recorded` — Q13 decided; Q10/Q11/Q11.1/Q12 open | **P0** | `/app/backend/routers/pos.py` (`POSOrderWebhook`, `OrderItem`, `_find_or_create_customer`, `_save_order_and_transactions`) | `CR_001A_REALTIME_POS_WEBHOOK.md` |
-| **CR-001B** | Historical / Migration Data Audit | `cr001b_docs_updated_forward_only_fix_owner_decision_recorded` — Q15 closed, Q17 applied; Q14/Q14.1 open | P2 | `/app/backend/routers/migration.py` + `/app/backend/routers/customers.py` | `CR_001B_MIGRATION_AUDIT.md` |
+| **CR-001B** | Historical / Migration Data Audit | `cr001b_ready_for_audit_execution` — all owner Qs closed; ready to run full read-only audit | P2 | `/app/backend/routers/migration.py` + `/app/backend/routers/customers.py` | `CR_001B_MIGRATION_AUDIT.md` |
 | **CR-001C** | CRM Visibility / UI Mapping | Planning — Phase 1 locked, Phase 2 backlog | P1 | `/app/backend/routers/points.py`, `wallet.py`, `services/analytics_service.py`, frontend `CustomerDetailPage.jsx` + Dashboard | `CR_001C_CRM_VISIBILITY_UI.md` |
 
 ---
@@ -68,11 +68,11 @@ CR-001 grew to span three distinct domains with different urgency, risk profiles
 | Q11.1 | CR-001A | Address snapshot on order doc | Open |
 | Q12 | CR-001A | Alias for `created_at`→`order_created_at`, `item_id`→`pos_food_id` | Open |
 | Q13 | CR-001A | ISSUE-09 fix scope | **DECIDED 2026-05-21 — forward-only fix, no backfill, no marker** |
-| Q14 | CR-001B | Scope of migration audit | Open |
-| Q14.1 | CR-001B | Post-audit fix path | Open (recommend new CR-001B-fix) |
+| Q14 | CR-001B | Scope of migration audit | **DECIDED 2026-05-21 — A (full audit)** |
+| Q14.1 | CR-001B | Post-audit fix path | **DECIDED 2026-05-21 — b (split CR-001B-fix)** |
 | Q15 | CR-001B | 16 unrecoverable realtime orders cleanup | **CLOSED 2026-05-21 — owner decision: leave as-is** |
 | Q17 | CR-001B | ISSUE-10 hotfix authorization | **APPLIED 2026-05-21 — minimal null-address guard only** |
-| Q18 | CR-001B | Re-sync scope | In progress (verification by owner on preview env) |
+| Q18 | CR-001B | Re-sync scope | **CLOSED 2026-05-21 — verified working (689 = 100%, 2,027 nulls skipped)** |
 | Q16 | CR-001C | Phase 2: order history endpoint design | Open |
 
 ---
@@ -86,9 +86,9 @@ cr001_split_into_subcrs_planning_in_progress
    │           (H1+H2 in scope; H4 stretch; H3 backfill + marker REMOVED)
    │           Outstanding owner Qs: Q10, Q11, Q11.1, Q12
    │
-   ├─ CR-001B: cr001b_docs_updated_forward_only_fix_owner_decision_recorded
-   │           (read-only audit; ISSUE-10 minimal guard applied; cleanup REMOVED)
-   │           Outstanding owner Qs: Q14, Q14.1
+   ├─ CR-001B: cr001b_ready_for_audit_execution
+   │           (all owner Qs closed; ready for read-only audit; ISSUE-10 fixed & verified)
+   │           Outstanding owner Qs: none
    │
    └─ CR-001C: cr001c_phase1_locked_phase2_open
                Outstanding owner Qs: Q16, Q16.1, Q16.2

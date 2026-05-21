@@ -122,15 +122,15 @@ For each field consumed downstream, confirm: (a) realtime sends it, (b) migratio
 
 ---
 
-## 7. Open questions (CR-001B scope)
+## 7. Open questions (CR-001B scope) — ALL CLOSED 2026-05-21
 
-| Q# | Topic | Options | Status / Recommended |
-|---|---|---|---|
-| **Q14** | Audit depth | A) AUDIT-O1..O4 + AUDIT-I1..I7 + AUDIT-C1..C5 (full); B) order + customer only, skip item-level operational fields (skip AUDIT-I6/I7); C) item-level audit only | Pending — recommend **A** (do it once, do it right) |
-| **Q14.1** | After audit, who fixes migration gaps? | a) reopen migration code in same CR; b) split a CR-001B-fix sub-CR after audit completes; c) accept gaps and document only | Pending — recommend **b** (avoids scope creep; CR-001B stays read-only) |
-| ~~Q15~~ | ~~Cleanup of 16 unrecoverable orders~~ | n/a | **CLOSED 2026-05-21 — owner decision: leave as-is, no cleanup.** |
-| **Q17** | ISSUE-10 customer-sync hotfix | n/a | **APPLIED 2026-05-21** — minimal null-address guard only (5-line `isinstance` check + diagnostic logging). F1/F2/F4 in findings doc §6 remain proposals, not approved. |
-| **Q18** | Re-sync customers post-ISSUE-10 hotfix | A) all 8 restaurants; B) active prod only; C) just 689 | Owner currently re-syncing affected restaurants on preview env. |
+| Q# | Topic | Decision |
+|---|---|---|
+| **Q14** | Audit depth | ✅ **DECIDED — A (Full audit):** AUDIT-O1..O4 (order) + AUDIT-I1..I7 (item) + AUDIT-C1..C5 (customer). Read-only. |
+| **Q14.1** | After audit, who fixes migration gaps? | ✅ **DECIDED — b (Split CR-001B-fix after audit):** CR-001B stays strictly read-only; any code fix becomes a separate scoped CR with explicit owner approval. |
+| ~~Q15~~ | ~~Cleanup of 16 unrecoverable orders~~ | ✅ **CLOSED — owner decision: leave as-is, no cleanup.** |
+| **Q17** | ISSUE-10 customer-sync hotfix | ✅ **APPLIED 2026-05-21** — minimal null-address guard only (5-line `isinstance` check + diagnostic logging). F1/F2/F4 in findings doc §6 remain proposals, not approved. |
+| **Q18** | Re-sync customers post-ISSUE-10 hotfix | ✅ **CLOSED — VERIFIED 2026-05-21.** Restaurant 689 fully synced 2,034 / 2,034 (100%) with `last_customer_sync_at = 2026-05-21T11:22:57Z`. 2,027 null addresses skipped gracefully. Other restaurants can be re-triggered any time at owner discretion. |
 
 ---
 
@@ -153,14 +153,10 @@ For each field consumed downstream, confirm: (a) realtime sends it, (b) migratio
 ## 10. Status
 
 ```
-cr001b_docs_updated_forward_only_fix_owner_decision_recorded
+cr001b_ready_for_audit_execution
 ```
 
-Outstanding: Q14, Q14.1.
-Closed: Q15 (owner decision: leave as-is), Q17 (applied 2026-05-21).
-In-progress: Q18 (re-sync verification by owner on preview env).
-
-Independent of CR-001A and CR-001C — read-only audit can start as soon as Q14 / Q14.1 are answered.
+All owner questions closed. Next step: run the full read-only audit (Q14 = A) and produce `/app/memory/crm/crm_1_0/findings/CR_001B_MIGRATION_AUDIT_REPORT.md`. Any gaps found will be packaged into a separate **CR-001B-fix** for explicit owner approval (Q14.1 = b).
 
 ---
 
@@ -171,3 +167,5 @@ Independent of CR-001A and CR-001C — read-only audit can start as soon as Q14 
 | 2026-05-21 | Initial CR-001B split out of CR-001. |
 | 2026-05-21 | ISSUE-10 discovered (customer sync stops mid-loop). Diagnostic logging + null-address guard deployed (owner-scoped, minimal). Q17 closed. |
 | 2026-05-21 | Owner decision: forward-only fix. Cleanup of 16 unrecoverable realtime orders **removed from CR-001B scope**. Q15 closed without action. CR-001B remains a read-only audit; any subsequent migration code fix requires a separate CR-001B-fix. |
+| 2026-05-21 | Q18 verified — restaurant 689 fully synced (2,034/2,034, `last_customer_sync_at` set, 2,027 null addresses skipped gracefully). Fix proven end-to-end. |
+| 2026-05-21 | Q14 = A (full audit), Q14.1 = b (split fix CR). All CR-001B owner questions now closed. Status → `cr001b_ready_for_audit_execution`. |
