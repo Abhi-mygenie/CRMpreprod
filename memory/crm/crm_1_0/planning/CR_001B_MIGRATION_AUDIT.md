@@ -95,7 +95,29 @@ For each field consumed downstream, confirm: (a) realtime sends it, (b) migratio
 
 ---
 
-## 5. Cleanup workstream — 16 unrecoverable realtime orders
+## 5. ISSUE-10 — Customer Migration Sync Stops Mid-Loop (NEW, discovered 2026-05-21)
+
+> Full root-cause and evidence in `/app/memory/crm/crm_1_0/findings/ISSUE_10_CUSTOMER_MIGRATION_SYNC_STOPS_MID_LOOP.md`.
+
+**Summary:** `background_customer_sync` in `/app/backend/routers/customers.py` (L25-258) crashes mid-loop on every restaurant. `last_customer_sync_at` is `None` for all 8 users with `total_customers_in_pos` set. Restaurant 689 shows the worst impact: 6 of 2,034 customers synced.
+
+| Restaurant | POS total | Synced | % |
+|---|---:|---:|---:|
+| 689 | 2,034 | 6 | 0.3% |
+| 475 | 4,229 | 3 | 0.1% |
+| 478 | 67 | 13 | 19.4% |
+| 558 | 7 | 5 | 71.4% |
+| ... | ... | ... | ... |
+
+**Root cause hypothesis (top):** hard key access `mygenie_customer["id"]` at L89, L101, L154 — any record missing `id` raises `KeyError`; the broad `except` at L256 catches it, sets `status="failed"` in an **in-memory dict only**, then exits. Status is lost on restart.
+
+**Need from owner:** raw response of one `POST https://preprod.mygenie.online/api/v1/vendoremployee/whatsappcrm/customer-migration?page=1` call (with restaurant 689's `mygenie_token`) so we can pin the exact failing record shape.
+
+**Hotfix (F1-F6) proposed in findings doc §5; new owner questions Q17 (authorize) and Q18 (re-sync scope) added below.**
+
+---
+
+## 6. Cleanup workstream — 16 unrecoverable realtime orders
 
 ISSUE-09 surfaced 17 realtime orders placed on 2026-05-21. Only `pos_order_id=868862` has its raw payload in `pos_request_logs` (the rest were placed before CR-002 logging was enabled on production).
 
@@ -118,13 +140,15 @@ Recommended: **A** (lowest risk, recoverable).
 
 ---
 
-## 6. Open questions (CR-001B scope)
+## 7. Open questions (CR-001B scope)
 
 | Q# | Topic | Options | Recommended |
 |---|---|---|---|
 | **Q14** | Audit depth | A) AUDIT-O1..O4 + AUDIT-I1..I7 + AUDIT-C1..C5 (full); B) order + customer only, skip item-level operational fields (skip AUDIT-I6/I7); C) item-level audit only | **A** (do it once, do it right) |
 | **Q15** | Cleanup of 16 unrecoverable orders | A) mark `item_data_lost`; B) delete `items[]`; C) leave; D) re-fetch from MyGenie | **A** |
 | **Q14.1** | After audit, who fixes migration gaps? | a) reopen migration code in same CR; b) split a CR-001B-fix sub-CR after audit completes; c) accept gaps and document only | **b** (avoids scope creep) |
+| **Q17** | Authorize ISSUE-10 hotfix (F1–F6 in findings doc) | A) **authorize all**; B) F1+F2 only (minimal); C) defer | **A** |
+| **Q18** | After ISSUE-10 hotfix, re-sync customers for which restaurants? | A) all 8 (every restaurant in `users` with `total_customers_in_pos`); B) only active production restaurants; C) only restaurant 689 | **A** |
 
 ---
 

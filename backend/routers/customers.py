@@ -81,6 +81,14 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                     )
 
                 for i, mygenie_customer in enumerate(customer_list):
+                    # DIAGNOSTIC: log every record we attempt so we can pinpoint the crashing one
+                    logger.info(
+                        "customer_sync user_id=%s page=%s idx=%s pos_customer_id=%s name=%r phone=%r",
+                        user_id, page, i,
+                        mygenie_customer.get("id"),
+                        (mygenie_customer.get("name") or "")[:40],
+                        mygenie_customer.get("phone"),
+                    )
                     customer_data = {
                         "user_id": user_id,
                         "name": mygenie_customer.get("name") or "Unknown",
@@ -254,6 +262,10 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
             customer_sync_status[user_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
             
     except Exception as e:
+        logger.exception(
+            "customer_sync background_task_failed user_id=%s page=%s synced_so_far=%s updated_so_far=%s",
+            user_id, locals().get("page"), synced_count, updated_count,
+        )
         customer_sync_status[user_id]["status"] = "failed"
         customer_sync_status[user_id]["error"] = str(e)
 
