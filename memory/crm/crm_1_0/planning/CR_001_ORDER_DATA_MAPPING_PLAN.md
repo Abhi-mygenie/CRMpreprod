@@ -1,6 +1,13 @@
 # CR-001 — POS Order Data Mapping & CRM Visibility — Plan
 
-> **Status:** `cr001_order_data_mapping_plan_waiting_owner_answers`
+> **⚠️ SUPERSEDED for execution (2026-05-21).** This CR has been split into three focused sub-CRs. See `/app/memory/crm/crm_1_0/planning/CR_001_INDEX.md` for the new structure:
+> - **CR-001A** — Realtime POS Webhook Data Mapping (P0, contains ISSUE-09 hotfix) — `CR_001A_REALTIME_POS_WEBHOOK.md`
+> - **CR-001B** — Historical / Migration Data Audit — `CR_001B_MIGRATION_AUDIT.md`
+> - **CR-001C** — CRM Visibility / UI Mapping — `CR_001C_CRM_VISIBILITY_UI.md`
+>
+> This document is retained for historical context — analysis, Round 1 owner answers, ISSUE-07 resolution, and the §21 ISSUE-09 deep-dive all live here and are referenced by the sub-CRs.
+
+> **Status:** `cr001_split_into_subcrs_planning_in_progress`
 > **Sprint:** CRM 1.0
 > **Priority:** P0
 > **Date:** 2026-05-22 (originally authored); **Continued/verified:** 2026-05-21 (continuation run)
