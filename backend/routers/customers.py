@@ -118,6 +118,12 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                     mygenie_addresses = mygenie_customer.get("customer_addresses", [])
                     crm_addresses = []
                     for idx, mg_addr in enumerate(mygenie_addresses):
+                        if not isinstance(mg_addr, dict):
+                            logger.warning(
+                                "customer_sync skipping non-dict address user_id=%s pos_customer_id=%s idx=%s value=%r",
+                                user_id, mygenie_customer.get("id"), idx, mg_addr,
+                            )
+                            continue
                         crm_addr = {
                             "id": f"addr_{uuid.uuid4().hex[:12]}",
                             "pos_address_id": str(mg_addr.get("id", "")),
