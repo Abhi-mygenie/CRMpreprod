@@ -604,3 +604,77 @@ cr001_order_data_mapping_plan_waiting_owner_answers
 Minimum blocking questions: **Q3** (customer name policy), **Q7** (proceed without raw payload), **Q8** (capture method).
 
 Plan is complete for the confirmed-fix implementation slice. Payload-dependent items are documented and will be addressed in Phase 2 after capture.
+
+---
+
+## 19. Owner Answers — Round 1 (locked) and Re-scoped CR-001
+
+> **Date received:** 2026-05-21 (continuation run).
+> Owner replied verbatim: `1 A`, `2 C` (with dedup + impact-on-POS-API/Scan-&-Order-API note), `3 C` (unique phone is main key), `4 A` (implement + verify in real-time payload log), `5 D`, `6 D` (defer to Phase 2), `7 C`, `8 B`, `9 ignore`.
+
+### 19.1 Locked answers
+
+| Q# | Topic | Answer | Effect on plan |
+|---|---|---|---|
+| Q1 | Room/hotel schema | **A — Extend schema for full room info block now** | NEW backend work: extend `POSOrderWebhook` + `orders` doc with room block. **But gated on Q10 below** (no room payload sample yet). |
+| Q2 | Delivery address storage | **C — Store on both `orders` and customer address book, with dedup** | NEW backend work: write order's delivery address into `customers.addresses[]` using existing `address + pincode` dedup. **But this requires a POS payload contract change → gated on Q11 below.** |
+| Q3 | Same phone, changed name | **C — Update name only if existing name is blank/generic** | Lock policy: customer match key = `{user_id, phone}` (unique). On match, if `customers.name` is empty, `null`, or matches the auto-generated `^Customer\s+\d+$` pattern, set name to POS `cust_name` (when POS sends a non-empty real name). Otherwise preserve existing name. |
+| Q4 | `is_veg` in `order_items` | **A — Implement now and verify against real-time payload logs** | NEW backend work: copy `is_veg` from `OrderItem` model into `order_items` collection write. Verification step: after CR-002 captures a real POS order, confirm `is_veg` is present in the payload. If POS does not send it, downgrade to documentation-only and revert. |
+| Q5 | Running totals backfill | **D — Defer backfill; only fix forward-path increments in CR-001** | Per existing §6.4 + §8.2. No script against shared prod DB. |
+| Q6 | Order history UI | **D — Defer to Phase 2** | **Remove B7 (backend endpoint) and F1 (frontend tab) from CR-001 Phase 1 scope.** ISSUE-06 stays open and moves to Phase 2 backlog. |
+| Q7 | Proceed without raw payload? | **C — Confirmed fixes now, payload-dependent items in Phase 2** | Standard slice; matches §17 Phase 1/Phase 2 split, now updated by Q1/Q2/Q4/Q6 above. |
+| Q8 | Raw payload capture method | **B — Capture via real POS test order to preview URL (logs)** | CR-002 logging already deployed; awaiting owner/QA to trigger one real dine-in + one delivery + one room test order from MyGenie POS pointing at the preview URL. |
+| Q9 | BUG-090 | **Ignore** | Removed from CR-001 entirely. No further mention required. |
+
+### 19.2 Re-scoped Phase 1 (after Round 1 answers)
+
+In CR-001 Phase 1 we implement the items below. None require a POS payload contract change.
+
+| # | Fix | Issue | Files | Status |
+|---|---|---|---|---|
+| B1 | Add `updated_at` + `last_interaction_date` to customer stats update in order webhook | ISSUE-02 / ISSUE-03 | `pos.py` ~1129 | LOCKED IN |
+| B2 | `$inc total_points_earned` on order webhook when `points_earned > 0` | ISSUE-04 | `pos.py` ~1129 | LOCKED IN |
+| B3 | `$inc total_wallet_used` on order webhook when `wallet_used > 0` | ISSUE-04 | `pos.py` ~1129 | LOCKED IN |
+| B4 | `$inc total_points_earned` / `total_points_redeemed` in CRM manual points endpoint | ISSUE-04 | `points.py` `create_points_transaction` | LOCKED IN |
+| B5 | `$inc total_wallet_received` / `total_wallet_used` in CRM manual wallet endpoint | ISSUE-04 | `wallet.py` `create_wallet_transaction` | LOCKED IN |
+| B6 | Dashboard coupon stats: query `coupon_usage` (join via `coupons.id` for `user_id` scope), use `discount_applied` | ISSUE-05 | `services/analytics_service.py:217-233` | LOCKED IN |
+| B8 (NEW) | Customer name-update policy (Q3=C). In `_find_or_create_customer`, after lookup-by-phone, if `customer.name` is empty / null / matches `^Customer\s+\d+$` and POS sends a non-empty `cust_name`, `$set` the real name. Idempotent. | ISSUE-NEW from Q3 | `pos.py` `_find_or_create_customer` (~line 558) | LOCKED IN |
+| B9 (NEW) | `is_veg` written to `order_items` (copied from `OrderItem.is_veg`) | ISSUE-01 (Q4=A) | `pos.py` `_save_order_and_transactions` (~line 871-915) | LOCKED IN, with post-deploy log verification |
+
+**Removed from Phase 1 (per Q6=D):** ~~B7 (new `GET /api/customers/{id}/orders`)~~ and ~~F1 (Orders tab in `CustomerDetailPage.jsx`)~~ — moved to Phase 2 backlog (ISSUE-06).
+
+### 19.3 Phase 2 / Backlog (after Round 1 answers)
+
+| # | Item | Trigger | Reason it's not Phase 1 |
+|---|---|---|---|
+| P-R1 | Extend `POSOrderWebhook` schema with full room info block (room number, guest name/phone, check-in id, room type, paid_room semantics) | Q1=A **+** real room payload captured via Q8=B | We do not invent unmapped fields; planned implementation begins once one room order is in `pos_request_logs`. |
+| P-D1 | Write delivery address from `/api/pos/orders` into `customers.addresses[]` with dedup by `address + pincode` | Q2=C **+** Q11 owner override (see §19.4) **+** real delivery payload showing address fields | Requires extending `POSOrderWebhook` with full address fields → POS-side change. Today `address_id` is always `null` (272/272 delivery orders). |
+| P-D2 | Cross-API impact analysis: how delivery address ingestion interacts with existing POS API (`POST /api/pos/customers/{id}/addresses`, dedup by `address+pincode`) and Scan & Order API (`POST /api/scan/addresses`). Confirm single-source-of-truth on `customers.addresses[]` is preserved (already documented in `SCAN_ORDER_API.md` L662). | Q2=C | Must be designed before any code change to avoid double-dedup or default-address races. |
+| P-O1 | Order history endpoint + Orders tab in customer detail | Q6=D → Phase 2 | Explicitly deferred by owner. |
+| P-X1 | Raw-payload field gap audit (ISSUE-07). After CR-002 captures one real dine-in + one delivery + one room test order, diff payload keys vs `POSOrderWebhook`/`OrderItem` fields. List silently-dropped fields, propose schema extensions per owner approval. | Q7=C + Q8=B | Pydantic `extra="ignore"` silently drops unknown POS fields. |
+| P-X2 | `total_coupon_used` increment | CR-004 scope (owner-confirmed) | Coupon write-side fixes live in CR-004. |
+| P-X3 | Customer running-totals one-time backfill | Q5=D → explicitly out of scope | Owner confirmed migration already handles existing customers. |
+
+### 19.4 Two follow-up questions surfaced by Round 1 (need owner answer before Phase 1 implementation begins)
+
+| Q# | Topic | Question | Options | Recommended | Why this is asked |
+|---|---|---|---|---|---|
+| **Q10** | Room schema timing (resolves Q1↔Q7 conflict) | When should the room info block schema be added? | A) Add now even though no room payload exists yet — I'll provide field names from POS docs B) **Wait until one real room order is captured via Q8=B, then add exactly the fields POS sends** C) Add a placeholder `room_info: dict` blob to `POSOrderWebhook` so POS can start sending anytime, finalize schema in a follow-up CR | **B** | Plan rule §19.2 forbids inventing fields not in code or payload samples. Today there are 0 room orders and 0 room payloads. |
+| **Q11** | POS payload contract change for delivery address | Q2=C requires POS to start sending address fields (`address`, `pincode`, `city`, `lat`, `lng`, etc.) on `/api/pos/orders`. `CRM_1_0_SCOPE_AND_RULES.md` line 21 lists *"Changing the POS → CRM order payload contract"* as **Out of Scope**. Confirm? | A) **Override the sprint rule for CR-001 only**, allow the contract change, coordinate POS-side push of new fields, plan implementation under P-D1/P-D2 in Phase 2 B) Keep the rule; CR-001 stores delivery address only when POS first calls `POST /api/pos/customers/{id}/addresses` (existing API), no order-webhook change C) Keep the rule for CR-001, open a separate CR for the contract change | **A** if you want delivery address autopopulated from orders. **C** is cleanest. | Without explicit override, Phase 2 P-D1 cannot start. |
+
+### 19.5 Re-scoped Final Status
+
+```
+cr001_order_data_mapping_plan_waiting_owner_answers
+```
+
+Outstanding: **Q10**, **Q11**.
+
+Once Q10 + Q11 are answered, plan moves to:
+
+```
+cr001_order_data_mapping_plan_ready_for_owner_approval
+```
+
+Phase 1 implementation (B1, B2, B3, B4, B5, B6, B8, B9) does **not** depend on Q10 or Q11 and could begin in parallel if the owner chooses to unblock it now. The Q10/Q11 answers gate only Phase 2 (room schema + delivery-address-from-order).
+
