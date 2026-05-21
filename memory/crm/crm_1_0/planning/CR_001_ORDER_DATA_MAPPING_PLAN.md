@@ -3,8 +3,17 @@
 > **Status:** `cr001_order_data_mapping_plan_waiting_owner_answers`
 > **Sprint:** CRM 1.0
 > **Priority:** P0
-> **Date:** 2026-05-22
+> **Date:** 2026-05-22 (originally authored); **Continued/verified:** 2026-05-21 (continuation run)
 > **Source Analysis:** `/app/memory/crm/crm_1_0/analysis/CR_001_ORDER_DATA_MAPPING_ANALYSIS.md`
+
+> ### Continuation Verification Notes (read-only re-check on continuation run)
+> Performed on the live shared MongoDB (`mygenie` on `52.66.232.149:27017`) and current `21-may` codebase — **no writes, no code changes**.
+>
+> 1. **ISSUE-05 (coupon stats collection) is still real.** `/app/backend/services/analytics_service.py` lines 217–233 still query `db.coupon_transactions` with field `discount_amount`. Live coupon write paths (`/app/backend/routers/coupons.py` line 188 and `/app/backend/routers/pos.py` line 2274) still write to `db.coupon_usage` with field `discount_applied`. Only the legacy migration code path (`/app/backend/routers/migration.py` line 226) writes to `coupon_transactions`. The B6 fix in §7 / §8.3 remains correct.
+> 2. **No room/hotel orders exist.** DB-wide `order_type` distribution today: `pos: 15,678`, `take_away: 1,301`, `delivery: 272`, `dinein: 96`, `WalkIn: 15`, **room/hotel: 0**. Matches §5.1 exactly. The "Order Type Coverage Matrix" needs no revision.
+> 3. **No real raw POS payload has been captured yet.** `pos_request_logs` currently contains only 7 entries, all of which are CR-002 synthetic test payloads (`order_id` like `cr002-*`, minimal field set: `pos_id, restaurant_id, order_id, cust_mobile, order_amount [, cust_name][, payment_status]`). None have `order_type`, `room_id`, `paid_room`, `address_id`, or item arrays. **ISSUE-07 remains a blocker** — Q8 (raw payload capture method) is still required before Phase 2.
+> 4. **"BUG-090" reference search was repeated across `/app/memory`, `/app/backend`, `/app/frontend`** — still no occurrence anywhere outside this planning file. Treat BUG-090 as an external/upstream label until owner clarifies (see new Owner Question Q9 below).
+> 5. **Baseline accepted as-is.** CRM token push, CR-002 logging, and POS order ingestion for dine-in (reference order 868855) are all confirmed validated upstream. Nothing in this continuation run touched code, env, DB data, or services.
 
 ---
 
@@ -441,6 +450,7 @@ Same phone from dine-in, delivery, and takeaway all map to the **same customer r
 | **Q6** | Order history UI | Should CR-001 add order history UI to customer detail? | A) **Yes, basic table** (date, type, amount, items count) B) Yes, table + item detail expansion C) Backend only; UI later D) Defer | **A** | Restaurant owners cannot see a customer's past orders |
 | **Q7** | Runtime payload samples | Should implementation proceed without real room/delivery/POS raw payload? | A) Yes, plan from code B) No, block until samples captured C) **Allow confirmed fixes now, defer payload-dependent fixes until captured** | **C** | Confirmed issues (ISSUE-02/03/04/05/06) can ship; payload-dependent items (ISSUE-07, room, delivery address, unmapped fields) wait |
 | **Q8** | **Raw payload capture method** | How will the real POS payload be captured? | A) Deploy CR-002 logging to production (captures all live traffic) B) **Point POS to send test order to preview URL** (captures one sample) C) Inspect MyGenie POS codebase directly D) Both A + B | **B** for immediate planning, **A** for ongoing visibility | **BLOCKER** — without this, ISSUE-07 cannot be resolved and we cannot confirm no fields are being silently dropped |
+| **Q9** | **BUG-090 scope** | Task brief references "BUG-090 impact" for room/hotel orders, but no BUG-090 occurrence exists in `/app/memory`, `/app/backend`, or `/app/frontend`. How should it be handled? | A) Owner provides BUG-090 description/link → re-plan the room section accordingly B) **Treat BUG-090 as an external/POS-side ticket not in CRM scope** until owner shares it C) Skip BUG-090 references entirely | **B** | Cannot plan room-specific BUG-090 mitigation without the actual ticket text |
 
 ---
 
@@ -553,9 +563,10 @@ These questions must be answered before implementation begins:
 | **Q6** | Order history UI scope | NO — A (basic table) is safe default |
 | **Q7** | Proceed without raw payload? | **YES** — determines implementation slice |
 | **Q8** | Raw payload capture method | **YES** — BLOCKER for ISSUE-07 resolution |
+| **Q9** | BUG-090 scope | NO — B (out-of-scope until owner shares ticket) is safe default |
 
 **Minimum required answers before implementation:** Q3, Q7, Q8.
-**If owner approves recommended defaults:** Q1:D, Q2:A, Q3:C, Q4:B, Q5:D, Q6:A, Q7:C, Q8:B — implementation can start on confirmed fixes immediately while payload capture is arranged.
+**If owner approves recommended defaults:** Q1:D, Q2:A, Q3:C, Q4:B, Q5:D, Q6:A, Q7:C, Q8:B, Q9:B — implementation can start on confirmed fixes immediately while payload capture is arranged.
 
 ---
 
