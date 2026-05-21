@@ -784,58 +784,68 @@ Outstanding: **Q10**, **Q11** (with new sub-decision Q11.1), **Q12** (new).
 
 ---
 
-## 21. 🚨 P0 PRODUCTION INCIDENT — POS Item Payload Contract Drift (Discovered 2026-05-21 via live capture)
+## 21. 🚨 P0 PRODUCTION BUG — POS Realtime Webhook ↔ CRM Schema Mismatch (Discovered 2026-05-21 via first live capture)
 
-> **Severity:** P0 — affects per-item revenue, qty, and food_id reporting for ALL POS orders since `2026-05-21 ~06:44 UTC`. **No customer-facing impact** on order totals (`order_amount` still correct), but **item-level analytics, food popularity, and POS food-id linkage are silently broken.**
+> **Severity:** P0 — affects per-item revenue, qty, and food_id on **every** realtime POS order ingested through `/api/pos/orders`. **No customer-facing impact** on order totals (`order_amount` still correct), but **item-level analytics, food popularity, and POS food-id linkage are silently broken for realtime orders.**
+>
+> **Important correction (post-investigation):** This is **NOT a drift** — POS field names did not change recently. The mismatch has existed since the realtime webhook code was first written. It was masked because **historical orders were populated by the migration script** (`/app/backend/routers/migration.py` `background_order_sync`), which does its OWN field mapping from MyGenie's REST API into CRM-native names (`pos_food_id`, `item_qty`, `item_price`) — bypassing the `POSOrderWebhook` Pydantic model entirely. Live realtime traffic via `/api/pos/orders` only began at scale on 2026-05-21, which is why the bug was invisible until now.
 
-### 21.1 Evidence
+### 21.1 Evidence (corrected)
 
-| Metric | Value |
-|---|---|
-| Orders (any time, `order_amount > 50`) where **all** items have `item_price = 0` | **11** — all on `2026-05-21` between `06:44:15Z` and `09:45:52Z` |
-| Orders (any time, `order_amount > 50`) where **at least one** item has `item_price > 0` | **16,740** — `2024-07-05` → `2026-05-21T06:55:40Z` (the last is the CR-002 synthetic probe) |
-| Affected restaurants | `478`, `523`, `675` |
-| Captured live payload (order 868862) | `items[0] = {"item_id": "2248345", "item_name": "hokage", "qty": 1, "price": 0}` |
-| CRM schema (`OrderItem`) | accepts only `pos_food_id`, `item_qty`, `item_price`, `item_name` |
-| CRM behavior with new POS field names | Pydantic `extra="ignore"` silently drops `item_id`, `qty`, `price` → DB row has `pos_food_id=null`, `item_qty=1` (default), `item_price=0.0` (default) |
+| Ingestion path | Total items | Items with `item_price = 0` | Verdict |
+|---|---:|---:|---|
+| Migration (`mygenie_synced=true`, mapping done in `migration.py` L144-149) | 36,716 | 49 (~0.13%) | ✅ correct |
+| **Realtime webhook** `/api/pos/orders` (no `mygenie_synced` flag) | **23** | **22 (~96%)** | 🚨 broken |
 
-### 21.2 Root cause
+All 23 realtime items came from 17 realtime orders, all on `2026-05-21` (restaurants 478, 523, 675). This is when live POS traffic first scaled — the bug has always existed but was not visible because there was effectively no realtime data before today.
 
-POS payload contract for `items[]` changed from `{pos_food_id, item_qty, item_price}` to `{item_id, qty, price}` sometime on the morning of 2026-05-21 (between order 868857 — last good — and 06:44 UTC — first broken). CRM `POSOrderWebhook.items: List[OrderItem]` did not change, so the new field names are silently dropped.
+### 21.2 Root cause (corrected)
 
-**This is not a CRM-side regression** — CRM code is unchanged. **This is a POS-side breaking change** to the `/api/pos/orders` payload contract.
+CRM `POSOrderWebhook` / `OrderItem` Pydantic models in `/app/backend/routers/pos.py` use field names that **never matched** POS's actual realtime payload:
+
+| POS realtime sends | CRM schema expects | Pydantic behavior with default `extra="ignore"` |
+|---|---|---|
+| `created_at` (top-level) | `order_created_at` | silently dropped → `order_created_at = null` |
+| `items[].item_id` | `items[].pos_food_id` | silently dropped → `pos_food_id = null` |
+| `items[].qty` | `items[].item_qty` | silently dropped → `item_qty = 1` (default) |
+| `items[].price` | `items[].item_price` | silently dropped → `item_price = 0.0` (default) |
+
+The migration script side-stepped this because it directly constructs the order dict from MyGenie's REST API response (lines 144-149: `"pos_food_id": food_details.get("id"), "item_qty": item.get("quantity", 1), "item_price": float(item.get("price") or item.get("unit_price") or 0)`), so the Pydantic model is never used on the migration path.
 
 ### 21.3 Blast radius
 
-Affected for every POS order ingested since the change:
-- `orders.items[].item_price` = 0.0 (was the POS line price)
-- `orders.items[].item_qty` = 1 (was the POS line quantity, regardless of actual qty)
-- `orders.items[].pos_food_id` = null (was the POS food id used for joins / catalog analytics)
+Affected for every realtime POS order ingested via `/api/pos/orders` (all 17 orders so far, all 2026-05-21):
+- `orders.items[].item_price` = 0.0 (POS sent line price; was lost)
+- `orders.items[].item_qty` = 1 (POS sent line qty; was lost)
+- `orders.items[].pos_food_id` = null (POS sent food id; was lost)
+- `orders.order_created_at` = null (POS sent timestamp; was lost)
 
-NOT affected (still correct):
-- `orders.order_amount` (top-level total)
-- `orders.items[].item_name`
+NOT affected (still correct on realtime):
+- `orders.order_amount` (top-level total) — POS sends `order_amount`, matches schema
+- `orders.items[].item_name` — POS sends `item_name`, matches schema
 - Customer create, points, wallet, tier — all driven by `order_amount` not `items[]`
 
 ### 21.4 Recommended remediation (Phase 1.5 — pre-Phase-2 hotfix)
 
 | Step | Action | Owner | Risk |
 |---|---|---|---|
-| 1 | Add `validation_alias=AliasChoices('item_id','pos_food_id')` on `OrderItem.pos_food_id`; `AliasChoices('qty','item_qty')` on `OrderItem.item_qty`; `AliasChoices('price','item_price')` on `OrderItem.item_price`. Also `AliasChoices('created_at','order_created_at')` on `POSOrderWebhook.order_created_at`. | CRM team | Low — additive only |
-| 2 | One-off backfill: for `2026-05-21T06:44:00Z` ≤ `created_at` ≤ deployment time, re-parse `pos_request_logs.request_body` and re-write `orders.items[]` for affected orders. | CRM team | Medium — touches live data; gated on owner approval per CR-001 Rule §1 |
-| 3 | (Optional) Add a schema-drift CI test: replay last N `pos_request_logs.request_body` through `POSOrderWebhook(**body)` and assert no fields are dropped (`model_extra` empty). | CRM team | Low — preventative |
+| 1 | Add `validation_alias=AliasChoices('item_id','pos_food_id')` on `OrderItem.pos_food_id`; `AliasChoices('qty','item_qty')` on `OrderItem.item_qty`; `AliasChoices('price','item_price')` on `OrderItem.item_price`. Also `AliasChoices('created_at','order_created_at')` on `POSOrderWebhook.order_created_at`. Configure model with `populate_by_name=True` so both names work. | CRM team | Low — additive, no breaking change |
+| 2 | One-off backfill: for each of the 17 realtime orders (those without `mygenie_synced=true`), re-parse `pos_request_logs.request_body` and re-write `orders.items[]` to populate `pos_food_id`, `item_qty`, `item_price`, and top-level `order_created_at`. **Note:** only the 1 order captured today (`868862`) has a corresponding `pos_request_logs` entry — the other 16 realtime orders were placed BEFORE CR-002 logging was turned on, so their raw payloads are **unrecoverable**. Backfill scope: 1 order. | CRM team | Low |
+| 3 | Add a schema-drift CI test: replay last N `pos_request_logs.request_body` through `POSOrderWebhook(**body)` and assert `model_extra` is empty. | CRM team | Low — preventative |
+| 4 | (Optional) For the 16 unrecoverable realtime orders, set a marker (`item_data_lost: true`) on `orders.items[]` so dashboards and reports can filter them out. | CRM team | Low |
 
 ### 21.5 Owner decision required — Q13 (NEW, P0)
 
 | Q# | Topic | Question | Options | Recommended |
 |---|---|---|---|---|
-| **Q13** | P0 hotfix authorization (this incident) | This is a live production data quality issue. Authorize Phase 1.5 hotfix? | A) **Authorize immediately** — implement §21.4 steps 1+2+3, then resume CR-001 Phase 1 B) Authorize §21.4 step 1 only (forward-fix), skip backfill C) Open a separate CR-006 to track this, do not touch CR-001 D) Confirm with POS team first that the field-name change is intentional and won't revert | **A** if data integrity matters; **D** first if POS may roll back the change. |
+| **Q13** | P0 hotfix authorization | Authorize Phase 1.5 hotfix (§21.4)? | A) **Authorize all 4 steps** — aliases + backfill (1 order) + CI test + lost-data marker on 16 orders B) Authorize step 1 only (forward-fix); accept loss on 17 orders C) Open separate CR-006 to track; don't touch CR-001 D) Verify with POS team first that they send `item_id/qty/price/created_at` intentionally and won't change | **A** — additive aliases are safe, CI test prevents recurrence, lost-data marker keeps reporting honest. |
 
 ### 21.6 Open issue tracker update
 
 | Issue | Status |
 |---|---|
 | ISSUE-07 (raw payload capture) | **RESOLVED** via §20.2 capture |
-| ISSUE-08 (schema alias mismatch — `created_at`, `item_id`) | **CONFIRMED** + **upgraded to P0** in §21 |
-| **NEW ISSUE-09** (POS item contract drift `qty`/`price`) | **P0 OPEN** — see §21.5 Q13 |
+| ISSUE-08 (schema name mismatch — `created_at`, `item_id`) | **CONFIRMED** + **upgraded to P0** in §21 |
+| **NEW ISSUE-09** (POS realtime items field-name mismatch — `qty`/`price`) | **P0 OPEN** — see §21.5 Q13. **NOT** a drift; long-standing mismatch unmasked by 2026-05-21 live traffic. |
+
 
