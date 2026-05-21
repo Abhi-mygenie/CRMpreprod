@@ -12,7 +12,7 @@
 
 ## Config
 - backend/.env: MONGO_URL (remote), DB_NAME=mygenie, JWT_SECRET, CORS_ORIGINS=*
-- frontend/.env: REACT_APP_BACKEND_URL=https://fb9eddd8-99d0-49e1-a5be-b1a2b12ee5a1.preview.emergentagent.com
+- frontend/.env: REACT_APP_BACKEND_URL=https://crm-planning-v1.preview.emergentagent.com
 
 ## Status
 - Backend RUNNING — /api/health returns 200 OK, connected to remote Mongo

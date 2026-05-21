@@ -678,3 +678,164 @@ cr001_order_data_mapping_plan_ready_for_owner_approval
 
 Phase 1 implementation (B1, B2, B3, B4, B5, B6, B8, B9) does **not** depend on Q10 or Q11 and could begin in parallel if the owner chooses to unblock it now. The Q10/Q11 answers gate only Phase 2 (room schema + delivery-address-from-order).
 
+---
+
+## 20. ISSUE-07 RESOLVED — Live Raw POS Payload Captured (2026-05-21)
+
+> **Status update:** CR-002 logging was enabled on production. A real `delivery` order from POS landed in `pos_request_logs` and we now have a definitive answer to ISSUE-07 / Q11 / Q8.
+
+### 20.1 Capture context
+
+| Item | Value |
+|---|---|
+| Captured at | `2026-05-21T10:09:56.560238+00:00` |
+| `pos_request_logs.id` | `b0f...` (one of the `/api/pos/orders` POST entries) |
+| `pos_order_id` | `868862` |
+| `restaurant_id` (POS) | `478` |
+| Order type | `delivery` |
+| Auth | `api_key` → matched `pos_0001_restaurant_478` |
+| Response | `200 success` → order saved as `f98d9668-efb7-4344-84c7-3e3076a8c7b9`, new customer `0a1b9242-67e6-47bf-b3e9-dc827fee4849` ("abhishek", `8888888866`) |
+
+### 20.2 Live raw POS `/api/pos/orders` payload (delivery order)
+
+```json
+{
+  "order_id": "868862",
+  "restaurant_id": "478",
+  "pos_id": "0001",
+  "cust_name": "abhishek",
+  "cust_mobile": "8888888866",
+  "table_id": "",
+  "table_name": "",
+  "waiter_id": "",
+  "waiter_name": "",
+  "order_type": "delivery",
+  "order_amount": 0,
+  "created_at": "2026-05-21 14:59:10",
+  "items": [
+    { "item_id": "2248345", "item_name": "hokage", "qty": 1, "price": 0 }
+  ]
+}
+```
+
+### 20.3 Field gap audit vs `POSOrderWebhook`
+
+| POS sends | In schema? | Notes |
+|---|---|---|
+| `order_id` | ✅ | mapped to `pos_order_id` |
+| `restaurant_id` | ✅ | mapped to `pos_restaurant_id` |
+| `pos_id` | ✅ | |
+| `cust_name`, `cust_mobile` | ✅ | |
+| `table_id`, `table_name`, `waiter_id`, `waiter_name` | ✅ | empty strings for delivery |
+| `order_type` | ✅ | value `delivery` |
+| `order_amount` | ✅ | |
+| `created_at` (string, IST-naive `YYYY-MM-DD HH:MM:SS`) | ⚠️ partial | schema has `order_created_at` but **POS sends `created_at` not `order_created_at`** → Pydantic silently drops it. **NEW ISSUE-08.** |
+| `items[].item_id` | ⚠️ partial | schema field is `pos_food_id`; POS sends `item_id` → silently dropped. **NEW ISSUE-08.** |
+| `items[].item_name`, `qty`, `price` | ✅ | (`qty`/`item_qty`, `price`/`item_price` mapped via aliases — confirm in §20.4) |
+| **No address fields whatsoever** | n/a | POS does NOT send `address`, `address_id`, `pincode`, `city`, `lat`, `lng` on delivery orders. |
+| **No `is_veg`, `item_category`, `add_ons`, variations** | n/a | POS does not send these in the order webhook (item-level enrichment lives elsewhere in POS). |
+| **No `payment_method`, `payment_status`, `payment_type`** | n/a | Not sent on this order. |
+| **No tax / discount / sub-total fields** | n/a | Not sent. CRM stores them as defaults (0.0). |
+
+### 20.4 Action — confirm two field-alias mismatches (NEW ISSUE-08)
+
+Cross-checked `/app/backend/routers/pos.py` `POSOrderWebhook` and `OrderItem` models against the captured payload:
+
+1. **Top-level**: POS sends `created_at`; schema field is `order_created_at` → **silently dropped**. Order row's `order_created_at` is `null` (confirmed in DB). This means CRM loses the POS-side order timestamp and only retains its own ingestion `created_at`. **Already visible in the order doc shown to owner (line `"order_created_at": null`).**
+2. **Item-level**: POS sends `item_id`, `qty`, `price`; schema accepts `pos_food_id`, `item_qty`, `item_price` (with `Field(alias=...)`?). Need to verify whether aliases exist for `qty`→`item_qty`, `price`→`item_price`, and `item_id`→`pos_food_id`. Captured order shows `item_qty: 1`, `item_price: 0.0`, `pos_food_id: null` → so `qty`/`price` ARE mapped (probably via alias or root validator) but `item_id` is **not** → POS food id is lost.
+
+> **Verification needed (READ-ONLY, no code change):** open `/app/backend/routers/pos.py` `OrderItem` model and confirm whether `qty`, `price`, `item_id` are accepted via `alias` / `validation_alias`. If aliases are missing for `item_id`, this is **ISSUE-08** — payload field name drift between POS and CRM schema, fix list to be added under §6.
+
+### 20.5 Resolution of pending owner questions
+
+| # | Question | Resolution from live payload |
+|---|---|---|
+| **Q8** | Raw payload capture method | **DONE — Option A (CR-002 logging on production) successful.** Logging will remain enabled going forward. |
+| **ISSUE-07** | Are POS fields being silently dropped? | **YES (partial).** Confirmed silent-drop of top-level `created_at` and item-level `item_id`. See ISSUE-08 in §20.4. |
+| **Q2** | Delivery address storage | **POS does not send any address data on `/api/pos/orders`** → Option C (write delivery address from order webhook) is **not implementable today without a POS-side contract change**. |
+| **Q11** | POS payload contract change for delivery address | Owner decision still required. Live payload confirms the address fields are 100% absent today; Option B (use existing `POST /api/pos/customers/{id}/addresses` only — no order-webhook change) is the only zero-POS-change path. POS calls `POST /api/pos/address-lookup` ~55 s before placing the order — that read-side flow is already wired but the address picked in POS UI is not returned to CRM with the order. |
+| **Q11.1** | Address snapshot on order doc | **Currently impossible from order webhook alone.** Three feasible paths: (a) at order ingest, look up the customer's most-recently-added delivery address in `customers.addresses[]` and snapshot it onto the order; (b) Owner overrides scope and POS adds `address_id` + address fields to the order webhook; (c) leave `address_id` always `null` on the order (status quo). |
+| **Q11.2** | `address_id` resolution semantics | Today `address_id` is **always null** for all 273/273 delivery orders (272 historical + 868862 just now). POS would need to send `address_id` for a non-null value to ever appear. |
+| **Q10** | Room schema timing | Unchanged — still **B** (wait for one real room payload). 0 room/hotel orders to date. |
+
+### 20.6 New Question for Owner — Q12 (ISSUE-08 disposition)
+
+| Q# | Topic | Question | Options | Recommended |
+|---|---|---|---|---|
+| **Q12** | Silently-dropped POS fields (ISSUE-08) | POS sends `created_at` (top-level) and `item_id` (per item) but CRM schema names them `order_created_at` and `pos_food_id` → both are silently dropped today. Fix? | A) **Add `alias=` on `POSOrderWebhook.order_created_at` (alias `created_at`) and `OrderItem.pos_food_id` (alias `item_id`).** Backfill `order_created_at` from `pos_request_logs` for historical orders. B) Only add aliases going forward; do not backfill. C) Keep status quo (don't capture these fields). | **A** — small, safe, captures the POS source-of-truth timestamp and the POS food id, both useful for reporting and reconciliation. |
+
+### 20.7 Updated Phase 2 backlog (post-payload)
+
+| # | Item | Updated trigger |
+|---|---|---|
+| P-D1 | Write delivery address from `/api/pos/orders` into `customers.addresses[]` | **BLOCKED** — POS does not send address data. Requires Q11=A (POS contract change) before this item can begin. |
+| P-D1' (NEW) | Best-effort attach: at order ingest for delivery orders, copy the customer's most-recently-used address from `customers.addresses[]` to `order.address_id` + snapshot fields | Q11=B + Q11.1=(a). Zero POS-side change. Caveat: if POS operator picked a *different* address in POS UI than the latest in CRM, snapshot will be wrong. |
+| P-D2 | Cross-API impact analysis | Unchanged |
+| P-X1 | Raw-payload field gap audit | **PARTIALLY DONE** — see §20.3, §20.4. Remaining: capture one room order, one takeaway order, one dine-in via the same path to confirm no further drift. |
+| P-X4 (NEW) | Fix ISSUE-08 alias mismatches (`created_at`→`order_created_at`, `item_id`→`pos_food_id`) | Q12=A |
+
+### 20.8 Updated Final Status
+
+```
+cr001_order_data_mapping_plan_waiting_owner_answers
+```
+
+Outstanding: **Q10**, **Q11** (with new sub-decision Q11.1), **Q12** (new).
+
+---
+
+## 21. 🚨 P0 PRODUCTION INCIDENT — POS Item Payload Contract Drift (Discovered 2026-05-21 via live capture)
+
+> **Severity:** P0 — affects per-item revenue, qty, and food_id reporting for ALL POS orders since `2026-05-21 ~06:44 UTC`. **No customer-facing impact** on order totals (`order_amount` still correct), but **item-level analytics, food popularity, and POS food-id linkage are silently broken.**
+
+### 21.1 Evidence
+
+| Metric | Value |
+|---|---|
+| Orders (any time, `order_amount > 50`) where **all** items have `item_price = 0` | **11** — all on `2026-05-21` between `06:44:15Z` and `09:45:52Z` |
+| Orders (any time, `order_amount > 50`) where **at least one** item has `item_price > 0` | **16,740** — `2024-07-05` → `2026-05-21T06:55:40Z` (the last is the CR-002 synthetic probe) |
+| Affected restaurants | `478`, `523`, `675` |
+| Captured live payload (order 868862) | `items[0] = {"item_id": "2248345", "item_name": "hokage", "qty": 1, "price": 0}` |
+| CRM schema (`OrderItem`) | accepts only `pos_food_id`, `item_qty`, `item_price`, `item_name` |
+| CRM behavior with new POS field names | Pydantic `extra="ignore"` silently drops `item_id`, `qty`, `price` → DB row has `pos_food_id=null`, `item_qty=1` (default), `item_price=0.0` (default) |
+
+### 21.2 Root cause
+
+POS payload contract for `items[]` changed from `{pos_food_id, item_qty, item_price}` to `{item_id, qty, price}` sometime on the morning of 2026-05-21 (between order 868857 — last good — and 06:44 UTC — first broken). CRM `POSOrderWebhook.items: List[OrderItem]` did not change, so the new field names are silently dropped.
+
+**This is not a CRM-side regression** — CRM code is unchanged. **This is a POS-side breaking change** to the `/api/pos/orders` payload contract.
+
+### 21.3 Blast radius
+
+Affected for every POS order ingested since the change:
+- `orders.items[].item_price` = 0.0 (was the POS line price)
+- `orders.items[].item_qty` = 1 (was the POS line quantity, regardless of actual qty)
+- `orders.items[].pos_food_id` = null (was the POS food id used for joins / catalog analytics)
+
+NOT affected (still correct):
+- `orders.order_amount` (top-level total)
+- `orders.items[].item_name`
+- Customer create, points, wallet, tier — all driven by `order_amount` not `items[]`
+
+### 21.4 Recommended remediation (Phase 1.5 — pre-Phase-2 hotfix)
+
+| Step | Action | Owner | Risk |
+|---|---|---|---|
+| 1 | Add `validation_alias=AliasChoices('item_id','pos_food_id')` on `OrderItem.pos_food_id`; `AliasChoices('qty','item_qty')` on `OrderItem.item_qty`; `AliasChoices('price','item_price')` on `OrderItem.item_price`. Also `AliasChoices('created_at','order_created_at')` on `POSOrderWebhook.order_created_at`. | CRM team | Low — additive only |
+| 2 | One-off backfill: for `2026-05-21T06:44:00Z` ≤ `created_at` ≤ deployment time, re-parse `pos_request_logs.request_body` and re-write `orders.items[]` for affected orders. | CRM team | Medium — touches live data; gated on owner approval per CR-001 Rule §1 |
+| 3 | (Optional) Add a schema-drift CI test: replay last N `pos_request_logs.request_body` through `POSOrderWebhook(**body)` and assert no fields are dropped (`model_extra` empty). | CRM team | Low — preventative |
+
+### 21.5 Owner decision required — Q13 (NEW, P0)
+
+| Q# | Topic | Question | Options | Recommended |
+|---|---|---|---|---|
+| **Q13** | P0 hotfix authorization (this incident) | This is a live production data quality issue. Authorize Phase 1.5 hotfix? | A) **Authorize immediately** — implement §21.4 steps 1+2+3, then resume CR-001 Phase 1 B) Authorize §21.4 step 1 only (forward-fix), skip backfill C) Open a separate CR-006 to track this, do not touch CR-001 D) Confirm with POS team first that the field-name change is intentional and won't revert | **A** if data integrity matters; **D** first if POS may roll back the change. |
+
+### 21.6 Open issue tracker update
+
+| Issue | Status |
+|---|---|
+| ISSUE-07 (raw payload capture) | **RESOLVED** via §20.2 capture |
+| ISSUE-08 (schema alias mismatch — `created_at`, `item_id`) | **CONFIRMED** + **upgraded to P0** in §21 |
+| **NEW ISSUE-09** (POS item contract drift `qty`/`price`) | **P0 OPEN** — see §21.5 Q13 |
+
