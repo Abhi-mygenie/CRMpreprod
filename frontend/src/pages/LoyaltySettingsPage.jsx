@@ -60,9 +60,32 @@ export default function LoyaltySettingsPage() {
     return (
         <ResponsiveLayout>
             <div className="p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="loyalty-title">Loyalty Settings</h1>
-                    <p className="text-sm text-[#52525B]">Points, tiers & bonuses</p>
+                <div className="mb-6 flex items-start justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="loyalty-title">Loyalty Settings</h1>
+                        <p className="text-sm text-[#52525B]">Points, tiers & bonuses</p>
+                    </div>
+                    {settings && (
+                        <div
+                            className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2 shadow-sm"
+                            data-testid="loyalty-master-toggle-wrapper"
+                        >
+                            <div className="flex flex-col items-end">
+                                <Label className="form-label text-xs text-[#52525B] m-0">Loyalty Program</Label>
+                                <span
+                                    className={`text-sm font-semibold ${settings.loyalty_enabled ? "text-[#329937]" : "text-[#9CA3AF]"}`}
+                                    data-testid="loyalty-master-status"
+                                >
+                                    {settings.loyalty_enabled ? "ON" : "OFF"}
+                                </span>
+                            </div>
+                            <Switch
+                                checked={!!settings.loyalty_enabled}
+                                onCheckedChange={(checked) => setSettings({ ...settings, loyalty_enabled: checked })}
+                                data-testid="loyalty-master-toggle"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {settings && (
