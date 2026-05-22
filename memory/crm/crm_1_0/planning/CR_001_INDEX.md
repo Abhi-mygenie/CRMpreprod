@@ -17,7 +17,7 @@ Single source of truth for CR-001 family (POS realtime + migration sync work).
 - Code: `/app/backend/routers/pos.py` (lines 1–4, 949–1016, 1019–1102)
 - Static QA harness: `/tmp/cr_001a_qa.py` (12 / 12 PASS)
 - On-host verifier: `/app/memory/crm/crm_1_0/qa/cr_001a_check.sh`
-- Live proof: `pos_request_logs` + `orders.id=6dcf6f06-3435-49d0-9949-67087209f35a` (order `868899`)
+- Live proof: `pos_request_logs` + `orders.id=crm-phase-loyalty` (order `868899`)
 
 ### CR-001A Phase 1 — Owner decisions captured
 - Forward-only. No historical backfill, no mutation of old records, no

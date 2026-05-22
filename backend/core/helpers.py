@@ -4,13 +4,18 @@ import io
 import base64
 
 def calculate_tier(total_points: int, settings: dict) -> str:
-    if total_points >= settings.get('tier_platinum_min', 5000):
-        return "Platinum"
-    elif total_points >= settings.get('tier_gold_min', 1500):
-        return "Gold"
-    elif total_points >= settings.get('tier_silver_min', 500):
-        return "Silver"
-    return "Bronze"
+    """CR-001C-L Phase L1 (F1, 2026-05-22): re-export shim.
+
+    Authoritative implementation lives in `core.loyalty.calculate_tier`.
+    Kept here so existing callers (`routers/points.py`, `routers/pos.py`,
+    `routers/scan.py`, `core/loyalty_jobs.py`) continue to import from
+    `core.helpers` without churn. Behavior is byte-identical.
+    """
+    # Local import to avoid circular dependency
+    # (core.loyalty imports from core.helpers for check_off_peak_bonus
+    # and get_earn_percent_for_tier).
+    from core.loyalty import calculate_tier as _calculate_tier
+    return _calculate_tier(total_points, settings)
 
 def get_earn_percent_for_tier(tier: str, settings: dict) -> float:
     """Get earning percentage based on customer tier"""

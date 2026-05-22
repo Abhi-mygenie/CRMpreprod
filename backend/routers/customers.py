@@ -579,6 +579,12 @@ async def create_customer(customer_data: CustomerCreate, user: dict = Depends(ge
         
         # Loyalty Information
         "total_points": first_visit_bonus,
+        # CR-001C-L Phase L2 (C6, C10, 2026-05-22): defensive init of
+        # lifetime earned/redeemed counters on CRM-manual-create path.
+        # First-visit bonus counts toward total_points_earned per
+        # Q-LOYALTY-3.
+        "total_points_earned": first_visit_bonus,
+        "total_points_redeemed": 0,
         "wallet_balance": 0.0,
         "tier": "Bronze",
         "referral_code": customer_data.referral_code,
@@ -1087,7 +1093,7 @@ qr_router = APIRouter(prefix="/qr", tags=["QR Code"])
 @qr_router.get("/generate")
 async def generate_customer_qr(user: dict = Depends(get_current_user)):
     """Generate QR code for customer registration"""
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://crm-planning-v1.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://crm-phase-loyalty.preview.emergentagent.com')
     registration_url = f"{frontend_url}/register-customer/{user['id']}"
     
     qr_base64 = generate_qr_code(registration_url)

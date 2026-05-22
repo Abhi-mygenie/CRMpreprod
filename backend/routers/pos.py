@@ -256,6 +256,10 @@ async def pos_create_customer(
         
         # Loyalty Information
         "total_points": 0,
+        # CR-001C-L Phase L2 (C10, 2026-05-22): defensive init of
+        # lifetime earned/redeemed counters on POS-create path.
+        "total_points_earned": 0,
+        "total_points_redeemed": 0,
         "wallet_balance": 0.0,
         "tier": "Bronze",
         "referral_code": customer_data.referral_code,
@@ -587,7 +591,11 @@ async def _find_or_create_customer(
         return customer, False, 0
 
     first_visit_bonus = 0
-    if settings.get("first_visit_bonus_enabled", False):
+    # CR-001C-L Phase L2 (C1, C6, 2026-05-22): loyalty_enabled is a hard
+    # kill-switch for ALL realtime loyalty writes including the
+    # first-visit bonus. When OFF, first-visit bonus is suppressed even
+    # if first_visit_bonus_enabled=True.
+    if settings.get("loyalty_enabled") and settings.get("first_visit_bonus_enabled", False):
         first_visit_bonus = settings.get("first_visit_bonus_points", 50)
 
     customer_id = str(uuid.uuid4())
@@ -620,6 +628,12 @@ async def _find_or_create_customer(
         
         # Loyalty Information
         "total_points": first_visit_bonus,
+        # CR-001C-L Phase L2 (C6, C10, 2026-05-22): defensive init of
+        # lifetime earned/redeemed counters on POS-create path so future
+        # $inc operations grow them correctly. first-visit bonus counts
+        # toward total_points_earned per Q-LOYALTY-3.
+        "total_points_earned": first_visit_bonus,
+        "total_points_redeemed": 0,
         "wallet_balance": 0.0,
         "tier": "Bronze",
         "referral_code": None,
@@ -732,38 +746,18 @@ async def _find_or_create_customer(
 
 
 def _calculate_points(order_amount: float, customer: dict, settings: dict) -> dict:
-    """Calculate points earned including off-peak bonus.
-    Returns dict with base_points, off_peak_bonus, total_points, description."""
-    min_order = settings.get("min_order_value", 100.0)
-    if order_amount < min_order:
-        return {"base_points": 0, "off_peak_bonus": 0, "total_points": 0, "description": ""}
+    """CR-001C-L Phase L1 (F1, 2026-05-22): thin wrapper.
 
-    tier = customer.get("tier", "Bronze")
-    earn_percent = get_earn_percent_for_tier(tier, settings)
-    base_points = int(order_amount * earn_percent / 100)
+    Authoritative implementation lives in `core.loyalty.calculate_points`.
+    This wrapper is retained for one release to keep call sites in
+    `pos_order_webhook` stable and to ease rollback. Removal scheduled
+    for Phase L5 per `CR_001C_L_LOYALTY_TECHNICAL_BLUEPRINT.md §9`.
 
-    # Off-peak bonus
-    is_off_peak, bonus_value, bonus_type, off_peak_msg = check_off_peak_bonus(settings)
-    off_peak_bonus = 0
-
-    if is_off_peak and base_points > 0:
-        if bonus_type == "multiplier":
-            off_peak_bonus = int(base_points * (bonus_value - 1))
-        else:
-            off_peak_bonus = int(bonus_value)
-
-    total = base_points + off_peak_bonus
-    desc = f"Earned {earn_percent}% on order of Rs.{order_amount}"
-    if off_peak_bonus > 0:
-        desc += f" (+{off_peak_bonus} off-peak bonus)"
-
-    return {
-        "base_points": base_points,
-        "off_peak_bonus": off_peak_bonus,
-        "total_points": total,
-        "description": desc,
-        "off_peak_message": off_peak_msg if off_peak_bonus > 0 else None,
-    }
+    Returns dict with base_points, off_peak_bonus, total_points,
+    description, off_peak_message — byte-identical to prior inline body.
+    """
+    from core.loyalty import calculate_points as _shared_calculate_points
+    return _shared_calculate_points(order_amount, customer, settings)
 
 
 async def _save_order_and_transactions(
@@ -1207,8 +1201,22 @@ async def pos_order_webhook(
         )
 
         # 4. Calculate points (includes off-peak bonus)
-        pts = _calculate_points(order_data.order_amount, customer, settings)
-        points_earned = pts["total_points"]
+        # CR-001C-L Phase L2 (C1, 2026-05-22): loyalty_enabled is a hard
+        # kill-switch. When OFF, skip points math and points writes; the
+        # order is still persisted and visits/spend/wallet still update.
+        loyalty_enabled = bool(settings.get("loyalty_enabled", False))
+        if loyalty_enabled:
+            pts = _calculate_points(order_data.order_amount, customer, settings)
+            points_earned = pts["total_points"]
+        else:
+            pts = {
+                "base_points": 0,
+                "off_peak_bonus": 0,
+                "total_points": 0,
+                "description": "",
+                "off_peak_message": None,
+            }
+            points_earned = 0
 
         # 5. Wallet validation
         wallet_used = order_data.wallet_used or 0.0
@@ -1224,23 +1232,39 @@ async def pos_order_webhook(
         # 6. Update customer stats
         current_points = customer.get("total_points", 0)
         new_points = current_points + points_earned
-        new_tier = calculate_tier(new_points, settings)
+        # CR-001C-L Phase L2 (C1, 2026-05-22): tier is only recomputed
+        # when loyalty is enabled. When OFF, preserve the customer's
+        # existing tier verbatim (no implicit downgrade/upgrade).
+        if loyalty_enabled:
+            new_tier = calculate_tier(new_points, settings)
+        else:
+            new_tier = customer.get("tier", "Bronze")
 
         new_total_visits = customer.get("total_visits", 0) + 1
         new_total_spent = customer.get("total_spent", 0) + order_data.order_amount
         new_avg_order_value = round(new_total_spent / new_total_visits, 2)
 
+        # CR-001C-L Phase L2 (C4, 2026-05-22): grow lifetime
+        # total_points_earned via $inc so it is independent of the
+        # spendable total_points (which can be reduced by redemption).
+        # When loyalty is OFF or no points were earned this order, the
+        # $inc is skipped entirely (kill-switch + zero-noise).
+        customer_update_set = {
+            "total_points": new_points,
+            "tier": new_tier,
+            "wallet_balance": new_wallet_balance,
+            "total_visits": new_total_visits,
+            "total_spent": new_total_spent,
+            "avg_order_value": new_avg_order_value,
+            "last_visit": now,
+        }
+        customer_update_doc: Dict[str, Any] = {"$set": customer_update_set}
+        if loyalty_enabled and points_earned > 0:
+            customer_update_doc["$inc"] = {"total_points_earned": points_earned}
+
         await db.customers.update_one(
             {"id": customer["id"]},
-            {"$set": {
-                "total_points": new_points,
-                "tier": new_tier,
-                "wallet_balance": new_wallet_balance,
-                "total_visits": new_total_visits,
-                "total_spent": new_total_spent,
-                "avg_order_value": new_avg_order_value,
-                "last_visit": now,
-            }},
+            customer_update_doc,
         )
 
         # 7. Save order + transactions
