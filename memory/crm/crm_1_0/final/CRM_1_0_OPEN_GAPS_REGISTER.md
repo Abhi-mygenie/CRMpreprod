@@ -31,23 +31,26 @@ CR-001A Phase 1 closure.
 
 ---
 
-## ⏳ OPEN — CR-001A Phase 2 — `room_info` + `associated_order_ids` silently dropped
+## ✅ IMPLEMENTED (awaiting live prod closure) — CR-001A Phase 2 — `room_info` + `associated_order_ids`
 
 | Field | Value |
 |---|---|
 | **First observed** | 2026-05-22 06:09 UTC (order `868866`, room order with `room_info={room_price:1000,advance_payment:0,balance_payment:1000}`) |
-| **Re-confirmed at closure** | 2026-05-22 09:10:46 UTC (order `868899`, room order with `room_price=7888`, **silently lost**) |
+| **Re-confirmed at Phase 1 closure** | 2026-05-22 09:10:46 UTC (order `868899`, room order with `room_price=7888`, silently lost) |
 | **Severity** | Medium-High (every room/hotel POS order silently loses room revenue & advance/balance tracking; parent-order linkage lost via `associated_order_ids`) |
 | **Affected endpoint** | `POST /api/pos/orders` |
-| **Root cause** | `POSOrderWebhook` Pydantic model has no `room_info` or `associated_order_ids` fields → Pydantic v2 silently ignores them. Same root cause family as ISSUE-09, but on a different field set. |
-| **Real revenue impact (observed)** | Order `868899` → `room_price=7888.00`, `advance_payment=888.00`, `balance_payment=7000.00` — all dropped to `null` in `orders` collection |
-| **Forward-only scope** | YES (no historical backfill of dropped values) |
+| **Root cause** | `POSOrderWebhook` Pydantic model had no `room_info` or `associated_order_ids` fields → Pydantic v2 silently ignored them. |
+| **Fix implemented** | 2026-05-22 ~10:05 UTC. New `RoomInfo` nested BaseModel + `room_info: Optional[RoomInfo]` + `associated_order_ids: Optional[List[str]]` with element-coercion validator. `order_doc` write extended. Same PR as CR-001D. |
+| **Forward-only scope** | YES (no historical backfill) |
+| **QA result** | Static 12/12 PASS, order_doc 9/9 PASS, live route accepts schema (HTTP 401) |
 | **Spec** | `/app/memory/crm/crm_1_0/planning/CR_001A_PHASE_2_SPEC.md` |
-| **Status** | DRAFTED, not started |
+| **Implementation report** | `/app/memory/crm/crm_1_0/implementation/CR_001A_PHASE_2_AND_CR_001D_IMPLEMENTATION_REPORT.md` |
+| **QA report** | `/app/memory/crm/crm_1_0/qa/CR_001A_PHASE_2_AND_CR_001D_QA_REPORT.md` |
+| **Status** | `cr001a_phase_2_and_cr001d_qa_passed_with_runtime_limitations` — live prod closure pending natural production room order after prod deploy + `pos-backend` (pm2 id 7) restart |
 
 ---
 
-## ⏳ OPEN — CR-001D — `orders.restaurant_id` silently `None`
+## ✅ IMPLEMENTED (awaiting live prod closure) — CR-001D — `orders.restaurant_id`
 
 | Field | Value |
 |---|---|
@@ -55,10 +58,11 @@ CR-001A Phase 1 closure.
 | **Re-confirmed** | 2026-05-22 09:10:46 UTC (order `868899` — payload `restaurant_id="478"`, persisted `restaurant_id=None`) |
 | **Severity** | Medium (restaurant-level filtering & analytics on `orders` broken; have to fall back to `user_id` mapping) |
 | **Affected endpoint** | `POST /api/pos/orders` (realtime) |
-| **Root cause** | `POSOrderWebhook` parses `restaurant_id: str` correctly into the Pydantic model, but the `order_doc` dict built around lines 815–870 of `pos.py` does not include `order_data.restaurant_id`. One-line miss. |
-| **Fix size** | ~1 line addition: `"restaurant_id": order_data.restaurant_id,` in the `order_doc` dict |
-| **Note on migration path** | Migration's `orders` insert also doesn't carry `restaurant_id` → migrated rows have the same gap. Single source of truth currently `user_id` → look up `users.restaurant_id`. |
-| **Status** | OPEN |
+| **Root cause** | `POSOrderWebhook` parsed `restaurant_id` correctly into the Pydantic model, but the `order_doc` dict built inside `_save_order_and_transactions` did not include it. |
+| **Fix implemented** | 2026-05-22 ~10:05 UTC. One-line addition: `"restaurant_id": order_data.restaurant_id` in `order_doc` (alongside existing `"pos_restaurant_id"` which is preserved). |
+| **Note on migration path** | Migration's `orders` insert may still have its own gap — out of scope for this CR. |
+| **QA result** | PASS (static + order_doc) — live prod closure pending |
+| **Status** | `cr001a_phase_2_and_cr001d_qa_passed_with_runtime_limitations` |
 
 ---
 
@@ -79,12 +83,13 @@ CR-001A Phase 1 closure.
 |---|---|---|
 | ISSUE-09 forward-fix (CR-001A Phase 1) | 2026-05-22 09:10:46 UTC | order `868899` 7/7 PASS |
 | GAP-CR001A-RT1 | 2026-05-22 09:10:46 UTC | natural prod order verification |
+| CR-001A Phase 2 (`room_info` + `associated_order_ids`) — implemented + QA passed (awaiting live prod closure) | 2026-05-22 ~10:07 UTC | static 12/12, order_doc 9/9, HTTP 401 schema-accept |
+| CR-001D (`orders.restaurant_id`) — implemented + QA passed (awaiting live prod closure, same PR as Phase 2) | 2026-05-22 ~10:07 UTC | same artifacts as above |
 
 ## Open Items Summary (Prioritised)
 
 | Priority | Item | Severity |
 |---|---|---|
-| P1 | CR-001A Phase 2 (`room_info` + `associated_order_ids`) | Medium-High (revenue loss) |
-| P2 | CR-001D (`orders.restaurant_id = None`) | Medium |
+| P1 | CR-001A Phase 2 + CR-001D live prod closure (deploy + `pos-backend` pm2 restart on prod, then await natural room order) | Pending owner deploy action |
 | P3 | ISSUE-09 historical residual (forward-only policy keeps this OPEN) | Low (analytics flag, not action) |
 | P4 | GAP-MEM-1 (older handover docs reconciliation) | Informational |

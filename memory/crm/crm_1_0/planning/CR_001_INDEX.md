@@ -9,7 +9,7 @@ Single source of truth for CR-001 family (POS realtime + migration sync work).
 | Phase | Title | Status | Date | Notes |
 |---|---|---|---|---|
 | Phase 1 | Forward-only alias mapping on `POST /api/pos/orders` | ✅ **`cr001a_phase_1_closed_live_on_prod`** | Closed 2026-05-22 09:10:46 UTC | Verified live on prod via order `868899` (7/7 alias checks pass) |
-| Phase 2 | Add `room_info` + `associated_order_ids` to `POSOrderWebhook` (forward-only) | ⏳ Drafted, not started | — | See `/app/memory/crm/crm_1_0/planning/CR_001A_PHASE_2_SPEC.md` |
+| Phase 2 | Add `room_info` + `associated_order_ids` to `POSOrderWebhook` (forward-only) | ✅ **`cr001a_phase_2_and_cr001d_qa_passed_with_runtime_limitations`** | Implemented & QA passed 2026-05-22 ~10:07 UTC | Implemented in same PR as CR-001D. Static QA 12/12, order_doc 9/9, live route accepts schema (HTTP 401). Live prod closure pending natural room order after prod deploy + `pos-backend` restart. See `/app/memory/crm/crm_1_0/implementation/CR_001A_PHASE_2_AND_CR_001D_IMPLEMENTATION_REPORT.md` |
 
 ### CR-001A Phase 1 — Artifacts
 - Implementation report: `/app/memory/crm/crm_1_0/implementation/CR_001A_PHASE_1_IMPLEMENTATION_REPORT.md`
@@ -73,7 +73,11 @@ payload sends `"restaurant_id": "478"`. This is a downstream-mapping miss in
 
 - Severity: medium (affects restaurant-level analytics & filtering)
 - Scope: one-line addition to `order_doc` build in `pos.py`
-- Status: ⏳ not started; tracked in open gaps register
+- Status: ✅ **Implemented + QA passed 2026-05-22 ~10:07 UTC**
+  (`cr001a_phase_2_and_cr001d_qa_passed_with_runtime_limitations`). Live prod
+  closure pending natural production order after prod deploy + `pos-backend`
+  restart. `pos_restaurant_id` preserved for backwards compatibility.
+  See `/app/memory/crm/crm_1_0/implementation/CR_001A_PHASE_2_AND_CR_001D_IMPLEMENTATION_REPORT.md`
 
 ---
 
@@ -91,8 +95,8 @@ payload sends `"restaurant_id": "478"`. This is a downstream-mapping miss in
 |---|---|---|
 | CR-001A Phase 1 | CR-002 | Read-only: CR-001A used `pos_request_logs` for raw-payload diffing against persisted state |
 | CR-001A Phase 1 | CR-001B | Isolated by file boundary (`pos.py` vs `migration.py`) — verified no impact on R689 |
-| CR-001A Phase 2 | CR-001A Phase 1 | Builds on the same `POSOrderWebhook` model |
-| CR-001D | CR-001A Phase 1 | Adjacent in `pos.py` (order_doc build), no model change needed |
+| CR-001A Phase 2 | CR-001A Phase 1 | Builds on the same `POSOrderWebhook` model · ✅ implemented 2026-05-22 |
+| CR-001D | CR-001A Phase 1 | Adjacent in `pos.py` (order_doc build), no model change needed · ✅ implemented 2026-05-22 (same PR as CR-001A Phase 2) |
 
 ---
 

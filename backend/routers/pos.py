@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.aliases import AliasChoices
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
@@ -795,6 +795,11 @@ async def _save_order_and_transactions(
         # POS Identification
         "pos_id": order_data.pos_id,
         "pos_restaurant_id": order_data.restaurant_id,
+        # CR-001D (2026-05-22 forward-only): also persist canonical
+        # `restaurant_id` so restaurant-level filtering / analytics on `orders`
+        # no longer relies on user_id → users.restaurant_id lookup.
+        # Preserves `pos_restaurant_id` above for backwards compatibility.
+        "restaurant_id": order_data.restaurant_id,
         "restaurant_name": order_data.restaurant_name,
         "pos_order_id": order_data.order_id,
         "pos_customer_id": order_data.user_id,  # user_id from MyGenie = pos_customer_id
@@ -855,6 +860,27 @@ async def _save_order_and_transactions(
         # Notes & Items
         "order_notes": order_data.order_notes,
         "items": items_embedded,
+
+        # CR-001A Phase 2 (2026-05-22 forward-only) — room/hotel billing
+        # breakdown. Empty `{}` payload → all sub-fields None → persist as
+        # None to keep non-room orders compact.
+        "room_info": (
+            order_data.room_info.model_dump()
+            if order_data.room_info
+            and any(
+                v is not None
+                for v in (
+                    order_data.room_info.room_price,
+                    order_data.room_info.advance_payment,
+                    order_data.room_info.balance_payment,
+                )
+            )
+            else None
+        ),
+
+        # CR-001A Phase 2 (2026-05-22 forward-only) — parent/linked order ids
+        # from POS. Already coerced to List[str] by validator.
+        "associated_order_ids": order_data.associated_order_ids,
         
         # Loyalty Points
         "points_earned": points_earned,
@@ -1016,6 +1042,23 @@ class OrderItem(BaseModel):
     item_notes: Optional[str] = None  # food_level_notes
 
 
+class RoomInfo(BaseModel):
+    """Hotel / room billing breakdown attached to a POS order.
+
+    CR-001A Phase 2 (forward-only, 2026-05-22):
+      Source: realtime POS payload `room_info`. Fields arrive as STRING
+      decimals (e.g. "7888.00"); Pydantic 2.x coerces them to float.
+      All sub-fields are Optional so non-room orders sending empty {} still
+      parse (we then persist None at order_doc build time to keep
+      non-room rows compact).
+    """
+    model_config = ConfigDict(populate_by_name=True)
+
+    room_price: Optional[float] = None
+    advance_payment: Optional[float] = None
+    balance_payment: Optional[float] = None
+
+
 class POSOrderWebhook(BaseModel):
     """Schema for order data from MyGenie/POS systems - supports all fields.
 
@@ -1023,6 +1066,15 @@ class POSOrderWebhook(BaseModel):
       • `order_created_at` accepts incoming `created_at` (POS realtime field name) via
         AliasChoices.
       • `populate_by_name=True` keeps legacy CRM-name payloads working (backwards compatible).
+
+    CR-001A Phase 2 (forward-only, 2026-05-22):
+      • `room_info` added — captures hotel/room billing breakdown
+        ({room_price, advance_payment, balance_payment}). Previously silently
+        dropped (real revenue loss observed on order 868899, ₹7888).
+      • `associated_order_ids` added — captures parent/linked order ids from
+        POS (e.g. food order linked to room order). Coerced element-wise from
+        List[int] (POS contract) to List[str] for consistency with the
+        `pos_food_id` string-only convention.
     """
     model_config = ConfigDict(populate_by_name=True)
 
@@ -1100,6 +1152,23 @@ class POSOrderWebhook(BaseModel):
     # Notes & Items
     order_notes: Optional[str] = None  # order_note
     items: Optional[List[OrderItem]] = None  # cart items
+
+    # CR-001A Phase 2 — room/hotel billing breakdown (forward-only, 2026-05-22)
+    room_info: Optional[RoomInfo] = None
+
+    # CR-001A Phase 2 — parent/linked order ids from POS (forward-only)
+    # POS sends List[int] (e.g. [868891]); we coerce to List[str] to align
+    # with the pos_food_id string-only convention.
+    associated_order_ids: Optional[List[str]] = None
+
+    @field_validator("associated_order_ids", mode="before")
+    @classmethod
+    def _coerce_associated_order_ids(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, list):
+            return [str(x) for x in v if x is not None]
+        return v
 
 
 @router.post("/orders", response_model=POSResponse)
