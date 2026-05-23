@@ -12,6 +12,7 @@ logger = logging.getLogger("customer_sync")
 from core.database import db
 from core.auth import get_current_user
 from core.helpers import generate_qr_code, build_customer_query, _coerce_pos_id, _pos_id_query_variants
+from core.loyalty import calculate_tier as _calc_tier
 from models.schemas import (
     Customer, CustomerCreate, CustomerUpdate,
     Segment, SegmentCreate, SegmentUpdate
@@ -88,6 +89,35 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
         "log_id": log_id,
         "sync_type": "customer_sync",
     }
+
+    # ============================================================
+    # CR-001C-L Phase L3 (D2 + Q-LB1 Option C, 2026-05-22)
+    # ============================================================
+    # D2: Block customer-sync if loyalty_settings doc is missing.
+    # Q-LB1 Option C: loyalty_clean_slate_recalc per-restaurant flag.
+    #   When True  → hard-init counters to 0, drop synthetic backfill,
+    #                 use allow-list $set on existing customer (C11 safety).
+    #   When False → legacy behavior preserved verbatim.
+    loyalty_settings_doc = await db.loyalty_settings.find_one(
+        {"user_id": user_id}, {"_id": 0}
+    )
+    if not loyalty_settings_doc:
+        err_msg = (
+            "Migration blocked: loyalty_settings doc not found for this "
+            "restaurant. Configure Loyalty Settings (master toggle + tier "
+            "thresholds) before triggering customer sync. See CR-001C-L "
+            "blueprint D2."
+        )
+        customer_sync_status[user_id]["status"] = "failed"
+        customer_sync_status[user_id]["error"] = err_msg
+        await _cust_log_progress(log_id, {
+            "status": "failed",
+            "error": err_msg,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        })
+        return
+
+    clean_slate = bool(loyalty_settings_doc.get("loyalty_clean_slate_recalc", False))
     
     try:
         async with httpx.AsyncClient() as client:
@@ -180,13 +210,19 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                         "anniversary": mygenie_customer.get("anniversary"),
                         "gst_name": mygenie_customer.get("gst_name"),
                         "gst_number": mygenie_customer.get("gst_number"),
-                        "total_points": mygenie_customer.get("loyalty_point", 0),
-                        "total_points_earned": int(mygenie_customer.get("total_points_earned") or 0),
-                        "total_points_redeemed": int(mygenie_customer.get("total_points_redeemed") or 0),
-                        "wallet_balance": float(mygenie_customer.get("wallet_balance") or 0),
-                        "total_wallet_received": float(mygenie_customer.get("total_wallet_received") or 0),
-                        "total_wallet_used": float(mygenie_customer.get("total_wallet_used") or 0),
-                        "total_coupon_used": mygenie_customer.get("total_coupon_used", 0),
+                        # CR-001C-L Phase L3 (C2 + C10-mig, 2026-05-22):
+                        #   clean_slate=True  → hard-init counters to 0 (DO NOT trust
+                        #     MyGenie loyalty_point/total_points_earned/redeemed/wallet/
+                        #     coupon aggregates; order-sync recomputes from scratch).
+                        #   clean_slate=False → legacy behavior preserved (trust MyGenie
+                        #     aggregates as before).
+                        "total_points": 0 if clean_slate else mygenie_customer.get("loyalty_point", 0),
+                        "total_points_earned": 0 if clean_slate else int(mygenie_customer.get("total_points_earned") or 0),
+                        "total_points_redeemed": 0 if clean_slate else int(mygenie_customer.get("total_points_redeemed") or 0),
+                        "wallet_balance": 0.0 if clean_slate else float(mygenie_customer.get("wallet_balance") or 0),
+                        "total_wallet_received": 0.0 if clean_slate else float(mygenie_customer.get("total_wallet_received") or 0),
+                        "total_wallet_used": 0.0 if clean_slate else float(mygenie_customer.get("total_wallet_used") or 0),
+                        "total_coupon_used": 0 if clean_slate else mygenie_customer.get("total_coupon_used", 0),
                         # CR-001B-fix Phase 2B F5: store pos_customer_id as str
                         "pos_customer_id": pos_customer_id_str,
                         "pos_id": mygenie_customer.get("pos_id"),
@@ -232,17 +268,11 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                         crm_addresses.append(crm_addr)
                     customer_data["addresses"] = crm_addresses
 
-                    # Determine tier
-                    points = customer_data["total_points"]
-                    if points >= 5000:
-                        tier = "Platinum"
-                    elif points >= 1500:
-                        tier = "Gold"
-                    elif points >= 500:
-                        tier = "Silver"
-                    else:
-                        tier = "Bronze"
-                    customer_data["tier"] = tier
+                    # CR-001C-L Phase L3 (F1, 2026-05-22): use shared tier helper
+                    # instead of hardcoded ladder so thresholds match settings doc.
+                    customer_data["tier"] = _calc_tier(
+                        customer_data.get("total_points", 0), loyalty_settings_doc
+                    )
 
                     # Check if exists
                     # CR-001B-fix Phase 2B F5: lookup uses $in to match both legacy int and new str
@@ -273,10 +303,32 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                             existing = phone_match
 
                     if existing:
-                        await db.customers.update_one(
-                            {"id": existing["id"]},
-                            {"$set": customer_data}
-                        )
+                        # CR-001C-L Phase L3 (C11, 2026-05-22) — re-sync safety.
+                        # Under clean-slate, NEVER overwrite loyalty/wallet/coupon counters
+                        # or behavioral fields (`total_visits`, `total_spent`, `last_visit`,
+                        # `avg_order_value`) on re-sync. Demographics + addresses + sync
+                        # metadata only. Under legacy mode, preserve current full-overwrite
+                        # behavior verbatim.
+                        if clean_slate:
+                            _allowed_keys = {
+                                "name", "phone", "country_code", "email", "dob",
+                                "anniversary", "gst_name", "gst_number",
+                                "pos_customer_id", "pos_id", "pos_restaurant_id",
+                                "mygenie_synced", "last_synced_at", "last_updated_at",
+                                "addresses",
+                            }
+                            safe_update = {
+                                k: v for k, v in customer_data.items() if k in _allowed_keys
+                            }
+                            await db.customers.update_one(
+                                {"id": existing["id"]},
+                                {"$set": safe_update}
+                            )
+                        else:
+                            await db.customers.update_one(
+                                {"id": existing["id"]},
+                                {"$set": customer_data}
+                            )
                         updated_count += 1
                         customer_id = existing["id"]
                     else:
@@ -301,7 +353,11 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                         customer_id = customer_data["id"]
 
                     # Create transaction records from customer totals (only for new customers)
-                    if not existing:
+                    # CR-001C-L Phase L3 (C2, 2026-05-22): under clean-slate, DO NOT
+                    # write synthetic historical points_transactions / wallet_transactions
+                    # rows. Order-sync is the single source of truth for transaction
+                    # history. Under legacy mode, preserve current behavior verbatim.
+                    if not existing and not clean_slate:
                         customer_created_at = customer_data.get("created_at", now)
 
                         if customer_data.get("total_points_earned", 0) > 0:

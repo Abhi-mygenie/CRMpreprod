@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 import httpx
 import os
@@ -10,6 +10,7 @@ import logging
 from core.database import db
 from core.auth import get_current_user
 from core.helpers import _coerce_pos_id, _pos_id_query_variants
+from core.loyalty import calculate_points as _calc_points, calculate_tier as _calc_tier
 
 logger = logging.getLogger("order_sync")
 
@@ -87,6 +88,41 @@ async def background_order_sync(user_id: str, mygenie_token: str):
         "log_id": log_id,
         "sync_type": "order_sync",
     }
+
+    # ============================================================
+    # CR-001C-L Phase L3 (D2 + Q-LB1 Option C, 2026-05-22)
+    # ============================================================
+    # D2: Block order-sync if loyalty_settings doc is missing. Owner must
+    #     configure Loyalty Settings (master toggle + tier thresholds +
+    #     expiry_months) BEFORE migration runs.
+    # Q-LB1 Option C: loyalty_clean_slate_recalc per-restaurant flag.
+    #   When True  → use shared `core.loyalty.calculate_points` per order,
+    #                 $inc total_points + total_points_earned, recompute tier
+    #                 inline, pre-mark expired rows, dedup on re-sync.
+    #   When False → legacy behavior preserved verbatim (no points written
+    #                 by migration; visits + spend grow only).
+    loyalty_settings = await db.loyalty_settings.find_one(
+        {"user_id": user_id}, {"_id": 0}
+    )
+    if not loyalty_settings:
+        err_msg = (
+            "Migration blocked: loyalty_settings doc not found for this "
+            "restaurant. Configure Loyalty Settings (master toggle + earn "
+            "percents + tier thresholds + expiry_months) before triggering "
+            "order sync. See CR-001C-L blueprint D2."
+        )
+        sync_status[user_id]["status"] = "failed"
+        sync_status[user_id]["error"] = err_msg
+        await _log_sync_progress(log_id, {
+            "status": "failed",
+            "error": err_msg,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        })
+        return
+
+    clean_slate = bool(loyalty_settings.get("loyalty_clean_slate_recalc", False))
+    loyalty_enabled_flag = bool(loyalty_settings.get("loyalty_enabled", False))
+    expiry_months = int(loyalty_settings.get("points_expiry_months", 6) or 0)
     
     try:
         async with httpx.AsyncClient() as client:
@@ -266,69 +302,163 @@ async def background_order_sync(user_id: str, mygenie_token: str):
                             synced_count += 1
                             
                             if customer:
-                                order_date = mygenie_order.get("created_at")
+                                order_date = mygenie_order.get("created_at") or now
                                 order_amount = float(mygenie_order.get("order_amount") or 0)
-                                
-                                # Get loyalty settings for points calculation
-                                loyalty_settings = await db.loyalty_settings.find_one({"user_id": user_id})
-                                earn_percent = 0
-                                if loyalty_settings and loyalty_settings.get("loyalty_enabled"):
-                                    earn_percent = loyalty_settings.get("earn_percent", 0)
-                                
-                                # Calculate points earned
-                                points_earned = int(order_amount * earn_percent / 100) if earn_percent > 0 else 0
-                                
-                                # Update order with points_earned
-                                if points_earned > 0:
-                                    await db.orders.update_one(
-                                        {"id": order_doc["id"]},
-                                        {"$set": {"points_earned": points_earned}}
-                                    )
-                                    
-                                    # Create points_transaction record
-                                    points_tx_doc = {
-                                        "id": str(uuid.uuid4()),
+
+                                # ============================================================
+                                # CR-001C-L Phase L3 (C1-mig + C2 + C3 + D1 + dedup, 2026-05-22)
+                                # ============================================================
+                                # Gated entirely on `clean_slate`. When False, legacy behavior
+                                # preserved: no points written by migration; visits + spend grow.
+                                # When True AND loyalty_enabled=True: per-order recalc using
+                                # the shared helper; running tier evolution; expiry pre-mark.
+                                if clean_slate and loyalty_enabled_flag:
+                                    # Re-sync dedup guard: skip if an `earn` row for this order
+                                    # already exists (idempotency / Q19).
+                                    existing_tx = await db.points_transactions.find_one({
                                         "user_id": user_id,
-                                        "customer_id": customer["id"],
                                         "order_id": order_doc["id"],
                                         "transaction_type": "earn",
-                                        "points": points_earned,
-                                        "description": f"Points earned from order (synced from MyGenie)",
-                                        "created_at": order_date or now
-                                    }
-                                    await db.points_transactions.insert_one(points_tx_doc)
-                                
-                                # Create coupon_transaction if coupon was used
-                                coupon_discount = order_doc.get("coupon_discount", 0)
-                                coupon_code = order_doc.get("coupon_code")
-                                if coupon_discount > 0 or coupon_code:
-                                    coupon_tx_doc = {
-                                        "id": str(uuid.uuid4()),
-                                        "user_id": user_id,
-                                        "customer_id": customer["id"],
-                                        "order_id": order_doc["id"],
-                                        "coupon_code": coupon_code,
-                                        "discount_amount": coupon_discount,
-                                        "description": "Coupon used (synced from MyGenie)",
-                                        "created_at": order_date or now
-                                    }
-                                    await db.coupon_transactions.insert_one(coupon_tx_doc)
-                                    
-                                    # Update customer total_coupon_used
+                                    })
+                                    if not existing_tx:
+                                        pts = _calc_points(order_amount, customer, loyalty_settings)
+                                        points_earned = pts["total_points"]
+
+                                        if points_earned > 0:
+                                            # D1: pre-mark expired if order_date older than expiry_months.
+                                            points_expired = False
+                                            expired_at = None
+                                            if expiry_months and order_date:
+                                                try:
+                                                    od_dt = datetime.fromisoformat(
+                                                        order_date.replace("Z", "+00:00")
+                                                    )
+                                                    cutoff = datetime.now(timezone.utc) - timedelta(
+                                                        days=expiry_months * 30
+                                                    )
+                                                    if od_dt < cutoff:
+                                                        points_expired = True
+                                                        expired_at = od_dt.isoformat()
+                                                except (ValueError, TypeError):
+                                                    pass
+
+                                            # Persist points_earned + off_peak_bonus on the order doc.
+                                            await db.orders.update_one(
+                                                {"id": order_doc["id"]},
+                                                {"$set": {
+                                                    "points_earned": points_earned,
+                                                    "off_peak_bonus": pts.get("off_peak_bonus", 0),
+                                                }},
+                                            )
+
+                                            # Per-order earn tx with ORIGINAL date + expiry pre-mark.
+                                            points_tx_doc = {
+                                                "id": str(uuid.uuid4()),
+                                                "user_id": user_id,
+                                                "customer_id": customer["id"],
+                                                "order_id": order_doc["id"],
+                                                "transaction_type": "earn",
+                                                "points": points_earned,
+                                                "description": f"Earned on order {pos_order_id} (migration recalc)",
+                                                "balance_after": None,
+                                                "created_at": order_date,
+                                                "points_expired": points_expired,
+                                                "expired_at": expired_at,
+                                            }
+                                            await db.points_transactions.insert_one(points_tx_doc)
+
+                                            # Customer counter $inc + tier recompute (running evolution).
+                                            new_total_visits = (customer.get("total_visits", 0) or 0) + 1
+                                            new_total_spent = (customer.get("total_spent", 0) or 0) + order_amount
+                                            new_total_points = (customer.get("total_points", 0) or 0) + (
+                                                points_earned if not points_expired else 0
+                                            )
+                                            new_total_points_earned = (
+                                                customer.get("total_points_earned", 0) or 0
+                                            ) + points_earned
+                                            new_tier = _calc_tier(new_total_points, loyalty_settings)
+                                            new_avg = (
+                                                round(new_total_spent / new_total_visits, 2)
+                                                if new_total_visits else 0
+                                            )
+
+                                            await db.customers.update_one(
+                                                {"id": customer["id"]},
+                                                {
+                                                    "$set": {
+                                                        "total_points": new_total_points,
+                                                        "total_points_earned": new_total_points_earned,
+                                                        "tier": new_tier,
+                                                        "total_visits": new_total_visits,
+                                                        "total_spent": new_total_spent,
+                                                        "avg_order_value": new_avg,
+                                                    },
+                                                    "$max": {"last_visit": order_date},
+                                                },
+                                            )
+
+                                            # Mutate in-memory `customer` so subsequent orders for the
+                                            # same customer in the same batch see the evolved tier.
+                                            customer["total_points"] = new_total_points
+                                            customer["total_points_earned"] = new_total_points_earned
+                                            customer["total_visits"] = new_total_visits
+                                            customer["total_spent"] = new_total_spent
+                                            customer["tier"] = new_tier
+                                        else:
+                                            # points_earned == 0 (e.g. order_amount < min_order_value)
+                                            # — still grow visits + spend.
+                                            await db.customers.update_one(
+                                                {"id": customer["id"]},
+                                                {
+                                                    "$inc": {
+                                                        "total_visits": 1,
+                                                        "total_spent": order_amount,
+                                                    },
+                                                    "$max": {"last_visit": order_date},
+                                                },
+                                            )
+                                            customer["total_visits"] = (customer.get("total_visits", 0) or 0) + 1
+                                            customer["total_spent"] = (customer.get("total_spent", 0) or 0) + order_amount
+                                    # else: existing tx found -> re-sync; skip silently.
+                                else:
+                                    # clean_slate=False (legacy) OR clean_slate=True but
+                                    # loyalty_enabled=False (kill-switch). Either way: no
+                                    # points writes. Still grow visits + spend.
                                     await db.customers.update_one(
                                         {"id": customer["id"]},
-                                        {"$inc": {"total_coupon_used": 1}}
+                                        {
+                                            "$inc": {
+                                                "total_visits": 1,
+                                                "total_spent": order_amount,
+                                            },
+                                            "$max": {"last_visit": order_date},
+                                        },
                                     )
-                                
-                                # Update customer stats including points
-                                update_fields = {
-                                    "$inc": {"total_visits": 1, "total_spent": order_amount, "total_points": points_earned},
-                                    "$max": {"last_visit": order_date}
-                                }
-                                await db.customers.update_one(
-                                    {"id": customer["id"]},
-                                    update_fields
-                                )
+
+                                # ============================================================
+                                # Coupon migration writes — preserved under LEGACY only.
+                                # Q-LOYALTY-5: coupon historical data not migrated under
+                                # clean-slate; deferred to CR-001C-C.
+                                # ============================================================
+                                if not clean_slate:
+                                    coupon_discount = order_doc.get("coupon_discount", 0)
+                                    coupon_code = order_doc.get("coupon_code")
+                                    if coupon_discount > 0 or coupon_code:
+                                        coupon_tx_doc = {
+                                            "id": str(uuid.uuid4()),
+                                            "user_id": user_id,
+                                            "customer_id": customer["id"],
+                                            "order_id": order_doc["id"],
+                                            "coupon_code": coupon_code,
+                                            "discount_amount": coupon_discount,
+                                            "description": "Coupon used (synced from MyGenie)",
+                                            "created_at": order_date or now,
+                                        }
+                                        await db.coupon_transactions.insert_one(coupon_tx_doc)
+                                        await db.customers.update_one(
+                                            {"id": customer["id"]},
+                                            {"$inc": {"total_coupon_used": 1}},
+                                        )
                             
                             # CR-001B-fix F2: Always write order_items (no customer gate)
                             if order_doc["items"]:

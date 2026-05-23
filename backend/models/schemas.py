@@ -593,6 +593,13 @@ class LoyaltySettings(BaseModel):
     max_redemption_amount: float = 500.0
     points_expiry_months: int = 6
     expiry_reminder_days: int = 30
+    # CR-001C-L Phase L3 (Q-LB1 Option C, 2026-05-22) — clean-slate migration gate.
+    # When True (per restaurant, set by owner BEFORE running migration), customer-sync
+    # ignores MyGenie loyalty/wallet/coupon aggregate fields and order-sync recomputes
+    # points per-order using `core.loyalty.calculate_points`. Default False keeps
+    # legacy behavior intact for any future re-migration of an already-loaded prod
+    # restaurant. See CR_001C_L_LOYALTY_TECHNICAL_BLUEPRINT.md §10.
+    loyalty_clean_slate_recalc: bool = False
     tier_silver_min: int = 500
     tier_gold_min: int = 1500
     tier_platinum_min: int = 5000
@@ -636,6 +643,8 @@ class LoyaltySettingsUpdate(BaseModel):
     max_redemption_amount: Optional[float] = None
     points_expiry_months: Optional[int] = None
     expiry_reminder_days: Optional[int] = None
+    # CR-001C-L Phase L3 (Q-LB1 Option C, 2026-05-22) — clean-slate migration gate.
+    loyalty_clean_slate_recalc: Optional[bool] = None
     tier_silver_min: Optional[int] = None
     tier_gold_min: Optional[int] = None
     tier_platinum_min: Optional[int] = None
