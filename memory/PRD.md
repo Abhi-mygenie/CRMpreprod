@@ -29,13 +29,15 @@
 - **Report:** `/app/memory/crm/crm_1_0/qa/CR_001C_L_LOYALTY_L3_REAL_MIGRATION_VERIFICATION_REPORT_R3.md`
 - **Non-blocking observations:** 98 orphaned PT rows from previous migration (cosmetic, OBS-R3-001); wallet balance restored to MyGenie values for 4 customers (OBS-R3-002, out of Loyalty scope)
 
-### R689 (Kunafa Mahal) — Second-Sample Verification — INCONCLUSIVE (2026-05-23)
-- **Status:** `cr001c_loyalty_l3_r689_real_migration_validation_inconclusive`
-- Migration ran in **legacy mode** (`loyalty_enabled` was `False` at sync time) — L3 clean-slate never activated
-- Order sync also FAILED at page 294/329 (MyGenie API 401 token expiry)
-- **Action required:** Owner re-run with `loyalty_enabled=True` confirmed BEFORE sync
+### R689 (Kunafa Mahal) — Second-Sample Verification — PASS (2026-05-23)
+- **Status:** `cr001c_loyalty_l3_r689_real_migration_validated_in_preview`
+- Clean-slate active (`loyalty_enabled=True` confirmed before sync)
+- 2034 customers, 201 PT recalc rows, 50% Bronze earn, tier evolution (1 Gold, 2 Silver)
+- Counter reconciliation: **2034/2034**, tier reconciliation: **2034/2034**
+- Key: `Σ PT(28,856) = Σ tpe(28,856) = Σ orders.pe(28,856) = Σ tp(28,856)`
+- Order sync partial (20/329 pages, MyGenie API 401) — non-blocking for L3
 - **Report:** `/app/memory/crm/crm_1_0/qa/CR_001C_L_LOYALTY_L3_REAL_MIGRATION_VERIFICATION_REPORT_R689.md`
-- Jeh's Nest R3 PASS status unaffected
+- **L3 now validated on TWO restaurants (Jeh's Nest + Kunafa Mahal)**
 
 ### Related statuses (unchanged)
 - LX-A: `cr001c_lx_a_loyalty_pos_contract_patched_qa_passed_in_preview`

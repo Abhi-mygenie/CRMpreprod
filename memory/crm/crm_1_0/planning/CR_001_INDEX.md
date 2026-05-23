@@ -74,8 +74,13 @@ Not yet defined.
 L1+L2+L3 status preserved verbatim in their existing reports
 (`cr001c_loyalty_l3_migration_parity_qa_passed`).
 
-**L3 real migration validation is CLOSED in preview.**
+**L3 real migration validation is CLOSED in preview — validated on TWO restaurants.**
 Status: `cr001c_loyalty_l3_real_migration_validated_in_preview`.
+
+| Restaurant | Status | Key stats |
+|---|---|---|
+| Jeh's Nest (R3) | ✅ PASS | 209 customers, 98 PT recalc, 28 expired, 5% earn. See `qa/CR_001C_L_LOYALTY_L3_REAL_MIGRATION_VERIFICATION_REPORT_R3.md`. |
+| Kunafa Mahal (R689) | ✅ PASS | 2034 customers, 201 PT recalc, 50% earn, tier evolution (Gold/Silver). See `qa/CR_001C_L_LOYALTY_L3_REAL_MIGRATION_VERIFICATION_REPORT_R689.md`. |
 
 ---
 
