@@ -68,13 +68,14 @@ Not yet defined.
 |---|---|---|---|
 | LX-A — Loyalty API response alignment for POS BUG-108 | ✅ **`cr001c_lx_a_loyalty_pos_contract_patched_qa_passed_in_preview`** | 2026-05-23 | 4 files touched (`backend/{models/schemas.py, core/helpers.py, core/loyalty.py, routers/pos.py}`). Static QA 63/63, live read-only smoke 5/5 on restaurant `18march`. POS handoff banner flipped to GREEN-LIGHT. See `implementation/CR_001C_LX_A_IMPLEMENTATION_REPORT.md` + `qa/CR_001C_LX_A_QA_REPORT.md`. |
 | **LF-MERGE — Loyalty Flag Merge (deprecate `loyalty_clean_slate_recalc`)** | ✅ **`cr001cl_lf_merge_complete_qa_passed_in_preview`** | **2026-05-23** | **Owner-driven follow-up.** Real owner-triggered migration on `Jeh's Nest` revealed that the visible "Loyalty Program ON" toggle (`loyalty_enabled`) did NOT control migration clean-slate recompute — a hidden flag `loyalty_clean_slate_recalc` (no UI exposure) did. Per owner Option 3, both flags merged: `loyalty_enabled` now drives BOTH realtime POS earning AND migration clean-slate recompute. `loyalty_clean_slate_recalc` deprecated (still on schema for backward compat, no longer read). 3 files touched (`backend/{routers/migration.py, routers/customers.py, models/schemas.py}`). Static QA 37/37, LX-A regression 63/63. Real-data L3 validation pending owner Revert → Sync Again on `Jeh's Nest`. See `implementation/CR_001C_L_LF_MERGE_IMPLEMENTATION_REPORT.md` + `qa/CR_001C_L_LF_MERGE_QA_REPORT.md` + `qa/CR_001C_L_LOYALTY_L3_REAL_MIGRATION_VERIFICATION_REPORT.md`. |
-| **BUG-L3-001 — D1 expired pre-mark fix (naive vs tz-aware compare)** | ✅ **`cr001c_l_bug_l3_001_fixed_qa_passed_in_preview_awaiting_real_migration_reverify`** | **2026-05-23** | Real-migration R2 verification surfaced 28 PT rows older than the 6-month cutoff that were NOT pre-marked `points_expired=True`. Root cause: MyGenie returns naive ISO timestamps; comparison with tz-aware cutoff raised `TypeError`, swallowed by over-broad `except`. Fix: coerce naive `od_dt` to UTC before compare; narrow `except` to `ValueError` only. 1 file touched (`backend/routers/migration.py:340-371`). Static QA 24/24, LF-MERGE regression 37/37, LX-A regression 63/63. Awaiting owner Revert → Sync Again on Jeh's Nest. See `implementation/CR_001C_L_BUG_L3_001_IMPLEMENTATION_REPORT.md` + `qa/CR_001C_L_BUG_L3_001_QA_REPORT.md` + `qa/CR_001C_L_LOYALTY_L3_REAL_MIGRATION_VERIFICATION_REPORT_R2.md`. |
+| **BUG-L3-001 — D1 expired pre-mark fix (naive vs tz-aware compare)** | ✅ **`cr001c_l_bug_l3_001_closed`** | **2026-05-23** | R2 verification surfaced 28 PT rows NOT pre-marked expired. Fix: coerce naive `od_dt` to UTC; narrow `except` to `ValueError`. **R3 re-verification PASSED** — 28 expired rows correctly marked, balances reconcile 209/209. See `qa/CR_001C_L_LOYALTY_L3_REAL_MIGRATION_VERIFICATION_REPORT_R3.md`. |
+| **L3 Real Migration Validation** | ✅ **`cr001c_loyalty_l3_real_migration_validated_in_preview`** | **2026-05-23** | All 8 L3 checks pass on Jeh's Nest after BUG-L3-001 fix + owner re-migration. 209 customers, 233 orders, 98 PT earn rows (28 expired/70 active). `total_points(379) = earned(753) − expired(374)`. L3 closed in preview. See `qa/CR_001C_L_LOYALTY_L3_REAL_MIGRATION_VERIFICATION_REPORT_R3.md`. |
 
 L1+L2+L3 status preserved verbatim in their existing reports
-(`cr001c_loyalty_l3_migration_parity_qa_passed`). Working LX-level
-interpretation continues to be
-`cr001c_loyalty_l3_controlled_qa_passed_real_migration_validation_pending`
-until owner-triggered real migration validation completes.
+(`cr001c_loyalty_l3_migration_parity_qa_passed`).
+
+**L3 real migration validation is CLOSED in preview.**
+Status: `cr001c_loyalty_l3_real_migration_validated_in_preview`.
 
 ---
 
