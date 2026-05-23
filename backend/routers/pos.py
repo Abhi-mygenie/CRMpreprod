@@ -8,7 +8,7 @@ import asyncio
 
 from core.database import db
 from core.auth import get_current_user, generate_api_key, verify_pos_auth
-from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_peak_bonus
+from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_peak_bonus, get_redemption_value_for_tier
 from core.loyalty import build_pos_loyalty_blob
 from core.whatsapp import trigger_whatsapp_event
 from models.schemas import (
@@ -518,6 +518,204 @@ async def pos_max_redeemable(
         data={
             "max_points_redeemable": max_points,
             "max_discount_value": max_discount_value
+        }
+    )
+
+
+# ============================================
+# CR-001C-LR: POS Loyalty Redeem API (2026-05-23)
+# ============================================
+
+class POSLoyaltyRedeemRequest(BaseModel):
+    """Request to redeem loyalty points during POS billing."""
+    customer_id: str
+    points_to_redeem: int
+    order_id: str
+    order_total: float
+    idempotency_key: str
+
+
+@router.post("/loyalty/redeem", response_model=POSResponse)
+async def pos_loyalty_redeem(
+    request: POSLoyaltyRedeemRequest,
+    user: dict = Depends(verify_pos_auth)
+):
+    """
+    CR-001C-LR: Redeem loyalty points for a customer during POS billing.
+
+    Tier-aware redemption value, idempotency-safe, with min/max guardrails.
+    Auth: X-API-Key (verify_pos_auth).
+    """
+    user_id = user["id"]
+
+    # 1. Load loyalty settings
+    settings = await db.loyalty_settings.find_one({"user_id": user_id}, {"_id": 0})
+    if not settings:
+        return POSResponse(
+            success=False,
+            message="Loyalty settings not configured for this restaurant.",
+            data={"error": {"code": "SETTINGS_MISSING", "message": "Loyalty settings not configured."}}
+        )
+
+    # 2. Check loyalty kill-switch
+    if not settings.get("loyalty_enabled", False):
+        return POSResponse(
+            success=False,
+            message="Loyalty program is disabled.",
+            data={"error": {"code": "LOYALTY_DISABLED", "message": "Loyalty program is currently disabled."}}
+        )
+
+    # 3. Validate points_to_redeem > 0
+    if request.points_to_redeem <= 0:
+        return POSResponse(
+            success=False,
+            message="Points to redeem must be greater than zero.",
+            data={"error": {"code": "INVALID_POINTS", "message": "points_to_redeem must be a positive integer."}}
+        )
+
+    # 4. Load customer
+    customer = await db.customers.find_one({"id": request.customer_id, "user_id": user_id})
+    if not customer:
+        return POSResponse(
+            success=False,
+            message="Customer not found.",
+            data={"error": {"code": "CUSTOMER_NOT_FOUND", "message": "Customer not found for this restaurant."}}
+        )
+
+    available_points = customer.get("total_points", 0)
+    customer_tier = customer.get("tier", "Bronze")
+
+    # 5. Check minimum redemption threshold
+    min_redemption = settings.get("min_redemption_points", 0)
+    if min_redemption > 0 and available_points < min_redemption:
+        return POSResponse(
+            success=False,
+            message=f"Customer needs at least {min_redemption} points to redeem.",
+            data={"error": {"code": "BELOW_MIN_REDEMPTION",
+                            "message": f"Minimum {min_redemption} points required. Customer has {available_points}.",
+                            "min_redemption_points": min_redemption, "available_points": available_points}}
+        )
+    if min_redemption > 0 and request.points_to_redeem < min_redemption:
+        return POSResponse(
+            success=False,
+            message=f"Minimum redemption is {min_redemption} points.",
+            data={"error": {"code": "BELOW_MIN_REDEMPTION",
+                            "message": f"Minimum {min_redemption} points per redemption. Requested {request.points_to_redeem}.",
+                            "min_redemption_points": min_redemption}}
+        )
+
+    # 6. Compute tier-aware redemption value (LX-A helper)
+    ratio_per_point = get_redemption_value_for_tier(customer_tier, settings)
+
+    # 7. Auto-cap to max guardrails (owner Q-LR6: auto-cap, not reject)
+    max_percent = settings.get("max_redemption_percent", 100.0)
+    max_amount = settings.get("max_redemption_amount", 999999.0)
+
+    max_by_percent = (request.order_total * max_percent) / 100 if request.order_total > 0 else 0
+    max_by_cap = max_amount
+    max_by_points = available_points * ratio_per_point
+
+    max_discount = min(max_by_percent, max_by_cap, max_by_points)
+    max_redeemable_points = int(max_discount / ratio_per_point) if ratio_per_point > 0 else 0
+    max_redeemable_points = min(max_redeemable_points, available_points)
+
+    # Auto-cap
+    points_to_redeem = min(request.points_to_redeem, max_redeemable_points)
+
+    # 8. Sufficient points
+    if points_to_redeem <= 0 or available_points < points_to_redeem:
+        return POSResponse(
+            success=False,
+            message="Insufficient points for redemption.",
+            data={"error": {"code": "INSUFFICIENT_POINTS",
+                            "message": f"Customer has {available_points} points. Max redeemable: {max_redeemable_points}.",
+                            "available_points": available_points, "max_redeemable_points": max_redeemable_points}}
+        )
+
+    # 9. Idempotency guard — check if this key was already processed
+    existing_tx = await db.points_transactions.find_one({
+        "user_id": user_id,
+        "idempotency_key": request.idempotency_key,
+        "transaction_type": "redeem",
+    })
+    if existing_tx:
+        # Return original result without double-deducting
+        return POSResponse(
+            success=True,
+            message="Points redeemed successfully (idempotent replay)",
+            data={
+                "customer_id": request.customer_id,
+                "points_redeemed": existing_tx.get("points", 0),
+                "ratio_per_point": existing_tx.get("ratio_per_point", ratio_per_point),
+                "redeemed_value": existing_tx.get("redeemed_value", 0),
+                "remaining_points": existing_tx.get("balance_after", 0),
+                "remaining_points_value": round(existing_tx.get("balance_after", 0) * ratio_per_point, 2),
+                "tier": customer_tier,
+                "total_points_redeemed": customer.get("total_points_redeemed", 0),
+                "transaction_id": existing_tx.get("id", ""),
+                "idempotent": True,
+            }
+        )
+
+    # 10. Compute values
+    redeemed_value = round(points_to_redeem * ratio_per_point, 2)
+    new_balance = available_points - points_to_redeem
+    new_total_redeemed = customer.get("total_points_redeemed", 0) + points_to_redeem
+    tx_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+
+    # 11. Write: customer update ($set total_points + $inc total_points_redeemed)
+    #     Tier is NOT changed on redeem (owner Q-LR1: no downgrade).
+    await db.customers.update_one(
+        {"id": request.customer_id},
+        {
+            "$set": {"total_points": new_balance},
+            "$inc": {"total_points_redeemed": points_to_redeem},
+        }
+    )
+
+    # 12. Write: points_transactions insert
+    tx_doc = {
+        "id": tx_id,
+        "user_id": user_id,
+        "customer_id": request.customer_id,
+        "order_id": request.order_id,
+        "points": points_to_redeem,
+        "transaction_type": "redeem",
+        "description": f"Redeemed {points_to_redeem} pts (Rs.{redeemed_value}) on order {request.order_id}",
+        "bill_amount": request.order_total,
+        "balance_after": new_balance,
+        "redeemed_value": redeemed_value,
+        "ratio_per_point": ratio_per_point,
+        "idempotency_key": request.idempotency_key,
+        "points_expired": False,
+        "created_at": now,
+    }
+    await db.points_transactions.insert_one(tx_doc)
+
+    # 13. Fire WhatsApp points_redeemed trigger (best-effort, non-blocking)
+    from core.whatsapp import trigger_whatsapp_event
+    updated_customer = {**customer, "total_points": new_balance, "tier": customer_tier}
+    asyncio.create_task(trigger_whatsapp_event(
+        db, user_id, "points_redeemed", updated_customer,
+        {"points_redeemed": points_to_redeem, "points_balance": new_balance,
+         "redeemed_value": redeemed_value}
+    ))
+
+    # 14. Return success
+    return POSResponse(
+        success=True,
+        message="Points redeemed successfully",
+        data={
+            "customer_id": request.customer_id,
+            "points_redeemed": points_to_redeem,
+            "ratio_per_point": ratio_per_point,
+            "redeemed_value": redeemed_value,
+            "remaining_points": new_balance,
+            "remaining_points_value": round(new_balance * ratio_per_point, 2),
+            "tier": customer_tier,
+            "total_points_redeemed": new_total_redeemed,
+            "transaction_id": tx_id,
         }
     )
 
