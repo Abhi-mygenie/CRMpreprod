@@ -2,7 +2,7 @@
 
 **Module:** CR-001C-L Phase L4 (cron-only scope)
 **Date:** 2026-05-24
-**Status:** `cr001c_loyalty_l4_cron_only_analysis_waiting_owner_approval`
+**Status:** `cr001c_loyalty_l4_cron_only_plan_frozen_ready_to_implement`
 **Author:** CRM Team
 **Prerequisite:** L1 ✅, L2 ✅, L3 ✅, LX-A ✅, LF-MERGE ✅, LR ✅, LR Correction ✅ (52/52)
 
@@ -339,15 +339,21 @@ def _tier_rank(tier: str) -> int:
 - **Option A (Recommended):** YES. Keeps `total_points = total_points_earned - expired - redeemed` intact.
 - **Option B:** NO. Only order-based earning counts.
 
+**FROZEN: Option A. Bonuses increment `total_points_earned`.**
+
 ### Q-L4-3: Should bonuses recompute tier?
 
 - **Option A (Recommended):** YES, upgrade-only. Bonus pushes past threshold -> tier upgrades immediately. Never downgrades.
 - **Option B:** NO. Tier only changes on POS orders.
 
+**FROZEN: Option A. Tier recomputed after bonus, upgrade-only (no downgrade).**
+
 ### Q-L4-4: Should cron skip when `loyalty_enabled=false`?
 
 - **Option A (Recommended):** YES. Master kill-switch gates everything. Individual `birthday_bonus_enabled` / `anniversary_bonus_enabled` remain as sub-toggles.
 - **Option B:** NO. Bonuses fire independently of `loyalty_enabled`.
+
+**FROZEN: Option A. Cron skips bonuses when `loyalty_enabled=false`.**
 
 (Q-L4-1 and Q-L4-5 from prior plan are removed — they concerned admin redeem, now parked.)
 
@@ -405,6 +411,6 @@ Implementation can begin once owner approves the 3 remaining questions (Q-L4-2, 
 
 ## 15. Final Status
 
-`cr001c_loyalty_l4_cron_only_analysis_waiting_owner_approval`
+`cr001c_loyalty_l4_cron_only_plan_frozen_ready_to_implement`
 
-Plan is complete. Implementation may begin against this scope once owner confirms. No further analysis round required.
+Plan is FROZEN. All owner questions resolved. Implementation may begin immediately against this scope.
