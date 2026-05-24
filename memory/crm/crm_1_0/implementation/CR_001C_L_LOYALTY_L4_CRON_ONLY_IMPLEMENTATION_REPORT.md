@@ -90,3 +90,11 @@ No naive-vs-aware risk exists. BUG-L3-001 pattern cannot recur. No code change w
 ## 7. Final Status
 
 `cr001c_loyalty_l4_cron_only_qa_passed`
+
+---
+
+## 8. Current Blocker Before Final Realtime Redemption QA
+
+**Overall loyalty status:** `cr001c_loyalty_waiting_pos_loyalty_points_key_for_final_realtime_redemption_qa`
+
+L4 cron-only: complete (17/17). LR correction: complete (52/52). Final live redemption QA blocked on POS sending `used_loyalty_point` / `loyalty_points_used` + actual `order_amount` in the final `POST /api/pos/orders` payload. Once POS sends the key, run CR-001C-LR Realtime Order Redemption Verification. Target: `cr001c_lr_realtime_order_redemption_verified`.

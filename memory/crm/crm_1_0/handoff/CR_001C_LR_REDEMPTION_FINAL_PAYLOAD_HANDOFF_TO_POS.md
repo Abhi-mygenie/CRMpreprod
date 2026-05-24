@@ -286,3 +286,28 @@ There is no flag-day. There is no required cutover order.
 `cr001c_lr_correction_qa_passed`
 
 POS may consume the corrected flow in preview now. Prod rollout will be coordinated separately; this doc is the source of truth for the contract and will not change between preview and prod.
+
+---
+
+## 11. Current Blocker Before Final Realtime Redemption QA
+
+**Status:** `cr001c_loyalty_waiting_pos_loyalty_points_key_for_final_realtime_redemption_qa`
+
+CRM-side implementation is complete (52/52 controlled QA PASS). Final live redemption QA is blocked until POS sends a loyalty-points-used key in the final `POST /api/pos/orders` payload.
+
+**Accepted keys (any one):**
+- `loyalty_points_used` (canonical)
+- `used_loyalty_point` (POS legacy singular)
+- `used_loyalty_points` (POS legacy plural)
+
+**Also required from POS:**
+- `order_amount` must be the actual bill total (not 0)
+
+**Current evidence:** Multiple R689 test orders (868928, 868932-868935) landed in CRM with `order_amount=0` and zero loyalty fields. CRM processed them successfully (HTTP 200) but could not trigger redemption because no loyalty key was present.
+
+**Business rule reminder:**
+- POS Apply/Redeem click = calculate and display discount only (local POS math).
+- Final `/api/pos/orders` payload = actual CRM redemption trigger.
+
+**Once POS sends the key:** Run CR-001C-LR Realtime Order Redemption Verification per `qa/CR_001C_LR_REALTIME_ORDER_REDEMPTION_VERIFICATION_REPORT.md`.
+**Target status:** `cr001c_lr_realtime_order_redemption_verified`

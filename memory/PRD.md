@@ -36,3 +36,38 @@
 - P1: Admin/manual redeem counter parity (PARKED — 7 defects documented, later sprint)
 - P2: End-to-end testing of all routes
 - P2: L5 cleanup (dead code, orphaned PT rows, alias retirement)
+
+---
+
+## Current Blocker Before Final Loyalty QA
+
+**Status:** `cr001c_loyalty_waiting_pos_loyalty_points_key_for_final_realtime_redemption_qa`
+
+Final realtime redemption QA is blocked until POS sends a loyalty-points-used key in the final `POST /api/pos/orders` payload.
+
+**Accepted keys (any one):**
+- `loyalty_points_used` (canonical)
+- `used_loyalty_point` (POS legacy singular, accepted)
+- `used_loyalty_points` (POS legacy plural, accepted)
+
+**Required final payload minimum:**
+- `cust_mobile` or resolvable customer reference
+- `order_id`
+- `order_amount` (actual bill total, not 0)
+- One of the loyalty keys above with a positive integer value
+- `loyalty_discount` (optional, CRM recomputes)
+- `loyalty_idempotency_key` (optional, CRM derives from order_id if absent)
+
+**CRM behavior already implemented and QA-verified (52/52 + 17/17):**
+- Redeems only when final payload contains loyalty points used
+- Does not redeem on POS Apply/Redeem click
+- Accepts aliases and maps to canonical `loyalty_points_used`
+- Decrements `customer.total_points`
+- Increments `customer.total_points_redeemed`
+- Creates redeem `points_transactions` row with full audit fields
+- Earns on net amount after redemption (Q-CORR-3)
+- Prevents duplicate redemption using idempotency (Q-CORR-4)
+- L4 cron bonuses increment `total_points_earned` and recompute tier
+
+**Recommended next QA:** Once POS sends the key, run CR-001C-LR Realtime Order Redemption Verification.
+**Target status after real order verification:** `cr001c_lr_realtime_order_redemption_verified`

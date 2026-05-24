@@ -228,3 +228,11 @@ Pattern reused from CR-001A Phase 1 (`order_created_at` ← `created_at`). One f
 ## 11. Final Status
 
 `cr001c_lr_correction_qa_passed` (52/52 — alias-addendum included)
+
+---
+
+## 12. Current Blocker Before Final Realtime Redemption QA
+
+**Overall loyalty status:** `cr001c_loyalty_waiting_pos_loyalty_points_key_for_final_realtime_redemption_qa`
+
+CRM-side complete. POS must send `used_loyalty_point` / `loyalty_points_used` + actual `order_amount` (not 0) in the final `POST /api/pos/orders` payload. Multiple R689 test orders landed with `order_amount=0` and zero loyalty fields. Once POS sends the key, run CR-001C-LR Realtime Order Redemption Verification. Target: `cr001c_lr_realtime_order_redemption_verified`.

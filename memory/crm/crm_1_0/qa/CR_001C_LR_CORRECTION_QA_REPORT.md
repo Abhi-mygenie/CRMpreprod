@@ -212,3 +212,11 @@ Structurally proves the canonical and alias paths run through the **same** `core
 ## 6. Final Status
 
 `cr001c_lr_correction_qa_passed`
+
+---
+
+## 7. Current Blocker Before Final Realtime Redemption QA
+
+**Overall loyalty status:** `cr001c_loyalty_waiting_pos_loyalty_points_key_for_final_realtime_redemption_qa`
+
+Controlled QA: **52/52 PASS** (this report). Final live POS order redemption QA is pending — POS must send `used_loyalty_point` / `loyalty_points_used` + actual `order_amount` in the final `/api/pos/orders` payload. Without this key, CRM cannot trigger redemption. Once POS sends it, run CR-001C-LR Realtime Order Redemption Verification. Target: `cr001c_lr_realtime_order_redemption_verified`.

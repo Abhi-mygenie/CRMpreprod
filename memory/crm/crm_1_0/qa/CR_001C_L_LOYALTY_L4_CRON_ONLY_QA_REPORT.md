@@ -97,3 +97,11 @@ No production records mutated.
 ## 5. Final Status
 
 `cr001c_loyalty_l4_cron_only_qa_passed`
+
+---
+
+## 6. Current Blocker Before Final Realtime Redemption QA
+
+**Overall loyalty status:** `cr001c_loyalty_waiting_pos_loyalty_points_key_for_final_realtime_redemption_qa`
+
+L4 cron-only QA: **17/17 PASS** (this report). LR controlled QA: 52/52 PASS. Final live POS order redemption QA is pending — POS must send `used_loyalty_point` / `loyalty_points_used` + actual `order_amount` in the final `/api/pos/orders` payload. Once POS sends the key, run CR-001C-LR Realtime Order Redemption Verification. Target: `cr001c_lr_realtime_order_redemption_verified`.
