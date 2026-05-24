@@ -90,6 +90,18 @@ Status: `cr001c_loyalty_l3_real_migration_validated_in_preview`.
 
 ---
 
+## CR-001C-C (Coupon) — Pre-Implementation Planning
+
+| Item | Status | Date | Notes |
+|---|---|---|---|
+| Existing-System Capability Audit | ✅ `cr001c_coupon_existing_system_capability_audit_complete_waiting_owner_decisions` | 2026-05-24 | 13 files + 3 collections inspected. ORDER_FLAT/PERCENTAGE partially supported. No item-level/BOGO/happy-hour. `GET /pos/coupons/available` missing. Validate uses query params not JSON body. See `planning/CR_001C_C_COUPON_EXISTING_SYSTEM_CAPABILITY_AUDIT.md`. |
+| Scrap vs Keep Architecture Decision | ✅ `cr001c_coupon_scrap_vs_keep_decision_option_b_hybrid_rebuild_recommended` | 2026-05-24 | **Option B** — keep skeleton (collections + admin CRUD), rebuild POS contract + coupon engine. See `planning/CR_001C_C_COUPON_SCRAP_VS_KEEP_DECISION.md`. |
+| V1 Owner Decisions | ✅ `cr001c_coupon_v1_owner_decisions_frozen_ready_for_implementation_plan` | 2026-05-24 | All 6 decisions frozen: Q1=ORDER_FLAT+PCT only; Q2=stacking config-driven; Q3=wallet deferred; Q4=usage at final order; Q5=pre-tax subtotal, same pattern as loyalty; Q6=V1 flat/pct, V2 item/cat, V3 BOGO/happy-hour. See `planning/CR_001C_C_COUPON_V1_OWNER_DECISIONS.md`. |
+| V1 Implementation Plan | ⏳ Next | — | Ready to begin. |
+
+---
+
+
 ## CR-001D — `orders.restaurant_id` silently null (NEW, surfaced 2026-05-22)
 
 Discovered during CR-001A Phase 1 live verification. Every order persisted via
