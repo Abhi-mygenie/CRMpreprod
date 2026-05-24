@@ -13,11 +13,20 @@ from core.helpers import calculate_tier
 logger = logging.getLogger(__name__)
 
 
+def _tier_rank(tier: str) -> int:
+    """CR-001C-L L4: tier rank for upgrade-only guard."""
+    return {"Bronze": 1, "Silver": 2, "Gold": 3, "Platinum": 4}.get(tier, 0)
+
+
 async def run_birthday_bonus(user_id: str, settings: dict) -> dict:
     """Award birthday bonus to eligible customers for a given user."""
     from core.whatsapp import trigger_whatsapp_event
     
     if not settings.get("birthday_bonus_enabled", False):
+        return {"customers_awarded": 0, "total_points_awarded": 0, "awarded_customers": []}
+
+    # CR-001C-L L4 (Q-L4-4): master loyalty kill-switch gates all bonuses.
+    if not settings.get("loyalty_enabled", False):
         return {"customers_awarded": 0, "total_points_awarded": 0, "awarded_customers": []}
 
     bonus_points = settings.get("birthday_bonus_points", 100)
@@ -55,9 +64,18 @@ async def run_birthday_bonus(user_id: str, settings: dict) -> dict:
                 current_points = customer.get("total_points", 0)
                 new_points = current_points + bonus_points
 
+                # CR-001C-L L4 (Q-L4-3): tier recompute, upgrade-only.
+                old_tier = customer.get("tier", "Bronze")
+                new_tier = calculate_tier(new_points, settings)
+                tier_update = {"tier": new_tier} if _tier_rank(new_tier) > _tier_rank(old_tier) else {}
+
+                # CR-001C-L L4 (Q-L4-2): $inc total_points + total_points_earned (atomic).
                 await db.customers.update_one(
                     {"id": customer["id"]},
-                    {"$set": {"total_points": new_points, "last_birthday_bonus_year": current_year}}
+                    {
+                        "$inc": {"total_points": bonus_points, "total_points_earned": bonus_points},
+                        "$set": {"last_birthday_bonus_year": current_year, **tier_update},
+                    }
                 )
                 tx_doc = {
                     "id": str(uuid.uuid4()),
@@ -68,6 +86,7 @@ async def run_birthday_bonus(user_id: str, settings: dict) -> dict:
                     "description": f"Birthday bonus ({current_year})",
                     "bill_amount": None,
                     "balance_after": new_points,
+                    "points_expired": False,
                     "created_at": datetime.now(timezone.utc).isoformat()
                 }
                 await db.points_transactions.insert_one(tx_doc)
@@ -81,7 +100,8 @@ async def run_birthday_bonus(user_id: str, settings: dict) -> dict:
                 })
                 
                 # Fire birthday WhatsApp trigger
-                updated_customer = {**customer, "total_points": new_points}
+                effective_tier = new_tier if _tier_rank(new_tier) > _tier_rank(old_tier) else old_tier
+                updated_customer = {**customer, "total_points": new_points, "tier": effective_tier}
                 asyncio.create_task(trigger_whatsapp_event(
                     db, user_id, "birthday", updated_customer,
                     {"birthday_bonus": bonus_points, "points_balance": new_points}
@@ -103,6 +123,10 @@ async def run_anniversary_bonus(user_id: str, settings: dict) -> dict:
     from core.whatsapp import trigger_whatsapp_event
     
     if not settings.get("anniversary_bonus_enabled", False):
+        return {"customers_awarded": 0, "total_points_awarded": 0, "awarded_customers": []}
+
+    # CR-001C-L L4 (Q-L4-4): master loyalty kill-switch gates all bonuses.
+    if not settings.get("loyalty_enabled", False):
         return {"customers_awarded": 0, "total_points_awarded": 0, "awarded_customers": []}
 
     bonus_points = settings.get("anniversary_bonus_points", 150)
@@ -140,9 +164,18 @@ async def run_anniversary_bonus(user_id: str, settings: dict) -> dict:
                 current_points = customer.get("total_points", 0)
                 new_points = current_points + bonus_points
 
+                # CR-001C-L L4 (Q-L4-3): tier recompute, upgrade-only.
+                old_tier = customer.get("tier", "Bronze")
+                new_tier = calculate_tier(new_points, settings)
+                tier_update = {"tier": new_tier} if _tier_rank(new_tier) > _tier_rank(old_tier) else {}
+
+                # CR-001C-L L4 (Q-L4-2): $inc total_points + total_points_earned (atomic).
                 await db.customers.update_one(
                     {"id": customer["id"]},
-                    {"$set": {"total_points": new_points, "last_anniversary_bonus_year": current_year}}
+                    {
+                        "$inc": {"total_points": bonus_points, "total_points_earned": bonus_points},
+                        "$set": {"last_anniversary_bonus_year": current_year, **tier_update},
+                    }
                 )
                 tx_doc = {
                     "id": str(uuid.uuid4()),
@@ -153,6 +186,7 @@ async def run_anniversary_bonus(user_id: str, settings: dict) -> dict:
                     "description": f"Anniversary bonus ({current_year})",
                     "bill_amount": None,
                     "balance_after": new_points,
+                    "points_expired": False,
                     "created_at": datetime.now(timezone.utc).isoformat()
                 }
                 await db.points_transactions.insert_one(tx_doc)
@@ -166,7 +200,8 @@ async def run_anniversary_bonus(user_id: str, settings: dict) -> dict:
                 })
                 
                 # Fire anniversary WhatsApp trigger
-                updated_customer = {**customer, "total_points": new_points}
+                effective_tier = new_tier if _tier_rank(new_tier) > _tier_rank(old_tier) else old_tier
+                updated_customer = {**customer, "total_points": new_points, "tier": effective_tier}
                 asyncio.create_task(trigger_whatsapp_event(
                     db, user_id, "anniversary", updated_customer,
                     {"anniversary_bonus": bonus_points, "points_balance": new_points}

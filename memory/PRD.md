@@ -16,6 +16,7 @@
 - Installed all Python & Node dependencies
 - Both frontend and backend services running successfully
 - API health check passing, frontend rendering login page
+- **CR-001C-L L4 Cron-Only (2026-05-24):** Birthday + anniversary bonus parity — `$inc total_points_earned`, tier recompute (upgrade-only), `loyalty_enabled` kill-switch, atomic `$inc`. 17/17 QA PASS. Admin redeem parked.
 
 ## Core Features (from repo)
 - Auth (Login/Register/Demo)
@@ -31,6 +32,7 @@
 - Customer lifecycle tracking
 
 ## Backlog / Next Tasks
-- P0: Validate full login flow with external DB credentials
-- P1: Test all CRUD operations against external MongoDB
+- P0: POS team to send `used_loyalty_point` + actual `order_amount` in final `/api/pos/orders` payload for real-time loyalty redemption verification
+- P1: Admin/manual redeem counter parity (PARKED — 7 defects documented, later sprint)
 - P2: End-to-end testing of all routes
+- P2: L5 cleanup (dead code, orphaned PT rows, alias retirement)
