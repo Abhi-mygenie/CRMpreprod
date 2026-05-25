@@ -1,0 +1,94 @@
+{
+  "module": "CR-001C-L L4 Cron-Only",
+  "date": "2026-05-24T15:11:56.889604+00:00",
+  "total": 17,
+  "passed": 17,
+  "failed": 0,
+  "results": [
+    {
+      "name": "QA-L4-1 Birthday: total_points incremented",
+      "status": "PASS",
+      "detail": "expected=300 got=300"
+    },
+    {
+      "name": "QA-L4-2 Birthday: total_points_earned incremented",
+      "status": "PASS",
+      "detail": "expected=300 got=300"
+    },
+    {
+      "name": "QA-L4-3 Birthday: tier upgrade Bronze->Silver (450+100=550)",
+      "status": "PASS",
+      "detail": "expected=Silver got=Silver, points=550"
+    },
+    {
+      "name": "QA-L4-4 Birthday: Gold tier NOT downgraded",
+      "status": "PASS",
+      "detail": "expected=Gold got=Gold, points=1700"
+    },
+    {
+      "name": "QA-L4-5 Birthday: duplicate prevention (points unchanged)",
+      "status": "PASS",
+      "detail": "expected=100 got=100"
+    },
+    {
+      "name": "QA-L4-6 Birthday: loyalty_enabled=false -> skipped",
+      "status": "PASS",
+      "detail": "expected=0 got=0"
+    },
+    {
+      "name": "QA-L4-7 Birthday: birthday_bonus_enabled=false -> skipped",
+      "status": "PASS",
+      "detail": "expected=0 got=0"
+    },
+    {
+      "name": "QA-L4-8 Birthday: PT row has points_expired=False",
+      "status": "PASS",
+      "detail": "points_expired=False"
+    },
+    {
+      "name": "QA-L4-9 Birthday: PT row balance_after correct",
+      "status": "PASS",
+      "detail": "expected=300 got=300"
+    },
+    {
+      "name": "QA-L4-10 Anniversary: total_points incremented",
+      "status": "PASS",
+      "detail": "expected=350 got=350"
+    },
+    {
+      "name": "QA-L4-11 Anniversary: total_points_earned incremented",
+      "status": "PASS",
+      "detail": "expected=350 got=350"
+    },
+    {
+      "name": "QA-L4-12 Anniversary: tier upgrade Bronze->Silver (400+150=550)",
+      "status": "PASS",
+      "detail": "expected=Silver got=Silver, points=550"
+    },
+    {
+      "name": "QA-L4-13 Anniversary: duplicate prevention (points unchanged)",
+      "status": "PASS",
+      "detail": "expected=100 got=100"
+    },
+    {
+      "name": "QA-L4-14 Anniversary: loyalty_enabled=false -> skipped",
+      "status": "PASS",
+      "detail": "expected=0 got=0"
+    },
+    {
+      "name": "QA-L4-15 /api/health",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "QA-L4-16 LR/LX-A imports intact",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "QA-L4-17 Datetime safety: birthday uses .date() pattern",
+      "status": "PASS",
+      "detail": "date-only comparison pattern confirmed"
+    }
+  ]
+}
