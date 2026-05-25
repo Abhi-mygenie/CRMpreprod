@@ -957,7 +957,7 @@ class LoyaltySettings(BaseModel):
     loyalty_enabled: bool = False
     coupon_enabled: bool = False
     wallet_enabled: bool = False
-    min_order_value: float = 100.0
+    min_order_value: float = 0
     bronze_earn_percent: float = 5.0
     silver_earn_percent: float = 7.0
     gold_earn_percent: float = 10.0
@@ -973,8 +973,8 @@ class LoyaltySettings(BaseModel):
     gold_redemption_value: Optional[float] = None
     platinum_redemption_value: Optional[float] = None
     min_redemption_points: int = 50
-    max_redemption_percent: float = 50.0
-    max_redemption_amount: float = 500.0
+    max_redemption_percent: float = 100.0
+    max_redemption_amount: Optional[float] = None
     points_expiry_months: int = 6
     expiry_reminder_days: int = 30
     # CR-001C-L Phase L3 (Q-LB1 Option C, 2026-05-22) — clean-slate migration gate.

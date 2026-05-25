@@ -52,7 +52,7 @@ def calculate_points(order_amount: float, customer: dict, settings: dict) -> dic
         description: str
         off_peak_message: Optional[str]
     """
-    min_order = settings.get("min_order_value", 100.0)
+    min_order = settings.get("min_order_value", 0)
     if order_amount < min_order:
         return {
             "base_points": 0,

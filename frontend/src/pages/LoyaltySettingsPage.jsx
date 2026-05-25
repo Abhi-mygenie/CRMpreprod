@@ -135,7 +135,7 @@ export default function LoyaltySettingsPage() {
                                 </div>
                                 <div>
                                     <Label className="form-label">Point Value (₹ per point)</Label>
-                                    <Input type="number" step="0.5" min="0.5" value={settings.redemption_value} onChange={(e) => setSettings({...settings, redemption_value: parseFloat(e.target.value)})} className="h-12 rounded-xl" data-testid="redemption-value-input" />
+                                    <Input type="number" step="0.5" min="0.01" value={settings.redemption_value} onChange={(e) => setSettings({...settings, redemption_value: parseFloat(e.target.value)})} className="h-12 rounded-xl" data-testid="redemption-value-input" />
                                 </div>
                                 <div>
                                     <Label className="form-label">Minimum Points to Redeem</Label>
@@ -150,8 +150,8 @@ export default function LoyaltySettingsPage() {
                                     </div>
                                     <div>
                                         <Label className="form-label">Max ₹ Amount</Label>
-                                        <Input type="number" min="0" value={settings.max_redemption_amount || 500} onChange={(e) => setSettings({...settings, max_redemption_amount: parseFloat(e.target.value)})} className="h-12 rounded-xl" data-testid="max-redemption-amount-input" />
-                                        <p className="text-xs text-[#52525B] mt-1">Max ₹{settings.max_redemption_amount || 500} per order</p>
+                                        <Input type="number" min="0" value={settings.max_redemption_amount || ""} onChange={(e) => setSettings({...settings, max_redemption_amount: e.target.value ? parseFloat(e.target.value) : null})} className="h-12 rounded-xl" data-testid="max-redemption-amount-input" placeholder="No limit" />
+                                        <p className="text-xs text-[#52525B] mt-1">{settings.max_redemption_amount ? `Max ₹${settings.max_redemption_amount} per order` : "No limit per order"}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -298,3 +298,4 @@ export default function LoyaltySettingsPage() {
         </ResponsiveLayout>
     );
 }
+
