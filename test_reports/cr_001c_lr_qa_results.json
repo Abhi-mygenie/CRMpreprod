@@ -1,0 +1,705 @@
+{
+  "module": "CR-001C-LR",
+  "endpoint": "POST /api/pos/loyalty/redeem",
+  "total": 52,
+  "passed": 52,
+  "failed": 0,
+  "cases": [
+    {
+      "case": "QA-1 successful redeem (HTTP 200 + success=true)",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": true,
+          "message": "Points redeemed successfully",
+          "data": {
+            "customer_id": "qa_cr001c_lr_cust_basic",
+            "points_redeemed": 100,
+            "ratio_per_point": 1.0,
+            "redeemed_value": 100.0,
+            "remaining_points": 400,
+            "remaining_points_value": 400.0,
+            "tier": "Bronze",
+            "total_points_redeemed": 300,
+            "transaction_id": "bec52804-1e8d-4144-af7a-0a9174d60f04"
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-1.a total_points decreased by 100",
+      "pass": true,
+      "info": {
+        "before": 500,
+        "after": 400
+      }
+    },
+    {
+      "case": "QA-1.b total_points_redeemed incremented by 100",
+      "pass": true,
+      "info": {
+        "before": 200,
+        "after": 300
+      }
+    },
+    {
+      "case": "QA-1.c PT row created",
+      "pass": true,
+      "info": {
+        "tx_id": "bec52804-1e8d-4144-af7a-0a9174d60f04"
+      }
+    },
+    {
+      "case": "QA-1.d PT transaction_type='redeem'",
+      "pass": true,
+      "info": {}
+    },
+    {
+      "case": "QA-1.e PT points stored POSITIVE",
+      "pass": true,
+      "info": {
+        "points": 100
+      }
+    },
+    {
+      "case": "QA-1.f PT redeemed_value = pts * ratio (Bronze 1.0)",
+      "pass": true,
+      "info": {
+        "redeemed_value": 100.0
+      }
+    },
+    {
+      "case": "QA-1.g PT carries order_id",
+      "pass": true,
+      "info": {}
+    },
+    {
+      "case": "QA-1.h PT carries idempotency_key",
+      "pass": true,
+      "info": {}
+    },
+    {
+      "case": "QA-1.i tier UNCHANGED after redeem",
+      "pass": true,
+      "info": {
+        "tier": "Bronze"
+      }
+    },
+    {
+      "case": "QA-2 auto-cap: success=true with capped points (no INSUFFICIENT_POINTS)",
+      "pass": true,
+      "info": {
+        "requested": 9999,
+        "actual_redeemed": 400,
+        "remaining": 0
+      }
+    },
+    {
+      "case": "QA-3 below min \u2192 BELOW_MIN_REDEMPTION",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "Minimum 50 points required. Customer has 0.",
+          "data": {
+            "error": {
+              "code": "BELOW_MIN_REDEMPTION",
+              "message": "Minimum 50 points required. Customer has 0.",
+              "min_redemption_points": 50,
+              "available_points": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-3.a customer untouched on min-fail",
+      "pass": true,
+      "info": {}
+    },
+    {
+      "case": "QA-4 loyalty_enabled=false \u2192 LOYALTY_DISABLED",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "Loyalty program is currently disabled.",
+          "data": {
+            "error": {
+              "code": "LOYALTY_DISABLED",
+              "message": "Loyalty program is currently disabled."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-4.a no customer mutation",
+      "pass": true,
+      "info": {}
+    },
+    {
+      "case": "QA-4.b no PT row written",
+      "pass": true,
+      "info": {}
+    },
+    {
+      "case": "QA-5 no settings \u2192 SETTINGS_MISSING",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "Loyalty settings not configured.",
+          "data": {
+            "error": {
+              "code": "SETTINGS_MISSING",
+              "message": "Loyalty settings not configured."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-6 customer not found \u2192 CUSTOMER_NOT_FOUND",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "Customer not found for this restaurant.",
+          "data": {
+            "error": {
+              "code": "CUSTOMER_NOT_FOUND",
+              "message": "Customer not found for this restaurant."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-7 invalid points 0 \u2192 INVALID_POINTS",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "points_to_redeem must be a positive integer.",
+          "data": {
+            "error": {
+              "code": "INVALID_POINTS",
+              "message": "points_to_redeem must be a positive integer."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-7 invalid points -10 \u2192 INVALID_POINTS",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "points_to_redeem must be a positive integer.",
+          "data": {
+            "error": {
+              "code": "INVALID_POINTS",
+              "message": "points_to_redeem must be a positive integer."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-7.c non-integer points rejected (422 or INVALID_POINTS)",
+      "pass": true,
+      "info": {
+        "status": 422,
+        "body": {
+          "detail": [
+            {
+              "type": "int_from_float",
+              "loc": [
+                "body",
+                "points_to_redeem"
+              ],
+              "msg": "Input should be a valid integer, got a number with a fractional part",
+              "input": 12.5,
+              "url": "https://errors.pydantic.dev/2.12/v/int_from_float"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "QA-8 empty order_id \u2192 ORDER_ID_REQUIRED",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "order_id is required for POS billing redeem.",
+          "data": {
+            "error": {
+              "code": "ORDER_ID_REQUIRED",
+              "message": "order_id is required for POS billing redeem."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-9 empty idempotency_key \u2192 IDEMPOTENCY_KEY_REQUIRED",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "idempotency_key is required.",
+          "data": {
+            "error": {
+              "code": "IDEMPOTENCY_KEY_REQUIRED",
+              "message": "idempotency_key is required."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-10 first call success",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": true,
+          "message": "Points redeemed successfully",
+          "data": {
+            "customer_id": "qa_cr001c_lr_cust_gold",
+            "points_redeemed": 100,
+            "ratio_per_point": 1.5,
+            "redeemed_value": 150.0,
+            "remaining_points": 300,
+            "remaining_points_value": 450.0,
+            "tier": "Gold",
+            "total_points_redeemed": 100,
+            "transaction_id": "c9c10bcb-c2fd-41e5-9e93-c9962b1a42b6"
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-10.a replay returns success and idempotent=true marker",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": true,
+          "message": "Points redeemed successfully (idempotent replay)",
+          "data": {
+            "customer_id": "qa_cr001c_lr_cust_gold",
+            "points_redeemed": 100,
+            "ratio_per_point": 1.5,
+            "redeemed_value": 150.0,
+            "remaining_points": 300,
+            "remaining_points_value": 450.0,
+            "tier": "Gold",
+            "total_points_redeemed": 100,
+            "transaction_id": "c9c10bcb-c2fd-41e5-9e93-c9962b1a42b6",
+            "idempotent": true
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-10.b customer points decremented EXACTLY ONCE (no double-decrement)",
+      "pass": true,
+      "info": {
+        "before": 400,
+        "after": 300
+      }
+    },
+    {
+      "case": "QA-10.c total_points_redeemed incremented EXACTLY ONCE",
+      "pass": true,
+      "info": {
+        "before": 0,
+        "after": 100
+      }
+    },
+    {
+      "case": "QA-10.d only ONE PT row stored for the key",
+      "pass": true,
+      "info": {
+        "count": 1
+      }
+    },
+    {
+      "case": "QA-11 same key different points \u2192 IDEMPOTENCY_CONFLICT",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "idempotency_key was previously used with different parameters.",
+          "data": {
+            "error": {
+              "code": "IDEMPOTENCY_CONFLICT",
+              "message": "idempotency_key was previously used with different parameters.",
+              "existing": {
+                "customer_id": "qa_cr001c_lr_cust_gold",
+                "order_id": "QA_ORDER_GOLD_1",
+                "points": 100
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-11.a same key different customer \u2192 IDEMPOTENCY_CONFLICT",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "idempotency_key was previously used with different parameters.",
+          "data": {
+            "error": {
+              "code": "IDEMPOTENCY_CONFLICT",
+              "message": "idempotency_key was previously used with different parameters.",
+              "existing": {
+                "customer_id": "qa_cr001c_lr_cust_gold",
+                "order_id": "QA_ORDER_GOLD_1",
+                "points": 100
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-12 tier unchanged after redeem (still Gold)",
+      "pass": true,
+      "info": {
+        "tier": "Gold",
+        "balance": 300
+      }
+    },
+    {
+      "case": "QA-13 Gold ratio_per_point = 1.5",
+      "pass": true,
+      "info": {
+        "ratio": 1.5
+      }
+    },
+    {
+      "case": "QA-13.a Gold redeemed_value = 60 * 1.5 = 90",
+      "pass": true,
+      "info": {
+        "redeemed_value": 90.0
+      }
+    },
+    {
+      "case": "QA-13.b PT row ratio snapshot stored",
+      "pass": true,
+      "info": {}
+    },
+    {
+      "case": "QA-14 LX-A blob strict 6-key contract",
+      "pass": true,
+      "info": {
+        "actual_keys": [
+          "loyalty_enabled",
+          "points_value",
+          "ratio_per_point",
+          "tier",
+          "tier_label",
+          "total_points"
+        ],
+        "expected": [
+          "loyalty_enabled",
+          "points_value",
+          "ratio_per_point",
+          "tier",
+          "tier_label",
+          "total_points"
+        ]
+      }
+    },
+    {
+      "case": "QA-15 /api/health 200",
+      "pass": true,
+      "info": {
+        "status": 200
+      }
+    },
+    {
+      "case": "QA-16a max-redeemable happy (Gold, customer_id) returns tier-aware ratio 1.5",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": true,
+          "message": "Max redeemable calculated",
+          "data": {
+            "max_points_redeemable": 240,
+            "max_discount_value": 360.0,
+            "ratio_per_point": 1.5,
+            "tier": "Gold",
+            "available_points": 240,
+            "min_redemption_points": 50,
+            "loyalty_enabled": true
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-16a.1 max-redeemable cap matches shared math",
+      "pass": true,
+      "info": {
+        "expected_pts": 240,
+        "expected_value": 360.0,
+        "got": {
+          "max_points_redeemable": 240,
+          "max_discount_value": 360.0,
+          "ratio_per_point": 1.5,
+          "tier": "Gold",
+          "available_points": 240,
+          "min_redemption_points": 50,
+          "loyalty_enabled": true
+        }
+      }
+    },
+    {
+      "case": "QA-16a.2 max-redeemable echoes min_redemption_points + loyalty_enabled",
+      "pass": true,
+      "info": {
+        "got": {
+          "min": 50,
+          "enabled": true
+        }
+      }
+    },
+    {
+      "case": "QA-16b max-redeemable resolves customer by cust_mobile (back-compat)",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": true,
+          "message": "Max redeemable calculated",
+          "data": {
+            "max_points_redeemable": 240,
+            "max_discount_value": 360.0,
+            "ratio_per_point": 1.5,
+            "tier": "Gold",
+            "available_points": 240,
+            "min_redemption_points": 50,
+            "loyalty_enabled": true
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-16c max-redeemable INVALID_REQUEST when neither customer_id nor cust_mobile",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "Customer identifier required.",
+          "data": {
+            "error": {
+              "code": "INVALID_REQUEST",
+              "message": "At least one of customer_id or cust_mobile is required."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-16d max-redeemable LOYALTY_DISABLED \u2192 0 redeemable + error.code",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": true,
+          "message": "Loyalty program is currently disabled.",
+          "data": {
+            "max_points_redeemable": 0,
+            "max_discount_value": 0.0,
+            "ratio_per_point": 0.0,
+            "tier": "Bronze",
+            "available_points": 500,
+            "min_redemption_points": 0,
+            "loyalty_enabled": false,
+            "error": {
+              "code": "LOYALTY_DISABLED",
+              "message": "Loyalty program is currently disabled."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-16e max-redeemable SETTINGS_MISSING (no fake fallback) \u2192 0 + error.code",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": true,
+          "message": "Loyalty settings not configured for this restaurant.",
+          "data": {
+            "max_points_redeemable": 0,
+            "max_discount_value": 0.0,
+            "ratio_per_point": 0.0,
+            "tier": "Bronze",
+            "available_points": 100,
+            "min_redemption_points": 0,
+            "loyalty_enabled": false,
+            "error": {
+              "code": "SETTINGS_MISSING",
+              "message": "Loyalty settings not configured for this restaurant."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-16f max-redeemable BELOW_MIN_REDEMPTION (10 pts < 50 min) \u2192 0 + error.code",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": true,
+          "message": "Minimum 50 points required. Customer has 10.",
+          "data": {
+            "max_points_redeemable": 0,
+            "max_discount_value": 0.0,
+            "ratio_per_point": 1.0,
+            "tier": "Bronze",
+            "available_points": 10,
+            "min_redemption_points": 50,
+            "loyalty_enabled": true,
+            "error": {
+              "code": "BELOW_MIN_REDEMPTION",
+              "message": "Minimum 50 points required. Customer has 10."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-16g max-redeemable CUSTOMER_NOT_FOUND",
+      "pass": true,
+      "info": {
+        "resp": {
+          "success": false,
+          "message": "Customer not found.",
+          "data": {
+            "registered": false,
+            "error": {
+              "code": "CUSTOMER_NOT_FOUND",
+              "message": "Customer not found for this restaurant."
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "QA-17 calculator cap EQUALS commit auto-cap (shared helper guarantee)",
+      "pass": true,
+      "info": {
+        "cap_pts": 200,
+        "commit_pts": 200
+      }
+    },
+    {
+      "case": "QA-18 /pos/orders with loyalty_points_used=100 commits redeem",
+      "pass": true,
+      "info": {
+        "order_resp": {
+          "customer_id": "qa_cr001c_lr_cust_order",
+          "points_redeemed": 100,
+          "ratio_per_point": 1.0,
+          "redeemed_value": 100.0,
+          "remaining_points": 200,
+          "remaining_points_value": 200.0,
+          "tier": "Bronze",
+          "total_points_redeemed": 100,
+          "transaction_id": "9c37ac08-9444-490e-a251-d79da33da819"
+        },
+        "tx": {
+          "id": "9c37ac08-9444-490e-a251-d79da33da819",
+          "points": 100,
+          "order_id": "qa_cr001c_lr_ORDER_001"
+        }
+      }
+    },
+    {
+      "case": "QA-18.a customer.total_points_redeemed incremented via /pos/orders path",
+      "pass": true,
+      "info": {
+        "after": 100
+      }
+    },
+    {
+      "case": "QA-18.b earn computed on NET base (order_amount \u2212 loyalty_discount)",
+      "pass": true,
+      "info": {
+        "points_earned": 20,
+        "expected": 20
+      }
+    },
+    {
+      "case": "QA-19 /pos/orders retry with no explicit key \u2192 server-derived order_<id>",
+      "pass": true,
+      "info": {
+        "pt_count": 1,
+        "redeemed_counter": 80,
+        "key_used": "order_qa_cr001c_lr_ORDER_002_IDEMFB"
+      }
+    },
+    {
+      "case": "QA-20 /pos/orders hard-fails when redeem rejects (Q-CORR-2)",
+      "pass": true,
+      "info": {
+        "resp_success": false,
+        "error_code": "BELOW_MIN_REDEMPTION",
+        "order_persisted": false,
+        "tx_persisted": false
+      }
+    },
+    {
+      "case": "QA-21 /pos/orders accepts POS-legacy alias used_loyalty_point and commits redeem identically",
+      "pass": true,
+      "info": {
+        "alias_used": "used_loyalty_point",
+        "loyalty_redeem": {
+          "customer_id": "qa_cr001c_lr_cust_alias",
+          "points_redeemed": 100,
+          "ratio_per_point": 1.0,
+          "redeemed_value": 100.0,
+          "remaining_points": 200,
+          "remaining_points_value": 200.0,
+          "tier": "Bronze",
+          "total_points_redeemed": 100,
+          "transaction_id": "e52b088f-3c38-4346-a725-c86ba95e0fe0"
+        },
+        "points_earned": 20,
+        "total_points_redeemed_after": 100
+      }
+    }
+  ],
+  "sample_success_response": {
+    "success": true,
+    "message": "Points redeemed successfully",
+    "data": {
+      "customer_id": "qa_cr001c_lr_cust_basic",
+      "points_redeemed": 100,
+      "ratio_per_point": 1.0,
+      "redeemed_value": 100.0,
+      "remaining_points": 400,
+      "remaining_points_value": 400.0,
+      "tier": "Bronze",
+      "total_points_redeemed": 300,
+      "transaction_id": "bec52804-1e8d-4144-af7a-0a9174d60f04"
+    }
+  },
+  "sample_failure_response": {
+    "success": false,
+    "message": "Loyalty settings not configured.",
+    "data": {
+      "error": {
+        "code": "SETTINGS_MISSING",
+        "message": "Loyalty settings not configured."
+      }
+    }
+  },
+  "ran_at": "2026-05-24T11:18:43.317427+00:00"
+}
