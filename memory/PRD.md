@@ -1,0 +1,1 @@
+/app/CRMpreprod/memory/PRD.md
