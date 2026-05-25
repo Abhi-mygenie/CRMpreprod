@@ -67,7 +67,7 @@ const COUPON_TYPES = [
   { id: "category_discount", label: "Category Discount", desc: "Discount on entire categories", icon: Grid3X3, phase: "V2", enabled: true, scope: "category", dtype: null, color: "from-emerald-500 to-emerald-600" },
   { id: "time_window", label: "Happy Hour", desc: "Time-based promotional offers", icon: Clock, phase: "V3-A", enabled: true, scope: "order", dtype: null, color: "from-cyan-500 to-cyan-600" },
   { id: "bogo", label: "BOGO / BXGY", desc: "Buy X Get Y free or discounted", icon: Gift, phase: "V3-B", enabled: true, scope: "order", dtype: null, color: "from-pink-500 to-pink-600" },
-  { id: "every_nth", label: "Every Nth Item", desc: "Nth item free or discounted", icon: Hash, phase: "V3-C", enabled: false },
+  { id: "every_nth", label: "Every Nth Item", desc: "Nth item free or discounted", icon: Hash, phase: "V3-C", enabled: true, scope: "order", dtype: null, color: "from-amber-500 to-amber-600" },
 ];
 
 const EMPTY_FORM = {
@@ -96,6 +96,11 @@ const EMPTY_FORM = {
   max_applications: "",
   allow_repeat: true,
   same_item_required: true,
+  // V3-C Every Nth
+  nth_item_number: "",
+  nth_discount_type: "free",
+  nth_discount_value: "",
+  excluded_item_ids: [],
 };
 
 function resolveTypeFromCoupon(c) {
@@ -107,6 +112,8 @@ function resolveTypeFromCoupon(c) {
   if (c.offer_type === "bogo" || c.offer_type === "bxg") {
     return "bogo";
   }
+  // V3-C: Every Nth Item
+  if (c.offer_type === "nth_item") return "every_nth";
   const scope = c.discount_scope || "order";
   if (scope === "item") return "item_discount";
   if (scope === "category") return "category_discount";
@@ -309,6 +316,11 @@ export default function CouponsPage() {
       max_applications: coupon.max_applications != null ? String(coupon.max_applications) : "",
       allow_repeat: coupon.allow_repeat !== false,
       same_item_required: coupon.same_item_required !== false,
+      // V3-C Every Nth rehydration
+      nth_item_number: coupon.nth_item_number != null ? String(coupon.nth_item_number) : "",
+      nth_discount_type: coupon.nth_discount_type || "free",
+      nth_discount_value: coupon.nth_discount_value != null ? String(coupon.nth_discount_value) : "",
+      excluded_item_ids: coupon.excluded_item_ids || [],
     });
     const cats = (coupon.eligible_category_ids || []).map((id, i) => ({ id, name: (coupon.eligible_category_names || [])[i] || id }));
     setSelectedCats(cats);
@@ -391,6 +403,26 @@ export default function CouponsPage() {
         // requires_get_item_in_cart locked true per Q2=A — backend default handles
       }
 
+      // V3-C Every Nth Item
+      if (selectedType === "every_nth") {
+        payload.discount_scope = "order";
+        payload.offer_type = "nth_item";
+        payload.discount_type = "flat";
+        payload.discount_value = 0;
+        payload.nth_item_number = parseInt(form.nth_item_number, 10) || null;
+        payload.nth_discount_type = form.nth_discount_type;
+        payload.nth_discount_value = (form.nth_discount_type !== "free" && form.nth_discount_value !== "")
+          ? parseFloat(form.nth_discount_value) : null;
+        payload.eligible_food_ids = form.eligible_food_ids.length > 0 ? form.eligible_food_ids : null;
+        payload.eligible_category_ids = selectedCats.map(c => c.id);
+        payload.eligible_category_names = selectedCats.map(c => c.name);
+        payload.excluded_item_ids = form.excluded_item_ids.length > 0 ? form.excluded_item_ids : null;
+        payload.max_applications = form.max_applications !== "" ? parseInt(form.max_applications, 10) : null;
+        payload.allow_repeat = form.allow_repeat !== false;
+        payload.apply_to_cheapest_item = !!form.apply_to_cheapest_item;
+        payload.apply_to_highest_item = !!form.apply_to_highest_item;
+      }
+
       if (editingCoupon) { await api.put(`/coupons/${editingCoupon.id}`, payload); toast.success("Coupon updated!"); }
       else { await api.post("/coupons", payload); toast.success("Coupon created!"); }
       setSheetOpen(false);
@@ -411,6 +443,7 @@ export default function CouponsPage() {
   };
 
   const toggleFoodId = (fid) => setForm(p => ({ ...p, eligible_food_ids: p.eligible_food_ids.includes(fid) ? p.eligible_food_ids.filter(x => x !== fid) : [...p.eligible_food_ids, fid] }));
+  const toggleExcludedFoodId = (fid) => setForm(p => ({ ...p, excluded_item_ids: p.excluded_item_ids.includes(fid) ? p.excluded_item_ids.filter(x => x !== fid) : [...p.excluded_item_ids, fid] }));
   const toggleCategory = (cat) => setSelectedCats(p => p.some(c => c.id === cat.id) ? p.filter(c => c.id !== cat.id) : [...p, cat]);
   const toggleChannel = (ch) => setForm(p => ({ ...p, applicable_channels: p.applicable_channels.includes(ch) ? p.applicable_channels.filter(c => c !== ch) : [...p.applicable_channels, ch] }));
 
@@ -574,9 +607,11 @@ export default function CouponsPage() {
                     </div>
                   </div>
 
+                  {/* Discount Rules — hidden for V3-B/V3-C which have their own benefit sections */}
+                  {selectedType !== "bogo" && selectedType !== "every_nth" && (
+                  <>
                   <Separator className="bg-gray-100" />
 
-                  {/* Discount Rules */}
                   <div className="space-y-4">
                     <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Discount Rules</p>
                     {isV2 && (
@@ -605,6 +640,8 @@ export default function CouponsPage() {
                       </div>
                     </div>
                   </div>
+                  </>
+                  )}
 
                   {/* V2 Selectors */}
                   {form.discount_scope === "item" && (<><Separator className="bg-gray-100" /><ItemSelector items={menuItems} selected={form.eligible_food_ids} onToggle={toggleFoodId} loading={menuLoading} /></>)}
@@ -753,9 +790,86 @@ export default function CouponsPage() {
                     </>
                   )}
 
-                  <Separator className="bg-gray-100" />
+                  {/* V3-C Every Nth Item — nth rule + eligible/excluded pickers + advanced */}
+                  {selectedType === "every_nth" && (
+                    <>
+                      <Separator className="bg-gray-100" />
+                      <div className="space-y-4">
+                        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Nth Item Rule</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Every Nth Item</Label>
+                            <Input type="number" min="2" value={form.nth_item_number} onChange={e => setForm({ ...form, nth_item_number: e.target.value })}
+                              placeholder="e.g. 5" className="h-11 rounded-xl bg-gray-50/50" required data-testid="nth-item-number" />
+                            <p className="text-xs text-gray-400 mt-1">e.g. 5 = every 5th item gets the benefit</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Benefit Type</Label>
+                            <Select value={form.nth_discount_type} onValueChange={v => setForm({ ...form, nth_discount_type: v, nth_discount_value: v === "free" ? "" : form.nth_discount_value })}>
+                              <SelectTrigger className="h-11 rounded-xl bg-gray-50/50" data-testid="nth-benefit-type"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="free">Free</SelectItem>
+                                <SelectItem value="percentage">% Off</SelectItem>
+                                <SelectItem value="flat">Rs. Off</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        {form.nth_discount_type !== "free" && (
+                          <div>
+                            <Label className="text-sm font-medium text-gray-700 mb-1.5 block">{form.nth_discount_type === "percentage" ? "Discount (%)" : "Discount (Rs.)"}</Label>
+                            <Input type="number" min="0" value={form.nth_discount_value} onChange={e => setForm({ ...form, nth_discount_value: e.target.value })}
+                              placeholder={form.nth_discount_type === "percentage" ? "50" : "100"} className="h-11 rounded-xl bg-gray-50/50" required data-testid="nth-discount-value" />
+                          </div>
+                        )}
+                      </div>
+                      <Separator className="bg-gray-100" />
+                      <div className="space-y-4">
+                        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Eligible Items</p>
+                        <p className="text-xs text-gray-400 -mt-2">Select items OR categories eligible for this offer</p>
+                        <ItemSelector items={menuItems} selected={form.eligible_food_ids} onToggle={toggleFoodId} loading={menuLoading} label="Eligible Menu Items" />
+                        <CategorySelector categories={menuCategories} selected={selectedCats} onToggle={toggleCategory} loading={menuLoading} />
+                      </div>
+                      <Separator className="bg-gray-100" />
+                      <div className="space-y-4" data-testid="excluded-items-section">
+                        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Excluded Items</p>
+                        <p className="text-xs text-gray-400 -mt-2">These items won't count towards the Nth even if they match above</p>
+                        <ItemSelector items={menuItems} selected={form.excluded_item_ids} onToggle={toggleExcludedFoodId} loading={menuLoading} label="Excluded Items" />
+                      </div>
+                      <Separator className="bg-gray-100" />
+                      <div className="space-y-4">
+                        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Every Nth Advanced</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Max Applications</Label>
+                            <Input type="number" min="1" value={form.max_applications} onChange={e => setForm({ ...form, max_applications: e.target.value })}
+                              placeholder="No limit" className="h-11 rounded-xl bg-gray-50/50" data-testid="nth-max-applications" />
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/80 border border-gray-100">
+                            <p className="text-sm text-gray-700">Allow Repeat</p>
+                            <Switch checked={form.allow_repeat} onCheckedChange={v => setForm({ ...form, allow_repeat: v })} data-testid="nth-allow-repeat" />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/80 border border-gray-100">
+                          <p className="text-sm text-gray-700">Apply benefit to cheapest item</p>
+                          <Switch checked={form.apply_to_cheapest_item} data-testid="nth-cheapest-switch"
+                            onCheckedChange={v => setForm(p => ({ ...p, apply_to_cheapest_item: v, apply_to_highest_item: v ? false : p.apply_to_highest_item }))} />
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50/80 border border-gray-100">
+                          <p className="text-sm text-gray-700">Apply benefit to highest item</p>
+                          <Switch checked={form.apply_to_highest_item} data-testid="nth-highest-switch"
+                            onCheckedChange={v => setForm(p => ({ ...p, apply_to_highest_item: v, apply_to_cheapest_item: v ? false : p.apply_to_cheapest_item }))} />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700 mb-1.5 block">POS Instruction <span className="text-gray-400 font-normal">(optional)</span></Label>
+                          <Input value={form.pos_instruction} onChange={e => setForm({ ...form, pos_instruction: e.target.value })}
+                            placeholder="e.g. Every 5th item automatically free" className="h-11 rounded-xl bg-gray-50/50" data-testid="nth-pos-instruction" />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
-                  {/* Validity */}
+                  <Separator className="bg-gray-100" />
                   <div className="space-y-4">
                     <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Validity & Limits</p>
                     <div className="grid grid-cols-2 gap-3">
