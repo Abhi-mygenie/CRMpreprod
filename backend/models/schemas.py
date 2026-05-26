@@ -925,6 +925,11 @@ class PointsTransactionCreate(BaseModel):
     transaction_type: str
     description: str
     bill_amount: Optional[float] = None
+    # L4-A (2026-05-25): optional idempotency + order linkage for admin redeem.
+    # `redeem_loyalty_points` helper requires both; admin path falls back to
+    # deterministic synthetic values when caller omits them.
+    idempotency_key: Optional[str] = None
+    order_id: Optional[str] = None
 
 class PointsTransaction(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -977,12 +982,11 @@ class LoyaltySettings(BaseModel):
     max_redemption_amount: Optional[float] = None
     points_expiry_months: int = 6
     expiry_reminder_days: int = 30
-    # CR-001C-L Phase L3 (Q-LB1 Option C, 2026-05-22) — clean-slate migration gate.
-    # DEPRECATED 2026-05-23 (CR-001C-L LF-MERGE): no longer read by migration.
-    # The `loyalty_enabled` master toggle now drives clean-slate recompute too.
-    # Field retained for backward compatibility with existing Mongo documents;
-    # any value sitting here is IGNORED by current code. Safe to remove in L5.
-    loyalty_clean_slate_recalc: bool = False
+    # CR-001C-L Phase L5 (2026-05-25): `loyalty_clean_slate_recalc` REMOVED.
+    # The field was deprecated in LF-MERGE (2026-05-23) when `loyalty_enabled`
+    # became the single source of truth for clean-slate recompute. Existing
+    # Mongo docs may still carry the field; reader code never references it,
+    # so leaving it in storage is harmless and no migration is needed.
     tier_silver_min: int = 500
     tier_gold_min: int = 1500
     tier_platinum_min: int = 5000
@@ -1031,11 +1035,9 @@ class LoyaltySettingsUpdate(BaseModel):
     max_redemption_amount: Optional[float] = None
     points_expiry_months: Optional[int] = None
     expiry_reminder_days: Optional[int] = None
-    # CR-001C-L Phase L3 (Q-LB1 Option C, 2026-05-22) — clean-slate migration gate.
-    # DEPRECATED 2026-05-23 (CR-001C-L LF-MERGE): accepted on PATCH for backward
-    # compat but no longer affects migration behavior. `loyalty_enabled` is now
-    # the single source of truth for clean-slate recompute.
-    loyalty_clean_slate_recalc: Optional[bool] = None
+    # CR-001C-L Phase L5 (2026-05-25): `loyalty_clean_slate_recalc` REMOVED
+    # from the PATCH surface as well. Inbound PATCH bodies carrying the field
+    # are silently ignored by Pydantic (`extra="ignore"` model default).
     tier_silver_min: Optional[int] = None
     tier_gold_min: Optional[int] = None
     tier_platinum_min: Optional[int] = None

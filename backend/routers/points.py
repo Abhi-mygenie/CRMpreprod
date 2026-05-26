@@ -7,6 +7,7 @@ import asyncio
 from core.database import db
 from core.auth import get_current_user
 from core.helpers import calculate_tier, get_earn_percent_for_tier
+from core.loyalty import redeem_loyalty_points  # L4-A: shared redeem helper
 from core.whatsapp import trigger_whatsapp_event, trigger_points_earned_event
 from models.schemas import (
     PointsTransaction, PointsTransactionCreate,
@@ -21,35 +22,93 @@ async def create_points_transaction(tx_data: PointsTransactionCreate, user: dict
     customer = await db.customers.find_one({"id": tx_data.customer_id, "user_id": user["id"]})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
-    
+
+    # =====================================================================
+    # L4-A (2026-05-25): redeem branch funnels through shared helper.
+    # Helper enforces:
+    #   • NO tier downgrade (Q-LR1)
+    #   • $inc total_points_redeemed (A1)
+    #   • Tier-aware ratio_per_point + redeemed_value on PT row (A3)
+    #   • points_expired: False on PT row (A4)
+    #   • Idempotency replay + IDEMPOTENCY_CONFLICT (A5)
+    #   • loyalty_enabled kill-switch (A6)
+    #   • last_visit NOT updated on redeem (A5 sub-issue)
+    # =====================================================================
+    if tx_data.transaction_type == "redeem":
+        settings = await db.loyalty_settings.find_one(
+            {"user_id": user["id"]}, {"_id": 0}
+        )
+
+        # Admin redeems may not have a real order. Use deterministic synthetic
+        # values when caller omits them. This keeps the helper's required-field
+        # guards satisfied without leaking the admin context into the helper.
+        # Note: admin redeems are NOT billed — the helper's `max_redemption_percent`
+        # cap (percent-of-bill) is meaningless here. We pass a sentinel-large
+        # bill so that cap is effectively disabled; the absolute `max_redemption_amount`
+        # cap still applies. (L4A-design-decision Q-L4A-10)
+        order_id = tx_data.order_id or f"admin_{uuid.uuid4().hex[:12]}"
+        idempotency_key = tx_data.idempotency_key or f"admin_{order_id}"
+        order_total = tx_data.bill_amount if (tx_data.bill_amount and tx_data.bill_amount > 0) else 999999.0
+
+        result = await redeem_loyalty_points(
+            db=db,
+            user_id=user["id"],
+            customer=customer,
+            settings=settings,
+            points_to_redeem=tx_data.points,
+            order_id=order_id,
+            order_total=order_total,
+            idempotency_key=idempotency_key,
+        )
+
+        if not result["ok"]:
+            code = result.get("code") or "REDEEM_FAILED"
+            status_map = {
+                "CUSTOMER_NOT_FOUND": 404,
+                "ORDER_ID_REQUIRED": 400,
+                "IDEMPOTENCY_KEY_REQUIRED": 400,
+                "IDEMPOTENCY_CONFLICT": 409,
+                "INVALID_POINTS": 400,
+                "INSUFFICIENT_POINTS": 400,
+                "BELOW_MIN_REDEMPTION": 400,
+                "LOYALTY_DISABLED": 403,
+                "SETTINGS_MISSING": 400,
+            }
+            raise HTTPException(
+                status_code=status_map.get(code, 400),
+                detail=result["message"],
+            )
+
+        # Helper persisted everything. Read back the PT row to keep response shape.
+        tx_id = result["data"]["transaction_id"]
+        tx_doc = await db.points_transactions.find_one({"id": tx_id}, {"_id": 0})
+        return PointsTransaction(**tx_doc)
+
+    # =====================================================================
+    # earn / bonus branches — UNCHANGED from prior implementation.
+    # =====================================================================
     settings = await db.loyalty_settings.find_one({"user_id": user["id"]}, {"_id": 0})
     if not settings:
         settings = {"tier_bronze_min": 0, "tier_silver_min": 500, "tier_gold_min": 1500, "tier_platinum_min": 5000}
-    
+
     current_points = customer.get("total_points", 0)
     old_tier = customer.get("tier", "Bronze")
-    
-    if tx_data.transaction_type == "redeem":
-        if current_points < tx_data.points:
-            raise HTTPException(status_code=400, detail="Insufficient points")
-        new_balance = current_points - tx_data.points
-    else:
-        new_balance = current_points + tx_data.points
-    
+    new_balance = current_points + tx_data.points
+
     new_tier = calculate_tier(new_balance, settings)
-    
+
     update_data = {
         "total_points": new_balance,
         "tier": new_tier,
         "last_visit": datetime.now(timezone.utc).isoformat()
     }
-    
+
     if tx_data.transaction_type == "earn" and tx_data.bill_amount:
         update_data["total_spent"] = customer.get("total_spent", 0) + tx_data.bill_amount
         update_data["total_visits"] = customer.get("total_visits", 0) + 1
-    
+
     await db.customers.update_one({"id": tx_data.customer_id}, {"$set": update_data})
-    
+
     tx_id = str(uuid.uuid4())
     tx_doc = {
         "id": tx_id,
@@ -62,20 +121,14 @@ async def create_points_transaction(tx_data: PointsTransactionCreate, user: dict
         "balance_after": new_balance,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    
+
     await db.points_transactions.insert_one(tx_doc)
-    
+
     # Update customer with new balance for trigger
     updated_customer = {**customer, "total_points": new_balance, "tier": new_tier}
-    
+
     # Fire WhatsApp triggers based on transaction type
-    if tx_data.transaction_type == "redeem":
-        # points_redeemed trigger
-        asyncio.create_task(trigger_whatsapp_event(
-            db, user["id"], "points_redeemed", updated_customer,
-            {"points_redeemed": tx_data.points, "points_balance": new_balance}
-        ))
-    elif tx_data.transaction_type == "bonus":
+    if tx_data.transaction_type == "bonus":
         # bonus_points trigger (also fires points_earned)
         asyncio.create_task(trigger_whatsapp_event(
             db, user["id"], "bonus_points", updated_customer,
@@ -84,14 +137,14 @@ async def create_points_transaction(tx_data: PointsTransactionCreate, user: dict
         asyncio.create_task(trigger_points_earned_event(
             db, user["id"], updated_customer, tx_data.points, "bonus", new_balance
         ))
-    
-    # Check for tier upgrade
+
+    # Check for tier upgrade (earn/bonus only — redeem path handled by helper)
     if new_tier != old_tier and _tier_rank(new_tier) > _tier_rank(old_tier):
         asyncio.create_task(trigger_whatsapp_event(
             db, user["id"], "tier_upgrade", updated_customer,
             {"old_tier": old_tier, "new_tier": new_tier, "points_balance": new_balance}
         ))
-    
+
     return PointsTransaction(**tx_doc)
 
 

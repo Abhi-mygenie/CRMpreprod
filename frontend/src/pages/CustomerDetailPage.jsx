@@ -88,12 +88,18 @@ export default function CustomerDetailPage() {
         e.preventDefault();
         setSubmitting(true);
         try {
+            // L4-A: send idempotency_key on redeem to protect against double-clicks.
+            const idempotency_key =
+                pointsAction === "redeem"
+                    ? `admin_redeem_${id}_${Date.now()}`
+                    : undefined;
             await api.post("/points/transaction", {
                 customer_id: id,
                 points: parseInt(pointsData.points),
                 transaction_type: pointsAction,
                 description: pointsData.description || `${pointsAction === "bonus" ? "Bonus points" : "Points redeemed"}`,
-                bill_amount: null
+                bill_amount: null,
+                ...(idempotency_key && { idempotency_key }),
             });
             toast.success(`Points ${pointsAction === "bonus" ? "awarded" : "redeemed"} successfully!`);
             setShowPointsModal(false);

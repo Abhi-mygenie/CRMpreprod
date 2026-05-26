@@ -24,7 +24,6 @@ import CustomerLifecyclePage from "@/pages/CustomerLifecyclePage";
 import ProfilePage from "@/pages/ProfilePage";
 import MigrationPage from "@/pages/MigrationPage";
 import WalletPage from "@/pages/WalletPage";
-import CouponV3Preview from "@/pages/CouponV3Preview";
 
 // Components
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -59,7 +58,6 @@ function App() {
                         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                         <Route path="/migration" element={<ProtectedRoute><MigrationPage /></ProtectedRoute>} />
                         <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
-                        <Route path="/coupons-v3-preview" element={<ProtectedRoute><CouponV3Preview /></ProtectedRoute>} />
 
                         {/* Fallback */}
                         <Route path="*" element={<Navigate to="/" />} />

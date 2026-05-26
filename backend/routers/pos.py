@@ -9,7 +9,7 @@ import asyncio
 from core.database import db
 from core.auth import get_current_user, generate_api_key, verify_pos_auth
 from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_peak_bonus, get_redemption_value_for_tier
-from core.loyalty import build_pos_loyalty_blob, redeem_loyalty_points, compute_max_redeemable
+from core.loyalty import build_pos_loyalty_blob, redeem_loyalty_points, compute_max_redeemable, calculate_points
 from core.whatsapp import trigger_whatsapp_event
 from models.schemas import (
     POSPaymentWebhook, POSCustomerLookup, POSResponse,
@@ -796,19 +796,18 @@ async def _find_or_create_customer(
     return customer, True, first_visit_bonus
 
 
-def _calculate_points(order_amount: float, customer: dict, settings: dict) -> dict:
-    """CR-001C-L Phase L1 (F1, 2026-05-22): thin wrapper.
+def _calculate_points(*args, **kwargs):
+    """REMOVED in CR-001C-L Phase L5 (2026-05-25).
 
-    Authoritative implementation lives in `core.loyalty.calculate_points`.
-    This wrapper is retained for one release to keep call sites in
-    `pos_order_webhook` stable and to ease rollback. Removal scheduled
-    for Phase L5 per `CR_001C_L_LOYALTY_TECHNICAL_BLUEPRINT.md §9`.
-
-    Returns dict with base_points, off_peak_bonus, total_points,
-    description, off_peak_message — byte-identical to prior inline body.
+    The wrapper has been deleted. Use `core.loyalty.calculate_points`
+    directly. This stub exists only to surface a clear error if any
+    out-of-tree caller still references the old symbol; will be removed
+    entirely in the next cleanup cycle.
     """
-    from core.loyalty import calculate_points as _shared_calculate_points
-    return _shared_calculate_points(order_amount, customer, settings)
+    raise RuntimeError(
+        "_calculate_points was removed in L5 cleanup. "
+        "Use core.loyalty.calculate_points directly."
+    )
 
 
 async def _save_order_and_transactions(
@@ -1345,10 +1344,12 @@ async def pos_order_webhook(
         # order is still persisted and visits/spend/wallet still update.
         # CR-001C-LR correction (2026-05-23): earn base is the NET amount
         # (order_amount − loyalty_redeemed_value) per Q-CORR-3 Option B.
+        # CR-001C-L Phase L5 (2026-05-25): inlined direct call to shared
+        # helper. Old `_calculate_points` wrapper removed.
         loyalty_enabled = bool(settings.get("loyalty_enabled", False))
         earn_base_amount = max(0.0, order_data.order_amount - loyalty_redeemed_value)
         if loyalty_enabled:
-            pts = _calculate_points(earn_base_amount, customer, settings)
+            pts = calculate_points(earn_base_amount, customer, settings)
             points_earned = pts["total_points"]
         else:
             pts = {

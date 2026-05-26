@@ -359,57 +359,14 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                         synced_count += 1
                         customer_id = customer_data["id"]
 
-                    # Create transaction records from customer totals (only for new customers)
-                    # CR-001C-L Phase L3 (C2, 2026-05-22): under clean-slate, DO NOT
-                    # write synthetic historical points_transactions / wallet_transactions
-                    # rows. Order-sync is the single source of truth for transaction
-                    # history. Under legacy mode, preserve current behavior verbatim.
-                    if not existing and not clean_slate:
-                        customer_created_at = customer_data.get("created_at", now)
-
-                        if customer_data.get("total_points_earned", 0) > 0:
-                            await db.points_transactions.insert_one({
-                                "id": str(uuid.uuid4()),
-                                "user_id": user_id,
-                                "customer_id": customer_id,
-                                "transaction_type": "earn",
-                                "points": customer_data["total_points_earned"],
-                                "description": "Historical points (synced from MyGenie)",
-                                "created_at": customer_created_at
-                            })
-
-                        if customer_data.get("total_points_redeemed", 0) > 0:
-                            await db.points_transactions.insert_one({
-                                "id": str(uuid.uuid4()),
-                                "user_id": user_id,
-                                "customer_id": customer_id,
-                                "transaction_type": "redeem",
-                                "points": customer_data["total_points_redeemed"],
-                                "description": "Historical redemption (synced from MyGenie)",
-                                "created_at": customer_created_at
-                            })
-
-                        if customer_data.get("total_wallet_received", 0) > 0:
-                            await db.wallet_transactions.insert_one({
-                                "id": str(uuid.uuid4()),
-                                "user_id": user_id,
-                                "customer_id": customer_id,
-                                "transaction_type": "credit",
-                                "amount": customer_data["total_wallet_received"],
-                                "description": "Historical wallet credit (synced from MyGenie)",
-                                "created_at": customer_created_at
-                            })
-
-                        if customer_data.get("total_wallet_used", 0) > 0:
-                            await db.wallet_transactions.insert_one({
-                                "id": str(uuid.uuid4()),
-                                "user_id": user_id,
-                                "customer_id": customer_id,
-                                "transaction_type": "debit",
-                                "amount": customer_data["total_wallet_used"],
-                                "description": "Historical wallet usage (synced from MyGenie)",
-                                "created_at": customer_created_at
-                            })
+                    # CR-001C-L Phase L5 (2026-05-25): synthetic historical
+                    # PT/WT backfill REMOVED. Order-sync (CR-001C-L Phase L3
+                    # C2) is the single source of truth for transaction
+                    # history. Legacy `clean_slate=False` path no longer
+                    # writes fake earn/redeem/wallet rows — it was dead post
+                    # LF-MERGE since `clean_slate` now derives from
+                    # `loyalty_enabled` and a restaurant with loyalty OFF
+                    # has no need for synthetic loyalty history.
 
                     # Update progress every 10 customers
                     if (customer_index + 1) % 10 == 0:

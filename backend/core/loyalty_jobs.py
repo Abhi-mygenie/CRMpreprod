@@ -298,7 +298,16 @@ async def run_expiry_reminders(user_id: str, settings: dict) -> dict:
 
 
 async def run_points_expiry(user_id: str, settings: dict) -> dict:
-    """Expire old points for all customers of a given user."""
+    """Expire old points for all customers of a given user.
+
+    L5 invariant note (2026-05-25): the `$lt` comparison on `created_at`
+    uses an ISO-8601 string on both sides. This is intentional and
+    correct — ISO-8601 strings sort lexicographically identical to
+    chronological order. All `points_transactions.created_at` writes in
+    this codebase use `datetime.now(timezone.utc).isoformat()`; mixing
+    real BSON Date and string in this field would break the comparison,
+    so callers must never coerce one to the other.
+    """
     expiry_months = settings.get("points_expiry_months", 6)
 
     if expiry_months == 0:

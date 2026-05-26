@@ -48,6 +48,13 @@ const webpackConfig = {
     },
     configure: (webpackConfig) => {
 
+      // Disable symlink resolution so paths like /app/frontend/node_modules/... resolve
+      // correctly when /app/frontend is a symlink to /app/CRMpreprod/frontend.
+      webpackConfig.resolve = {
+        ...(webpackConfig.resolve || {}),
+        symlinks: false,
+      };
+
       // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {
           ...webpackConfig.watchOptions,
