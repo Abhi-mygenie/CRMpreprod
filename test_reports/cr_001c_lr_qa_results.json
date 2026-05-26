@@ -21,7 +21,7 @@
             "remaining_points_value": 400.0,
             "tier": "Bronze",
             "total_points_redeemed": 300,
-            "transaction_id": "f1748cc6-63c0-404a-8dc9-0c645d73d46b"
+            "transaction_id": "5c9a6de2-09ea-4f04-b453-927dc81ce668"
           }
         }
       }
@@ -46,7 +46,7 @@
       "case": "QA-1.c PT row created",
       "pass": true,
       "info": {
-        "tx_id": "f1748cc6-63c0-404a-8dc9-0c645d73d46b"
+        "tx_id": "5c9a6de2-09ea-4f04-b453-927dc81ce668"
       }
     },
     {
@@ -276,7 +276,7 @@
             "remaining_points_value": 450.0,
             "tier": "Gold",
             "total_points_redeemed": 100,
-            "transaction_id": "93ca0d7c-c991-4c7f-86f1-7086e6d85d63"
+            "transaction_id": "2a2b4c57-f5e2-4943-81bd-b86e90005d85"
           }
         }
       }
@@ -297,7 +297,7 @@
             "remaining_points_value": 450.0,
             "tier": "Gold",
             "total_points_redeemed": 100,
-            "transaction_id": "93ca0d7c-c991-4c7f-86f1-7086e6d85d63",
+            "transaction_id": "2a2b4c57-f5e2-4943-81bd-b86e90005d85",
             "idempotent": true
           }
         }
@@ -612,10 +612,10 @@
           "remaining_points_value": 200.0,
           "tier": "Bronze",
           "total_points_redeemed": 100,
-          "transaction_id": "098691ee-2316-4e53-822e-602ee83f44b2"
+          "transaction_id": "3c92d14d-4018-4565-b304-083635fe2683"
         },
         "tx": {
-          "id": "098691ee-2316-4e53-822e-602ee83f44b2",
+          "id": "3c92d14d-4018-4565-b304-083635fe2683",
           "points": 100,
           "order_id": "qa_cr001c_lr_ORDER_001"
         }
@@ -669,7 +669,7 @@
           "remaining_points_value": 200.0,
           "tier": "Bronze",
           "total_points_redeemed": 100,
-          "transaction_id": "5480d458-4894-4a78-872b-0b973572700c"
+          "transaction_id": "25991635-08dc-4d2c-993c-a7a8e51858b7"
         },
         "points_earned": 20,
         "total_points_redeemed_after": 100
@@ -688,7 +688,7 @@
       "remaining_points_value": 400.0,
       "tier": "Bronze",
       "total_points_redeemed": 300,
-      "transaction_id": "f1748cc6-63c0-404a-8dc9-0c645d73d46b"
+      "transaction_id": "5c9a6de2-09ea-4f04-b453-927dc81ce668"
     }
   },
   "sample_failure_response": {
@@ -701,5 +701,5 @@
       }
     }
   },
-  "ran_at": "2026-05-25T19:16:19.298995+00:00"
+  "ran_at": "2026-05-26T01:54:28.539967+00:00"
 }
