@@ -16,39 +16,41 @@
 ### Session 1 (May 27, 2026): Repo Setup
 - Cloned repo from `27-may` branch into /app
 - Configured backend .env with remote MongoDB connection
-- Configured frontend .env with Emergent preview URL
 - Both services running
 
-### Session 2 (May 27, 2026): CR-003 Phase 3 Verification
-- Verified CR-003 Phase 3 features (custom date picker + CSV export) already in codebase
-- All 4 phases of CR-003 confirmed working
+### Session 2 (May 27, 2026): CR-003 Verification
+- Verified CR-003 Phase 1-4 features already in codebase
 
-### Session 3 (May 27, 2026): CR-004 Phase 1 — Foundation Cleanup (IMPLEMENTED)
-- **Item 1**: Removed legacy `whatsapp_templates` + `automation_rules` dead surface
-  - Deleted 6 legacy endpoints, seeder function, helper function, 6 Pydantic models
-  - Removed legacy frontend modals, handlers, state from WhatsAppAutomationContent.jsx
-  - Dropped 280 zombie rows (140 templates + 140 rules) from MongoDB
-- **Item 2**: Created canonical variables endpoint `GET /api/whatsapp/variables` (10 variables)
-  - Both TemplatesPage.jsx and WhatsAppAutomationContent.jsx now fetch from API
-- **Item 3**: Fixed `text` mode bug in `build_body_values()` — literal strings now honoured at send time
-- All 6 unit tests pass, all 10 acceptance criteria verified
+### Session 3 (May 27, 2026): CR-004 Phase 1 — Foundation Cleanup
+- Removed legacy whatsapp_templates + automation_rules dead surface (endpoints, seeder, models, frontend modals)
+- Created canonical variables endpoint GET /api/whatsapp/variables
+- Fixed text mode bug in build_body_values()
+- Dropped 280 zombie rows from MongoDB
 - Status: `cr004_phase_1_complete`
 
-## Core CRM Features
-- Login / Register / Demo Login / Forgot Password
-- Customer Management, Segments, Lifecycle
-- Loyalty Points & Wallet
-- Coupons V1-V3-C
-- Coupon Analytics Dashboard (Phase 1-4)
-- Feedback system
-- WhatsApp automation (P1 cleanup done, P2-P9 pending)
-- POS integration
-- QR Code, Item Analytics, Customer Lifecycle Analytics
-- Migration tools, Templates & Message Status
+### Session 4 (May 27, 2026): CR-004 Phase 2 — Variable DB Mapping
+- Enriched variable registry with sources, fills_on_events, formatter per variable
+- New resolve_variable() replaces legacy 6-entry field_aliases
+- Brand data (restaurant_name) now injected at trigger time — no longer blank
+- Save-time validator returns warnings for incompatible event/variable combos
+- 25/25 tests pass (19 new + 6 regression)
+- Status: `cr004_phase_2_complete`
+
+## CR-004 WhatsApp Phase Tracker
+
+| Phase | Name | Status |
+|---|---|---|
+| P0 | Discovery | Complete |
+| P1 | Foundation Cleanup | Complete |
+| P2 | Variable DB Mapping | Complete |
+| P3 | Event Reconciliation | Not started |
+| P4 | Channel Abstraction | Not started |
+| P5 | Segment Broadcasts | Not started |
+| P6 | Opt-in/Opt-out | Not started |
+| P7 | Message Dashboard Hardening | Not started |
 
 ## Backlog / Next Tasks
-- **P0 (next)**: CR-004 Phase 2 — Variable <> DB Schema Mapping Layer (owner sign-off needed)
-- **P1**: CR-004 Phase 3 — Event Reconciliation
-- **P1**: CR-004 Phase 5 — Segment Broadcasts
+- **P0 (next)**: CR-004 Phase 3 — Event Reconciliation (reconcile 7+ fired-but-unmapped events with master list)
+- **P1**: CR-004 Phase 5 — Segment Broadcasts (the marketing send path)
 - **P2**: CR-004 Phase 7 — Message Dashboard Hardening
 - **P2**: CR-011 Coupon Optimizer Auto-Suggest

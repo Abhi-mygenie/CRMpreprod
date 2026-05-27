@@ -140,10 +140,14 @@ export default function TemplatesPage() {
     const handleSaveVariableMapping = async () => {
         setSavingVariableMapping(true);
         try {
-            await api.put(`/whatsapp/template-variable-map/${mappingTemplate.wid}`, {
+            const res = await api.put(`/whatsapp/template-variable-map/${mappingTemplate.wid}`, {
                 template_id: mappingTemplate.wid, template_name: mappingTemplate.temp_name,
                 mappings: variableMappings, modes: variableMappingModes
             });
+            const warnings = res.data?.warnings || [];
+            if (warnings.length > 0) {
+                warnings.forEach(w => toast.warning(w.message, { duration: 5000 }));
+            }
             setTemplateVariableMappings(prev => ({ ...prev, [mappingTemplate.wid]: variableMappings }));
             setTemplateVariableModes(prev => ({ ...prev, [mappingTemplate.wid]: variableMappingModes }));
             toast.success("Variable mappings saved!");

@@ -8,6 +8,7 @@ import logging
 from typing import Optional, Dict, List, Any
 from datetime import datetime, timezone
 from dataclasses import dataclass
+from core.whatsapp_variables import VARIABLES_BY_KEY, get_variable
 
 logger = logging.getLogger(__name__)
 
@@ -201,54 +202,87 @@ async def send_bulk_messages(
     return results
 
 
+def _format_value(value, formatter):
+    """Apply a formatter to a resolved value. Returns "" for None."""
+    if value is None or value == "":
+        return ""
+    if formatter == "currency":
+        try:
+            n = float(value)
+            return f"Rs.{int(n):,}" if n == int(n) else f"Rs.{n:,.2f}"
+        except (ValueError, TypeError):
+            return str(value)
+    if formatter == "integer":
+        try:
+            return f"{int(float(value)):,}"
+        except (ValueError, TypeError):
+            return str(value)
+    if formatter == "date":
+        from datetime import datetime as dt
+        try:
+            if isinstance(value, str):
+                d = dt.fromisoformat(value.replace("Z", "+00:00"))
+                return d.strftime("%d %b %Y")
+            return str(value)
+        except (ValueError, TypeError):
+            return str(value)
+    return str(value)
+
+
+def resolve_variable(var_key, customer, event_data=None, brand=None):
+    """
+    Resolve a single template variable via its registry source chain.
+    Replaces the legacy field_aliases dict.
+    Returns "" if no source yields a non-empty value.
+    """
+    entry = get_variable(var_key)
+    if not entry:
+        return ""
+    event_data = event_data or {}
+    brand = brand or {}
+
+    for source in entry.get("sources", []):
+        scope = source.get("from")
+        field = source.get("field")
+        if not scope or not field:
+            continue
+        if scope == "customer":
+            value = customer.get(field)
+        elif scope == "event":
+            value = event_data.get(field)
+        elif scope == "brand":
+            value = brand.get(field)
+        else:
+            continue
+
+        if value not in (None, "", 0):
+            return _format_value(value, entry.get("formatter"))
+        # 0 is valid for integers (e.g., points_balance=0)
+        if value == 0 and entry.get("formatter") in ("integer", "currency"):
+            return _format_value(0, entry.get("formatter"))
+
+    return ""
+
+
 def build_body_values(
     template_variables: List[str],
     variable_mappings: Dict[str, str],
     customer_data: Dict[str, Any],
     event_data: Dict[str, Any] = None,
     variable_modes: Dict[str, str] = None,
+    brand_data: Dict[str, Any] = None,
 ) -> Dict[str, str]:
     """
-    Build bodyValues dict from template variables and mappings.
-
-    For each variable {{n}} in template_variables:
-      - if modes[{{n}}] == "text": pass the literal string from mappings
-      - else (map mode, default): resolve via field aliases
+    Build the bodyValues dict for AuthKey send.
+    For each {{n}}: text mode -> literal; map mode -> resolve via registry.
     """
     body_values = {}
     modes = variable_modes or {}
-
-    # Combine customer and event data
-    all_data = {**customer_data}
-    if event_data:
-        all_data.update(event_data)
-
-    # Map common field aliases
-    field_aliases = {
-        "customer_name": ["name", "customer_name"],
-        "phone": ["phone", "mobile"],
-        "points_balance": ["total_points", "points_balance", "points"],
-        "wallet_balance": ["wallet_balance", "wallet"],
-        "tier": ["tier", "membership_tier"],
-        "visit_count": ["total_visits", "visit_count"],
-    }
-
-    def get_value(field_key: str) -> str:
-        """Get value from data with alias support"""
-        if field_key in all_data:
-            return str(all_data[field_key] or "")
-        for canonical, aliases in field_aliases.items():
-            if field_key in aliases:
-                for alias in aliases:
-                    if alias in all_data and all_data[alias] is not None:
-                        return str(all_data[alias])
-        return ""
 
     for var in template_variables:
         var_num = var.strip("{}") if var else ""
         if not var_num:
             continue
-
         mapped_field = variable_mappings.get(var, "")
         mode = modes.get(var, "map")
 
@@ -257,11 +291,11 @@ def build_body_values(
             continue
 
         if mode == "text":
-            # Literal text — owner typed it directly, do NOT resolve as field key
             body_values[var_num] = str(mapped_field)
         else:
-            # mode == "map" (default) — resolve as field key via aliases
-            body_values[var_num] = get_value(mapped_field)
+            body_values[var_num] = resolve_variable(
+                mapped_field, customer_data, event_data, brand_data,
+            )
 
     return body_values
 
@@ -387,36 +421,41 @@ async def trigger_whatsapp_event(
         )
     """
     try:
-        # 1. Get user's AuthKey API key
-        api_key = await get_user_authkey(db, user_id)
+        # 1. Get user's AuthKey API key + brand data (combined query — P2)
+        user_doc = await db.users.find_one(
+            {"id": user_id},
+            {"_id": 0, "authkey_api_key": 1, "restaurant_name": 1},
+        )
+        if not user_doc:
+            return None
+        api_key = user_doc.get("authkey_api_key")
         if not api_key:
             logger.debug(f"No AuthKey API key for user {user_id}, skipping WhatsApp trigger")
             return None
-        
+        brand_data = {"restaurant_name": user_doc.get("restaurant_name", "")}
+
         # 2. Get template configuration for this event
         config = await get_event_template_config(db, user_id, event_type)
         if not config:
             logger.debug(f"No template configured for event {event_type}, skipping")
             return None
-        
+
         if not config.get("is_enabled", True):
             logger.debug(f"Event {event_type} is disabled, skipping")
             return None
-        
+
         template_id = config["template_id"]
         variable_mappings = config.get("variable_mappings", {})
-        
-        # 3. Get template details to find variables
-        # Fetch from authkey templates cache or use stored mapping
+
+        # 3. Build body values via P2 registry resolver
         template_variables = list(variable_mappings.keys()) if variable_mappings else []
-        
-        # 4. Build body values from mappings (P1: pass modes for text-mode support)
         body_values = build_body_values(
             template_variables,
             variable_mappings,
             customer,
             event_data,
             variable_modes=config.get("variable_modes", {}),
+            brand_data=brand_data,
         )
         
         # 5. Prepare message

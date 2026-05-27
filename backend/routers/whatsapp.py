@@ -584,12 +584,13 @@ async def save_template_variable_mapping(
     data: dict,
     user: dict = Depends(get_current_user)
 ):
-    """Save variable mappings for a template."""
+    """Save variable mappings for a template + return warnings for incompatible event/variable combos."""
+    from core.whatsapp_variables import fills_on
+
     now = datetime.now(timezone.utc).isoformat()
-    
-    # Filter out "none" values
     clean_mappings = {k: v for k, v in (data.get("mappings") or {}).items() if v and v != "none"}
-    
+    modes = data.get("modes") or {}
+
     await db.whatsapp_template_variable_map.update_one(
         {"user_id": user["id"], "template_id": template_id},
         {"$set": {
@@ -597,12 +598,40 @@ async def save_template_variable_mapping(
             "template_id": template_id,
             "template_name": data.get("template_name", ""),
             "mappings": clean_mappings,
-            "modes": data.get("modes") or {},
-            "updated_at": now
+            "modes": modes,
+            "updated_at": now,
         }},
-        upsert=True
+        upsert=True,
     )
-    return {"message": "Variable mappings saved", "template_id": template_id, "mappings": clean_mappings}
+
+    # P2: Compute warnings — check each map-mode variable against events using this template
+    warnings = []
+    event_mappings = await db.whatsapp_event_template_map.find(
+        {"user_id": user["id"], "template_id": template_id},
+        {"_id": 0, "event_key": 1},
+    ).to_list(50)
+
+    for em in event_mappings:
+        event_key = em.get("event_key")
+        if not event_key:
+            continue
+        for placeholder, var_key in clean_mappings.items():
+            if modes.get(placeholder) == "text":
+                continue
+            if not fills_on(var_key, event_key):
+                warnings.append({
+                    "event": event_key,
+                    "placeholder": placeholder,
+                    "variable": var_key,
+                    "message": f"Variable '{var_key}' does not reliably fill on event '{event_key}'.",
+                })
+
+    return {
+        "message": "Variable mappings saved",
+        "template_id": template_id,
+        "mappings": clean_mappings,
+        "warnings": warnings,
+    }
 
 
 @router.post("/test-template")
