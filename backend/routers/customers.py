@@ -734,20 +734,18 @@ async def get_sample_customer_data(user: dict = Depends(get_current_user)):
     
     return {
         "sample": {
-            "customer_name": customer.get("name", ""),
-            "phone": customer.get("phone", ""),
-            "points_balance": str(customer.get("total_points", 0)),
-            "points_earned": str(customer.get("total_points_earned", 0)),
+            "customer_name":   customer.get("name", ""),
+            "points_balance":  str(customer.get("total_points", 0)),
+            "points_earned":   str(customer.get("total_points_earned", 0)),
             "points_redeemed": str(customer.get("total_points_redeemed", 0)),
-            "wallet_balance": f"₹{customer.get('wallet_balance', 0)}",
-            "amount": f"₹{customer.get('total_spent', 0)}",
-            "tier": customer.get("tier", ""),
-            "coupon_code": "",
-            "expiry_date": "",
-            "order_id": "",
-            "visit_count": str(customer.get("total_visits", 0))
+            "wallet_balance":  f"Rs.{customer.get('wallet_balance', 0)}",
+            "amount":          f"Rs.{customer.get('total_spent', 0)}",
+            "tier":            customer.get("tier", ""),
+            "restaurant_name": restaurant_name,
+            "coupon_code":     "",
+            "expiry_date":     "",
         },
-        "restaurant_name": restaurant_name
+        "restaurant_name": restaurant_name,
     }
 
 @router.get("", response_model=List[Customer])

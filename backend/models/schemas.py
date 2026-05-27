@@ -1168,62 +1168,6 @@ class POSResponse(BaseModel):
     message: str
     data: Optional[dict] = None
 
-# WhatsApp Template Models
-class WhatsAppTemplateCreate(BaseModel):
-    name: str
-    message: str
-    media_type: Optional[str] = None
-    media_url: Optional[str] = None
-    variables: Optional[List[str]] = None
-
-class WhatsAppTemplateUpdate(BaseModel):
-    name: Optional[str] = None
-    message: Optional[str] = None
-    media_type: Optional[str] = None
-    media_url: Optional[str] = None
-    variables: Optional[List[str]] = None
-    is_active: Optional[bool] = None
-
-class WhatsAppTemplate(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str
-    user_id: str
-    name: str
-    message: Optional[str] = ""
-    media_type: Optional[str] = None
-    media_url: Optional[str] = None
-    variables: Optional[List[str]] = None
-    is_active: bool = True
-    created_at: str
-    updated_at: Optional[str] = None
-
-# Automation Rule Models
-class AutomationRuleCreate(BaseModel):
-    event_type: str
-    template_id: str
-    is_enabled: bool = True
-    delay_minutes: int = 0
-    conditions: Optional[dict] = None
-
-class AutomationRuleUpdate(BaseModel):
-    event_type: Optional[str] = None
-    template_id: Optional[str] = None
-    is_enabled: Optional[bool] = None
-    delay_minutes: Optional[int] = None
-    conditions: Optional[dict] = None
-
-class AutomationRule(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str
-    user_id: str
-    event_type: Optional[str] = None
-    template_id: str
-    is_enabled: bool = True
-    delay_minutes: int = 0
-    conditions: Optional[dict] = None
-    created_at: str
-    updated_at: Optional[str] = None
-
 # Automation Events - POS Events (Order related from Point of Sale)
 POS_EVENTS = [
     "new_order_customer",      # New order placed - Customer notification

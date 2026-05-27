@@ -222,8 +222,6 @@ const TestTemplateModal = memo(function TestTemplateModal({ open, onClose, templ
 export function WhatsAppAutomationContent({ embedded = false }) {
     const { api } = useAuth();
     const navigate = useNavigate();
-    const [templates, setTemplates] = useState([]);
-    const [automationRules, setAutomationRules] = useState([]);
     const [availableEvents, setAvailableEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("settings");
@@ -261,27 +259,6 @@ export function WhatsAppAutomationContent({ embedded = false }) {
     });
     const [savingTemplate, setSavingTemplate] = useState(false);
     
-    // Template form state
-    const [showTemplateModal, setShowTemplateModal] = useState(false);
-    const [editingTemplate, setEditingTemplate] = useState(null);
-    const [templateForm, setTemplateForm] = useState({
-        name: "",
-        message: "",
-        media_type: null,
-        media_url: "",
-        variables: []
-    });
-    
-    // Automation rule form state
-    const [showRuleModal, setShowRuleModal] = useState(false);
-    const [editingRule, setEditingRule] = useState(null);
-    const [ruleForm, setRuleForm] = useState({
-        event_type: "",
-        template_id: "",
-        is_enabled: true,
-        delay_minutes: 0
-    });
-
     // Variable mapping state
     const [showVariableMappingModal, setShowVariableMappingModal] = useState(false);
     const [mappingTemplate, setMappingTemplate] = useState(null);
@@ -303,19 +280,8 @@ export function WhatsAppAutomationContent({ embedded = false }) {
     const [testingTemplate, setTestingTemplate] = useState(null);
     const [testingEventKey, setTestingEventKey] = useState(null);
 
-    // Available template variables
-    const availableVariables = [
-        { key: "customer_name", label: "Customer Name", example: "John" },
-        { key: "points_balance", label: "Points Balance", example: "1,250" },
-        { key: "points_earned", label: "Points Earned", example: "50" },
-        { key: "points_redeemed", label: "Points Redeemed", example: "100" },
-        { key: "wallet_balance", label: "Wallet Balance", example: "₹500" },
-        { key: "amount", label: "Amount", example: "₹1,000" },
-        { key: "tier", label: "Customer Tier", example: "Gold" },
-        { key: "restaurant_name", label: "Restaurant Name", example: "Demo Restaurant" },
-        { key: "coupon_code", label: "Coupon Code", example: "SAVE20" },
-        { key: "expiry_date", label: "Expiry Date", example: "31 Dec 2025" }
-    ];
+    // Available template variables — fetched from API (CR-004 P1)
+    const [availableVariables, setAvailableVariables] = useState([]);
 
     // Helper: Resolve preview text using sample customer data
     const resolvePreviewWithSampleData = (templateBody, mappings, modes) => {
@@ -458,15 +424,13 @@ export function WhatsAppAutomationContent({ embedded = false }) {
 
     const fetchData = async () => {
         try {
-            const [templatesRes, rulesRes, eventsRes, apiKeyRes] = await Promise.all([
-                api.get("/whatsapp/templates"),
-                api.get("/whatsapp/automation"),
+            const [eventsRes, apiKeyRes, varsRes] = await Promise.all([
                 api.get("/whatsapp/automation/events"),
-                api.get("/whatsapp/api-key")
+                api.get("/whatsapp/api-key"),
+                api.get("/whatsapp/variables"),
             ]);
-            setTemplates(templatesRes.data.templates || templatesRes.data || []);
-            setAutomationRules(rulesRes.data);
             setAvailableEvents(eventsRes.data.events || []);
+            setAvailableVariables(varsRes.data.variables || []);
             setWhatsappApiKey(apiKeyRes.data.authkey_api_key || "");
             // Auto-load authkey templates if api key exists
             const apiKey = apiKeyRes.data.authkey_api_key || "";
@@ -737,131 +701,6 @@ export function WhatsAppAutomationContent({ embedded = false }) {
             media_url: template.media_url || ""
         });
         setShowAddTemplate(true);
-    };
-
-    const handleSaveTemplate = async () => {
-        try {
-            if (editingTemplate) {
-                await api.put(`/whatsapp/templates/${editingTemplate.id}`, templateForm);
-                toast.success("Template updated!");
-            } else {
-                await api.post("/whatsapp/templates", templateForm);
-                toast.success("Template created!");
-            }
-            setShowTemplateModal(false);
-            setEditingTemplate(null);
-            setTemplateForm({ name: "", message: "", media_type: null, media_url: "", variables: [] });
-            fetchData();
-        } catch (err) {
-            toast.error(err.response?.data?.detail || "Failed to save template");
-        }
-    };
-
-    const handleEditTemplate = (template) => {
-        setEditingTemplate(template);
-        setTemplateForm({
-            name: template.name,
-            message: template.message,
-            media_type: template.media_type || null,
-            media_url: template.media_url || "",
-            variables: template.variables || []
-        });
-        setShowTemplateModal(true);
-    };
-
-    const handleDeleteTemplate = async (templateId) => {
-        if (!window.confirm("Are you sure you want to delete this template?")) return;
-        try {
-            await api.delete(`/whatsapp/templates/${templateId}`);
-            toast.success("Template deleted!");
-            fetchData();
-        } catch (err) {
-            toast.error(err.response?.data?.detail || "Failed to delete template");
-        }
-    };
-
-    // Automation Rule CRUD
-    const handleSaveRule = async () => {
-        try {
-            if (editingRule) {
-                await api.put(`/whatsapp/automation/${editingRule.id}`, ruleForm);
-                toast.success("Automation rule updated!");
-            } else {
-                await api.post("/whatsapp/automation", ruleForm);
-                toast.success("Automation rule created!");
-            }
-            setShowRuleModal(false);
-            setEditingRule(null);
-            setRuleForm({ event_type: "", template_id: "", is_enabled: true, delay_minutes: 0 });
-            fetchData();
-        } catch (err) {
-            toast.error(err.response?.data?.detail || "Failed to save rule");
-        }
-    };
-
-    const handleEditRule = (rule) => {
-        setEditingRule(rule);
-        setRuleForm({
-            event_type: rule.event_type,
-            template_id: rule.template_id,
-            is_enabled: rule.is_enabled,
-            delay_minutes: rule.delay_minutes || 0
-        });
-        setShowRuleModal(true);
-    };
-
-    const handleDeleteRule = async (ruleId) => {
-        if (!window.confirm("Are you sure you want to delete this automation rule?")) return;
-        try {
-            await api.delete(`/whatsapp/automation/${ruleId}`);
-            toast.success("Automation rule deleted!");
-            fetchData();
-        } catch (err) {
-            toast.error(err.response?.data?.detail || "Failed to delete rule");
-        }
-    };
-
-    const handleToggleRule = async (ruleId) => {
-        try {
-            await api.post(`/whatsapp/automation/${ruleId}/toggle`);
-            fetchData();
-        } catch (err) {
-            toast.error("Failed to toggle rule");
-        }
-    };
-
-    const toggleVariable = (varKey) => {
-        setTemplateForm(prev => ({
-            ...prev,
-            variables: prev.variables.includes(varKey)
-                ? prev.variables.filter(v => v !== varKey)
-                : [...prev.variables, varKey]
-        }));
-    };
-
-    const insertVariableInMessage = (varKey) => {
-        setTemplateForm(prev => ({
-            ...prev,
-            message: prev.message + `{{${varKey}}}`
-        }));
-        if (!templateForm.variables.includes(varKey)) {
-            toggleVariable(varKey);
-        }
-    };
-
-    // Get template name by ID
-    const getTemplateName = (templateId) => {
-        const template = templates.find(t => t.id === templateId);
-        return template?.name || "Unknown Template";
-    };
-
-    // Preview message with variable placeholders highlighted
-    const renderPreviewMessage = (message) => {
-        if (!message) return "";
-        return message.replace(/\{\{(\w+)\}\}/g, (match, varKey) => {
-            const varInfo = availableVariables.find(v => v.key === varKey);
-            return `[${varInfo?.example || varKey}]`;
-        });
     };
 
     // Open Test Template Modal
@@ -1638,212 +1477,6 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                                 </DialogFooter>
                             </div>
                         )}
-                    </DialogContent>
-                </Dialog>
-
-                {/* Template Modal */}
-                <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
-                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>{editingTemplate ? "Edit Template" : "Create Template"}</DialogTitle>
-                            <DialogDescription>
-                                Create a reusable message template with dynamic variables.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                            <div>
-                                <Label className="form-label">Template Name</Label>
-                                <Input 
-                                    value={templateForm.name}
-                                    onChange={(e) => setTemplateForm({...templateForm, name: e.target.value})}
-                                    placeholder="e.g., Welcome Message, Points Update"
-                                    className="h-12 rounded-xl"
-                                    data-testid="template-name-input"
-                                />
-                            </div>
-                            
-                            <div>
-                                <Label className="form-label">Message</Label>
-                                <Textarea 
-                                    value={templateForm.message}
-                                    onChange={(e) => setTemplateForm({...templateForm, message: e.target.value})}
-                                    placeholder="Hi {{customer_name}}, you've earned {{points_earned}} points!"
-                                    className="min-h-[120px] rounded-xl"
-                                    data-testid="template-message-input"
-                                />
-                                <p className="text-xs text-[#52525B] mt-1">Use {"{{variable}}"} to insert dynamic content</p>
-                            </div>
-
-                            <div>
-                                <Label className="form-label mb-2 block">Insert Variables</Label>
-                                <div className="flex flex-wrap gap-2">
-                                    {availableVariables.map(v => (
-                                        <button
-                                            key={v.key}
-                                            type="button"
-                                            onClick={() => insertVariableInMessage(v.key)}
-                                            className={`px-2 py-1 text-xs rounded-lg border transition-colors ${
-                                                templateForm.variables.includes(v.key) 
-                                                    ? 'bg-[#25D366] text-white border-[#25D366]' 
-                                                    : 'bg-white text-[#52525B] border-gray-200 hover:border-[#25D366]'
-                                            }`}
-                                            data-testid={`var-${v.key}`}
-                                        >
-                                            {v.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <Label className="form-label">Media Type (Optional)</Label>
-                                <Select 
-                                    value={templateForm.media_type || "none"}
-                                    onValueChange={(v) => setTemplateForm({...templateForm, media_type: v === "none" ? null : v})}
-                                >
-                                    <SelectTrigger className="h-12 rounded-xl" data-testid="media-type-select">
-                                        <SelectValue placeholder="No media" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">No media</SelectItem>
-                                        <SelectItem value="image">Image</SelectItem>
-                                        <SelectItem value="video">Video</SelectItem>
-                                        <SelectItem value="document">Document</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {templateForm.media_type && (
-                                <div>
-                                    <Label className="form-label">Media URL</Label>
-                                    <Input 
-                                        value={templateForm.media_url}
-                                        onChange={(e) => setTemplateForm({...templateForm, media_url: e.target.value})}
-                                        placeholder="https://example.com/image.jpg"
-                                        className="h-12 rounded-xl"
-                                        data-testid="media-url-input"
-                                    />
-                                </div>
-                            )}
-
-                            {/* Preview */}
-                            {templateForm.message && (
-                                <div>
-                                    <Label className="form-label">Preview</Label>
-                                    <div className="bg-[#DCF8C6] p-3 rounded-lg rounded-tl-none">
-                                        <p className="text-sm whitespace-pre-wrap">{renderPreviewMessage(templateForm.message)}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <DialogFooter className="mt-4">
-                            <Button variant="outline" onClick={() => setShowTemplateModal(false)}>
-                                Cancel
-                            </Button>
-                            <Button 
-                                onClick={handleSaveTemplate}
-                                className="bg-[#25D366] hover:bg-[#20BD5A]"
-                                disabled={!templateForm.name || !templateForm.message}
-                                data-testid="save-template-btn"
-                            >
-                                {editingTemplate ? "Update" : "Create"} Template
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Automation Rule Modal */}
-                <Dialog open={showRuleModal} onOpenChange={setShowRuleModal}>
-                    <DialogContent className="max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>{editingRule ? "Edit Automation Rule" : "Add Automation Rule"}</DialogTitle>
-                            <DialogDescription>
-                                Configure when to automatically send WhatsApp messages.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                            <div>
-                                <Label className="form-label">Trigger Event</Label>
-                                <Select 
-                                    value={ruleForm.event_type}
-                                    onValueChange={(v) => setRuleForm({...ruleForm, event_type: v})}
-                                    disabled={!!editingRule}
-                                >
-                                    <SelectTrigger className="h-12 rounded-xl" data-testid="event-type-select">
-                                        <SelectValue placeholder="Select an event" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableEvents.map(event => {
-                                            const hasRule = automationRules.some(r => r.event_type === event.event && r.id !== editingRule?.id);
-                                            return (
-                                                <SelectItem 
-                                                    key={event.event} 
-                                                    value={event.event}
-                                                    disabled={hasRule}
-                                                >
-                                                    {eventLabels[event.event] || event.event}
-                                                    {hasRule && " (already configured)"}
-                                                </SelectItem>
-                                            );
-                                        })}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <Label className="form-label">Message Template</Label>
-                                <Select 
-                                    value={ruleForm.template_id}
-                                    onValueChange={(v) => setRuleForm({...ruleForm, template_id: v})}
-                                >
-                                    <SelectTrigger className="h-12 rounded-xl" data-testid="template-select">
-                                        <SelectValue placeholder="Select a template" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {templates.map(template => (
-                                            <SelectItem key={template.id} value={template.id}>
-                                                {template.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <Label className="form-label">Delay (minutes)</Label>
-                                <Input 
-                                    type="number"
-                                    min="0"
-                                    value={ruleForm.delay_minutes}
-                                    onChange={(e) => setRuleForm({...ruleForm, delay_minutes: parseInt(e.target.value) || 0})}
-                                    className="h-12 rounded-xl"
-                                    data-testid="delay-input"
-                                />
-                                <p className="text-xs text-[#52525B] mt-1">0 = send immediately, or delay by X minutes</p>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <Label className="form-label">Enable Rule</Label>
-                                <Switch 
-                                    checked={ruleForm.is_enabled}
-                                    onCheckedChange={(checked) => setRuleForm({...ruleForm, is_enabled: checked})}
-                                    data-testid="enable-rule-switch"
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter className="mt-4">
-                            <Button variant="outline" onClick={() => setShowRuleModal(false)}>
-                                Cancel
-                            </Button>
-                            <Button 
-                                onClick={handleSaveRule}
-                                className="bg-[#F26B33] hover:bg-[#D85A2A]"
-                                disabled={!ruleForm.event_type || !ruleForm.template_id}
-                                data-testid="save-rule-btn"
-                            >
-                                {editingRule ? "Update" : "Create"} Rule
-                            </Button>
-                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
 

@@ -205,27 +205,24 @@ def build_body_values(
     template_variables: List[str],
     variable_mappings: Dict[str, str],
     customer_data: Dict[str, Any],
-    event_data: Dict[str, Any] = None
+    event_data: Dict[str, Any] = None,
+    variable_modes: Dict[str, str] = None,
 ) -> Dict[str, str]:
     """
-    Build bodyValues dict from template variables and mappings
-    
-    Args:
-        template_variables: List like ["{{1}}", "{{2}}"]
-        variable_mappings: Mapping like {"{{1}}": "customer_name", "{{2}}": "points_balance"}
-        customer_data: Customer record with name, phone, points, etc.
-        event_data: Optional event-specific data (amount, coupon_code, etc.)
-    
-    Returns:
-        Dict like {"1": "John", "2": "500"}
+    Build bodyValues dict from template variables and mappings.
+
+    For each variable {{n}} in template_variables:
+      - if modes[{{n}}] == "text": pass the literal string from mappings
+      - else (map mode, default): resolve via field aliases
     """
     body_values = {}
-    
+    modes = variable_modes or {}
+
     # Combine customer and event data
     all_data = {**customer_data}
     if event_data:
         all_data.update(event_data)
-    
+
     # Map common field aliases
     field_aliases = {
         "customer_name": ["name", "customer_name"],
@@ -235,37 +232,37 @@ def build_body_values(
         "tier": ["tier", "membership_tier"],
         "visit_count": ["total_visits", "visit_count"],
     }
-    
+
     def get_value(field_key: str) -> str:
         """Get value from data with alias support"""
-        # Direct match
         if field_key in all_data:
             return str(all_data[field_key] or "")
-        
-        # Check aliases
         for canonical, aliases in field_aliases.items():
             if field_key in aliases:
                 for alias in aliases:
                     if alias in all_data and all_data[alias] is not None:
                         return str(all_data[alias])
-        
         return ""
-    
+
     for var in template_variables:
-        # Extract number from {{1}}, {{2}}, etc.
         var_num = var.strip("{}") if var else ""
         if not var_num:
             continue
-        
-        # Get the mapped field for this variable
+
         mapped_field = variable_mappings.get(var, "")
-        
-        if mapped_field:
-            value = get_value(mapped_field)
-            body_values[var_num] = value
-        else:
+        mode = modes.get(var, "map")
+
+        if not mapped_field:
             body_values[var_num] = ""
-    
+            continue
+
+        if mode == "text":
+            # Literal text — owner typed it directly, do NOT resolve as field key
+            body_values[var_num] = str(mapped_field)
+        else:
+            # mode == "map" (default) — resolve as field key via aliases
+            body_values[var_num] = get_value(mapped_field)
+
     return body_values
 
 
@@ -413,12 +410,13 @@ async def trigger_whatsapp_event(
         # Fetch from authkey templates cache or use stored mapping
         template_variables = list(variable_mappings.keys()) if variable_mappings else []
         
-        # 4. Build body values from mappings
+        # 4. Build body values from mappings (P1: pass modes for text-mode support)
         body_values = build_body_values(
             template_variables,
             variable_mappings,
             customer,
-            event_data
+            event_data,
+            variable_modes=config.get("variable_modes", {}),
         )
         
         # 5. Prepare message

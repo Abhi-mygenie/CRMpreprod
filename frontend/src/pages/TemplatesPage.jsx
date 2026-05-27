@@ -51,18 +51,8 @@ export default function TemplatesPage() {
     // Template preview state
     const [expandedPreviews, setExpandedPreviews] = useState({});
     
-    const availableVariables = [
-        { key: "customer_name", label: "Customer Name", example: "John" },
-        { key: "points_balance", label: "Points Balance", example: "500" },
-        { key: "points_earned", label: "Points Earned", example: "100" },
-        { key: "points_redeemed", label: "Points Redeemed", example: "50" },
-        { key: "wallet_balance", label: "Wallet Balance", example: "₹200" },
-        { key: "amount", label: "Amount", example: "₹1500" },
-        { key: "tier", label: "Customer Tier", example: "Gold" },
-        { key: "restaurant_name", label: "Restaurant Name", example: "Demo Restaurant" },
-        { key: "coupon_code", label: "Coupon Code", example: "SAVE20" },
-        { key: "expiry_date", label: "Expiry Date", example: "31 Dec 2025" }
-    ];
+    // Available variables — fetched from API (CR-004 P1)
+    const [availableVariables, setAvailableVariables] = useState([]);
 
     const resolvePreviewWithSampleData = (templateBody, mappings, modes) => {
         if (!templateBody) return [];
@@ -105,13 +95,15 @@ export default function TemplatesPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [tplRes, varMapRes, sampleRes, customRes] = await Promise.all([
+                const [tplRes, varMapRes, sampleRes, customRes, varsRes] = await Promise.all([
                     api.get("/whatsapp/authkey-templates"),
                     api.get("/whatsapp/template-variable-map"),
                     api.get("/customers/sample-data"),
-                    api.get("/whatsapp/custom-templates")
+                    api.get("/whatsapp/custom-templates"),
+                    api.get("/whatsapp/variables"),
                 ]);
                 setAuthkeyTemplates(tplRes.data.templates || []);
+                setAvailableVariables(varsRes.data.variables || []);
                 const varMapObj = {};
                 const varModesObj = {};
                 (varMapRes.data.mappings || []).forEach(m => {
