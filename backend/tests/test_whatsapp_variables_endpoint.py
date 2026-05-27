@@ -20,6 +20,9 @@ def test_variables_endpoint_returns_canonical_list():
         "customer_name", "points_balance", "points_earned", "points_redeemed",
         "wallet_balance", "amount", "tier", "restaurant_name",
         "coupon_code", "expiry_date",
+        "order_id", "old_tier", "expiring_points", "total_visits", "total_spent",
+        "rating", "coupon_title", "coupon_discount", "coupon_expiry",
+        "einvoice_link", "instagram_link", "google_review_link", "feedback_link",
     }
     assert keys == expected, f"Missing: {expected - keys}, Extra: {keys - expected}"
     for v in data["variables"]:

@@ -424,7 +424,9 @@ async def trigger_whatsapp_event(
         # 1. Get user's AuthKey API key + brand data (combined query — P2)
         user_doc = await db.users.find_one(
             {"id": user_id},
-            {"_id": 0, "authkey_api_key": 1, "restaurant_name": 1},
+            {"_id": 0, "authkey_api_key": 1, "restaurant_name": 1,
+             "einvoice_link": 1, "instagram_link": 1,
+             "google_review_link": 1, "feedback_link": 1},
         )
         if not user_doc:
             return None
@@ -432,7 +434,13 @@ async def trigger_whatsapp_event(
         if not api_key:
             logger.debug(f"No AuthKey API key for user {user_id}, skipping WhatsApp trigger")
             return None
-        brand_data = {"restaurant_name": user_doc.get("restaurant_name", "")}
+        brand_data = {
+            "restaurant_name": user_doc.get("restaurant_name", ""),
+            "einvoice_link": user_doc.get("einvoice_link", ""),
+            "instagram_link": user_doc.get("instagram_link", ""),
+            "google_review_link": user_doc.get("google_review_link", ""),
+            "feedback_link": user_doc.get("feedback_link", ""),
+        }
 
         # 2. Get template configuration for this event
         config = await get_event_template_config(db, user_id, event_type)

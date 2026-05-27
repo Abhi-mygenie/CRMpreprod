@@ -188,8 +188,11 @@ async def apply_coupon(
             {
                 "coupon_code": code.upper(),
                 "discount": validation["discount"],
+                "coupon_discount": validation["discount"],
                 "discount_type": coupon.get("discount_type"),
-                "discount_value": coupon.get("discount_value")
+                "discount_value": coupon.get("discount_value"),
+                "coupon_title": coupon.get("title", ""),
+                "coupon_expiry": coupon.get("end_date", ""),
             }
         ))
         # Also fires points_earned for coupon

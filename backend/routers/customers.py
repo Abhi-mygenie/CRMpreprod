@@ -726,7 +726,11 @@ async def get_sample_customer_data(user: dict = Depends(get_current_user)):
     customer = await db.customers.find_one(
         {"user_id": user["id"]}, {"_id": 0}
     )
-    user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "restaurant_name": 1})
+    user_doc = await db.users.find_one(
+        {"id": user["id"]},
+        {"_id": 0, "restaurant_name": 1, "einvoice_link": 1,
+         "instagram_link": 1, "google_review_link": 1, "feedback_link": 1}
+    )
     restaurant_name = user_doc.get("restaurant_name", "") if user_doc else ""
     
     if not customer:
@@ -734,16 +738,36 @@ async def get_sample_customer_data(user: dict = Depends(get_current_user)):
     
     return {
         "sample": {
-            "customer_name":   customer.get("name", ""),
-            "points_balance":  str(customer.get("total_points", 0)),
-            "points_earned":   str(customer.get("total_points_earned", 0)),
-            "points_redeemed": str(customer.get("total_points_redeemed", 0)),
-            "wallet_balance":  f"Rs.{customer.get('wallet_balance', 0)}",
-            "amount":          f"Rs.{customer.get('total_spent', 0)}",
-            "tier":            customer.get("tier", ""),
-            "restaurant_name": restaurant_name,
-            "coupon_code":     "",
-            "expiry_date":     "",
+            # General
+            "customer_name":     customer.get("name", ""),
+            "restaurant_name":   restaurant_name,
+            # Loyalty
+            "points_balance":    str(customer.get("total_points", 0)),
+            "points_earned":     str(customer.get("total_points_earned", 0)),
+            "points_redeemed":   str(customer.get("total_points_redeemed", 0)),
+            "tier":              customer.get("tier", ""),
+            "old_tier":          "",
+            "expiring_points":   "",
+            "expiry_date":       "",
+            "total_visits":      str(customer.get("total_visits", 0)),
+            "total_spent":       f"Rs.{customer.get('total_spent', 0)}",
+            # Wallet
+            "wallet_balance":    f"Rs.{customer.get('wallet_balance', 0)}",
+            "amount":            f"Rs.{customer.get('total_spent', 0)}",
+            # Order
+            "order_id":          "",
+            # Coupon
+            "coupon_code":       "",
+            "coupon_title":      "",
+            "coupon_discount":   "",
+            "coupon_expiry":     "",
+            # Feedback
+            "rating":            "",
+            # Links
+            "einvoice_link":     user_doc.get("einvoice_link", "") if user_doc else "",
+            "instagram_link":    user_doc.get("instagram_link", "") if user_doc else "",
+            "google_review_link": user_doc.get("google_review_link", "") if user_doc else "",
+            "feedback_link":     user_doc.get("feedback_link", "") if user_doc else "",
         },
         "restaurant_name": restaurant_name,
     }
