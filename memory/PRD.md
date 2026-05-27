@@ -1,45 +1,54 @@
 # MyGenie CRM - PRD
 
+## Original Problem Statement
+1. Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git from 27-may branch
+2. Use remote MongoDB: mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie
+3. Build as-is, don't run testing agent
+4. User requested CR-003 Phase 3 (custom date picker + CSV export) — already implemented in branch
+
 ## Architecture
-- **Frontend**: React 19 + Craco + Tailwind CSS + Radix UI + Recharts
-- **Backend**: FastAPI (Python) with Motor (async MongoDB driver) + ReportLab (PDF)
-- **Database**: External MongoDB at 52.66.232.149:27017/mygenie
+- **Frontend**: React 19 with Craco, Tailwind CSS, Radix UI, Recharts
+- **Backend**: FastAPI (Python) with Motor (async MongoDB driver)
+- **Database**: Remote MongoDB at 52.66.232.149:27017/mygenie
+- **Auth**: JWT-based authentication
 
-## What's Been Implemented
+## What's Been Implemented (May 27, 2026)
+### Session 1: Repo Setup
+- Cloned repo from `27-may` branch into /app
+- Configured backend .env with remote MongoDB connection
+- Configured frontend .env with Emergent preview URL
+- Installed all backend (pip) and frontend (yarn) dependencies
+- Both services running successfully via supervisor
 
-### CR-003 Phase 3 — Custom Date Picker + CSV Export + PDF Report
-**Implemented:** 2026-05-27 · **Owner Verified:** 2026-05-27
-- Custom date picker, branded PDF report, CSV export
+### Session 2: CR-003 Phase 3 Verification
+- Verified CR-003 Phase 3 features (custom date picker + CSV export) already in codebase
+- All backend endpoints working: `/analytics/coupons`, `/analytics/coupons/top`, `/analytics/coupons/export`, `/analytics/coupons/pdf`
+- Frontend Coupon Analytics page fully functional with date pills, custom calendar picker, CSV + PDF export
+- Login verified with `owner@kunafamahal.com` / `Qplazm@10`
 
-### CR-003 Phase 4 — Coupon ROI Score
-**Implemented:** 2026-05-27 · **Owner Verified (Smoke Test):** 2026-05-27
-- 5th summary card (ROI Score), ROI insight banner with basket lift, per-coupon ROI column in table
-- ROI added to CSV export (Gross Revenue, ROI, ROI Label columns — total 13 cols)
-- ROI added to PDF report (5th card, banner, ROI column with color coding)
-- Formula: ROI = Gross Revenue / Discount = SUM(order_total + coupon_discount) / SUM(coupon_discount)
+## Core CRM Features (from codebase)
+- Login / Register / Demo Login / Forgot Password
+- Customer Management, Segments, Lifecycle
+- Loyalty Points & Wallet
+- Coupons V1-V3-C (Simple, BOGO, Buy X Get Y, Every Nth)
+- Coupon Analytics Dashboard (Phase 1-4 implemented)
+- Feedback system
+- WhatsApp automation
+- POS integration
+- QR Code generation
+- Item Analytics + Customer Lifecycle Analytics
+- Migration tools
+- Templates & Message Status
 
-### CR-011 Coupon Optimizer — Discovery Registered
-**Discovery Doc:** 2026-05-27 · **Owner Verified (Doc Review):** 2026-05-27
-- Auto-suggest discount adjustments based on ROI bands
-- Status: Registered. Awaiting discovery session before implementation.
+## CR-003 Coupon Analytics Dashboard Phases
+- Phase 1: Summary cards, scope/offer type charts, special offer cards — ✅ DONE
+- Phase 2: Top Coupons Table + Date Range Filter (preset pills) — ✅ DONE
+- Phase 3: Custom Date Picker + CSV Export — ✅ DONE (already in 27-may branch)
+- Phase 4: ROI scoring + PDF report — ✅ DONE (already in 27-may branch)
 
-## CR-003 Phase History
-- Phase 1: Summary cards + charts + special offer cards (QA Passed)
-- Phase 2: Date filter pills + Top Coupons table (QA Passed)
-- Phase 3: Custom date picker + CSV + PDF (Owner Verified)
-- Phase 4: Coupon ROI Score + ROI in exports (Owner Verified)
-
-## Backlog
-- **P1**: CR-011 Coupon Optimizer — Discovery session + implementation
-- **P1**: CR-004 WhatsApp Utility + Marketing Message Integration
-  - Phase 0 Discovery — ✅ Complete (2026-05-27)
-    - Main report + Addendum A (Variables / Legacy / Wired) + Addendum B (Message Dashboard)
-  - Phase 1 Foundation Cleanup — ✅ Planning signed off by owner 2026-05-27, awaiting implementation kickoff
-    - `planning/CR_004_PHASE_1_FOUNDATION_CLEANUP_PLANNING.md`
-    - Decisions: D-1 ✅ scope locked · D-2 A (honour text mode) · D-3 immediate drop · D-4 keep 10 vars · D-5 testing_agent_v3_fork override for P1
-  - Phase 2 Variable ↔ DB Schema Mapping Layer — 📝 Planning drafted (pickup-ready), awaiting owner sign-off
-    - `planning/CR_004_PHASE_2_VARIABLE_DB_MAPPING_PLANNING.md`
-  - Phases 3-9 — Scoped at broader level, not yet planned in detail
-
-## Testing Constraint
-User explicitly instructed: **DO NOT run testing agent**. Manual testing only (curl, python scripts, screenshots, PDF analyzer).
+## Backlog / Next Tasks
+- P0: No pending items — all features deployed
+- P1: CR-004 WhatsApp Utility + Marketing Message Integration (discovery phase)
+- P1: CR-011 Coupon Optimizer Auto-Suggest (registered, awaiting discovery)
+- P2: Scan & Order consumer app (owner scoping)
+- P2: Wallet extension with POS contract
