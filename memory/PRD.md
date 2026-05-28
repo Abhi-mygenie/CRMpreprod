@@ -391,6 +391,10 @@ This session worked on **CR-004 P3.5** — a follow-up to CR-004 Phase 3 (Event 
 - CR-011 Coupon Optimizer — discovery
 - CR-012 WhatsApp Template Builder Production Readiness — planning
 - CR-013 Template Gallery — blocked by CR-012 P1
+- **CR-014 E-Invoice PDF + Mobile HTML Link** — *Phase 0 Discovery complete (2026-05-28) + Profile-page fields appendix added. PARKED awaiting 2 owner confirmations (§15.6 of discovery doc). Auto-generate mobile-friendly HTML invoice (with PDF download) on every POS order, injected into `send_bill` WhatsApp via `einvoice_link` variable. Direct follow-on from CR-004 P3.5.*
+
+### CR-014 Resume signal
+> "Resume CR-014" → read `memory/crm/crm_roi_sprint/discovery/CR_014_E_INVOICE_PDF_LINK_DISCOVERY.md` end-to-end, ask owner the 2 confirmations in §15.6 of that doc, then write `planning/CR_014_EINVOICE_PHASE_1_PLAN.md`.
 
 ---
 

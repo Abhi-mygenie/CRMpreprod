@@ -2,7 +2,7 @@
 
 **Sprint**: ROI Measurement / CRM
 **CR code**: CR-014
-**Lifecycle stage**: `discovery_phase_0_fields_gap_review_pending_owner_guidance`
+**Lifecycle stage**: `cr014_discovery_phase_0_parked_awaiting_2_final_confirmations` (2026-05-28, updated post-fields-walkthrough)
 **Date**: 2026-05-28
 **Owner contact**: Kunafa Mahal (R689 primary tenant for validation)
 **Linked CR**: CR-004 (parent — `einvoice_link` variable already registered in P3.5; this CR populates it)
@@ -432,3 +432,147 @@ That doc will lock:
 - Linked CRs: CR-004 (parent — provides `einvoice_link` variable slot)
 
 **End of Phase 0 Discovery. Awaiting owner guidance on §8.**
+
+---
+
+## 15. Profile-page fields — appendix (owner direction 2026-05-28 evening)
+
+Owner directive: **"add missing fields to the Profile page; logo is already stored elsewhere; address + GSTIN are the two big ones (Critical Q1 + Q2 from §8)"**.
+
+### 15.1 Current Profile page state
+
+| Source | Detail |
+|---|---|
+| Frontend file | `/app/frontend/src/pages/ProfilePage.jsx` |
+| Backend endpoint | `PUT /api/auth/profile` at `backend/routers/auth.py:202` |
+| Currently editable | `phone`, `address` ONLY (whitelist) |
+| Currently displayed (readonly) | Business Name (`restaurant_name`), Email, POS ID (`pos_id`), POS Name (`restaurant_name` again), Phone, Address |
+| Logo | **Stored elsewhere per owner** — NOT to be added to Profile page in this CR |
+| `address` field state across all 14 tenants | All EMPTY ("") — safe to repurpose or replace |
+
+### 15.2 Fields to add to Profile page — final list
+
+Grouped by purpose. Owner has not yet locked the final scope; this is the recommended set.
+
+#### 🟥 Group 1 — Required for GST tax invoice (Mode A trigger)
+
+| # | UI label | DB key | Type / validation | Why |
+|---|---|---|---|---|
+| 1 | GSTIN | `gstin` | 15 chars, regex `^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$` | Triggers Mode A renderer when populated. Example: `09ABCDE1234F1Z5`. First 2 digits = state code → auto-derive `state`. |
+| 2 | Legal Business Name | `legal_name` | string, max 200 | GST law requires legal entity name (different from display name). Fallback to `restaurant_name` if blank. |
+| 3 | State | `state` | dropdown, all 28 states + 8 UTs | Place-of-supply on tax invoice; determines CGST+SGST (intra) vs IGST (inter). Auto-fill from GSTIN first 2 digits. |
+
+#### 🟧 Group 2 — Address split (replaces single-line `address`)
+
+| # | UI label | DB key | Type | Notes |
+|---|---|---|---|---|
+| 4 | Address Line 1 | `address_line1` | string, max 200, **required** | Street, building, shop # — replaces current `address` |
+| 5 | Address Line 2 | `address_line2` | string, max 200, optional | Area, landmark |
+| 6 | City | `city` | string, max 100, **required** | |
+| 7 | Pincode | `pincode` | 6 digits, regex `^[1-9][0-9]{5}$`, **required** | |
+| 8 | Country | `country` | dropdown, default "India" | Can be hidden in v1 (India-only) |
+
+#### 🟨 Group 3 — Compliance (food + tax)
+
+| # | UI label | DB key | Type / validation | Notes |
+|---|---|---|---|---|
+| 9 | FSSAI License # | `fssai_license` | 14 digits, regex `^[0-9]{14}$` | Required by Indian food safety law on every bill; printed as "FSSAI Lic. No." |
+| 10 | PAN | `pan` | 10 chars, regex `^[A-Z]{5}[0-9]{4}[A-Z]$`, optional | Helps B2B invoices; safe to leave blank |
+
+#### 🟦 Group 4 — Optional polish
+
+| # | UI label | DB key | Type | Notes |
+|---|---|---|---|---|
+| 11 | Public-facing Phone | `public_phone` | 10-15 chars, optional | Owner's `phone` may be personal; this is for the customer-facing invoice. Defaults to `phone` if blank. |
+| 12 | Tagline | `tagline` | string, max 120, optional | One-liner under restaurant name on the invoice. e.g. "Authentic Middle Eastern Desserts since 2018" |
+
+### 15.3 Lean v1 set (if owner wants to ship minimal)
+
+Groups 1 + 2 (minus Country) + 3 = **9 new fields**:
+```
+gstin, legal_name, state,
+address_line1, address_line2, city, pincode,
+fssai_license, pan
+```
+Plus rename frontend "Address" → "Address Line 1".
+
+### 15.4 Backend changes alongside the UI
+
+1. **Whitelist expansion in `backend/routers/auth.py:204`**:
+   ```python
+   allowed = {
+       "phone", "address",                                              # legacy
+       "gstin", "legal_name", "state",                                  # Group 1
+       "address_line1", "address_line2", "city", "pincode", "country",  # Group 2
+       "fssai_license", "pan",                                          # Group 3
+       "public_phone", "tagline",                                       # Group 4
+   }
+   ```
+2. **`GET /api/auth/profile`** — confirm it exists and returns the new fields; if it doesn't, add it (`/me` endpoint can be reused).
+3. **Server-side regex validation** for `gstin`, `pincode`, `fssai_license`, `pan` to prevent invalid data reaching invoice renderer.
+4. **Auto-derive state from GSTIN** — when `gstin` is set and `state` is empty, parse first 2 digits and look up state code → name mapping.
+5. **No DB migration needed** — MongoDB schemaless; fields appear when first saved.
+
+### 15.5 Frontend changes (`/app/frontend/src/pages/ProfilePage.jsx`)
+
+- Add the new field inputs grouped visually (sections: "Tax & Compliance", "Address", "Branding")
+- Client-side regex validation matching server-side
+- Auto-fill state dropdown from GSTIN parse on blur
+- Toast confirmation on save
+- `data-testid` on every new field (per testing guidelines)
+
+### 15.6 Two open confirmations needed from owner before planning starts
+
+| # | Question | Recommended default |
+|---|---|---|
+| C1 | **Address strategy**: Replace current single-line `address` with 4-field split (Line1/Line2/City/Pincode), OR keep `address` AND add structured ones in parallel? | **Replace** — cleaner, and current `address` is empty for all 14 tenants anyway |
+| C2 | **Required-vs-optional**: Should the Save button **block** if GSTIN/FSSAI are blank, OR allow blank (just means tenant falls back to Mode B)? | **Allow blank** — restaurants without GST registration shouldn't be locked out of CRM |
+
+---
+
+## 16. CR-014 PARKED status (2026-05-28 evening)
+
+**Status code**: `cr014_discovery_phase_0_parked_awaiting_2_final_confirmations`
+
+### What's documented
+- Problem statement + 3 invoice modes (Tax Invoice / Simple Receipt / Hotel Folio)
+- Owner-locked answers: Q1 (modes), Q3 (HTML+PDF), Q4 (public link)
+- Full fields gap matrix (§5) — restaurant, customer, order meta, items, totals, loyalty, hotel
+- Hosting strategy recommendation (§6) — local-with-PVC v1, S3 v2, abstraction layer
+- 10 open architectural questions (§7) with agent-recommended defaults
+- Risk register (§11)
+- Effort estimate (§12) — ~8-10 dev-days for v1
+- Profile-page fields list with full schema (§15) — 10 required + 2 optional fields
+- Backend whitelist expansion plan (§15.4)
+- Frontend Profile page changes plan (§15.5)
+
+### What's blocking unpark
+Just **2 owner confirmations** (see §15.6 C1 + C2). Both have agent-recommended defaults that owner can confirm with one word ("agree" / "do recommendations").
+
+### What still needs owner input separately (covered in §8)
+- Storage of branding data: agent recommended directly editing `users` collection (not a separate `restaurant_branding` collection); owner has confirmed by directing to Profile page approach ✅
+- Hotel-mode (Mode C) fields beyond the 3 POS sends: deferred until after v1
+- Hosting: agent recommendation pending owner ack (local-with-PVC v1, S3 v2)
+
+### When CR-014 can move to planning phase
+
+After owner answers C1 + C2 (§15.6) + acks hosting recommendation:
+1. Agent writes `/app/memory/crm/crm_roi_sprint/planning/CR_014_EINVOICE_PHASE_1_PLAN.md`
+2. Locks: file plan, API contract, DB schemas, storage adapter interface, test plan
+3. Owner approves planning doc
+4. Implementation begins (file-by-file commits like CR-004 P3.5)
+
+### Files touched by this discovery session
+
+| File | Change |
+|---|---|
+| `/app/memory/crm/crm_roi_sprint/discovery/CR_014_E_INVOICE_PDF_LINK_DISCOVERY.md` | NEW — this file (Phase 0 doc, 16 sections, ~15 KB) |
+| `/app/memory/crm/crm_roi_sprint/00_register/ROI_MEASUREMENT_CR_REGISTER.md` | Added row 15 for CR-014 |
+
+### Resume signal for next agent
+
+> "Resume CR-014" → read this doc end-to-end, ask owner the 2 questions in §15.6, then start planning doc.
+
+---
+
+**End of Phase 0 Discovery. CR-014 PARKED. Awaiting C1 + C2 (§15.6) before planning.**
