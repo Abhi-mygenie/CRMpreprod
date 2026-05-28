@@ -2,7 +2,7 @@
 
 > **Read this first.** Single canonical entry point for any agent picking up this project.
 
-**Last updated**: 2026-05-28 (CR-004 P3.5 partial live test + receive-side hotfix; CR PARKED awaiting Option-A full send-side validation)
+**Last updated**: 2026-05-28 evening (CR-004 P3.5 CLOSED — live test passed via Option A; CR-014 e-invoice in Phase-0 discovery parked)
 **Branch**: `28-may`
 **Codebase pulled from**: `https://github.com/Abhi-mygenie/CRMpreprod.git`
 **Working tree**: `/app` (preview pod)
@@ -90,9 +90,10 @@ sudo supervisorctl status
 - New webhook endpoint `/api/whatsapp/status-callback` — fully functional on this preview pod; tested with curl probes.
 
 ### ⏳ Pending owner ops (NOT this agent's work)
-- Push branch `28-may` to production CRM (`crm.mygenie.online`) **OR** route POS `/api/pos/orders` to preview URL for Option-A validation.
+- ~~Push branch `28-may` to production CRM~~ — no longer blocking; Option A bypassed need (preview ran full code path successfully).
 - Webhook URL **HAS BEEN REGISTERED** in AuthKey console pointing to current preview URL (`https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com/api/whatsapp/status-callback`) — confirmed working with real form-encoded callbacks from AuthKey egress IP `157.245.105.3` (2026-05-28).
-- **Option A (recommended) — fire a synthetic POS order at preview** with unique `pos_order_id` + POS API key + customer phone `7505242126`. This exercises full end-to-end: row insert with `message_id=logid` → AuthKey real send → real callback → dashboard reflects pending→delivered→read. **Currently parked at owner's request.**
+- **Optional**: owner may push `28-may` to `crm.mygenie.online` whenever convenient — code is proven safe; not blocking.
+- **Optional**: owner may repoint AuthKey webhook URL back to prod once prod is pushed, OR keep on preview.
 
 ### ⚠️ Known limitations / intentional gaps
 - `message_body_text` field is always `null` on new rows — template body isn't stored in our DB; no fallback per owner decision.
@@ -141,67 +142,28 @@ The Message Status dashboard's data pipeline was completely refactored. Before t
 
 ---
 
-## 5.1. CR-004 P3.5 — PARKED status (2026-05-28)
+## 5.1. CR-004 P3.5 — CLOSED ✅ (2026-05-28 evening)
 
-**Status**: `cr_004_p3_5_parked_awaiting_option_a_send_side_live_test`
-**Reason**: Owner has paused further work until they choose between (a) prod push or (b) routing POS to preview for end-to-end validation.
+**Status**: `cr_004_p3_5_closed_live_test_passed`
+**Closure live test**: `memory/crm/crm_roi_sprint/qa/CR_004_PHASE_3_5_LIVE_TEST_REPORT.md`
 
-### What today's live test PROVED
+### Live test summary (Option A — synthetic POS order on preview)
 
-Two real R689 POS orders processed during the session:
-
-| Order | What was tested | Result |
-|---|---|---|
-| `pos_order_id=869310` | AuthKey URL registration + webhook reachability | ✅ Callbacks arrived at preview, parser bug discovered |
-| `pos_order_id=869311` (rest order `009571`) | Form-urlencoded parser hotfix + receive-side end-to-end | ✅ All fields cleanly extracted; row lookup correctly missed (rows have null `message_id`) |
-
-### Confirmed working components
+Synthetic order `pos_order_id=E2E1779979662` (Rs.555, abhi at `7505242126`) was fired at preview's `/api/pos/orders`. Within 71 seconds:
 
 ```
-✅ AuthKey URL registration         (egress IP 157.245.105.3 confirmed)
-✅ Webhook reachability             (preview URL HTTP 200 for real traffic)
-✅ Form-urlencoded parsing          (hotfix applied — see §4 "Receive-side hotfix")
-✅ logid extraction                 (32-char hex from real AuthKey traffic)
-✅ Status mapping                   (delivered, read recognized correctly)
-✅ Audit log capture                (all callbacks persisted regardless of match)
-✅ IST→UTC time parsing             (verified against real timestamps)
-✅ wamid + meta_messageid extraction
+14:47:43  Order persisted (orders + customer points awarded)
+14:47:46  send_bill row written WITH message_id=6c46b572... + idempotency_key + reference_id=order/<UUID> + authkey_raw_response
+14:47:53  AuthKey delivered callback → verdict=applied → row.status=delivered, delivered_at set, status_history +1
+14:48:53  Customer opened WhatsApp
+14:48:54  AuthKey read callback → verdict=applied → row.status=read, read_at set, status_history +1
 ```
 
-### Components still UNVALIDATED in live conditions
+### Acceptance criteria
+**17/17 passed** including: send-side logid capture, reference_id linkage, idempotency key, authkey_raw_response audit, form-urlencoded parsing (hotfix), pending→delivered→read transition, status_history growth, IST→UTC time parse, meta_message_id capture, dashboard reflects all timestamps.
 
-```
-❌ Send-side row insert with message_id=logid  (prod still on old code → message_id=null)
-❌ End-to-end status_history population         (depends on send-side)
-❌ Dashboard transition pending→delivered→read  (depends on send-side)
-❌ Idempotency key blocking duplicate sends     (depends on send-side)
-❌ reference_id linkage to order                (depends on send-side)
-```
-
-### Two paths to unpark — owner decides
-
-**Option A (recommended, no prod push needed)**:
-- Route POS `/api/pos/orders` calls to preview URL with POS API key `dp_live_-sF0sATfNhf72UbrG9BPaKM4icqWnAb7Q4tB6DN3ktE`
-- Fire one synthetic POS order (test customer `7505242126`, unique `pos_order_id` like `E2E_<timestamp>`)
-- Preview runs new code → row written with logid → real WhatsApp sent → real callback → dashboard reflects full lifecycle
-- ⚠️ Sends 1 real WhatsApp to abhi (designated test customer)
-- ⚠️ Inserts 1 test order into shared `orders` collection
-
-**Option B (PRD original path)**:
-- Push branch `28-may` to `crm.mygenie.online`
-- All future prod traffic uses new code automatically
-- Full validation happens organically on next real order
-
-### When CR-004 P3.5 can be marked CLOSED
-
-After Option A executes successfully:
-1. A new `whatsapp_message_logs` row exists with `message_id` = real AuthKey logid, `reference_id` = pos_order_id, `idempotency_key` populated
-2. `whatsapp_callback_logs` shows matching callbacks with `verdict=accepted`
-3. Dashboard reflects `status: read`, `delivered_at` + `read_at` populated, `status_history` has 3 entries
-4. Next agent writes `memory/crm/crm_roi_sprint/qa/CR_004_PHASE_3_5_LIVE_TEST_REPORT.md` (closure doc)
-5. Plan status moves: `parked` → `live_test_passed_closed`
-
-See QA artifact: `memory/crm/crm_roi_sprint/qa/CR_004_PHASE_3_5_PARTIAL_LIVE_TEST_REPORT_2026_05_28.md`
+### CR is closed
+No further code work needed for P3.5. Optional owner ops remain available (push to prod, IP allowlist) but are not blocking.
 
 ---
 

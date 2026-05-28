@@ -1,12 +1,12 @@
 # CR-004 Phase 3.5 — Implementation Closeout (Commits 1–7)
 
 **Parent plan**: `../planning/CR_004_PHASE_3_5_MESSAGE_STATUS_PIPELINE_REFACTOR_PLAN.md`
-**Status**: `cr_004_p3_5_parked_awaiting_option_a_send_side_live_test` (2026-05-28 evening)
-**Previous status**: `implementation_complete_awaiting_blocker_resolution` (2026-05-28 morning)
-**Date completed**: 2026-05-28 (Commits 1–7 + receive-side hotfix)
+**Status**: `cr_004_p3_5_closed_live_test_passed` ✅ (2026-05-28 evening — Option A end-to-end validated via synthetic order E2E1779979662)
+**Previous statuses**: `parked_awaiting_option_a_send_side_live_test` (2026-05-28 morning); `implementation_complete_awaiting_blocker_resolution` (2026-05-28)
+**Date completed**: 2026-05-28 (Commits 1–7 + receive-side hotfix + live test closure)
 **Tenant**: R689 Kunafa Mahal
 **Branch**: `28-may` (preview pod `/app`)
-**Owner action remaining**: Choose Option A (route POS to preview for one synthetic end-to-end order) OR Option B (push branch to prod). See partial live test report: `../qa/CR_004_PHASE_3_5_PARTIAL_LIVE_TEST_REPORT_2026_05_28.md`
+**Closure live test**: `../qa/CR_004_PHASE_3_5_LIVE_TEST_REPORT.md` — full pending→delivered→read lifecycle verified in 71 seconds
 
 ---
 
