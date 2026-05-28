@@ -124,6 +124,30 @@
 
 ---
 
+### 2026-05-29 [CR-015] §7 — Owner answers to all 8 questions (defaults accepted)
+**Decision**: All Q1–Q8 answered as the recommended default (option `a`).
+**Source**: Owner reply "1 a / 2 a / 3 a / 4 a / 5 a / 6 a / 7 a / 8 a" to CR-015 §7 question list.
+**Locked answers**:
+- **Q1** Canonical `template_id` type across `whatsapp_event_template_map` and `whatsapp_template_variable_map` = **`str`** (matches AuthKey `LogID` + Meta convention).
+- **Q2** T7 cleanup of R689 template 25140's 3 bad mappings → **DB script with dry-run + owner approval before commit**.
+- **Q3** T3 event-data expansion strategy → **pass a single giant `order_event_context` dict** (full POS payload + derived fields) to every order-triggered event. Additive, v1 simplicity. Per-event projections deferred to v2.
+- **Q4** T6 admin UI on unknown var_key → **block save with inline error "Unknown variable. Pick from list."** (server-side + client-side).
+- **Q5** T4 scope → **audit ALL 15 trigger callsites** in this CR (POS + wallet + auth + coupons + loyalty cron + feedback). Single CR, single QA pass.
+- **Q6** New `titlecase` formatter → **yes**, applied to `order_type` (`dine_in` → `Dine-In`).
+- **Q7** `order_date` granularity → **separate `order_date` + `order_time` variables**; template designers compose.
+- **Q8** 12-entry registry expansion → **single PR** (pure additive, no rename/removal).
+**Locks**: CR-015 planning-doc decision matrix; Phase 1 plan can now be drafted.
+
+### 2026-05-29 [CR-015] B1–B3 process defaults (applied unless owner overrides at planning sign-off)
+**Decision**: Pending explicit owner override at planning sign-off, the following process defaults apply:
+- **B1** Pre-T2 backup: `mongodump` of `whatsapp_event_template_map` + `whatsapp_template_variable_map` to `/tmp/cr015_pre_t2_backup_<UTC-iso>/` before any write.
+- **B2** Live-test plan: Option-A pattern (fire synthetic POS order at preview's `/api/pos/orders` for R689 against template 25140, watch full trace).
+- **B3** Work sequencing: T1 → T5 → T3 → T6 → T7 → T4 → T2 (resolver first, registry next, event-data expansion, UI guard, R689 cleanup, broader callsite audit, finally DB normalization).
+**Source**: B1–B3 were posed but unanswered in the Q1–Q8 reply; treating recommended-default as locked unless owner amends during planning sign-off.
+**Locks**: Implementation sequencing baseline; revisit possible at planning approval.
+
+---
+
 ## How to add a new decision
 
 1. Append a new `### YYYY-MM-DD [CR-XXX] §<section> — <title>` block at the bottom of the appropriate session group.
