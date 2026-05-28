@@ -170,6 +170,18 @@
 
 ---
 
+### 2026-05-29 [CR-015] Day 2 — Frozen spec produced after deep audit
+**Decision**: Before any Day-2 code lands, agent performed a second deep code audit (owner-requested after v1.0 → v1.1 drift episode). All claims in plan v1.1 §5.2 and §5.4 re-verified file-by-file. Net result: 2 minor refinements (dropped `coupon` param from helper signature; clarified `/api/pos/events` is out-of-T3-scope per POS contract) and 1 import-placement note. **No scope changes**. Frozen spec at `/app/memory/crm/crm_roi_sprint/planning/CR_015_DAY_2_FROZEN_SPEC.md` is now the single source of truth for the implementation agent — every line number, every field name, every reachability claim verified at audit time.
+**Source**: Owner instruction "the documents did not match … I wanted to go through the planning in deep … check each and every file … freeze the planning for day two … clean handoff document for implementation agent."
+**Locks**:
+- T3 scope = 3 callsites in `routers/pos.py` only (lines 1462, 1481, 1497)
+- T3 touches exactly 3 files: `core/whatsapp.py`, `routers/pos.py`, NEW `tests/test_cr015_event_context.py`
+- `/api/pos/events` (line 2194) explicitly OUT of T3 scope (POS owns event_data shape)
+- Helper signature: NO `coupon` param (coupon fields read directly from `order_data`)
+- Acceptance gate = 10 checks in §8.3 of freeze doc
+
+---
+
 ## How to add a new decision
 
 1. Append a new `### YYYY-MM-DD [CR-XXX] §<section> — <title>` block at the bottom of the appropriate session group.

@@ -58,6 +58,22 @@
 - T3 — `build_order_event_context` helper + refactor `routers/pos.py:1462-1508` (3 triggers).
 - Smoke probe end-to-end: synthetic POS order at preview → verify `event_data` has all 25+ keys in trigger log.
 
+### Day 2 — 2026-05-29 (spec frozen, implementation pending)
+
+**Status**: spec FROZEN at `/app/memory/crm/crm_roi_sprint/planning/CR_015_DAY_2_FROZEN_SPEC.md`. Awaiting implementation.
+
+**Why a separate freeze doc**: owner observed drift between v1.0 plan and code in Day 0; requested a code-level freeze for Day 2 before any implementation, so an implementation agent can execute mechanically. Audit performed file-by-file; net result was 2 minor refinements (dropped unused `coupon` param from helper; clarified `/api/pos/events` is out-of-scope per POS contract). No scope changes from plan v1.1.
+
+**T3 scope summary**:
+- Add `build_order_event_context(order_data, customer, *, points_earned, new_points, wallet_used, new_wallet_balance, crm_loyalty_points_redeemed=0, crm_loyalty_discount=0.0, extra=None)` to `core/whatsapp.py`
+- Refactor 3 trigger callsites in `routers/pos.py` (lines 1462, 1481, 1497) to spread `**order_ctx` into their event_data dicts
+- Add 10 unit tests in `tests/test_cr015_event_context.py`
+- 3 files touched, ~270 LoC net delta
+
+**Acceptance gate**: 10 checks in §8.3 of the freeze doc.
+
+**Implementation agent picks up here.**
+
 ---
 
 ## Acceptance matrix (DoD §11 of plan)
