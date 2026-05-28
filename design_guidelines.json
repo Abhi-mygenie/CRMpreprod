@@ -1,0 +1,70 @@
+{
+  "theme": "Light",
+  "archetype": "Archetype 4 (Swiss & High-Contrast) adapted for B2B CRM",
+  "brand_context": {
+    "accent_color": "#F26B33",
+    "font_family": "Montserrat",
+    "corner_radius": "rounded-xl",
+    "mobile_first": true
+  },
+  "colors": {
+    "primary": "#F26B33",
+    "primary_hover": "#D95826",
+    "primary_light": "#FEF3EE",
+    "background": "#FAFAFA",
+    "surface": "#FFFFFF",
+    "text_main": "#111827",
+    "text_secondary": "#4B5563",
+    "text_muted": "#9CA3AF",
+    "border": "#E5E7EB",
+    "success": "#10B981",
+    "success_bg": "#D1FAE5"
+  },
+  "typography": {
+    "font_family": "font-['Montserrat',sans-serif]",
+    "h1": "text-2xl sm:text-3xl font-bold tracking-tight text-gray-900",
+    "h2": "text-xl sm:text-2xl font-semibold text-gray-900",
+    "h3": "text-lg font-medium text-gray-900",
+    "body": "text-sm text-gray-600",
+    "label": "text-xs font-semibold uppercase tracking-wider text-gray-500"
+  },
+  "layout_and_spacing": {
+    "page_container": "max-w-5xl mx-auto p-4 md:p-6 lg:p-8 space-y-8",
+    "card_padding": "p-5 sm:p-6",
+    "gap_standard": "gap-6",
+    "gap_dense": "gap-4",
+    "border_radius": "rounded-xl"
+  },
+  "components_strategy": {
+    "coupon_type_selector": "A grid layout (grid-cols-2 md:grid-cols-3). Each card is a selectable button. Active state: border-[#F26B33] bg-[#FEF3EE] ring-1 ring-[#F26B33]. Inactive state: border-gray-200 bg-white hover:border-gray-300. V3 'Coming Soon' cards (Time-window, BOGO, Every-Nth) must have opacity-60, cursor-not-allowed, and feature a small Shadcn Badge reading 'Coming Soon'.",
+    "dynamic_form_sections": "Conditional rendering based on coupon type. For V1: show flat/percentage input fields. For V2: reveal the Item/Category searchable selector built with Shadcn Command/Combobox component.",
+    "advanced_settings": "Shadcn Accordion component at the bottom of the form to hide 'max_applications', 'allow_repeat', and 'pos_instruction'. Title should clearly state 'Advanced Settings' to keep the default UI uncluttered.",
+    "list_page_enhancements": "Use Shadcn Badges for visual Type indicators (e.g., Flat, Percentage, Item-level) on the list page. Add Shadcn Switch directly in the row for quick Active/Inactive toggling. Implement a Shadcn Input above the table for searching.",
+    "status_toggle": "Shadcn Switch component used for active/inactive status. Checked state uses the success color (#10B981) or primary (#F26B33)."
+  },
+  "testing_attributes": {
+    "requirement": "All interactive elements MUST include a data-testid attribute.",
+    "examples": [
+      "data-testid='coupon-create-btn'",
+      "data-testid='coupon-type-v1-flat'",
+      "data-testid='coupon-type-v3-bogo'",
+      "data-testid='menu-item-selector'",
+      "data-testid='advanced-settings-accordion'",
+      "data-testid='coupon-status-toggle'",
+      "data-testid='save-coupon-btn'"
+    ]
+  },
+  "media": {
+    "icons_library": "lucide-react",
+    "image_urls": {}
+  },
+  "instructions_to_main_agent": [
+    "1. Build the UI in React (.js), utilizing Tailwind CSS and Shadcn UI.",
+    "2. Use a hybrid form structure: visual card-based selector at the top dictates the dynamic fields rendered below.",
+    "3. 'Coming Soon' features (V3) must be visually present but unclickable, displaying a badge.",
+    "4. Adhere strictly to the 'rounded-xl' border radius and '#F26B33' primary color to match the existing CRM theme.",
+    "5. The Item/Category selector must simulate a live catalog search using a combobox.",
+    "6. Add 'data-testid' to every form input, button, and toggle for end-to-end testing.",
+    "7. Include Montserrat font setup in the global CSS or Tailwind config."
+  ]
+}
