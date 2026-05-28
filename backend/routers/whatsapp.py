@@ -2,16 +2,25 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+import hashlib
+import hmac
+import json
+import logging
+import os
 import uuid
 import httpx
 
 from core.database import db
 from core.auth import get_current_user
 from core.whatsapp import send_single_message, WhatsAppMessage, log_message_attempt
+from core.whatsapp_status import next_status
 from core.whatsapp_variables import WHATSAPP_VARIABLES
 from models.schemas import (
     AUTOMATION_EVENTS, POS_EVENTS, CRM_EVENTS
 )
+
+logger = logging.getLogger(__name__)
 
 # Message status constants
 MESSAGE_STATUSES = ["pending", "delivered", "read", "rejected"]
@@ -909,61 +918,199 @@ async def get_message_filters(user: dict = Depends(get_current_user)):
 @router.post("/status-callback")
 async def message_status_callback(request: Request):
     """
-    Webhook endpoint for AuthKey to send message status updates.
-    This endpoint is public (no auth) as it's called by AuthKey.
+    AuthKey delivery-report webhook. Public endpoint (no auth — called by AuthKey).
+
+    CR-004 P3.5 Commit 5: locked payload schema. Audit-first design:
+      1. Capture raw body + headers into whatsapp_callback_logs BEFORE parsing.
+      2. Optional HMAC verification (dormant until AUTHKEY_WEBHOOK_SECRET env var set).
+      3. Defensive id extraction — AuthKey canonical key is `logid` (lowercase).
+      4. Status translation table (locked from real sample 2026-05-28).
+      5. `time` (Asia/Kolkata local string) parsed into delivered_at/read_at/rejected_at.
+      6. State machine guards out-of-order events (e.g. late `delivered` after `read`).
+      7. Recipient sanity check (mobile vs country_code+customer_phone).
+      8. Always pushes to status_history (even on ignored transitions, for audit).
     """
+    received_at = datetime.now(timezone.utc).isoformat()
+
+    # ---- 1. Capture raw body FIRST (audit-first) ----
     try:
-        payload = await request.json()
-        
-        message_id = payload.get("message_id") or payload.get("msgId")
-        status = payload.get("status", "").lower()
-        
-        if not message_id:
-            return {"success": False, "error": "message_id required"}
-        
-        # Map AuthKey status to our status
-        status_map = {
-            "sent": "pending",
-            "delivered": "delivered",
-            "read": "read",
-            "failed": "rejected",
-            "rejected": "rejected",
-            "undelivered": "rejected"
-        }
-        mapped_status = status_map.get(status, status)
-        
-        if mapped_status not in MESSAGE_STATUSES:
-            mapped_status = "pending"
-        
-        now = datetime.now(timezone.utc).isoformat()
-        
-        # Update message log
-        result = await db.whatsapp_message_logs.update_one(
-            {"message_id": message_id},
-            {
-                "$set": {
-                    "status": mapped_status,
-                    "updated_at": now
-                },
-                "$push": {
-                    "status_history": {
-                        "status": mapped_status,
-                        "timestamp": now,
-                        "raw_payload": payload
-                    }
-                }
-            }
+        raw_bytes = await request.body()
+    except Exception:
+        raw_bytes = b""
+
+    try:
+        payload = json.loads(raw_bytes) if raw_bytes else {}
+        if not isinstance(payload, dict):
+            payload = {}
+    except Exception:
+        payload = {}
+
+    callback_log = {
+        "id": str(uuid.uuid4()),
+        "received_at": received_at,
+        "headers": {k.lower(): v for k, v in request.headers.items()},
+        "raw_body": raw_bytes.decode("utf-8", errors="replace") if raw_bytes else "",
+        "parsed": payload,
+        "logid": payload.get("logid") or payload.get("LogID") or payload.get("log_id"),
+        "verdict": "pending",
+        "verdict_reason": None,
+    }
+
+    async def _persist_callback_and_return(verdict: str, reason: Optional[str], http_resp: Dict[str, Any]):
+        callback_log["verdict"] = verdict
+        callback_log["verdict_reason"] = reason
+        try:
+            await db.whatsapp_callback_logs.insert_one(callback_log)
+        except Exception as exc:
+            logger.error(f"Failed to persist whatsapp_callback_log: {exc}")
+        return http_resp
+
+    # ---- 2. HMAC verification (dormant until B2 — secret in env) ----
+    secret = os.environ.get("AUTHKEY_WEBHOOK_SECRET")
+    if secret:
+        sig_header = (
+            request.headers.get("x-auth-signature")
+            or request.headers.get("X-Auth-Signature")
+            or ""
         )
-        
-        return {
+        expected = hmac.new(secret.encode("utf-8"), raw_bytes, hashlib.sha256).hexdigest()
+        if not sig_header or not hmac.compare_digest(expected, sig_header):
+            return await _persist_callback_and_return(
+                "rejected_signature",
+                f"sig_header={sig_header!r} expected_hex_sha256_mismatch",
+                {"success": False, "error": "Invalid signature"},
+            )
+
+    # ---- 3. Defensive id extraction (logid canonical, others as fallback) ----
+    logid = (
+        payload.get("logid")
+        or payload.get("LogID")
+        or payload.get("log_id")
+        or payload.get("message_id")
+        or payload.get("msgId")
+    )
+    if not logid:
+        return await _persist_callback_and_return(
+            "rejected_no_logid",
+            None,
+            {"success": False, "error": "logid required"},
+        )
+
+    # ---- 4. Status translation (locked map) ----
+    raw_status = (payload.get("status") or "").lower()
+    status_map = {
+        "sent": "pending",
+        "delivered": "delivered",
+        "read": "read",
+        "failed": "rejected",
+        "undelivered": "rejected",
+        "rejected": "rejected",
+    }
+    mapped_status = status_map.get(raw_status)
+    if not mapped_status:
+        return await _persist_callback_and_return(
+            "unknown_status",
+            f"status={raw_status!r}",
+            {"success": False, "error": f"unknown status: {raw_status}"},
+        )
+
+    # ---- 5. Time parsing (IST -> UTC); preserve raw verbatim ----
+    time_raw = payload.get("time")
+    ts_utc_iso = received_at
+    if time_raw:
+        try:
+            ts_local = datetime.strptime(time_raw, "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=ZoneInfo("Asia/Kolkata")
+            )
+            ts_utc_iso = ts_local.astimezone(timezone.utc).isoformat()
+        except Exception:
+            logger.warning(
+                f"webhook time parse failed: {time_raw!r}, falling back to received_at"
+            )
+
+    # ---- 6. Row lookup ----
+    row = await db.whatsapp_message_logs.find_one({"message_id": logid}, {"_id": 0})
+    if not row:
+        return await _persist_callback_and_return(
+            "no_matching_row",
+            f"logid={logid}",
+            {"success": True, "logid": logid, "updated": False},
+        )
+
+    # ---- 7. State machine ----
+    new_status = next_status(row.get("status"), mapped_status)
+
+    # ---- 8. Recipient sanity check ----
+    webhook_mobile = str(payload.get("mobile") or "")
+    expected_mobile = f"{row.get('country_code', '')}{row.get('customer_phone', '')}"
+    mobile_mismatch = bool(webhook_mobile and expected_mobile and webhook_mobile != expected_mobile)
+
+    # ---- 9. Build $set update ----
+    set_fields: Dict[str, Any] = {"updated_at": received_at, "time_raw": time_raw}
+
+    if payload.get("meta_messageid"):
+        set_fields["meta_message_id"] = payload["meta_messageid"]
+    if payload.get("keypress") is not None:
+        set_fields["keypress"] = payload["keypress"]
+    if payload.get("button_param_value"):
+        set_fields["button_param_value"] = payload["button_param_value"]
+    if payload.get("channel"):
+        set_fields["channel"] = payload["channel"]
+    if mobile_mismatch:
+        set_fields["mobile_mismatch"] = True
+        logger.warning(
+            f"webhook mobile mismatch: payload={webhook_mobile!r} row={expected_mobile!r} logid={logid}"
+        )
+
+    # Dispatch time -> status-specific timestamp field
+    if mapped_status == "delivered":
+        set_fields["delivered_at"] = ts_utc_iso
+    elif mapped_status == "read":
+        set_fields["read_at"] = ts_utc_iso
+    elif mapped_status == "rejected":
+        set_fields["rejected_at"] = ts_utc_iso
+        set_fields["failure_reason"] = payload.get("reason") or raw_status
+
+    # ---- 10. Apply status only if transition is valid ----
+    if new_status:
+        set_fields["status"] = new_status
+        applied = True
+    else:
+        applied = False
+
+    # ---- 11. Always push to status_history (audit) ----
+    history_entry = {
+        "status": mapped_status,
+        "timestamp": ts_utc_iso,
+        "received_at": received_at,
+        "action": "webhook",
+        "applied": applied,
+        "raw_payload": payload,
+    }
+
+    try:
+        await db.whatsapp_message_logs.update_one(
+            {"id": row["id"]},
+            {"$set": set_fields, "$push": {"status_history": history_entry}},
+        )
+    except Exception as exc:
+        logger.exception(f"Failed to update whatsapp_message_logs row id={row.get('id')}: {exc}")
+        return await _persist_callback_and_return(
+            "db_update_failed",
+            str(exc),
+            {"success": False, "error": "internal_error"},
+        )
+
+    return await _persist_callback_and_return(
+        "applied" if applied else "transition_ignored",
+        None if applied else f"{row.get('status')!r}->{mapped_status!r} not allowed",
+        {
             "success": True,
-            "message_id": message_id,
-            "status": mapped_status,
-            "updated": result.modified_count > 0
-        }
-    
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+            "logid": logid,
+            "status": new_status or row.get("status"),
+            "applied": applied,
+        },
+    )
 
 
 class ResendRequest(BaseModel):
