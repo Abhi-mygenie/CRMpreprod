@@ -2,10 +2,11 @@
 
 > **Read this first.** Single canonical entry point for any agent picking up this project.
 
-**Last updated**: 2026-05-28 (end of CR-004 P3.5 implementation, Commits 1–7)
+**Last updated**: 2026-05-28 (CR-004 P3.5 partial live test + receive-side hotfix; CR PARKED awaiting Option-A full send-side validation)
 **Branch**: `28-may`
 **Codebase pulled from**: `https://github.com/Abhi-mygenie/CRMpreprod.git`
 **Working tree**: `/app` (preview pod)
+**Preview URL**: `https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com`
 
 ---
 
@@ -36,7 +37,7 @@ Multi-tenant. Each restaurant = one `user_id` (e.g. R689 Kunafa Mahal = `pos_000
 ### Service URLs
 - Backend internal: `http://localhost:8001` (all routes prefixed `/api`)
 - Frontend internal: `http://localhost:3000`
-- **Preview external**: `https://4855716e-b88e-44a4-bee4-f087b47a51f1.preview.emergentagent.com` (this pod)
+- **Preview external (current pod)**: `https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com`
 - Production: `https://crm.mygenie.online` (owner manages)
 
 ### Environment files
@@ -89,9 +90,9 @@ sudo supervisorctl status
 - New webhook endpoint `/api/whatsapp/status-callback` — fully functional on this preview pod; tested with curl probes.
 
 ### ⏳ Pending owner ops (NOT this agent's work)
-- Push branch `28-may` to production CRM (`crm.mygenie.online`).
-- Register webhook URL `https://crm.mygenie.online/api/whatsapp/status-callback` in AuthKey console for R689's WABA. Currently AuthKey posts callbacks to `preprod.mygenie.online` (Laravel), not to this CRM.
-- Once both done: send a real WhatsApp from prod → watch dashboard go Pending → Delivered → Read.
+- Push branch `28-may` to production CRM (`crm.mygenie.online`) **OR** route POS `/api/pos/orders` to preview URL for Option-A validation.
+- Webhook URL **HAS BEEN REGISTERED** in AuthKey console pointing to current preview URL (`https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com/api/whatsapp/status-callback`) — confirmed working with real form-encoded callbacks from AuthKey egress IP `157.245.105.3` (2026-05-28).
+- **Option A (recommended) — fire a synthetic POS order at preview** with unique `pos_order_id` + POS API key + customer phone `7505242126`. This exercises full end-to-end: row insert with `message_id=logid` → AuthKey real send → real callback → dashboard reflects pending→delivered→read. **Currently parked at owner's request.**
 
 ### ⚠️ Known limitations / intentional gaps
 - `message_body_text` field is always `null` on new rows — template body isn't stored in our DB; no fallback per owner decision.
@@ -99,6 +100,14 @@ sudo supervisorctl status
 - HMAC verification for inbound webhooks is dormant code (AuthKey doesn't sign — confirmed from real sample). Activates automatically if `AUTHKEY_WEBHOOK_SECRET` ever lands in `.env`.
 - Test sends via `/test-template` are hidden from dashboard by default; toggle "Show test sends" to see them.
 - `reset_password` (owner OTP) does NOT have an idempotency_key — by design, owner can re-request OTPs freely.
+
+### 🔧 Receive-side hotfix applied 2026-05-28 (post-commit-7)
+**File**: `backend/routers/whatsapp.py::message_status_callback`
+**Trigger**: Real AuthKey delivery callbacks captured during R689 live test (orders 869310 + 869311) arrived as `application/x-www-form-urlencoded`, NOT JSON. Original locked schema in §9 was derived from a post-parse sample. Parser returned empty dict → `verdict=rejected_no_logid` even though real logid + status + mobile + meta_messageid were present in raw body.
+**Fix**: Content-type-aware parser. JSON path unchanged. Adds `urllib.parse.parse_qs` fallback for form-encoded bodies. Defensive: unknown Content-Type tries JSON then form. Single-value lists flattened; repeated keys preserved as lists.
+**LoC**: ~+30 / -6 in `routers/whatsapp.py` (parser block + `from urllib.parse import parse_qs` import).
+**Validation**: Replayed 3 real captured AuthKey payloads → all 3 parsed cleanly → `verdict=no_matching_row` (expected; rows have `message_id=null` because send-side ran on prod-old-code).
+**Status**: lint clean (ruff), backend hot-reloaded, `/api/health` green, lives in `/app` only — NOT pushed to prod yet.
 
 ---
 
@@ -126,9 +135,73 @@ The Message Status dashboard's data pipeline was completely refactored. Before t
 **Total**: 17 files (2 new + 15 edited), ~+820/-160 LoC.
 
 ### Commit 8 (NOT yet done — owner-driven)
-- Owner pushes branch to prod.
-- Owner registers webhook URL in AuthKey console.
+- Owner pushes branch to prod **OR** routes POS to preview for Option-A live validation (see §5.1).
+- Owner has already registered webhook URL in AuthKey console (✅ confirmed working).
 - Optional hardening: IP allowlist for `/api/whatsapp/status-callback` (AuthKey egress IP observed: `157.245.105.3` — DigitalOcean NY), rate limit, 24h replay window.
+
+---
+
+## 5.1. CR-004 P3.5 — PARKED status (2026-05-28)
+
+**Status**: `cr_004_p3_5_parked_awaiting_option_a_send_side_live_test`
+**Reason**: Owner has paused further work until they choose between (a) prod push or (b) routing POS to preview for end-to-end validation.
+
+### What today's live test PROVED
+
+Two real R689 POS orders processed during the session:
+
+| Order | What was tested | Result |
+|---|---|---|
+| `pos_order_id=869310` | AuthKey URL registration + webhook reachability | ✅ Callbacks arrived at preview, parser bug discovered |
+| `pos_order_id=869311` (rest order `009571`) | Form-urlencoded parser hotfix + receive-side end-to-end | ✅ All fields cleanly extracted; row lookup correctly missed (rows have null `message_id`) |
+
+### Confirmed working components
+
+```
+✅ AuthKey URL registration         (egress IP 157.245.105.3 confirmed)
+✅ Webhook reachability             (preview URL HTTP 200 for real traffic)
+✅ Form-urlencoded parsing          (hotfix applied — see §4 "Receive-side hotfix")
+✅ logid extraction                 (32-char hex from real AuthKey traffic)
+✅ Status mapping                   (delivered, read recognized correctly)
+✅ Audit log capture                (all callbacks persisted regardless of match)
+✅ IST→UTC time parsing             (verified against real timestamps)
+✅ wamid + meta_messageid extraction
+```
+
+### Components still UNVALIDATED in live conditions
+
+```
+❌ Send-side row insert with message_id=logid  (prod still on old code → message_id=null)
+❌ End-to-end status_history population         (depends on send-side)
+❌ Dashboard transition pending→delivered→read  (depends on send-side)
+❌ Idempotency key blocking duplicate sends     (depends on send-side)
+❌ reference_id linkage to order                (depends on send-side)
+```
+
+### Two paths to unpark — owner decides
+
+**Option A (recommended, no prod push needed)**:
+- Route POS `/api/pos/orders` calls to preview URL with POS API key `dp_live_-sF0sATfNhf72UbrG9BPaKM4icqWnAb7Q4tB6DN3ktE`
+- Fire one synthetic POS order (test customer `7505242126`, unique `pos_order_id` like `E2E_<timestamp>`)
+- Preview runs new code → row written with logid → real WhatsApp sent → real callback → dashboard reflects full lifecycle
+- ⚠️ Sends 1 real WhatsApp to abhi (designated test customer)
+- ⚠️ Inserts 1 test order into shared `orders` collection
+
+**Option B (PRD original path)**:
+- Push branch `28-may` to `crm.mygenie.online`
+- All future prod traffic uses new code automatically
+- Full validation happens organically on next real order
+
+### When CR-004 P3.5 can be marked CLOSED
+
+After Option A executes successfully:
+1. A new `whatsapp_message_logs` row exists with `message_id` = real AuthKey logid, `reference_id` = pos_order_id, `idempotency_key` populated
+2. `whatsapp_callback_logs` shows matching callbacks with `verdict=accepted`
+3. Dashboard reflects `status: read`, `delivered_at` + `read_at` populated, `status_history` has 3 entries
+4. Next agent writes `memory/crm/crm_roi_sprint/qa/CR_004_PHASE_3_5_LIVE_TEST_REPORT.md` (closure doc)
+5. Plan status moves: `parked` → `live_test_passed_closed`
+
+See QA artifact: `memory/crm/crm_roi_sprint/qa/CR_004_PHASE_3_5_PARTIAL_LIVE_TEST_REPORT_2026_05_28.md`
 
 ---
 
@@ -252,19 +325,36 @@ Dashboard /message-status reads whatsapp_message_logs (single source of truth)
 ### Inbound (AuthKey → us)
 - Endpoint: `POST /api/whatsapp/status-callback` (public, unauthenticated)
 - AuthKey **does not sign** webhooks (no signature header in real sample)
-- Real payload schema (from sample 2026-05-28 15:48:23):
+- **Content-Type on the wire**: `application/x-www-form-urlencoded` (NOT JSON — confirmed from 5 real callbacks 2026-05-28). Original §9 schema below was post-parse, not wire format.
+- **Real wire-format sample** (R689 order 869311, captured 2026-05-28 13:58:06 UTC):
+  ```
+  Content-Type: application/x-www-form-urlencoded
+  X-Forwarded-For: 157.245.105.3,...
+  
+  mobile=917505242126&status=delivered&logid=20cba66ccf0559840eeefe641beffb5e
+  &time=2026-05-28+19%3A28%3A05&channel=wp
+  &meta_messageid=wamid.HBgMOTE3NTA1MjQyMTI2FQIAERgSQzM2QUY2RkFGNTY0NDU0RjAzAA%3D%3D
+  &type=text&1=abhishek+jain&2=Rs.2%2C181&3=your+order&4=counter&5=Kunafa+Mahal
+  ```
+- **Post-parse dict** (after URL-decode + form parse):
   ```json
   {
-    "logid": "6eec3f25a3434aad924c3ccca2009580",
-    "mobile": "919306459030",
-    "status": "delivered",
-    "time": "2026-05-28 15:48:22",            // IST, no TZ marker
+    "logid": "20cba66ccf0559840eeefe641beffb5e",
+    "mobile": "917505242126",
+    "status": "delivered",                       // also: read, sent, failed, undelivered, rejected
+    "time": "2026-05-28 19:28:05",               // IST, no TZ marker
     "channel": "wp",
-    "meta_messageid": "wamid.HBgM...==",
-    "keypress": null,
-    "button_param_value": "OTE2NTc3"
+    "meta_messageid": "wamid.HBgM...==",         // Meta's wamid (raw, not base64-decoded)
+    "type": "text",                              // template type echo
+    "1": "abhishek jain", "2": "Rs.2,181", ...   // body_values echo (numeric keys)
+    "keypress": null,                            // optional, present on button templates
+    "button_param_value": "OTE2NTc3"             // optional, present on button templates
   }
   ```
+- Parser (`routers/whatsapp.py::message_status_callback`, post-2026-05-28 hotfix):
+  1. Reads `Content-Type`; uses `parse_qs` for `application/x-www-form-urlencoded`, `json.loads` for `application/json`, falls back to the other on parse failure.
+  2. Single-value form fields flattened; repeated keys preserved as lists.
+  3. `logid` extraction defensive across casings (`logid`/`LogID`/`log_id`/`message_id`/`msgId`).
 - Status enum we accept: `sent` → `pending`, `delivered`, `read`, `failed`/`undelivered`/`rejected` → `rejected`. Anything else logged with verdict `unknown_status`.
 
 ---
@@ -334,6 +424,8 @@ This session worked on **CR-004 P3.5** — a follow-up to CR-004 Phase 3 (Event 
 
 ## 14. Quick start for next agent (if resuming this work)
 
+**Current park status**: `cr_004_p3_5_parked_awaiting_option_a_send_side_live_test`
+
 ```bash
 # 1. Verify services
 sudo supervisorctl status
@@ -344,25 +436,50 @@ cd /app/backend && python -m pytest tests/test_whatsapp_*.py -v
 
 # 3. Read these in order
 view_bulk paths:
-  /app/memory/PRD.md                                                                        # this file
+  /app/memory/PRD.md                                                                          # this file
   /app/memory/crm/crm_roi_sprint/planning/CR_004_PHASE_3_5_MESSAGE_STATUS_PIPELINE_REFACTOR_PLAN.md
   /app/memory/crm/crm_roi_sprint/implementation/CR_004_P3_5_IMPLEMENTATION_CLOSEOUT.md
+  /app/memory/crm/crm_roi_sprint/qa/CR_004_PHASE_3_5_PARTIAL_LIVE_TEST_REPORT_2026_05_28.md   # latest live test
 
-# 4. If owner reports prod live-test passed → mark plan status to `closed`
-#    and write `memory/crm/crm_roi_sprint/qa/CR_004_PHASE_3_5_LIVE_TEST_REPORT.md`.
+# 4. To UNPARK, ask owner: "Option A (route POS to preview) or Option B (push 28-may to prod)?"
+#    - Option A: agent fires one synthetic POS order at preview → real WhatsApp → real callback → dashboard
+#    - Option B: owner pushes prod → next real POS order naturally exercises new code path
 
-# 5. If owner reports issues → root-cause from whatsapp_callback_logs collection first.
-#    Every inbound webhook is audit-logged with a verdict; bug is almost certainly visible there.
+# 5. After unpark validation succeeds, write closure doc:
+#    memory/crm/crm_roi_sprint/qa/CR_004_PHASE_3_5_LIVE_TEST_REPORT.md
+#    Update register row to: cr004_p3_5_closed_live_test_passed
 ```
 
-### What to investigate first if the dashboard still shows Pending forever post-prod-push
+### Option A — synthetic POS order at preview (one-shot E2E)
+
+```bash
+# Replace <ts> with epoch seconds; pos_order_id must be unique
+curl -X POST "https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com/api/pos/orders" \
+  -H "X-API-Key: dp_live_-sF0sATfNhf72UbrG9BPaKM4icqWnAb7Q4tB6DN3ktE" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "pos_order_id": "E2E_<ts>",
+        "customer_phone": "7505242126",
+        "customer_country_code": "91",
+        "customer_name": "abhishek jain",
+        "total": 100,
+        "grand_total": 100,
+        "order_items": [...],
+        "created_at": "2026-05-28T..."
+      }'
+# (Shape from real POS payload — refer routers/pos.py for the exact contract)
+
+# Then wait ~30s and run the 5-stage trace (see qa/CR_004_PHASE_3_5_PARTIAL_LIVE_TEST_REPORT_2026_05_28.md §3)
+```
+
+### What to investigate first if the dashboard still shows Pending forever post-unpark
 1. Read `whatsapp_callback_logs` — are inbound webhooks arriving?
-   - If no rows: AuthKey URL still points elsewhere (B3 not done).
+   - If no rows: AuthKey URL no longer pointing here (re-confirm with owner).
    - If rows exist with `verdict=rejected_no_logid`: AuthKey changed field name → update parser in `routers/whatsapp.py::message_status_callback`.
-   - If rows exist with `verdict=no_matching_row`: send-side `logid` extraction broke → check `core/whatsapp.py:114` area.
+   - If rows exist with `verdict=no_matching_row`: send-side `logid` extraction broke OR row was written by old prod code → check whether `whatsapp_message_logs.message_id` is null on the matching send row.
    - If rows exist with `verdict=unknown_status`: extend `status_map` in webhook handler.
 2. Read latest `whatsapp_message_logs` row — does it have `message_id` populated?
-   - If null: send-side regressed; check AuthKey response shape.
+   - If null: send-side regressed OR is still on old code path; check AuthKey response shape OR confirm POS hits preview, not prod.
 3. Check supervisor logs: `tail -n 200 /var/log/supervisor/backend.err.log`.
 
 ---
@@ -377,14 +494,16 @@ view_bulk paths:
 │   │   └── handoff/CRM_1_0_BASELINE_CLOSE_2026_05_26.md                  # READ-ONLY — do not modify
 │   └── crm_roi_sprint/
 │       ├── README.md                                                     # sprint overview
-│       ├── 00_register/ROI_MEASUREMENT_CR_REGISTER.md                    # all CRs status
+│       ├── 00_register/ROI_MEASUREMENT_CR_REGISTER.md                    # all CRs status (incl. P3.5 parked)
 │       ├── discovery/                                                    # CR discovery docs
 │       ├── planning/
-│       │   └── CR_004_PHASE_3_5_MESSAGE_STATUS_PIPELINE_REFACTOR_PLAN.md # THIS sprint's plan
+│       │   └── CR_004_PHASE_3_5_MESSAGE_STATUS_PIPELINE_REFACTOR_PLAN.md # P3.5 plan
 │       ├── implementation/
 │       │   ├── CR_004_P3_5_COMMIT_1_AND_2_HANDOVER.md                    # example per-commit handover
-│       │   └── CR_004_P3_5_IMPLEMENTATION_CLOSEOUT.md                    # THIS sprint's closeout
-│       ├── qa/                                                            # QA reports
+│       │   └── CR_004_P3_5_IMPLEMENTATION_CLOSEOUT.md                    # P3.5 closeout + park status (§14)
+│       ├── qa/
+│       │   ├── CR_004_PHASE_3_5_PARTIAL_LIVE_TEST_REPORT_2026_05_28.md   # PARK ARTIFACT — receive-side ✅, send-side ⏸
+│       │   └── (CR_004_PHASE_3_5_LIVE_TEST_REPORT.md to be written after unpark)
 │       └── handoff/                                                       # final handoffs
 └── Old API doc/                                                           # legacy API docs
 ```

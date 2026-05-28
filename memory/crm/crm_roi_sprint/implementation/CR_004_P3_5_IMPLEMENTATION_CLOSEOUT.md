@@ -1,11 +1,12 @@
 # CR-004 Phase 3.5 — Implementation Closeout (Commits 1–7)
 
 **Parent plan**: `../planning/CR_004_PHASE_3_5_MESSAGE_STATUS_PIPELINE_REFACTOR_PLAN.md`
-**Status**: `implementation_complete_awaiting_blocker_resolution`
-**Date completed**: 2026-05-28
+**Status**: `cr_004_p3_5_parked_awaiting_option_a_send_side_live_test` (2026-05-28 evening)
+**Previous status**: `implementation_complete_awaiting_blocker_resolution` (2026-05-28 morning)
+**Date completed**: 2026-05-28 (Commits 1–7 + receive-side hotfix)
 **Tenant**: R689 Kunafa Mahal
 **Branch**: `28-may` (preview pod `/app`)
-**Owner action remaining**: push to production CRM + register webhook URL in AuthKey console
+**Owner action remaining**: Choose Option A (route POS to preview for one synthetic end-to-end order) OR Option B (push branch to prod). See partial live test report: `../qa/CR_004_PHASE_3_5_PARTIAL_LIVE_TEST_REPORT_2026_05_28.md`
 
 ---
 
@@ -228,11 +229,37 @@ All commits verified independently with the same gates:
 
 ## 13. Status snapshot for next session
 
-- **Phase 1 (send-side row schema)**: ✅ Complete
+- **Phase 1 (send-side row schema)**: ✅ Complete (in code); ⏳ NOT YET LIVE-TESTED (prod still on old code, writes `message_id=null`)
 - **Phase 2 (schema unification)**: ✅ Complete
-- **Phase 3 (webhook hardening)**: ✅ Complete on preview; awaiting B3 (URL registration on prod) for real-traffic verification
+- **Phase 3 (webhook hardening)**: ✅ Complete on preview + **2026-05-28 hotfix for form-urlencoded wire format** + real-traffic verified against 5 live AuthKey callbacks
 - **Phase 5 (frontend polish)**: ✅ Complete
 - **Phase 6 (backfill)**: ⏭️ Skipped per owner decision
-- **Phase 4 + Commit 8 (closeouts)**: ⏳ Owner ops — push to prod, register URL, optional IP allowlist
+- **Phase 4 + Commit 8 (closeouts)**: ⏳ Owner ops — Option A (route POS to preview for one synthetic E2E order) OR Option B (push to prod)
 
-When you're back: push to prod, register URL, send one test message, watch dashboard go Pending → Delivered → Read.
+---
+
+## 14. Park status — 2026-05-28 evening
+
+**Current status code**: `cr_004_p3_5_parked_awaiting_option_a_send_side_live_test`
+
+**What's been live-verified**:
+- ✅ AuthKey webhook URL registration (egress IP `157.245.105.3`)
+- ✅ Webhook reachability + form-urlencoded parsing (after hotfix)
+- ✅ logid extraction, status mapping, IST→UTC time parse, meta_messageid + wamid capture, body_values echo capture
+- ✅ Audit log persistence in `whatsapp_callback_logs`
+
+**What's NOT yet live-verified**:
+- ❌ Send-side row written with `message_id=logid` (blocked — prod still on old code)
+- ❌ End-to-end `pending → delivered → read` transition on a real row
+- ❌ Dashboard reflecting `delivered_at` + `read_at` + `status_history` for a real send
+
+**Post-Commit-7 hotfix applied**: `routers/whatsapp.py` parser now handles `application/x-www-form-urlencoded` (real AuthKey wire format) in addition to JSON. See partial QA report: `../qa/CR_004_PHASE_3_5_PARTIAL_LIVE_TEST_REPORT_2026_05_28.md`.
+
+**Resume playbook (Option A — recommended)**:
+1. Owner routes POS terminal to preview's `/api/pos/orders` for one test, OR agent (with explicit owner approval) fires synthetic POST to preview's `/api/pos/orders` using POS API key
+2. Watch all 5 trace stages — preview should now write the row WITH logid and link callbacks automatically
+3. Confirm dashboard shows `status: read`, `delivered_at`, `read_at`, full `status_history`
+4. Write closure doc `../qa/CR_004_PHASE_3_5_LIVE_TEST_REPORT.md`
+5. Move CR status: `parked` → `closed_live_test_passed`
+
+When you're back: pick Option A or B, then one test send → full validation → close CR.
