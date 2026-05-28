@@ -466,23 +466,23 @@ export function WhatsAppAutomationContent({ embedded = false }) {
         "points_earned": "Notify when customer earns loyalty points",
         "points_expiring": "Remind customers before their points expire",
         "feedback_request": "Request feedback from customers after visit",
+        "send_bill": "Send bill/receipt after a new order",
+        "tier_upgrade": "Congratulate customer on reaching a new loyalty tier",
+        "coupon_earned": "Notify when customer receives a new coupon",
+        "wallet_credit": "Alert customer when wallet is topped up",
+        "wallet_debit": "Confirm when payment is made from wallet",
+        "bonus_points": "Send when bonus points are added to customer's account",
+        "points_redeemed": "Notify customer when they redeem their loyalty points",
+        "coupon_expiring": "Remind customers about expiring coupons",
+        "inactive_customer": "Win-back message for inactive customers",
     };
 
     // Combined event descriptions
+    // CR-004 P3.5 Commit 7: removed legacy keys (first_visit, feedback_received, inactive_reminder)
+    // which were renamed/removed in P3 event reconciliation. Single source of truth now.
     const eventDescriptions = {
         ...posEventDescriptions,
         ...crmEventDescriptions,
-        // Legacy descriptions
-        "points_redeemed": "Notify customer when they redeem their loyalty points",
-        "bonus_points": "Send when bonus points are added to customer's account",
-        "wallet_credit": "Alert customer when wallet is topped up",
-        "wallet_debit": "Confirm when payment is made from wallet",
-        "first_visit": "Welcome message for first-time customers",
-        "tier_upgrade": "Congratulate customer on reaching a new loyalty tier",
-        "coupon_earned": "Notify when customer receives a new coupon",
-        "feedback_received": "Thank customer for submitting feedback",
-        "inactive_reminder": "Re-engage customers who haven't visited recently",
-        "send_bill": "Send bill/receipt after a new order"
     };
 
     // Event category tab state

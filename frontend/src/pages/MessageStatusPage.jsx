@@ -83,7 +83,10 @@ export function MessageStatusContent({ embedded = false }) {
         event_type: "all",
         campaign_id: "all",
         template_name: "all",
-        search: ""
+        search: "",
+        include_test: false,   // CR-004 P3.5 Commit 7: hide owner test sends by default
+        date_from: "",
+        date_to: ""
     });
     const [filterOptions, setFilterOptions] = useState({
         statuses: ["pending", "delivered", "read", "rejected"],
@@ -98,12 +101,18 @@ export function MessageStatusContent({ embedded = false }) {
     // Fetch stats
     const fetchStats = useCallback(async () => {
         try {
-            const res = await api.get("/whatsapp/message-stats");
+            // CR-004 P3.5 Commit 7: pass include_test + date range
+            const params = new URLSearchParams();
+            if (filters.include_test) params.append("include_test", "true");
+            if (filters.date_from) params.append("date_from", filters.date_from);
+            if (filters.date_to) params.append("date_to", filters.date_to);
+            const qs = params.toString();
+            const res = await api.get(`/whatsapp/message-stats${qs ? `?${qs}` : ""}`);
             setStats(res.data);
         } catch (err) {
             console.error("Failed to fetch stats", err);
         }
-    }, [api]);
+    }, [api, filters.include_test, filters.date_from, filters.date_to]);
     
     // Fetch filter options
     const fetchFilterOptions = useCallback(async () => {
@@ -125,9 +134,13 @@ export function MessageStatusContent({ embedded = false }) {
             if (filters.campaign_id !== "all") params.append("campaign_id", filters.campaign_id);
             if (filters.template_name !== "all") params.append("template_name", filters.template_name);
             if (filters.search) params.append("search", filters.search);
+            // CR-004 P3.5 Commit 7
+            if (filters.include_test) params.append("include_test", "true");
+            if (filters.date_from) params.append("date_from", filters.date_from);
+            if (filters.date_to) params.append("date_to", filters.date_to);
             params.append("skip", pagination.skip);
             params.append("limit", pagination.limit);
-            
+
             const res = await api.get(`/whatsapp/message-logs?${params.toString()}`);
             setLogs(res.data.logs);
             setPagination(prev => ({ ...prev, total: res.data.total }));
@@ -143,13 +156,12 @@ export function MessageStatusContent({ embedded = false }) {
         fetchStats();
         fetchFilterOptions();
     }, [fetchStats, fetchFilterOptions]);
-    
-    // Fetch logs when filters change
+
+    // CR-004 P3.5 Commit 7: refetch logs when filters change
     useEffect(() => {
         fetchLogs();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters, pagination.skip]);
-    
-    // Handle filter change
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
         setPagination(prev => ({ ...prev, skip: 0 }));
@@ -209,6 +221,15 @@ export function MessageStatusContent({ embedded = false }) {
     // Get eligible count for select all
     const eligibleCount = logs.filter(log => log.status === "pending" || log.status === "rejected").length;
     const allEligibleSelected = eligibleCount > 0 && selectedIds.size === eligibleCount;
+
+    // CR-004 P3.5 Commit 7: in-flight grace period for resend (mirrors backend 30-min guard)
+    const isInFlight = (log) => {
+        if (log.status !== "pending") return false;
+        const created = log.created_at ? new Date(log.created_at).getTime() : 0;
+        const ageMs = Date.now() - created;
+        const historyLen = (log.status_history || []).length;
+        return ageMs < 30 * 60 * 1000 && historyLen <= 1;
+    };
     
     const content = (
         <div className={embedded ? "" : "p-4 lg:p-6 xl:p-8 max-w-[1600px] mx-auto"}>
@@ -313,13 +334,41 @@ export function MessageStatusContent({ embedded = false }) {
                             <div className="relative flex-1 min-w-[120px]">
                                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <Input 
-                                    placeholder="Search..."
+                                    placeholder="Search name or phone..."
                                     value={filters.search}
                                     onChange={(e) => handleFilterChange("search", e.target.value)}
                                     className="pl-8 text-xs h-9"
                                     data-testid="filter-search"
                                 />
                             </div>
+
+                            {/* CR-004 P3.5 Commit 7: date range */}
+                            <Input
+                                type="date"
+                                value={filters.date_from}
+                                onChange={(e) => handleFilterChange("date_from", e.target.value)}
+                                className="text-xs h-9 w-[140px]"
+                                data-testid="filter-date-from"
+                                title="From date"
+                            />
+                            <Input
+                                type="date"
+                                value={filters.date_to}
+                                onChange={(e) => handleFilterChange("date_to", e.target.value)}
+                                className="text-xs h-9 w-[140px]"
+                                data-testid="filter-date-to"
+                                title="To date"
+                            />
+
+                            {/* CR-004 P3.5 Commit 7: include test sends toggle */}
+                            <label className="flex items-center gap-1.5 text-xs h-9 px-2 cursor-pointer select-none" title="Show owner-initiated test sends">
+                                <Checkbox
+                                    checked={filters.include_test}
+                                    onCheckedChange={(v) => handleFilterChange("include_test", !!v)}
+                                    data-testid="filter-include-test"
+                                />
+                                <span className="text-gray-600">Show test sends</span>
+                            </label>
                         </div>
                     </CardContent>
                 </Card>
@@ -449,6 +498,7 @@ export function MessageStatusContent({ embedded = false }) {
                     ) : (
                         logs.map(log => {
                             const isEligible = log.status === "pending" || log.status === "rejected";
+                            const inFlight = isInFlight(log);
                             return (
                                 <Card key={log.id} className="shadow-sm border border-gray-100">
                                     <CardContent className="p-3">
@@ -461,11 +511,23 @@ export function MessageStatusContent({ embedded = false }) {
                                             />
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="font-medium text-gray-900 text-sm">{log.customer_name || log.customer_phone || "-"}</span>
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <span className="font-medium text-gray-900 text-sm truncate">{log.customer_name || log.customer_phone || "-"}</span>
+                                                        {log.is_test && (
+                                                            <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">TEST</span>
+                                                        )}
+                                                    </div>
                                                     <StatusBadge status={log.status} />
                                                 </div>
                                                 {log.customer_name && (
                                                     <div className="text-xs text-gray-500 mb-1">{log.customer_phone}</div>
+                                                )}
+                                                {(log.delivered_at || log.read_at) && (
+                                                    <div className="text-[10px] text-gray-400 mb-1">
+                                                        {log.read_at
+                                                            ? `Read ${formatRelativeTime(log.read_at)}`
+                                                            : `Delivered ${formatRelativeTime(log.delivered_at)}`}
+                                                    </div>
                                                 )}
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs text-gray-400">{formatRelativeTime(log.created_at)}</span>
@@ -474,7 +536,8 @@ export function MessageStatusContent({ embedded = false }) {
                                                             size="sm" 
                                                             variant="outline"
                                                             onClick={() => handleResend([log.id])}
-                                                            disabled={resending}
+                                                            disabled={resending || inFlight}
+                                                            title={inFlight ? "Waiting for delivery report (auto-updates)" : undefined}
                                                         >
                                                             <RefreshCw className="w-3 h-3 mr-1" /> Resend
                                                         </Button>
