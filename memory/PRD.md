@@ -355,12 +355,16 @@ This session worked on **CR-004 P3.5** — a follow-up to CR-004 Phase 3 (Event 
 - CR-013 Template Gallery — blocked by CR-012 P1
 - **CR-014 E-Invoice PDF + Mobile HTML Link** — *Phase 0 Discovery complete (2026-05-28) + Profile-page fields appendix added. PARKED awaiting 2 owner confirmations (§15.6 of discovery doc). Auto-generate mobile-friendly HTML invoice (with PDF download) on every POS order, injected into `send_bill` WhatsApp via `einvoice_link` variable. Direct follow-on from CR-004 P3.5.*
 - **CR-015 WhatsApp Template Variable Mapping Fidelity** — *Phase 0 Discovery complete (2026-05-28 evening). PARKED awaiting 8 owner decisions in §7 of discovery doc. Surfaced during CR-004 P3.5 live test when AuthKey rendered "Test" for every template slot. 3 stacked defects: resolver type-mismatch (template_id int vs str), event-data forwarding leak (only 10 of 40 POS fields forwarded), registry+UI data-quality gaps. 7-track remediation plan, ~6-7 dev-days.*
+- **CR-016 Dynamic Event Registry + Trigger Configuration UI** — *Phase 0 Discovery complete (2026-05-28 evening). PARKED awaiting 10 owner decisions in §7. Move events from hardcoded `POS_EVENTS`/`CRM_EVENTS` lists in `schemas.py` to a tenant-editable `events` collection. 16 predefined source signals, condition evaluator (10 operators), 27 built-ins seeded with locked metadata. Admin UI: Events list + 4-tab create/edit modal. ~11-12 dev-days.*
 
 ### CR-014 Resume signal
 > "Resume CR-014" → read `memory/crm/crm_roi_sprint/discovery/CR_014_E_INVOICE_PDF_LINK_DISCOVERY.md` end-to-end, ask owner the 2 confirmations in §15.6 of that doc, then write `planning/CR_014_EINVOICE_PHASE_1_PLAN.md`.
 
 ### CR-015 Resume signal
 > "Resume CR-015" → read `memory/crm/crm_roi_sprint/discovery/CR_015_WHATSAPP_VARIABLE_MAPPING_FIDELITY_DISCOVERY.md` end-to-end, ask owner the 8 questions in §7 of that doc, then write `planning/CR_015_PHASE_1_PLAN.md`.
+
+### CR-016 Resume signal
+> "Resume CR-016" → read `memory/crm/crm_roi_sprint/discovery/CR_016_DYNAMIC_EVENT_REGISTRY_DISCOVERY.md` end-to-end, ask owner the 10 questions in §7 of that doc, then write `planning/CR_016_PHASE_1_PLAN.md`.
 
 ---
 
