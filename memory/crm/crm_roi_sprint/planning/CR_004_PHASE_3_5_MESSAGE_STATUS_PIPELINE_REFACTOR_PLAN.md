@@ -305,8 +305,13 @@ await db.whatsapp_message_logs.create_index([("user_id", 1), ("created_at", -1)]
 await db.whatsapp_message_logs.create_index([("user_id", 1), ("status", 1)],       name="idx_wml_user_status")
 await db.whatsapp_message_logs.create_index("message_id", sparse=True,              name="idx_wml_message_id")
 await db.whatsapp_message_logs.create_index(
-    [("user_id", 1), ("idempotency_key", 1)], unique=True, sparse=True,             name="idx_wml_user_idem"
+    [("user_id", 1), ("idempotency_key", 1)], unique=True,
+    partialFilterExpression={"idempotency_key": {"$exists": True, "$type": "string"}},
+    name="idx_wml_user_idem",
 )
+# NOTE (Commit 2 lesson): sparse=True on a COMPOUND index does NOT exclude documents
+# missing the secondary field; it indexes them as null and the unique constraint then
+# explodes on >1 row. partialFilterExpression is the correct primitive.
 await db.whatsapp_callback_logs.create_index([("received_at", -1)],                 name="idx_wcl_received")
 await db.whatsapp_callback_logs.create_index("logid", sparse=True,                  name="idx_wcl_logid")
 ```

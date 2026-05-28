@@ -39,6 +39,29 @@ async def lifespan(app: FastAPI):
     )
     # CR-001C-C V1: ensure coupon_usage idempotency + scan indexes exist.
     await ensure_coupon_indexes(db)
+
+    # CR-004 P3.5: WhatsApp message logs + callback logs indexes (additive, sparse-safe).
+    await db.whatsapp_message_logs.create_index(
+        [("user_id", 1), ("created_at", -1)], name="idx_wml_user_created"
+    )
+    await db.whatsapp_message_logs.create_index(
+        [("user_id", 1), ("status", 1)], name="idx_wml_user_status"
+    )
+    await db.whatsapp_message_logs.create_index(
+        "message_id", sparse=True, name="idx_wml_message_id"
+    )
+    await db.whatsapp_message_logs.create_index(
+        [("user_id", 1), ("idempotency_key", 1)],
+        unique=True,
+        partialFilterExpression={"idempotency_key": {"$exists": True, "$type": "string"}},
+        name="idx_wml_user_idem",
+    )
+    await db.whatsapp_callback_logs.create_index(
+        [("received_at", -1)], name="idx_wcl_received"
+    )
+    await db.whatsapp_callback_logs.create_index(
+        "logid", sparse=True, name="idx_wcl_logid"
+    )
     # CR-002: create indexes for pos_request_logs only when logging is enabled
     if POS_LOG_CONFIG["enabled"]:
         await ensure_pos_request_logs_indexes(db, POS_LOG_CONFIG["ttl_days"])

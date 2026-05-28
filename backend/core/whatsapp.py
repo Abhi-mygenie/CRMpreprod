@@ -35,6 +35,8 @@ class SendResult:
     message_id: Optional[str] = None
     error: Optional[str] = None
     response_data: Optional[Dict] = None
+    http_status: Optional[int] = None           # CR-004 P3.5: AuthKey HTTP status (200/4xx/5xx)
+    raw_response: Optional[Dict] = None         # CR-004 P3.5: alias of response_data, kept for clarity in logs
 
 
 async def send_single_message(
@@ -106,13 +108,26 @@ async def send_single_message(
                  "Submitted Successfully" in response_data.get("Message", ""))
             )
             
+            # CR-004 P3.5 G1: AuthKey's canonical id field is `logid` (lowercase,
+            # confirmed from real webhook sample 2026-05-28). Keep camelCase/snake_case
+            # variants as defensive fallbacks but lowercase is authoritative.
+            extracted_logid = (
+                response_data.get("logid")
+                or response_data.get("LogID")
+                or response_data.get("log_id")
+                or response_data.get("message_id")
+                or response_data.get("msgid")
+            )
+
             if is_success:
-                logger.info(f"WhatsApp sent successfully to {message.phone}")
+                logger.info(f"WhatsApp sent successfully to {message.phone} (logid={extracted_logid})")
                 return SendResult(
                     success=True,
                     phone=message.phone,
-                    message_id=response_data.get("message_id") or response_data.get("msgid"),
-                    response_data=response_data
+                    message_id=extracted_logid,
+                    response_data=response_data,
+                    http_status=response.status_code,
+                    raw_response=response_data,
                 )
             else:
                 error_msg = response_data.get("message") or response_data.get("error") or str(response_data)
@@ -121,7 +136,9 @@ async def send_single_message(
                     success=False,
                     phone=message.phone,
                     error=error_msg,
-                    response_data=response_data
+                    response_data=response_data,
+                    http_status=response.status_code,
+                    raw_response=response_data,
                 )
                 
     except httpx.TimeoutException:
@@ -185,7 +202,9 @@ async def send_bulk_messages(
                 "phone": result.phone,
                 "success": result.success,
                 "message_id": result.message_id,
-                "error": result.error
+                "error": result.error,
+                "http_status": result.http_status,         # CR-004 P3.5 G2
+                "raw_response": result.raw_response,       # CR-004 P3.5 G2
             })
             if result.success:
                 results["sent"] += 1
@@ -389,53 +408,133 @@ async def get_event_template_config(db, user_id: str, event_key: str) -> Optiona
 async def log_message_attempt(
     db,
     user_id: str,
-    customer_id: str,
+    customer_id: Optional[str],
     phone: str,
     event_type: str,
     template_id: str,
     result: SendResult,
-    template_name: str = None,
-    campaign_id: str = None,
+    template_name: Optional[str] = None,
+    campaign_id: Optional[str] = None,
     country_code: str = "91",
-    body_values: Dict = None,
-    customer_name: str = None
+    body_values: Optional[Dict] = None,
+    customer_name: Optional[str] = None,
+    # CR-004 P3.5 - new fields
+    reference_type: Optional[str] = None,       # G3: "order" | "coupon" | "feedback" | "wallet_tx" | "points_tx" | "customer"
+    reference_id: Optional[str] = None,         # G3
+    pos_order_id: Optional[str] = None,         # G3 (denormalized for filtering)
+    idempotency_key: Optional[str] = None,      # G6: unique-per-user prevents double-fires
+    is_test: bool = False,                       # G7
+    media_url: Optional[str] = None,             # G10
+    media_filename: Optional[str] = None,        # G10
+    message_body_text: Optional[str] = None,     # G4 (always None in Commit 2; rendering deferred)
+    channel: str = "wp",                         # webhook field, default at send
 ):
-    """Log a WhatsApp message attempt to database for status tracking"""
+    """
+    Log a WhatsApp message attempt to whatsapp_message_logs.
+
+    CR-004 P3.5: writes the complete row schema (section 4 of plan) at send time so
+    the webhook only has to update status + timestamps + reason later.
+
+    Idempotency: if (user_id, idempotency_key) already exists, this call is a
+    no-op (logs INFO, returns the existing row). Prevents duplicate WhatsApps
+    on POS retries or cron re-runs.
+
+    Returns: the inserted row (or existing row on idempotency hit).
+    """
     import uuid
-    
+
     now = datetime.now(timezone.utc).isoformat()
-    
-    # Map result to status
     status = "pending" if result.success else "rejected"
-    
+
+    # CR-004 P3.5 G9: normalize country_code to digits-only ("91", not "+91")
+    cc_normalized = (country_code or "91").replace("+", "").strip() or "91"
+
     log_entry = {
+        # Identity & ownership
         "id": str(uuid.uuid4()),
         "user_id": user_id,
+        "is_test": is_test,
+
+        # Reference back to triggering object
+        "event_type": event_type,
+        "reference_type": reference_type,
+        "reference_id": reference_id,
+        "pos_order_id": pos_order_id,
+        "idempotency_key": idempotency_key,
+
+        # Recipient
         "customer_id": customer_id,
         "customer_name": customer_name or "",
         "customer_phone": phone,
-        "country_code": country_code,
-        "event_type": event_type,
+        "country_code": cc_normalized,
+
+        # Template
         "template_id": template_id,
         "template_name": template_name or "",
         "campaign_id": campaign_id,
-        "status": status,
-        "message_id": result.message_id,
-        "error": result.error,
+
+        # What was sent
         "body_values": body_values or {},
+        "message_body_text": message_body_text,    # G4: always None in Commit 2
+        "media_url": media_url,
+        "media_filename": media_filename,
+        "channel": channel,
+
+        # AuthKey send-time response (G5)
+        "message_id": result.message_id,
+        "authkey_http_status": result.http_status,
+        "authkey_raw_response": result.raw_response,
+
+        # AuthKey webhook-derived fields (populated later by webhook)
+        "meta_message_id": None,
+        "keypress": None,
+        "button_param_value": None,
+        "time_raw": None,
+        "mobile_mismatch": False,
+
+        # Lifecycle
+        "status": status,
+        "delivered_at": None,
+        "read_at": None,
+        "rejected_at": now if status == "rejected" else None,
+        "failure_reason": result.error if status == "rejected" else None,
+        "error": result.error,
         "resend_count": 0,
+        "last_resend_at": None,
+
+        # Audit
         "status_history": [
             {
                 "status": status,
                 "timestamp": now,
-                "action": "initial_send"
+                "action": "initial_send",
             }
         ],
         "created_at": now,
-        "updated_at": now
+        "updated_at": now,
     }
-    
-    await db.whatsapp_message_logs.insert_one(log_entry)
+
+    # CR-004 P3.5 G6: idempotency. Unique sparse index on (user_id, idempotency_key)
+    # rejects duplicates. We catch and treat as no-op.
+    try:
+        await db.whatsapp_message_logs.insert_one(log_entry)
+    except Exception as exc:
+        # DuplicateKeyError surfaces as Exception from motor; check by name to
+        # avoid importing pymongo errors here.
+        if exc.__class__.__name__ == "DuplicateKeyError" and idempotency_key:
+            logger.info(
+                f"Idempotency hit on {event_type} for user={user_id} "
+                f"key={idempotency_key!r}; skipping duplicate send-log."
+            )
+            existing = await db.whatsapp_message_logs.find_one(
+                {"user_id": user_id, "idempotency_key": idempotency_key},
+                {"_id": 0},
+            )
+            return existing
+        # Any other exception: re-raise so trigger_whatsapp_event's outer try/except
+        # records it and we don't silently drop messages.
+        raise
+
     return log_entry
 
 
@@ -557,22 +656,67 @@ async def trigger_whatsapp_event(
         # 6. Send message
         logger.info(f"Triggering WhatsApp for event {event_type} to {phone}")
         result = await send_single_message(api_key, message)
-        
-        # 7. Log the attempt with full details
+
+        # 7. Log the attempt with full details (CR-004 P3.5: complete row schema)
+        ed = event_data or {}
         await log_message_attempt(
             db, user_id, customer.get("id"), phone,
             event_type, template_id, result,
             template_name=config.get("template_name"),
-            campaign_id=event_data.get("campaign_id") if event_data else None,
+            campaign_id=ed.get("campaign_id"),
             country_code=country_code,
             body_values=body_values,
-            customer_name=customer.get("name")
+            customer_name=customer.get("name"),
+            # CR-004 P3.5 - extract enrichment fields from event_data (callsites add these in Commit 3)
+            reference_type=ed.get("reference_type"),
+            reference_id=ed.get("reference_id"),
+            pos_order_id=ed.get("pos_order_id"),
+            idempotency_key=ed.get("idempotency_key"),
+            is_test=False,
+            media_url=ed.get("media_url"),
+            media_filename=ed.get("media_filename"),
+            message_body_text=None,   # G4: deferred (template body not in our DB)
+            channel="wp",
         )
-        
+
         return result
-        
+
     except Exception as e:
-        logger.error(f"WhatsApp trigger error for {event_type}: {str(e)}")
+        # CR-004 P3.5 G8: failures BEFORE send still produce a visible row. No silent black holes.
+        logger.error(f"WhatsApp trigger error for {event_type} (user={user_id}, customer={customer.get('id')}): {str(e)}")
+        try:
+            ed = event_data or {}
+            failed_result = SendResult(
+                success=False,
+                phone=(customer.get("phone") or "").replace(" ", "").replace("-", ""),
+                error=f"trigger_error: {str(e)}",
+            )
+            await log_message_attempt(
+                db,
+                user_id,
+                customer.get("id"),
+                failed_result.phone,
+                event_type,
+                "",  # template_id unknown at this point
+                failed_result,
+                template_name=None,
+                campaign_id=ed.get("campaign_id"),
+                country_code=(customer.get("country_code", "+91") or "+91").replace("+", ""),
+                body_values=None,
+                customer_name=customer.get("name"),
+                reference_type=ed.get("reference_type"),
+                reference_id=ed.get("reference_id"),
+                pos_order_id=ed.get("pos_order_id"),
+                idempotency_key=ed.get("idempotency_key"),
+                is_test=False,
+                channel="wp",
+            )
+        except Exception as inner_exc:
+            # Last-resort: log to file so a missing row is at least discoverable in supervisor logs
+            logger.exception(
+                f"FATAL: failed to log trigger_error row for event={event_type} "
+                f"user={user_id} customer={customer.get('id')} inner_exc={inner_exc}"
+            )
         return None
 
 
