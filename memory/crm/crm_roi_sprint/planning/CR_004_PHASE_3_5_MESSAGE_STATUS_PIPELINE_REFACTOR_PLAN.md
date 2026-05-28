@@ -1,7 +1,7 @@
 # CR-004 Phase 3.5 — Message Status Pipeline Refactor — Implementation Plan
 
 **CR**: CR-004 WhatsApp Utility + Marketing → P3.5 Message Status Pipeline (post-P3 follow-up)
-**Status**: `planning_complete_implementation_ready`
+**Status**: `implementation_complete_awaiting_blocker_resolution` (Commits 1–7 landed 2026-05-28)
 **Author**: E1
 **Date opened**: 2026-05-28
 **Last updated**: 2026-05-28 (B1 resolved — schema locked; all open questions closed)
