@@ -25,16 +25,31 @@ Read in this exact sequence. Stop at any item if the question that brought you h
 ```
 1. README.md                                  ← you are here
 2. CR_STATUS_DASHBOARD.md                     ← what's done, in flight, parked
-3. PRD.md                                     ← full product + sprint context (513 lines)
-4. crm/crm_roi_sprint/00_register/
+                                                (especially the Latest Session Snapshot at the top)
+3. DECISIONS_LOG.md                           ← every owner-locked decision so far
+4. PRD.md                                     ← full product + sprint context (513 lines)
+5. crm/crm_roi_sprint/00_register/
        ROI_MEASUREMENT_CR_REGISTER.md         ← every CR ever, with links to discovery/planning/impl/qa
-5. For the CR you are about to work on:
+6. For the CR you are about to work on:
        crm/crm_roi_sprint/discovery/CR_XXX_*.md      ← problem framing
        crm/crm_roi_sprint/planning/CR_XXX_*.md       ← locked plan (if exists)
        crm/crm_roi_sprint/implementation/CR_XXX_*.md ← closeout / current state
        crm/crm_roi_sprint/qa/CR_XXX_*.md             ← acceptance evidence
-6. test_credentials.md (if auth flow involved)
-7. RUNBOOK.md / AGENT_PLAYBOOK.md (if available — for operational tasks)
+7. RUNBOOK.md / AGENT_PLAYBOOK.md (when running ops or coding standard patterns)
+8. test_credentials.md (if auth flow involved)
+```
+
+### Conditional reads (read these IF your CR touches the relevant area)
+
+```
+• crm/crm_1_0/handoff/CRM_1_0_BASELINE_CLOSE_2026_05_26.md
+    READ-ONLY baseline (209 lines). Status: `crm_1_0_baseline_closed_production_promotable_2026_05_26`.
+    Required BEFORE touching any of:
+      - loyalty engine (points earn, redemption, L1–L4 migration)
+      - coupon engine (V1–V3-C)
+      - coupon admin UI
+      - POS order ingestion / POS contract
+    Captures what was already working when this sprint began. Never modify; if it must change, that's a baseline-amendment CR.
 ```
 
 If the owner says "Resume CR-XYZ", the discovery doc for that CR has a `Resume signal` section at the bottom telling you exactly which questions to ask next.
