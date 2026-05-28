@@ -128,25 +128,50 @@ User-defined events **subscribe** to one of these signals + add filters. New sig
 
 ### 3.3 Conditions (filter expressions)
 
-Simple AND-list of field/operator/value tuples, evaluated against the source signal's event_data:
+**Plain-language definition**: A "Condition" is a rule that says **"only fire this event when X is true"**. Without conditions, the event fires every time its source signal happens. With conditions, the event becomes selective.
 
-```json
-"conditions": [
-  {"field": "order_amount",    "op": "gte", "value": 1000},
-  {"field": "customer.tier",   "op": "eq",  "value": "Gold"},
-  {"field": "order_type",      "op": "in",  "value": ["dinein","takeaway"]}
-]
-```
+**Example owner scenario**: R689 wants `vip_thank_you` to fire only when the order is over Rs.1000 AND the customer is on Gold tier. They open the event, click "+ Add Condition" twice:
 
-Operators v1: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `contains`, `exists`. No OR / no nested logic in v1 — keep simple.
+| Field | Operator | Value |
+|---|---|---|
+| `order_amount` | greater than or equal | `1000` |
+| `customer.tier` | equals | `Gold` |
 
-### 3.4 Per-tenant override of built-in events
+The dispatcher checks both rules against the order data. If both are true → event fires. If either is false → event does NOT fire.
+
+**Conditions are joined by AND only in v1** — all rules must be true. No "OR" in v1.
+
+**Allowed operators (10)**:
+`equals`, `not equals`, `greater than`, `greater than or equal`, `less than`, `less than or equal`, `is one of`, `is not one of`, `contains text`, `field exists`.
+
+**Where the conditions live**: stored in the event's `conditions` array (see §3.1 schema). Edited in the event modal's "Trigger" tab as a list of rows with three dropdowns each (field / operator / value).
+
+**Zero conditions** = event fires on every occurrence of the source signal (matches today's hardcoded behaviour).
+
+### 3.4 Cooldown (anti-spam)
+
+**Plain-language definition**: A "Cooldown" is a **wait period after firing the event before it can fire again to the same customer**. Without cooldown, the same WhatsApp could go out twice to the same person within minutes (e.g. if they place 3 orders in an hour, they'd get 3 `send_bill` messages — which is what we want — but they would NOT want 3 `welcome_message` messages if they re-register thrice).
+
+**Example owner scenarios**:
+- `birthday` event → cooldown **365 days** (one wish per year per customer)
+- `feedback_request` event → cooldown **7 days** (don't pester after every visit)
+- `inactive_customer` win-back → cooldown **30 days** (one win-back per month)
+- `send_bill` → cooldown **0** (every order MUST get a bill — no cooldown)
+
+**How it works**:
+- On every firing attempt, dispatcher queries `whatsapp_message_logs` for a row matching `user_id + event_type + customer_id` within the cooldown window.
+- If a recent row exists → silently skip (log a `cooldown_blocked` row for audit).
+- If no recent row → proceed with normal send.
+
+**Where it lives**: single field on the event — `cooldown_seconds` (default `0` = no cooldown). Set in the event modal's "Basics" tab as a friendly picker (None / Hours / Days / Weeks / Months / Custom seconds).
+
+### 3.5 Per-tenant override of built-in events
 
 Built-in events (the 27 hardcoded) are seeded as `is_builtin=true, user_id=null`. Tenant who wants to customize creates an override doc `is_builtin=false, user_id=<tenant>, event_key=<same as builtin>` — the resolver picks tenant doc first, falls back to builtin. Built-in event_key + display_name + source_signal are NOT editable by tenant (UI shows them as readonly); only `is_enabled`, `conditions`, `cooldown_seconds` are editable.
 
 Tenant-only fields (no built-in counterpart) are fully editable.
 
-### 3.5 New event dispatcher
+### 3.6 New event dispatcher
 
 Code change: every system-signal emitter calls a new `dispatch_signal(signal_key, event_data, user_id, customer_id)` instead of `trigger_whatsapp_event(event_key, ...)` directly. Dispatcher:
 1. Loads all `events` rows where `source_signal == signal_key` (tenant + global)
@@ -159,47 +184,57 @@ Existing trigger_whatsapp_event signature unchanged → CR-015 work (variable re
 
 ---
 
-## 4. Admin UI changes
+## 4. Admin UI changes — reuse existing page, add "New Event" modal
 
-### 4.1 New page: **Events** (sidebar)
+**No new sidebar item, no new page.** Owner already has the WhatsApp Automation page at `frontend/src/components/shared/WhatsAppAutomationContent.jsx` (1831 LoC) which today lists events grouped by category, lets owner toggle enabled/disabled, map to template, and test-send. We extend that same page:
 
-List view:
-- Table of all events visible to this tenant (built-in + custom)
-- Columns: Name, Event Key, Category, Source Signal, Conditions count, Mapped Template, Enabled toggle
-- Filters: category, source signal, builtin/custom, enabled/disabled
-- Actions per row: Edit, Duplicate, Map to template, Delete (custom only)
+### 4.1 Changes to the existing Events list (`WhatsAppAutomationContent.jsx`)
 
-### 4.2 Create / Edit Event modal
+1. Add a **"+ New Event"** button at the top right.
+2. Add **3 new columns** to each row:
+   - **Source Signal** (read for built-ins; shown for clarity)
+   - **Conditions** (small chip like "2 conditions" → click to view/edit)
+   - **Cooldown** (formatted like "7 days" or "—")
+3. Built-in row Edit action stays as today (map template, toggle).
+4. Custom row Edit action opens the **New/Edit Event modal** (below) with full editing.
 
-Tabs:
-1. **Basics** — display_name (text), event_key (auto-slug + editable for custom), description, category, cooldown_seconds, is_enabled
-2. **Trigger** — source_signal (dropdown), conditions (key/op/value rows with + Add Condition)
-3. **Variables** — multi-select from `WHATSAPP_VARIABLES` keys (what this event provides)
-4. **Template** — optional: choose Meta-approved template + variable mapping (reuses existing variable-mapping UI from CR-015 / current admin). Skip for now is allowed.
+### 4.2 New Event modal — 4 tabs in a single Dialog
 
-### 4.3 Built-in event constraints in UI
+Modal is opened by:
+- "+ New Event" button → blank form
+- Custom event row → "Edit" → pre-filled
+- Built-in event row → "Edit" → pre-filled, fields locked except Conditions / Cooldown / Enable
 
-For `is_builtin=true` rows:
-- Name, key, source_signal greyed out (readonly)
-- Conditions editable
-- Description editable (tenant adds notes)
-- Variables list readonly (built-in events have curated set)
-- Cooldown editable
-- Enable/Disable editable
+| Tab | Fields |
+|---|---|
+| **1. Basics** | Display Name (text), Event Key (auto-slug, editable for custom), Description, Category (dropdown), Cooldown picker (None / N hours / N days / N weeks / N months / Custom seconds), Enable toggle |
+| **2. Trigger** | Source Signal (dropdown of 16, see §3.2), Conditions list (rows of `field` / `operator` / `value` with **+ Add Condition** button), Zero-condition note ("Fires every time the signal occurs") |
+| **3. Variables** | Multi-select chips of `WHATSAPP_VARIABLES` keys this event will provide via event_data — informs the template-mapping UI later. Read-only for built-ins. |
+| **4. Template** | Inline reuse of the existing template-mapping UI — pick approved template, set `{{N}}` mappings. Optional: "Skip — I'll map later" button. (When skipped, event still saves; can map from list row later.) |
+
+### 4.3 Built-in event constraints in the modal
+
+For `is_builtin=true` rows: Tab 1 fields except Cooldown + Enable are readonly; Tab 2 Source Signal is readonly (Conditions editable); Tab 3 is readonly; Tab 4 is fully editable. UI shows a small lock icon next to readonly fields with a tooltip "Built-in — metadata managed by system".
 
 ---
 
-## 5. Out of scope (this CR)
+## 5. Out of scope (this CR) — what we are NOT doing
 
-| Item | Reason | Future CR |
-|---|---|---|
-| OR / nested condition logic | Complexity gap; v1 covers 90% | CR-016b |
-| Multi-channel events (SMS, email, push) | Single-channel WhatsApp only today | Future channel CRs |
-| Event analytics (fire-count, success rate) | Read-side concern, separate dashboard | Future analytics CR |
-| Webhook-based custom signals (tenant defines own webhook → custom signal) | Security + scoping needs careful design | CR-016c |
-| Editing built-in event source_signal | Would break existing emitters | Never |
-| Per-customer event mute/unsubscribe | Different abstraction; opt-out per channel | Future privacy CR |
-| Custom variables (tenant defines own variables, not from registry) | CR-015 fixes registry; per-tenant vars later | CR-015b |
+Each row says **"what someone might expect us to do here"** and **"why we're not doing it in CR-016"**.
+
+| What someone might want | Why deferred / future home |
+|---|---|
+| **"OR" conditions** — fire if `tier=Gold` OR `tier=Platinum` | v1 only supports AND between conditions. Workaround: use `is one of` operator with `[Gold, Platinum]`. True OR (mixing different fields) lands in CR-016b. |
+| **Multi-channel events** — fire same event over SMS + email + push, not just WhatsApp | Today the trigger path is WhatsApp-only. Adding SMS/email touches send-side, billing, opt-out — too big for this CR. Separate channel CR per provider. |
+| **Custom webhook signals** — tenant defines their own external webhook URL that fires a custom signal | Security (auth/HMAC), rate-limiting, abuse prevention need careful design. Folds into CR-016c. |
+| **Editing the source signal of a built-in event** — e.g. change `send_bill` to listen to `payment.received` instead of `pos.order.received` | Built-in source_signals are wired to specific code emitters. Changing them would break expectations for other tenants. Tenant CAN create a custom event with a different signal instead. |
+| **Per-customer event mute / unsubscribe** — customer opts out of `birthday` messages | Different abstraction (channel-level opt-out, not event-level). Privacy / DPDP compliance CR. |
+| **Event firing analytics** — dashboard showing "this event fired 1,243 times this month, 12 cooldown_blocked, 8 condition_filtered" | Read-side analytics dashboard, separate effort. v1 just logs to `whatsapp_message_logs` with normal status field. |
+| **Custom variables not in the registry** — tenant defines own variable like `{{chef_recommendation}}` | CR-015 fixes the existing registry; per-tenant custom vars is a separate scope. |
+| **AI-suggested conditions** — "you mapped `vip_thank_you`; we suggest adding condition `order_amount >= 1000`" | Far future, not v1. |
+| **A/B testing events** — fire variant A 50% of the time, B 50% | Marketing optimization CR, not v1. |
+| **Backfilling event firings for past orders** — re-fire `vip_thank_you` for last month's qualifying orders | Same no-backfill rule as CR-004. |
+| **Multiple templates per event** — randomize among 3 different `welcome_message` templates | v1 = 1 event ↔ 1 template. Multi-template selection (e.g. round-robin or by tier) is a future CR. |
 
 ---
 
@@ -229,7 +264,7 @@ For `is_builtin=true` rows:
 | Q7 | Event hard cap per tenant | 50 events / 10 conditions per event — owner: agree / adjust? |
 | Q8 | Should daily-cron source signals (birthday, anniversary, etc.) be eligible for tenant-created custom events too? E.g. tenant creates `vip_birthday` that listens to `daily.birthday` + filters `tier == "Platinum"` | **Yes** — that's the killer use case |
 | Q9 | When tenant deletes a custom event with templates mapped, what happens? | **Soft-delete + warn** (mark `deleted_at`; mapping stays but won't fire; restorable for 30 days) |
-| Q10 | UI placement of new Events page | New sidebar item between "Templates" and "Automations" — owner approve? |
+| Q10 | UI placement — extend existing WhatsApp Automation page vs new sidebar entry | **Extend existing page** (per owner direction 2026-05-28 evening — reuse `WhatsAppAutomationContent.jsx`, add "+ New Event" button + 4-tab create/edit modal) |
 
 ---
 
