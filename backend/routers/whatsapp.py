@@ -7,7 +7,7 @@ import httpx
 
 from core.database import db
 from core.auth import get_current_user
-from core.whatsapp import send_single_message, WhatsAppMessage
+from core.whatsapp import send_single_message, WhatsAppMessage, log_message_attempt
 from core.whatsapp_variables import WHATSAPP_VARIABLES
 from models.schemas import (
     AUTOMATION_EVENTS, POS_EVENTS, CRM_EVENTS
@@ -707,24 +707,34 @@ async def test_template(request: TestTemplateRequest, user: dict = Depends(get_c
     
     # Send test message
     result = await send_single_message(api_key, message)
-    
-    # Log the test attempt
-    log_entry = {
-        "id": str(uuid.uuid4()),
-        "user_id": user["id"],
-        "customer_id": None,
-        "phone": phone,
-        "event_type": "test",
-        "template_id": request.template_id,
-        "status": "sent" if result.success else "failed",
-        "message_id": result.message_id,
-        "error": result.error,
-        "body_values": request.body_values,
-        "is_test": True,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.whatsapp_message_logs.insert_one(log_entry)
-    
+
+    # CR-004 P3.5 Commit 4 (G11): unify Path B with Path A — use the canonical
+    # log_message_attempt writer so test sends share one row schema with real
+    # event sends. is_test=True flags these for dashboard exclusion.
+    await log_message_attempt(
+        db,
+        user["id"],
+        None,                                            # customer_id
+        phone,                                           # customer_phone
+        "test",                                          # event_type
+        request.template_id,
+        result,
+        template_name=None,
+        campaign_id=None,
+        country_code=request.country_code.replace("+", ""),
+        body_values=request.body_values,
+        customer_name=None,
+        reference_type=None,
+        reference_id=None,
+        pos_order_id=None,
+        idempotency_key=None,                            # test sends are NOT deduped
+        is_test=True,
+        media_url=request.media_url,
+        media_filename=request.media_filename,
+        message_body_text=None,
+        channel="wp",
+    )
+
     if result.success:
         return {
             "success": True,
