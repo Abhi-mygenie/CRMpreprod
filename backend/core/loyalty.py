@@ -462,6 +462,10 @@ async def redeem_loyalty_points(
                     "points_redeemed": actual_points,
                     "points_balance": new_balance,
                     "redeemed_value": redeemed_value,
+                    # CR-004 P3.5
+                    "idempotency_key": f"{tx_doc['id']}_points_redeemed",
+                    "reference_type": "points_tx",
+                    "reference_id": tx_doc["id"],
                 },
             )
         )

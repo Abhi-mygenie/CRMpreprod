@@ -1468,7 +1468,11 @@ async def pos_order_webhook(
                 "points_earned": points_earned,
                 "points_balance": new_points,
                 "wallet_used": wallet_used,
-                "wallet_balance": new_wallet_balance
+                "wallet_balance": new_wallet_balance,
+                # CR-004 P3.5: idempotency + reference enrichment
+                "idempotency_key": f"{order_data.order_id}_send_bill",
+                "reference_type": "order",
+                "reference_id": order_id,
             }
         ))
 
@@ -1479,7 +1483,11 @@ async def pos_order_webhook(
                 {
                     "first_visit_bonus": first_visit_bonus,
                     "order_amount": order_data.order_amount,
-                    "points_balance": new_points
+                    "points_balance": new_points,
+                    # CR-004 P3.5
+                    "idempotency_key": f"{updated_customer.get('id')}_welcome",
+                    "reference_type": "customer",
+                    "reference_id": updated_customer.get("id"),
                 }
             ))
 
@@ -1488,7 +1496,15 @@ async def pos_order_webhook(
         if new_tier != old_tier and _tier_rank_pos(new_tier) > _tier_rank_pos(old_tier):
             asyncio.create_task(trigger_whatsapp_event(
                 db, user["id"], "tier_upgrade", updated_customer,
-                {"old_tier": old_tier, "new_tier": new_tier, "points_balance": new_points}
+                {
+                    "old_tier": old_tier,
+                    "new_tier": new_tier,
+                    "points_balance": new_points,
+                    # CR-004 P3.5
+                    "idempotency_key": f"{updated_customer.get('id')}_tier_{new_tier}",
+                    "reference_type": "customer",
+                    "reference_id": updated_customer.get("id"),
+                }
             ))
 
         # CR-001C-C V1: final-commit coupon usage recording (Q4=B, Q5=C).
@@ -2167,6 +2183,10 @@ async def pos_event_webhook(
             "order_id": event_data.order_id,
             "pos_order_id": event_data.order_id,
             "restaurant_name": user.get("restaurant_name", ""),
+            # CR-004 P3.5: idempotency + reference enrichment
+            "idempotency_key": f"{event_data.order_id}_{internal_event}",
+            "reference_type": "order",
+            "reference_id": event_data.order_id,
             **(event_data.event_data or {})
         }
         

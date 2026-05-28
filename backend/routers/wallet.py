@@ -54,21 +54,45 @@ async def create_wallet_transaction(tx_data: WalletTransactionCreate, user: dict
         # wallet_credit trigger
         asyncio.create_task(trigger_whatsapp_event(
             db, user["id"], "wallet_credit", updated_customer,
-            {"amount": tx_data.amount, "wallet_balance": new_balance}
+            {
+                "amount": tx_data.amount,
+                "wallet_balance": new_balance,
+                # CR-004 P3.5
+                "idempotency_key": f"{tx_id}_wallet_credit",
+                "reference_type": "wallet_tx",
+                "reference_id": tx_id,
+            }
         ))
         # Also fires points_earned
         asyncio.create_task(trigger_points_earned_event(
-            db, user["id"], updated_customer, 0, "wallet_credit", customer.get("total_points", 0)
+            db, user["id"], updated_customer, 0, "wallet_credit", customer.get("total_points", 0),
+            extra={
+                "idempotency_key": f"{tx_id}_points_earned",
+                "reference_type": "wallet_tx",
+                "reference_id": tx_id,
+            },
         ))
     else:
         # wallet_debit trigger
         asyncio.create_task(trigger_whatsapp_event(
             db, user["id"], "wallet_debit", updated_customer,
-            {"amount": tx_data.amount, "wallet_balance": new_balance}
+            {
+                "amount": tx_data.amount,
+                "wallet_balance": new_balance,
+                # CR-004 P3.5
+                "idempotency_key": f"{tx_id}_wallet_debit",
+                "reference_type": "wallet_tx",
+                "reference_id": tx_id,
+            }
         ))
         # Also fires points_earned
         asyncio.create_task(trigger_points_earned_event(
-            db, user["id"], updated_customer, 0, "wallet_debit", customer.get("total_points", 0)
+            db, user["id"], updated_customer, 0, "wallet_debit", customer.get("total_points", 0),
+            extra={
+                "idempotency_key": f"{tx_id}_points_earned",
+                "reference_type": "wallet_tx",
+                "reference_id": tx_id,
+            },
         ))
     
     return WalletTransaction(**tx_doc)

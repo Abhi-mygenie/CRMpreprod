@@ -61,7 +61,11 @@ async def create_feedback_entry(user_id: str, feedback_data: dict):
             {
                 "rating": feedback_data.get("rating"),
                 "feedback_message": feedback_data.get("message") or "",
-                "feedback_id": feedback_id
+                "feedback_id": feedback_id,
+                # CR-004 P3.5
+                "idempotency_key": feedback_id,
+                "reference_type": "feedback",
+                "reference_id": feedback_id,
             }
         ))
     

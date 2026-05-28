@@ -104,7 +104,14 @@ async def run_birthday_bonus(user_id: str, settings: dict) -> dict:
                 updated_customer = {**customer, "total_points": new_points, "tier": effective_tier}
                 asyncio.create_task(trigger_whatsapp_event(
                     db, user_id, "birthday", updated_customer,
-                    {"birthday_bonus": bonus_points, "points_balance": new_points}
+                    {
+                        "birthday_bonus": bonus_points,
+                        "points_balance": new_points,
+                        # CR-004 P3.5: daily idempotency (cron-safe)
+                        "idempotency_key": f"{customer.get('id')}_{today.isoformat()}_birthday",
+                        "reference_type": "customer",
+                        "reference_id": customer.get("id"),
+                    }
                 ))
                 
         except Exception as e:
@@ -204,7 +211,14 @@ async def run_anniversary_bonus(user_id: str, settings: dict) -> dict:
                 updated_customer = {**customer, "total_points": new_points, "tier": effective_tier}
                 asyncio.create_task(trigger_whatsapp_event(
                     db, user_id, "anniversary", updated_customer,
-                    {"anniversary_bonus": bonus_points, "points_balance": new_points}
+                    {
+                        "anniversary_bonus": bonus_points,
+                        "points_balance": new_points,
+                        # CR-004 P3.5: daily idempotency (cron-safe)
+                        "idempotency_key": f"{customer.get('id')}_{today.isoformat()}_anniversary",
+                        "reference_type": "customer",
+                        "reference_id": customer.get("id"),
+                    }
                 ))
                 
         except Exception as e:
@@ -290,7 +304,11 @@ async def run_expiry_reminders(user_id: str, settings: dict) -> dict:
                 {
                     "expiring_points": expiring_points,
                     "expiry_date": earliest_expiry.strftime("%d %b %Y") if earliest_expiry else "",
-                    "points_balance": customer.get("total_points", 0)
+                    "points_balance": customer.get("total_points", 0),
+                    # CR-004 P3.5: daily idempotency (cron-safe)
+                    "idempotency_key": f"{customer.get('id')}_{now.date().isoformat()}_points_expiring",
+                    "reference_type": "customer",
+                    "reference_id": customer.get("id"),
                 }
             ))
 
@@ -422,6 +440,10 @@ async def run_coupon_expiry_reminders(user_id: str) -> dict:
                     "coupon_title": coupon.get("title", ""),
                     "coupon_discount": coupon.get("discount_value", ""),
                     "coupon_expiry": coupon.get("end_date", ""),
+                    # CR-004 P3.5: daily idempotency per (customer, coupon)
+                    "idempotency_key": f"{customer.get('id')}_{coupon.get('id')}_{today_str}_coupon_expiring",
+                    "reference_type": "coupon",
+                    "reference_id": coupon.get("id"),
                 }
             ))
             customers_notified += 1
@@ -461,6 +483,10 @@ async def run_inactive_customer_reminders(user_id: str) -> dict:
                 "points_balance": customer.get("total_points", 0),
                 "tier": customer.get("tier", "Bronze"),
                 "total_visits": customer.get("total_visits", 0),
+                # CR-004 P3.5: daily idempotency (cron-safe)
+                "idempotency_key": f"{customer.get('id')}_{now.date().isoformat()}_inactive",
+                "reference_type": "customer",
+                "reference_id": customer.get("id"),
             }
         ))
         customers_notified += 1

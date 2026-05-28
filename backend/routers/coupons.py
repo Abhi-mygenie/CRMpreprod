@@ -265,11 +265,20 @@ async def apply_coupon(
                 "discount_value": coupon.get("discount_value"),
                 "coupon_title": coupon.get("title", ""),
                 "coupon_expiry": coupon.get("end_date", ""),
+                # CR-004 P3.5
+                "idempotency_key": f"{code.upper()}_{customer['id']}_coupon_earned",
+                "reference_type": "coupon",
+                "reference_id": coupon.get("id"),
             }
         ))
         # Also fires points_earned for coupon
         asyncio.create_task(trigger_points_earned_event(
-            db, user["id"], customer, 0, "coupon_earned", customer.get("total_points", 0)
+            db, user["id"], customer, 0, "coupon_earned", customer.get("total_points", 0),
+            extra={
+                "idempotency_key": f"{code.upper()}_{customer['id']}_points_earned",
+                "reference_type": "coupon",
+                "reference_id": coupon.get("id"),
+            },
         ))
     
     return {

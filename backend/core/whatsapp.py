@@ -726,19 +726,25 @@ async def trigger_points_earned_event(
     customer: Dict[str, Any],
     points: int,
     source: str,
-    balance_after: int
+    balance_after: int,
+    extra: Optional[Dict[str, Any]] = None,
 ) -> Optional[SendResult]:
     """
     Trigger points_earned event (for bonus_points, wallet_credit, wallet_debit, coupon_earned)
     NOT for regular purchase/bill points.
+
+    CR-004 P3.5: `extra` is merged into event_data so callers can inject
+    idempotency_key, reference_type, reference_id, pos_order_id, etc.
     """
+    event_data = {
+        "points_earned": points,
+        "points": points,
+        "source": source,
+        "points_balance": balance_after,
+        "balance_after": balance_after,
+    }
+    if extra:
+        event_data.update(extra)
     return await trigger_whatsapp_event(
-        db, user_id, "points_earned", customer,
-        {
-            "points_earned": points,
-            "points": points,
-            "source": source,
-            "points_balance": balance_after,
-            "balance_after": balance_after
-        }
+        db, user_id, "points_earned", customer, event_data
     )

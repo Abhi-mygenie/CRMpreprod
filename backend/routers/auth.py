@@ -514,7 +514,13 @@ async def request_forgot_password_otp(data: dict):
                 }
             asyncio.create_task(trigger_whatsapp_event(
                 db, user["id"], "reset_password", customer,
-                {"otp": otp, "restaurant_name": user.get("restaurant_name", "")}
+                {
+                    "otp": otp,
+                    "restaurant_name": user.get("restaurant_name", ""),
+                    # CR-004 P3.5: no idempotency_key — owner can re-request OTPs freely
+                    "reference_type": "customer",
+                    "reference_id": customer.get("id"),
+                }
             ))
     
     if not whatsapp_key:

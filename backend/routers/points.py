@@ -132,17 +132,37 @@ async def create_points_transaction(tx_data: PointsTransactionCreate, user: dict
         # bonus_points trigger (also fires points_earned)
         asyncio.create_task(trigger_whatsapp_event(
             db, user["id"], "bonus_points", updated_customer,
-            {"bonus_points": tx_data.points, "points_balance": new_balance}
+            {
+                "bonus_points": tx_data.points,
+                "points_balance": new_balance,
+                # CR-004 P3.5
+                "idempotency_key": f"{tx_doc['id']}_bonus_points",
+                "reference_type": "points_tx",
+                "reference_id": tx_doc["id"],
+            }
         ))
         asyncio.create_task(trigger_points_earned_event(
-            db, user["id"], updated_customer, tx_data.points, "bonus", new_balance
+            db, user["id"], updated_customer, tx_data.points, "bonus", new_balance,
+            extra={
+                "idempotency_key": f"{tx_doc['id']}_points_earned",
+                "reference_type": "points_tx",
+                "reference_id": tx_doc["id"],
+            },
         ))
 
     # Check for tier upgrade (earn/bonus only — redeem path handled by helper)
     if new_tier != old_tier and _tier_rank(new_tier) > _tier_rank(old_tier):
         asyncio.create_task(trigger_whatsapp_event(
             db, user["id"], "tier_upgrade", updated_customer,
-            {"old_tier": old_tier, "new_tier": new_tier, "points_balance": new_balance}
+            {
+                "old_tier": old_tier,
+                "new_tier": new_tier,
+                "points_balance": new_balance,
+                # CR-004 P3.5
+                "idempotency_key": f"{updated_customer.get('id')}_tier_{new_tier}",
+                "reference_type": "customer",
+                "reference_id": updated_customer.get("id"),
+            }
         ))
 
     return PointsTransaction(**tx_doc)
