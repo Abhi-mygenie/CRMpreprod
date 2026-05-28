@@ -14,17 +14,21 @@
 | Phase | Status |
 |---|---|
 | 0 Discovery | ✅ complete (parked since 2026-05-28) |
-| 1 Planning | **🟡 this doc — awaiting owner sign-off** |
+| 1 Planning | **🟡 v1.1 — code-audited; awaiting owner sign-off** |
 | 2 Implementation | not started |
 | 3 QA + Live Test | not started |
 
 **Sign-off gate**: owner must approve §3 (locked decisions), §6 (work sequence), §11 (live test) before any code is written.
 
+**v1.1 change log (2026-05-29)**: Plan re-audited against actual code. Discovery doc had several inaccuracies (file paths, function names, line numbers, frontend state). Corrections marked **[v1.1 FACT]** throughout.
+
 ---
 
-## 1. Recap (one paragraph)
+## 1. Recap (one paragraph, v1.1 corrected)
 
-The variable-mapping subsystem has 3 stacked defects that cause every templated WhatsApp slot to render as literal placeholder text. **Bug #1** is a `template_id` type mismatch (`int` vs `str`) in the resolver query. **Bug #2** is garbage in stored mappings (free-text + typos) because the admin UI never validated. **Bug #3** is severe event-data truncation at trigger callsites — only 10 of 40+ POS fields are forwarded. This CR fixes all three with a defensive resolver, a one-time DB normalization, an event-data expansion at every callsite, registry additions, an admin UI guard, and a one-time cleanup of R689's bad mappings.
+The variable-mapping subsystem renders WhatsApp slots as literal template defaults ("Test") whenever the resolver fails to load mappings. The root cause is a **`template_id` type mismatch** in `whatsapp_event_template_map` (some rows store `int`, others `str`) while `whatsapp_template_variable_map` always stores `str` (verified — the save endpoint at `routers/whatsapp.py:601` writes the path parameter, always a str). When the int-vs-str mismatch hits, the resolver returns `variable_mappings={}` and `variable_modes={}` → every slot resolves to `""` → AuthKey renders the template's literal defaults. Layered on top: (a) only a small subset of POS fields is forwarded into `event_data`, blocking many registry resolutions even when the mapping is correct, and (b) the registry lacks 12–14 fields that Indian bill templates need (`payment_method`, `order_date`, etc.). The fix is a defensive resolver, a giant `order_event_context` passed to every trigger, registry expansion, optional admin-UI hardening, R689 data cleanup, and a one-time DB normalization.
+
+**[v1.1 FACT — refined Bug #2 framing]**: The admin UI is NOT free-text in "Map to Field" mode. The variable-mapping modal (`WhatsAppAutomationContent.jsx:1650-1684`) already uses a `<Select>` sourcing from `/api/whatsapp/variables`. The garbage values discovered on R689 template 25140 (`"payment method missing "`, `"order dare missing "`) were saved in **"Custom Text" mode** (`modes: {"{{4}}": "text", "{{5}}": "text"}` per the discovery evidence). In that mode the operator typed notes-to-self meaning "the source field for this is missing, please add later" — those literal strings will be sent to customers verbatim once Bug #1 is fixed unless cleaned up. So T6 (admin UI hardening) is less about blocking unknown var_keys (Select already enforces that) and more about (i) warning the operator that text-mode values are sent literally, and (ii) detecting/flagging legacy garbage on load. T7 (R689 cleanup) becomes more important — those slots need to be switched from text mode → map mode with the right var_key.
 
 ---
 
@@ -53,48 +57,65 @@ The variable-mapping subsystem has 3 stacked defects that cause every templated 
 
 ---
 
-## 3. File-level plan
+## 3. File-level plan (v1.1 — all line numbers verified against current `/app`)
+
+### 3.0 Audit summary
+
+| Claim from Discovery | v1.1 Verified status |
+|---|---|
+| `get_template_config` is the resolver function | **WRONG**. Actual name is `get_event_template_config` (`backend/core/whatsapp.py:373`). |
+| Variable-map endpoint is free-text | **WRONG**. UI uses a `<Select>` (`WhatsAppAutomationContent.jsx:1650-1684`); free-text only in "text" mode. |
+| `/api/whatsapp/variables` endpoint may not exist | **EXISTS** (`routers/whatsapp.py:43`). Returns `{"variables": WHATSAPP_VARIABLES}`. |
+| `POSOrderWebhook` lives in `models/schemas.py` | **WRONG**. Lives in `routers/pos.py:1116`. All 40+ fields are first-class Pydantic — no `**extra` needed. |
+| 15 trigger callsites | **18 actual** (3 more than counted): also `points.py:144`, `wallet.py:67`, `wallet.py:89` via `trigger_points_earned_event`, plus `core/whatsapp.py:562, 748` internal wrappers (not user-facing). |
+| `loyalty_jobs.py` lines `105/212/302/436/479` | Mostly accurate but lines 436/479 swapped (436 = coupon_expiring loop, 479 = inactive_customer). |
+| Server-side validation rejects unknown var_key | **NOT IMPLEMENTED**. Endpoint at `routers/whatsapp.py:601-655` validates only `coupon_pick` format; map-mode values are stored as-is. |
+| Bug #2 = "admin UI accepts free-text" | **PARTIAL**. UI's Map-mode is Select. Bug #2 garbage was saved via **Custom Text mode** as notes-to-self. |
+| Bug #1 type-mismatch causes empty body_values | **CONFIRMED**. `build_body_values` (`whatsapp.py:313`) returns `""` when `mapped_field=""`; empty bodyValues → AuthKey renders template defaults. |
 
 ### 3.1 Backend files touched
 
-| File | Change | Track | LoC delta |
-|---|---|---|---|
-| `backend/core/whatsapp.py::get_template_config` (lines 380–405) | T1 — Coerce `template_id` to str at both query branches (event_template_map result + variable_map query) | T1 | +6 / −2 |
-| `backend/core/whatsapp.py::_format_value` (lines 224–248) | T5 — Add `time` (HH:MM AM/PM) + `titlecase` formatters | T5 | +20 |
-| `backend/core/whatsapp_variables.py` | T5 — Add 12 entries (see §4) + add `ORDER_EVENTS` keys to existing entries where missing | T5 | +200 |
-| `backend/routers/pos.py:1462–1477` (send_bill trigger) | T3 — Replace ad-hoc dict with `build_order_event_context(order_data, customer, points_earned, …)` helper | T3 | +30 / −10 |
-| `backend/routers/pos.py:1481–1492` (welcome_message trigger) | T4 — Pass `order_event_context` merged with welcome-specific keys | T4 | +5 |
-| `backend/routers/pos.py:1497–1508` (tier_upgrade trigger) | T4 — Same pattern | T4 | +5 |
-| `backend/routers/pos.py:2194` (payment.received) | T4 — Audit + enrich | T4 | +10 |
-| `backend/routers/wallet.py:55,77` (wallet_credit/debit) | T4 — Enrich with wallet context | T4 | +10 |
-| `backend/routers/auth.py:505,515` (reset_password, welcome_message) | T4 — Audit, enrich if needed | T4 | +5 |
-| `backend/routers/coupons.py:258` (coupon_earned manual) | T4 — Enrich with coupon context fields | T4 | +5 |
-| `backend/routers/points.py:133,155` (points_earned, bonus_points) | T4 — Audit + enrich | T4 | +5 |
-| `backend/core/loyalty.py:456` (tier_upgrade) | T4 — Audit + enrich | T4 | +5 |
-| `backend/core/loyalty_jobs.py:105,212,302,436,479` (5 daily cron events) | T4 — Audit + enrich event_data dict | T4 | +20 |
-| `backend/services/feedback_service.py:59` (feedback_request) | T4 — Audit + enrich | T4 | +5 |
-| `backend/core/whatsapp.py` (new helper) | T3 — Add `build_order_event_context(order_data, customer, …)` builder | T3 | +60 |
-| `backend/routers/whatsapp.py` — admin variable-mapping endpoints | T6 — Add server-side validation: reject mapping value not in `VARIABLES_BY_KEY` | T6 | +25 |
-| `backend/scripts/cr015_t2_normalize_template_ids.py` (NEW) | T2 — Idempotent script with `--dry-run`, `--commit`, `--backup-path`. Coerces all `template_id` fields in both collections to str. | T2 | +120 |
-| `backend/scripts/cr015_t7_cleanup_r689_template_25140.py` (NEW) | T7 — Fix R689's 3 bad mappings ({{4}}, {{5}}, {{7}}) for template 25140 with `--dry-run`/`--commit` | T7 | +60 |
-| `backend/scripts/cr015_audit_unknown_var_keys.py` (NEW, support tool) | Audit — scan all `whatsapp_template_variable_map.mappings` across tenants, report unknown keys. Read-only. | T7 | +50 |
-| `backend/tests/test_cr015_resolver.py` (NEW) | Unit tests — type-agnostic lookup, missing-key paths, formatter edge cases | tests | +200 |
-| `backend/tests/test_cr015_event_context.py` (NEW) | Unit tests — `build_order_event_context` populates all 40+ fields | tests | +120 |
+| File | Function / Region | Track | Change | LoC Δ |
+|---|---|---|---|---|
+| `backend/core/whatsapp.py` | `get_event_template_config` (lines 373–405) | T1 | Coerce `template_id` to str in query: `$or: [{template_id: str(tid)}, {template_id: tid}]`. Return canonical str in `config["template_id"]`. | +8 / −2 |
+| `backend/core/whatsapp.py` | `_format_value` (lines 224–248) | T5 | Add `time`, `titlecase` formatters | +20 |
+| `backend/core/whatsapp.py` | new helper `build_order_event_context(...)` after line 310 | T3 | New ~60-line builder for POS-derived event_data. See §5.2. | +60 |
+| `backend/core/whatsapp_variables.py` | end of `WHATSAPP_VARIABLES` list (around line 340) | T5 | Add 14 new entries (see §4.1). Optionally add `ORDER_EVENTS` to existing entries that should fill on `send_bill` but currently don't. | +220 |
+| `backend/routers/pos.py` | `pos_order_webhook` (lines 1462–1508) — 3 triggers | T3 | Build `order_ctx` once; pass to all 3 triggers with event-specific idempotency_key + extras merged. | +25 / −18 |
+| `backend/routers/pos.py` | `pos_event_webhook` (lines 2180–2196) — generic event trigger | T4 | Audit — already merges `event_data.event_data` from POS. Add `payment_method`, `transaction_id` defaults if missing in payload. | +6 |
+| `backend/routers/wallet.py` | wallet_credit/wallet_debit triggers (lines 55, 77) | T4 | Add `transaction_id` (= `tx_id`), `payment_method` (= `tx_data.payment_method`), `wallet_used` semantic for debit. Already has amount + balance. | +6 |
+| `backend/routers/points.py` | bonus_points + tier_upgrade (lines 133, 155) | T4 | Add `bill_amount`, `description` from `tx_data`. Tier_upgrade already minimal — verify. | +5 |
+| `backend/routers/auth.py` | reset_password (line 515) | T4 | Already minimal (OTP only). No order context to add. **Keep as-is**; only audit. | 0 |
+| `backend/routers/coupons.py` | coupon_earned manual (line 258) | T4 | Already has coupon_code/title/discount/expiry. Add `discount_value` formatter alignment — verify. | +2 |
+| `backend/core/loyalty.py` | points_redeemed (line 456) | T4 | Add `order_id`, `redeemed_value` formatted. | +3 |
+| `backend/core/loyalty_jobs.py` | birthday/anniversary/expiring/coupon_expiring/inactive (lines 105, 212, 302, 436, 479) | T4 | Audit — birthday/anniversary minimal but adequate. coupon_expiring already has coupon ctx. inactive_customer has customer-only — adequate. **Verify only, no refactor.** | +0 / verify |
+| `backend/services/feedback_service.py` | feedback_request (line 59) | T4 | **No order context available at this callsite** — fed only customer + rating + feedback_id. Adequate; no enrichment possible without DB join. **Keep as-is.** | 0 |
+| `backend/routers/whatsapp.py` | `save_template_variable_mapping` (lines 601–655) | T6 | Add server-side check: for each `(slot, value)` where `mode != "text" AND mode != "coupon_pick"`, reject if `value` not in `VARIABLES_BY_KEY` and not in `{"", "none"}`. Returns 422 with `errors[]`. | +25 |
+| `backend/scripts/cr015_t2_normalize_template_ids.py` | NEW | T2 | `--dry-run`/`--commit`/`--backup-path` script; mongodumps both collections, then coerces template_id to str via update_many. | +120 |
+| `backend/scripts/cr015_t7_cleanup_r689_template_25140.py` | NEW | T7 | Fix 3 slots: {{4}} text→map var=payment_method, {{5}} text→map var=order_date, {{7}} duplicate→points_balance. Removes corresponding `modes` entries. | +60 |
+| `backend/scripts/cr015_audit_unknown_var_keys.py` | NEW (support tool) | T7 | Read-only scan of all `whatsapp_template_variable_map.mappings` across tenants — flag unknown var_keys grouped by (tenant, template, mode). | +50 |
+| `backend/tests/test_cr015_resolver.py` | NEW | tests | 14 unit tests for type-agnostic lookup, formatter edge cases (see §9.1) | +200 |
+| `backend/tests/test_cr015_event_context.py` | NEW | tests | 8 unit tests for `build_order_event_context` | +120 |
+| `backend/tests/test_cr015_admin_validation.py` | NEW | tests | 6 unit tests for T6 validation | +120 |
 
 ### 3.2 Frontend files touched
 
-| File | Change | Track | LoC delta |
-|---|---|---|---|
-| `frontend/src/components/shared/WhatsAppAutomationContent.jsx` OR variable-mapping subcomponent (TBD on inspection — see §7) | T6 — Replace free-text input with `Select` (Radix `Select`) sourcing from `/api/whatsapp/variables` registry endpoint. Block save with inline error if any mapping value not in list. Show existing free-text values as warning chip "Invalid — please pick from list" but do NOT auto-discard. | T6 | +120 / −40 |
-| `frontend/src/lib/api.js` or service module | T6 — Add `/api/whatsapp/variables` fetch if not already present (registry is server-of-truth). | T6 | +15 |
+| File | Region | Track | Change | LoC Δ |
+|---|---|---|---|---|
+| `frontend/src/components/shared/WhatsAppAutomationContent.jsx` | save handler (lines 674–705) | T6 | Surface server 422 errors inline next to the offending `{{N}}` row instead of generic toast. Use `availableVariables` to render error message like "Unknown variable 'foo' — pick from list". | +35 |
+| `frontend/src/components/shared/WhatsAppAutomationContent.jsx` | variable mapping modal open (lines 653–672) | T6 | On modal open, detect legacy garbage: any text-mode value with non-empty content + matches typo heuristics like `(missing|none|todo)` or trailing whitespace → render warning chip "⚠ Looks like a placeholder — please pick a variable or remove" above the row. | +25 |
+| `frontend/src/components/shared/WhatsAppAutomationContent.jsx` | Custom Text mode input (around line 1640) | T6 | Add inline hint: "This text will be sent to the customer literally. Pick 'Map to Field' if you want dynamic value." | +5 |
+| `frontend/src/components/shared/WhatsAppAutomationContent.jsx` | `availableVariables` consumption | T6 | Existing — auto picks up the 14 new registry entries via existing `/whatsapp/variables` fetch. **No client change for registry expansion.** | 0 |
 
 ### 3.3 Files NOT touched (explicit)
 
-- ❌ `backend/.env`, `frontend/.env` (no env changes)
-- ❌ `backend/models/schemas.py::AUTOMATION_EVENTS` (CR-016 territory)
-- ❌ Meta-approved template bodies (no Meta re-approval cycle)
-- ❌ Any historical `whatsapp_message_logs` rows (no backfill, CR-004 rule)
-- ❌ `field_aliases` legacy shim in `whatsapp.py` (out of scope per §4 discovery)
+- ❌ `backend/.env`, `frontend/.env`
+- ❌ `backend/models/schemas.py` — `AUTOMATION_EVENTS` lists, `POSOrderWebhook` (latter lives in `routers/pos.py`, no schema change needed)
+- ❌ Meta-approved template bodies
+- ❌ Historical `whatsapp_message_logs` rows (no backfill)
+- ❌ `field_aliases` legacy shim in `whatsapp.py` — confirmed not in current file; the legacy `_check_event_data_for_coupon_field`/`_format_coupon_field` helpers stay (coupon_pick mode depends on them)
+- ❌ `trigger_whatsapp_event` signature (`whatsapp.py:541`) — additive event_data only
+- ❌ Frontend route map, sidebar, top-level App.js
 
 ---
 
@@ -154,12 +175,14 @@ Computed inside `build_order_event_context` (T3) — `len(order_data.items or []
 
 ---
 
-## 5. Code design — key new constructs
+## 5. Code design — key new constructs (v1.1 — verified)
 
-### 5.1 T1 — Resolver hardening (`get_template_config`)
+### 5.1 T1 — Resolver hardening (`get_event_template_config`)
+
+**[v1.1 FACT]** Function is `get_event_template_config` (not `get_template_config`). Lives at `backend/core/whatsapp.py:373`. Save endpoint (`routers/whatsapp.py:644-655`) writes `template_id` from path parameter — always str. Mismatch is caused only by `whatsapp_event_template_map` rows, where some legacy save path stored int.
 
 ```python
-async def get_template_config(db, user_id, event_key):
+async def get_event_template_config(db, user_id: str, event_key: str) -> Optional[Dict]:
     event_map = await db.whatsapp_event_template_map.find_one(
         {"user_id": user_id, "event_key": event_key}, {"_id": 0}
     )
@@ -170,22 +193,27 @@ async def get_template_config(db, user_id, event_key):
     if template_id is None:
         return None
 
-    # CR-015 T1: coerce to str — resolver is type-agnostic until T2 normalization runs
+    # CR-015 T1: type-agnostic lookup — variable_map always stores str (verified
+    # via routers/whatsapp.py:644-655), event_map may store int from legacy
+    # save path. Coerce + $or until T2 normalization runs.
     template_id_str = str(template_id)
-
-    var_map = await db.whatsapp_template_variable_map.find_one(
-        {
-            "user_id": user_id,
-            "$or": [
-                {"template_id": template_id_str},
-                {"template_id": template_id},  # legacy int rows
-            ],
-        },
-        {"_id": 0},
+    template_id_query = (
+        {"template_id": template_id_str}
+        if template_id_str == str(template_id)
+        else {"template_id": template_id}
     )
 
+    var_map = await db.whatsapp_template_variable_map.find_one(
+        {"user_id": user_id, "template_id": template_id_str}, {"_id": 0}
+    )
+    # Defensive fallback in case any legacy var_map row stored as int.
+    if var_map is None and isinstance(template_id, int):
+        var_map = await db.whatsapp_template_variable_map.find_one(
+            {"user_id": user_id, "template_id": template_id}, {"_id": 0}
+        )
+
     return {
-        "template_id": template_id_str,           # canonical str downstream
+        "template_id": template_id_str,    # canonical str downstream
         "template_name": event_map.get("template_name", ""),
         "is_enabled": event_map.get("is_enabled", True),
         "variable_mappings": var_map.get("mappings", {}) if var_map else {},
@@ -193,15 +221,36 @@ async def get_template_config(db, user_id, event_key):
     }
 ```
 
-Defensive — fixes Bug #1 immediately. T2 makes the `$or` dead code; we'll remove the int branch in a v2 cleanup CR after canonical-str migration is verified.
+Defensive — fixes Bug #1 immediately. T2 makes the fallback dead code; we'll remove the int branch in a v2 cleanup CR after T2 commits.
 
-### 5.2 T3 — `build_order_event_context(order_data, customer, points_earned, new_points, wallet_used, new_wallet_balance, …)` (new helper in `backend/core/whatsapp.py`)
+### 5.2 T3 — `build_order_event_context(...)` helper (new in `backend/core/whatsapp.py`)
 
-Returns a flat dict of ~50 keys covering: every field on `POSOrderWebhook`, derived `item_count`, the loyalty/wallet/coupon outcomes already computed in the POS handler, plus the CR-004 P3.5 idempotency/reference fields. Idempotency_key is overridden per event by the caller (e.g. `f"{order_id}_send_bill"`).
+**[v1.1 FACT]** `POSOrderWebhook` is defined at `backend/routers/pos.py:1116`. All these are first-class declared fields with proper types and defaults (verified):
+
+| Field | Type | Default |
+|---|---|---|
+| `order_id` | `str` | required |
+| `restaurant_order_id` | `Optional[str]` | `None` |
+| `order_amount` | `float` | required (alias `orderAmount`/`order_total`) |
+| `order_sub_total_amount` | `Optional[float]` | `None` |
+| `coupon_code` / `coupon_discount` / `coupon_title` / `coupon_type` | str/float/str/str | nullable / 0 |
+| `wallet_used` | `float` | 0 |
+| `tax_amount` / `gst_tax` / `vat_tax` / `service_tax` / `service_gst_tax_amount` | `float` | 0 |
+| `tip_amount` / `delivery_charge` / `round_up` | `float` | 0 |
+| `payment_method` / `payment_status` / `payment_type` / `transaction_id` | `Optional[str]` | `None` |
+| `order_status` / `order_type` / `table_id` / `waiter_id` / `employee_id` / `employee_name` | `Optional[str]` | `None` (order_type default `"pos"`) |
+| `order_created_at` / `order_updated_at` | `Optional[str]` | `None` (accepts `created_at` alias) |
+| `order_notes` | `Optional[str]` | `None` |
+| `items` | `Optional[List[OrderItem]]` | `None` |
+| `loyalty_points_used` | `Optional[int]` | `None` |
+| `loyalty_discount` | `Optional[float]` | `None` |
+| `room_info` | `Optional[RoomInfo]` | `None` |
+
+So `build_order_event_context` uses attribute access on the Pydantic model — no `**extra` needed:
 
 ```python
 def build_order_event_context(
-    order_data,            # POSOrderWebhook
+    order_data,            # POSOrderWebhook (Pydantic; routers/pos.py:1116)
     customer,              # already-updated customer dict
     *,
     points_earned: int,
@@ -213,48 +262,59 @@ def build_order_event_context(
     coupon: dict | None = None,
     extra: dict | None = None,
 ) -> dict:
+    items = list(order_data.items or [])
     ctx = {
-        # — POS payload passthrough (40 fields, only non-None) —
+        # POS passthrough
         "order_id": order_data.order_id,
         "pos_order_id": order_data.order_id,
-        "restaurant_order_id": getattr(order_data, "restaurant_order_id", None) or order_data.order_id,
+        "restaurant_order_id": order_data.restaurant_order_id or order_data.order_id,
         "order_amount": order_data.order_amount,
-        "order_sub_total_amount": getattr(order_data, "order_sub_total_amount", None),
-        "order_discount": getattr(order_data, "order_discount", None),
-        "tax_amount": getattr(order_data, "tax_amount", None),
-        "gst_tax": getattr(order_data, "gst_tax", None),
-        "payment_method": getattr(order_data, "payment_method", None),
-        "payment_status": getattr(order_data, "payment_status", None),
-        "transaction_id": getattr(order_data, "transaction_id", None),
-        "order_type": getattr(order_data, "order_type", None),
-        "table_id": getattr(order_data, "table_id", None),
-        "employee_name": getattr(order_data, "employee_name", None),
-        "waiter_name": getattr(order_data, "employee_name", None) or getattr(order_data, "waiter_name", None),
-        "order_created_at": getattr(order_data, "order_created_at", None),
-        "order_notes": getattr(order_data, "order_notes", None),
-        "delivery_charge": getattr(order_data, "delivery_charge", None),
-        "tip_amount": getattr(order_data, "tip_amount", None),
-        # — derived —
-        "item_count": len(getattr(order_data, "items", None) or []),
-        # — loyalty / wallet outcomes (already computed in caller) —
+        "order_sub_total_amount": order_data.order_sub_total_amount,
+        "order_discount": order_data.order_discount,
+        "self_discount": order_data.self_discount,
+        "tax_amount": order_data.tax_amount,
+        "gst_tax": order_data.gst_tax,
+        "vat_tax": order_data.vat_tax,
+        "service_tax": order_data.service_tax,
+        "tip_amount": order_data.tip_amount,
+        "delivery_charge": order_data.delivery_charge,
+        "round_up": order_data.round_up,
+        "payment_method": order_data.payment_method,
+        "payment_status": order_data.payment_status,
+        "payment_type": order_data.payment_type,
+        "transaction_id": order_data.transaction_id,
+        "order_status": order_data.order_status,
+        "order_type": order_data.order_type,
+        "table_id": order_data.table_id,
+        "employee_id": order_data.employee_id,
+        "employee_name": order_data.employee_name,
+        "waiter_name": order_data.employee_name,  # alias for template designers
+        "order_created_at": order_data.order_created_at,
+        "order_date": order_data.order_created_at,     # registry source alias
+        "order_time": order_data.order_created_at,     # registry source alias
+        "order_notes": order_data.order_notes,
+        # Derived
+        "item_count": len(items),
+        # Loyalty/wallet outcomes (caller-supplied)
         "points_earned": points_earned,
         "points_balance": new_points,
-        "wallet_used": wallet_used,
+        "wallet_used": wallet_used if wallet_used else order_data.wallet_used,
         "wallet_balance": new_wallet_balance,
-        "loyalty_points_used": crm_loyalty_points_redeemed,
-        "loyalty_discount": crm_loyalty_discount,
-        # — coupon (if applied) —
-        "coupon_code": (coupon or {}).get("code"),
-        "coupon_title": (coupon or {}).get("title"),
-        "coupon_discount": (coupon or {}).get("discount"),
+        "loyalty_points_used": crm_loyalty_points_redeemed or order_data.loyalty_points_used,
+        "loyalty_discount": crm_loyalty_discount or order_data.loyalty_discount,
+        # Coupon (passthrough from POS payload OR caller override)
+        "coupon_code": (coupon or {}).get("code") or order_data.coupon_code,
+        "coupon_title": (coupon or {}).get("title") or order_data.coupon_title,
+        "coupon_discount": (coupon or {}).get("discount") or order_data.coupon_discount,
+        "coupon_type": order_data.coupon_type,
     }
     if extra:
         ctx.update(extra)
-    # Strip None values to prevent overwriting registry-source fallbacks
-    return {k: v for k, v in ctx.items() if v is not None}
+    # Strip None/empty-string values so registry source-chain fallbacks work
+    return {k: v for k, v in ctx.items() if v not in (None, "")}
 ```
 
-Caller (each `trigger_whatsapp_event` site in `routers/pos.py`):
+**Caller (verified — `routers/pos.py:1462-1508`)**:
 
 ```python
 order_ctx = build_order_event_context(
@@ -263,15 +323,37 @@ order_ctx = build_order_event_context(
     wallet_used=wallet_used, new_wallet_balance=new_wallet_balance,
     crm_loyalty_points_redeemed=crm_loyalty_points_redeemed,
     crm_loyalty_discount=crm_loyalty_discount,
-    coupon=applied_coupon_dict,
 )
 
-# send_bill
+# send_bill (line 1462)
 asyncio.create_task(trigger_whatsapp_event(
     db, user["id"], "send_bill", updated_customer,
-    {**order_ctx, "idempotency_key": f"{order_data.order_id}_send_bill",
+    {**order_ctx,
+     "idempotency_key": f"{order_data.order_id}_send_bill",
      "reference_type": "order", "reference_id": order_id}
 ))
+
+# welcome_message (line 1481) — only if is_new
+if is_new:
+    asyncio.create_task(trigger_whatsapp_event(
+        db, user["id"], "welcome_message", updated_customer,
+        {**order_ctx,
+         "first_visit_bonus": first_visit_bonus,
+         "idempotency_key": f"{updated_customer.get('id')}_welcome",
+         "reference_type": "customer",
+         "reference_id": updated_customer.get("id")}
+    ))
+
+# tier_upgrade (line 1497)
+if new_tier != old_tier and _tier_rank_pos(new_tier) > _tier_rank_pos(old_tier):
+    asyncio.create_task(trigger_whatsapp_event(
+        db, user["id"], "tier_upgrade", updated_customer,
+        {**order_ctx,
+         "old_tier": old_tier, "new_tier": new_tier,
+         "idempotency_key": f"{updated_customer.get('id')}_tier_{new_tier}",
+         "reference_type": "customer",
+         "reference_id": updated_customer.get("id")}
+    ))
 ```
 
 ### 5.3 T2 — DB normalization script
@@ -286,58 +368,87 @@ Behaviour:
 
 Owner approval gate: agent MUST present `--dry-run` output to owner and wait for explicit "commit" instruction.
 
-### 5.4 T4 — 15 callsite audit table
+### 5.4 T4 — 18 callsite audit table (v1.1 — verified)
 
-| # | File:line | Event | Today | Action |
+| # | File:line | Event_key | Today's event_data keys | T4 action |
 |---|---|---|---|---|
-| 1 | `routers/pos.py:1462` | `send_bill` | 10 keys | Replace with `order_ctx` (T3) |
-| 2 | `routers/pos.py:1481` | `welcome_message` | 3 order keys | Merge `order_ctx` + `first_visit_bonus` |
-| 3 | `routers/pos.py:1497` | `tier_upgrade` | 3 keys | Merge `order_ctx` + `old_tier`/`new_tier` |
-| 4 | `routers/pos.py:2194` | (payment_received) | unknown | Audit + add `transaction_id`, `payment_method` minimum |
-| 5 | `routers/points.py:133` | `points_earned` (manual) | TBD | Audit + add txn fields |
-| 6 | `routers/points.py:155` | `bonus_points` | TBD | Audit + add reason/source |
-| 7 | `routers/wallet.py:55` | `wallet_credit` | amount/balance | Add `transaction_id`, `wallet_used` semantics check |
-| 8 | `routers/wallet.py:77` | `wallet_debit` | amount/balance | Same |
-| 9 | `routers/auth.py:505` | `reset_password` | OTP | Keep minimal (OTP only); no order context |
-| 10 | `routers/auth.py:515` | `welcome_message` (non-order) | customer ctx | Keep customer-only |
-| 11 | `routers/coupons.py:258` | `coupon_earned` (manual) | coupon doc | Add coupon ctx fields per registry |
-| 12 | `services/feedback_service.py:59` | `feedback_request` | customer + order | Add `restaurant_order_id`, `order_date` |
-| 13 | `core/loyalty.py:456` | `tier_upgrade` (non-POS path) | tier fields | Add tier fields only; no order |
-| 14 | `core/loyalty_jobs.py:105` | `birthday` (daily) | bonus_points | Already minimal; add brand-only context |
-| 15 | `core/loyalty_jobs.py:212` | `anniversary` (daily) | bonus_points | Same |
-| 16 | `core/loyalty_jobs.py:302` | `points_expiring` (daily) | expiring_points, days | Already adequate; verify |
-| 17 | `core/loyalty_jobs.py:436` | `inactive_customer` (daily) | days_inactive | Already adequate; verify |
-| 18 | `core/loyalty_jobs.py:479` | `coupon_expiring` (daily) | coupon ctx | Verify all coupon fields present |
+| 1 | `routers/pos.py:1462` | `send_bill` | order_id, pos_order_id, order_amount, points_earned, points_balance, wallet_used, wallet_balance, idempotency_key, reference_* | **Refactor**: replace with `**order_ctx` + idempotency + reference. ~25 new keys flow. |
+| 2 | `routers/pos.py:1481` | `welcome_message` | first_visit_bonus, order_amount, points_balance, idempotency_key, reference_* | **Refactor**: `**order_ctx` + first_visit_bonus. |
+| 3 | `routers/pos.py:1497` | `tier_upgrade` | old_tier, new_tier, points_balance, idempotency_key, reference_* | **Refactor**: `**order_ctx` + tier fields. |
+| 4 | `routers/pos.py:2194` | (POS pushes its own `event_type`) | order_id, pos_order_id, restaurant_name, idempotency_key, reference_*, **+POS-supplied event_data dict** | **Audit only** — generic POS event passthrough already merges `event_data.event_data`. Defaults for `payment_method`/`transaction_id` if missing in payload would require schema change — skip. |
+| 5 | `routers/points.py:133` | `bonus_points` | bonus_points, points_balance, idempotency_key, reference_* | **Minor**: add `bill_amount` (from `tx_data.bill_amount`), `description`. |
+| 6 | `routers/points.py:144` | (via `trigger_points_earned_event` wrapper) | helper-managed | **Audit only** — wrapper not in 15-callsite list; semantically correct. |
+| 7 | `routers/points.py:155` | `tier_upgrade` (non-POS path) | old_tier, new_tier, points_balance, idempotency_key, reference_* | **Minor**: already adequate for non-POS path. No order context to add. |
+| 8 | `routers/wallet.py:55` | `wallet_credit` | amount, wallet_balance, idempotency_key, reference_* | **Minor**: add `payment_method` (from `tx_data.payment_method`), `transaction_id` (= `tx_id`), `description`. |
+| 9 | `routers/wallet.py:67` | (via `trigger_points_earned_event` wrapper) | helper-managed | **Audit only**. |
+| 10 | `routers/wallet.py:77` | `wallet_debit` | amount, wallet_balance, idempotency_key, reference_* | **Minor**: same as wallet_credit. `wallet_used = amount` semantic. |
+| 11 | `routers/wallet.py:89` | (via `trigger_points_earned_event` wrapper) | helper-managed | **Audit only**. |
+| 12 | `routers/auth.py:515` | `reset_password` | otp, restaurant_name, reference_* | **No change** — OTP-only context; no order. |
+| 13 | `routers/coupons.py:258` | `coupon_earned` (manual) | coupon_code, discount, coupon_discount, discount_type, discount_value, coupon_title, coupon_expiry, idempotency_key, reference_* | **No change** — already complete for coupon context. |
+| 14 | `services/feedback_service.py:59` | `feedback_request` | rating, feedback_message, feedback_id, idempotency_key, reference_* | **No change** — no order link available at this callsite without DB join; would need separate CR. |
+| 15 | `core/loyalty.py:456` | `points_redeemed` | points_redeemed, points_balance, redeemed_value, idempotency_key, reference_* | **Minor**: add `order_id` (already in scope), `order_total`. |
+| 16 | `core/loyalty_jobs.py:105` | `birthday` (daily cron) | birthday_bonus, points_balance, idempotency_key, reference_* | **No change** — adequate for greeting context. |
+| 17 | `core/loyalty_jobs.py:212` | `anniversary` (daily cron) | anniversary_bonus, points_balance, idempotency_key, reference_* | **No change** — adequate. |
+| 18 | `core/loyalty_jobs.py:302` | `points_expiring` (daily cron) | expiring_points, expiry_date, points_balance, idempotency_key, reference_* | **No change** — adequate. |
+| 19 | `core/loyalty_jobs.py:436` | `coupon_expiring` (daily cron) | coupon_code, coupon_title, coupon_discount, coupon_expiry, idempotency_key, reference_* | **No change** — adequate. |
+| 20 | `core/loyalty_jobs.py:479` | `inactive_customer` (daily cron) | customer_name, points_balance, tier, total_visits, idempotency_key, reference_* | **No change** — adequate. |
 
-> 18 sites, not 15 — discovery doc undercounted by 3. Owner: still in-scope under Q5 (audit ALL). Effort estimate stands (~1 day for T4 — most cron sites need only verification, not refactor).
+**Net T4 work** (v1.1): 3 refactor callsites in `pos.py` (covered by T3), 3 minor enrichments (`points.py:133`, `wallet.py:55,77`, `loyalty.py:456`), rest audit-only. **Effort revises down from 1 day → 0.5 day**.
 
-### 5.5 T6 — Admin UI guard
+### 5.5 T6 — Admin UI hardening (v1.1 — scope refined)
 
-**Server side** (`backend/routers/whatsapp.py` — variable-mapping save endpoint, currently free-text):
+**[v1.1 FACT]** The "Map to Field" mode already uses a `<Select>` (`WhatsAppAutomationContent.jsx:1650-1684`) sourcing from `availableVariables` (the `/whatsapp/variables` registry response). So **a free-text vs Select replacement is NOT needed**. The actual problem is:
+
+1. **Custom Text mode** lets operators type literal strings that go straight to customers. The R689 garbage (`"payment method missing "`) was typed in Custom Text mode, not Map mode.
+2. **Server-side validation is absent** — `routers/whatsapp.py:601-655` only validates `coupon_pick` format. Map-mode and text-mode values pass through unchecked.
+3. **Legacy garbage on load** — when modal opens for a template with old text-mode garbage, no warning is shown.
+
+**Backend change** (`backend/routers/whatsapp.py` — extend `save_template_variable_mapping`):
 
 ```python
 from core.whatsapp_variables import VARIABLES_BY_KEY
 
-def _validate_mapping_payload(mappings: dict) -> list[str]:
-    errors = []
-    for slot, var_key in mappings.items():
-        if not slot.startswith("{{") or not slot.endswith("}}"):
-            errors.append(f"Invalid slot key: {slot}")
-            continue
-        if not isinstance(var_key, str) or not var_key.strip():
-            errors.append(f"{slot}: variable cannot be empty")
-            continue
-        clean_key = var_key.strip()
-        if clean_key not in VARIABLES_BY_KEY:
-            errors.append(f"{slot}: unknown variable '{var_key}' — must be one of {sorted(VARIABLES_BY_KEY.keys())[:5]}...")
-    return errors
+# Inside save_template_variable_mapping, AFTER coupon_pick block, BEFORE the update_one:
+errors = []
+for placeholder, mapped_value in clean_mappings.items():
+    mode = modes.get(placeholder, "map")
+    if mode == "coupon_pick":
+        continue  # already validated above
+    if mode == "text":
+        # Operator confirmation that "text" is intentional — value sent literally.
+        # Heuristic flag for likely-garbage; non-blocking, returned as warning.
+        if any(token in (mapped_value or "").lower() for token in ("missing", "todo", "tbd", "n/a")) \
+                or (mapped_value or "").strip() != (mapped_value or ""):
+            warnings.append({
+                "placeholder": placeholder,
+                "type": "text_mode_suspicious_value",
+                "message": f"{placeholder}: '{mapped_value}' looks like a placeholder note — will be sent to customer literally"
+            })
+        continue
+    # mode == "map" (default) — value MUST be a registry key
+    clean_key = (mapped_value or "").strip()
+    if clean_key in ("", "none"):
+        continue  # explicit no-mapping, allowed
+    if clean_key not in VARIABLES_BY_KEY:
+        errors.append({
+            "placeholder": placeholder,
+            "type": "unknown_variable",
+            "message": f"{placeholder}: unknown variable '{mapped_value}'"
+        })
+
+if errors:
+    raise HTTPException(status_code=422, detail={"errors": errors})
 ```
 
-Returns 422 with `{"errors": [...]}` on failure.
+Warnings array (built in P2 block already) gains `text_mode_suspicious_value` warnings to surface to operator.
 
-**Client side** (frontend variable-mapping form): replace `<Input type="text">` per `{{N}}` slot with `<Select>` of options from `/api/whatsapp/variables` (already exists per CR-004 P2.5). Disable Save when any slot has empty or invalid selection. Existing free-text values shown as `<Select>` with badge "⚠ Invalid — pick from list".
+**Frontend change** (`WhatsAppAutomationContent.jsx`):
 
-Loading of existing mapping doc: if a value isn't in registry, show it as the selected value with a red border + tooltip "Invalid — choose a valid variable". Owner must re-pick before Save un-disables.
+1. **Save handler** (`handleSaveVariableMapping` lines 674-705): catch 422 with `detail.errors[]` → set per-row error state. Render below each `{{N}}` row in red.
+2. **Modal-open handler** (`openVariableMappingModal` lines 653-672): after loading existing mappings, scan for text-mode garbage heuristic. Set a `suspiciousMappings` state. Render warning chip above the row.
+3. **Custom Text mode input area** (around line 1640): add `<p className="text-xs text-gray-500 mt-1">This text will be sent to customers exactly as typed. Use "Map to Field" for dynamic values.</p>`
+
+No new Radix components introduced — uses existing `<Select>` / `<Input>` / `<Badge>`.
 
 ### 5.6 T7 — R689 template 25140 cleanup script
 
@@ -357,55 +468,48 @@ Script: `--dry-run` prints proposed change; `--commit` writes after backup. Owne
 
 ---
 
-## 6. Work sequence (B3, default)
+## 6. Work sequence (v1.1 — refined effort)
 
 ```
-Day 1   ──  T1 resolver hardening (~10 LoC + tests)
-            T5 registry: 14 entries + 2 formatters (~220 LoC + tests)
-            Live smoke: probe R689 send_bill in DB; confirm var_map now finds rows
+Day 1   ──  T1 resolver hardening — get_event_template_config defensive lookup (~10 LoC + 14 unit tests)
+            T5 registry: 14 entries + 2 formatters added to whatsapp_variables.py / whatsapp.py (~220 LoC + 10 unit tests)
+            Smoke probe: live `get_event_template_config(db, "pos_0001_restaurant_689", "send_bill")` in python REPL → returns non-empty `variable_mappings`
 
-Day 2   ──  T3 build_order_event_context helper + POS callsite (~90 LoC + tests)
-            Smoke: live POS order at preview against R689; confirm event_data has all keys via log instrumentation
+Day 2   ──  T3 build_order_event_context helper in core/whatsapp.py + refactor pos.py:1462/1481/1497 callsites (~90 LoC + 8 unit tests)
+            Smoke: synthetic POS order to preview, instrument trigger to log event_data keys → expect ≥ 25 keys present
 
-Day 3   ──  T6 server-side validation (~25 LoC + tests)
-            T6 client-side dropdown + invalid-warning UX (~135 LoC)
-            Smoke: existing R689 garbage values flagged in UI; new mapping save blocked on bad key
+Day 3   ──  T6 server-side 422 validation in routers/whatsapp.py:601 (~25 LoC + 6 unit tests)
+            T6 frontend save-handler 422 surfacing + text-mode garbage warning chip (~65 LoC)
+            T7 dry-run + commit R689 template 25140 cleanup (with owner approval gate)
+            T4 minor enrichments: wallet.py:55/77, points.py:133, loyalty.py:456 (~12 LoC total)
 
-Day 4   ──  T7 R689 cleanup script — dry-run, owner review, commit
-            T4 callsite audit pass — refactor 17 remaining sites (~70 LoC across files)
+Day 4   ──  T2 mongodump + dry-run + owner-approved commit (normalize template_id to str)
+            Post-T2: remove fallback int-branch in get_event_template_config
+            T7 audit script run across all tenants — report unknown var_keys (read-only)
 
-Day 5   ──  T2 normalization script — dry-run, owner review, mongodump, commit
-            Remove `$or` legacy int branch in resolver (post-T2 cleanup)
-
-Day 6   ──  Live test (Option A) for end-to-end: synthetic POS Rs.1850 order at R689 → all 7 slots populated correctly in delivered WhatsApp
+Day 5   ──  Live integration test (Option A) — Rs.1850 UPI dine-in synthetic order at R689 against template 25140 → assert all 7 slots populated
+            Second synthetic order with coupon code → assert coupon_code/discount populated
             QA report at qa/CR_015_LIVE_TEST_REPORT.md
             Update dashboard + register → cr015_closed_live_test_passed
 ```
 
-Total: 6 working days (matches discovery's 6-7 dev-day estimate).
+**Total: 5 working days** (revised from 6 in v1.0 — T4 scope shrank after audit; rest of cron callsites already adequate).
 
-**Rationale for ordering**:
-- T1 first → unblocks current production sends *defensively* with one safe change. Lowest risk, highest immediate value.
-- T5 next → registry is purely additive; doesn't impact production until events forward the new fields.
-- T3 third → with T1 + T5 in place, T3's expanded event_data starts populating slots immediately (no UI work needed for that). End of Day 2 the "Test, Test, Test" bug is dead.
-- T6 fourth → with the resolver + registry honest, NOW lock the UI so operators can re-map without poisoning the DB.
-- T7 fifth → owner self-serves cleanup via fixed UI, OR runs script. Either works because Day 4 has T6 live.
-- T4 sixth → audit the remaining 17 callsites for parity. Lower risk because T3 pattern is proven on POS.
-- T2 last → DB-wide normalization is the riskiest write. Wait until all reader paths are type-agnostic so a partial migration cannot break anything.
+**Rationale unchanged**: T1 first (defensive), T5 next (additive), T3 third (unblocks send_bill rendering by EOD2), T6+T7+T4 minor enrichments grouped on Day 3, T2 normalization isolated on Day 4 (riskiest write).
 
 ---
 
-## 7. Open implementation questions (small, won't block sign-off)
+## 7. Implementation questions — RESOLVED in v1.1 (no remaining unknowns)
 
-These I'll resolve during implementation. Flagging now for transparency:
-
-| # | Question | Plan |
+| # | Question | Status / Resolution |
 |---|---|---|
-| I1 | What is the exact React component path holding the variable-mapping form today? | Inspect `WhatsAppAutomationContent.jsx` + any modal/dialog children; will pin path in implementation closeout doc. |
-| I2 | Does `/api/whatsapp/variables` already exist for the frontend to fetch the registry? | If yes, reuse; if no, add a `GET` returning `[{key, label, category, example, description}]`. Pin in closeout. |
-| I3 | Does `POSOrderWebhook` actually carry `restaurant_order_id`, `order_created_at`, `payment_method`, `transaction_id`, `order_type`, `table_id`, `employee_name`, `order_notes` as declared fields, or are they passthrough on a dict? | Read `models/schemas.py::POSOrderWebhook`; will adjust `build_order_event_context` accordingly. If any are not first-class, will accept via `**extra` from the model dump. |
-| I4 | Existing `field_aliases` legacy shim — does it interfere with any of the 12 new keys? | Read once during T5; if collision, scope a tiny rename. |
-| I5 | Does the admin "test send" UX in `WhatsAppAutomationContent.jsx` synthesize fake event_data? | If yes, ensure it synthesizes ALL the new context keys too so test sends preview correctly. |
+| I1 | Exact React component path for variable-mapping form? | **RESOLVED**: `frontend/src/components/shared/WhatsAppAutomationContent.jsx` — modal lines 1429-1715. No separate component to factor out. |
+| I2 | Does `/api/whatsapp/variables` already exist? | **RESOLVED**: Yes — `routers/whatsapp.py:43`. Frontend already consumes it (`WhatsAppAutomationContent.jsx:504`). No new endpoint needed. |
+| I3 | Does `POSOrderWebhook` carry all the declared fields, or `**extra` passthrough? | **RESOLVED**: All required fields are first-class Pydantic — see §5.2 table. No `**extra` needed. Lives in `routers/pos.py:1116`, not `models/schemas.py`. |
+| I4 | Does `field_aliases` legacy shim interfere? | **RESOLVED**: No such shim in current `whatsapp.py`. Legacy `_check_event_data_for_coupon_field` + `_format_coupon_field` (lines 286-310) are coupon_pick-only and stay untouched. |
+| I5 | Does admin "test send" UX synthesize event_data? | **RESOLVED**: `TestTemplateModal` (lines 18-220) uses `availableVariables.find(v => v.key === mappedField)` — pulls examples from registry. T5 entries' `example` fields will appear automatically. No T5 code change needed in the modal; verify in regression. |
+
+All v1.1 corrections are reflected in §3.1 (file table), §5.1 (resolver), §5.2 (POSOrderWebhook fields), §5.4 (callsite audit), §5.5 (UI scope refined).
 
 ---
 
@@ -530,17 +634,19 @@ Run the existing 65 passing WhatsApp tests under `backend/tests/test_whatsapp_*.
 
 ---
 
-## 13. Sign-off checklist for owner
+## 13. Sign-off checklist for owner (v1.1)
 
 Before code lands, owner please confirm:
 
 - [ ] **§2 locked decisions** (Q1–Q8 + B1–B3) — accept as listed, or amend specific items
+- [ ] **§3.0 audit findings** — accepted (discovery doc inaccuracies overridden by v1.1 facts)
 - [ ] **§4.1 entry count** — ship 14 (proposed) or trim to original 12
-- [ ] **§4.2 titlecase output style** — "Dine-In" (hyphen) preferred?
-- [ ] **§5.6 R689 slot-4/5/7 corrections** — `payment_method` / `order_date` / `points_balance` confirmed?
-- [ ] **§6 work sequence** — T1 → T5 → T3 → T6 → T7 → T4 → T2 OK, or reorder?
+- [ ] **§4.2 titlecase output style** — "Dine-In" (hyphen-joined for compound, plain Title-Case for single word)?
+- [ ] **§5.5 T6 scope refined** — server-side 422 + frontend warning chip + Custom-Text hint (no `<Select>` replacement needed; UI is already correct). Agree?
+- [ ] **§5.6 R689 slot-4/5/7 corrections** — `payment_method` / `order_date` / `points_balance` (was duplicate of `points_earned`); slots 4 + 5 also switch from text mode → map mode. Confirmed?
+- [ ] **§6 work sequence (5 days)** — T1+T5 → T3 → T6+T7+T4-minor → T2 → live test. OK, or reorder?
 - [ ] **§9.3 live test scenario** — Rs.1850 UPI dine-in + Rs.500 coupon order at test phone 7505242126 OK?
-- [ ] **AuthKey webhook** — confirmed pointing at `a28cb9e3-…` for callback verification in §9.3
+- [ ] **AuthKey webhook** — confirmed pointing at `a28cb9e3-…` for callback verification
 - [ ] **B1 backup target** — `/tmp/cr015_pre_t2_backup_<UTC-iso>/` acceptable, or different path?
 
 Once any open box answered "go", I start Day 1 (T1 + T5).

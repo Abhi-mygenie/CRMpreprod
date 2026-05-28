@@ -107,7 +107,7 @@ If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 | 012 | WhatsApp Template Builder | Planning | 🔵 | — | (see register) | — |
 | 013 | Template Gallery | Discovery | 🔴 blocked by CR-012 P1 | — | (see register) | — |
 | **014** | **E-Invoice PDF + Mobile HTML Link** | **Discovery Phase 0 done** | **⏸** | ~8-10 days | **2 owner confirmations**: C1 address strategy, C2 required-vs-optional (see CR-014 §15.6) | **2026-05-28** |
-| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Phase 1 plan drafted — awaiting sign-off** | **🟡** | ~6 days | **Sign-off needed on §13 checklist of `planning/CR_015_PHASE_1_PLAN.md`** (8 boxes; key items: 14 vs 12 registry entries, R689 slot-4/5/7 fix, work sequence) | **2026-05-29** |
+| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Phase 1 plan v1.1 (code-audited) — awaiting sign-off** | **🟡** | ~5 days | **Sign-off needed on §13 checklist of `planning/CR_015_PHASE_1_PLAN.md`** (10 boxes; v1.1 corrected: resolver func name, UI scope, callsite count). Effort revised 6→5 days. | **2026-05-29** |
 | **016** | **Dynamic Event Registry + Trigger Configuration UI** | **Discovery Phase 0 done — DEFERRED to next sprint** | **⏸ next-sprint** | ~9-10 days | **Deferred 2026-05-29 by owner**: existing event mapping/firing fidelity (CR-015) takes priority. §7 Q1–Q8 still open. | **2026-05-29** |
 
 > When a row's first column shows a number ≤ 010 with no detail above, look up the full row in `crm/crm_roi_sprint/00_register/ROI_MEASUREMENT_CR_REGISTER.md`.
