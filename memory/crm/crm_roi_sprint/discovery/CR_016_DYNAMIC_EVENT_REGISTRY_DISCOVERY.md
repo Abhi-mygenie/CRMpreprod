@@ -304,11 +304,13 @@ Each row says **"what someone might expect us to do here"** and **"why we're not
 
 ---
 
-## 11. CR-016 PARK status (2026-05-28 evening)
+## 11. CR-016 PARK status (2026-05-28 evening) — superseded by 2026-05-29 deferral
 
-**Status**: `cr016_discovery_phase_0_parked_pending_planning_signoff`
+**Current status**: `cr016_discovery_phase_0_deferred_next_sprint`
 
-### What's documented
+**Deferral note (2026-05-29)**: Owner deferred CR-016 to the next sprint. Quote: *"actually it will come very complex we have almost definate event we used need to ensure they map and fire correctly for now we can mark cr to be taken in next spirint"*. Sprint focus pivots to making the existing 27 hardcoded events fire + render reliably (CR-015). When CR-016 resumes next sprint, §7 Q1–Q8 are still open and the recommended defaults above remain the starting point.
+
+### What's documented (preserved for next sprint pickup)
 - Current hardcoded state + all 15 trigger callsites
 - 16 predefined source signals (the system-detectable hooks)
 - New `events` collection schema
@@ -324,8 +326,8 @@ Each row says **"what someone might expect us to do here"** and **"why we're not
 Owner answers to §7 (most have defaults; Q1, Q4, Q6 are the consequential ones).
 
 ### Resume signal
-> "Resume CR-016" → re-read this doc, ask owner the §7 questions, then write `planning/CR_016_PHASE_1_PLAN.md`.
+> **Deferred to next sprint.** When owner says "Resume CR-016" in the next sprint → re-read this doc, ask owner the §7 Q1–Q8 questions, then write `planning/CR_016_PHASE_1_PLAN.md`.
 
 ---
 
-**End of Phase 0 Discovery. CR-016 PARKED.**
+**End of Phase 0 Discovery. CR-016 DEFERRED to next sprint (2026-05-29).**

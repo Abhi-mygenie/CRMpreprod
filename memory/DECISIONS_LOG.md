@@ -105,6 +105,25 @@
 
 ---
 
+## 2026-05-29 — Session decisions
+
+### 2026-05-29 [CR-016] — Deferred to next sprint
+**Decision**: CR-016 (Dynamic Event Registry + Trigger Configuration UI) is **deferred to the next sprint**. Owner-question round (Q1–Q8) is not answered in this sprint. Discovery doc remains parked as-is.
+**Source**: "actually it will come very complex we have almost definate event we used need to ensure they map and fire correctly for now we can mark cr to be taken in next spirint" (owner, 2026-05-29, in response to CR-016 §7 question list).
+**Rationale**: Dynamic event registry is a 9–10 day refactor whose value is unlocked only after the existing event surface is reliable. Owner is reprioritizing toward "the events we already have must map + fire correctly" — i.e. CR-015 territory. CR-016 stays valuable but later.
+**Locks**:
+- CR-016 status → `cr016_discovery_phase_0_deferred_next_sprint`
+- No planning doc to be written this sprint.
+- Active queue this sprint: CR-015 → CR-014 (CR-016 removed from order).
+- Out-of-sprint backlog gains: "Resume CR-016 next sprint with §7 Q1–Q8 still open".
+
+### 2026-05-29 [sprint] — Reaffirmed sprint focus
+**Decision**: Active sprint focus is now exclusively (a) hardening firing + variable rendering of the **existing 27 hardcoded events** (CR-015) and (b) E-Invoice mobile link (CR-014). No new event-engine work.
+**Source**: Same owner message as above ("we have almost definate event we used need to ensure they map and fire correctly").
+**Locks**: Sprint queue → CR-015 (P1) → CR-014 (P2).
+
+---
+
 ## How to add a new decision
 
 1. Append a new `### YYYY-MM-DD [CR-XXX] §<section> — <title>` block at the bottom of the appropriate session group.
