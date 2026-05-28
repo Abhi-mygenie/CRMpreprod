@@ -1,13 +1,14 @@
 # CR-004 Phase 3.5 — Message Status Pipeline Refactor — Implementation Plan
 
 **CR**: CR-004 WhatsApp Utility + Marketing → P3.5 Message Status Pipeline (post-P3 follow-up)
-**Status**: `planning_complete_awaiting_implementation`
+**Status**: `planning_complete_implementation_ready`
 **Author**: E1
 **Date opened**: 2026-05-28
+**Last updated**: 2026-05-28 (B1 resolved — schema locked; all open questions closed)
 **Tenant**: R689 Kunafa Mahal (live test target)
 **Branch**: `28-may`
 **Environment**: implement in preview pod (`/app`); owner pushes to production
-**External DB**: `52.66.232.149:27017/mygenie` — **NO writes from this work**; reads only via app code
+**External DB**: `52.66.232.149:27017/mygenie` — **NO writes from this work** beyond normal app runtime; reads only via app code
 
 ---
 
@@ -22,12 +23,12 @@ Make `whatsapp_message_logs` the single, complete source of truth for the Messag
 TRIGGER → trigger_whatsapp_event() → AuthKey POST → response {LogID, Message, ...}
    ↓
 A1. log_message_attempt() writes ONE complete row to whatsapp_message_logs
-    {id, message_id=LogID, status="pending"|"rejected", + every audit field}
+    {id, message_id=logid, status="pending"|"rejected", + every audit field}
    ↓
-(async) AuthKey POSTs /api/whatsapp/status-callback {LogID, status, ...}
+(async) AuthKey POSTs to webhook with {logid, status, time, mobile, meta_messageid, channel, ...}
    ↓
-A2. webhook updates ONLY status + delivered_at/read_at/failure_reason
-    on row matched by message_id=LogID; pushes raw payload to status_history
+A2. webhook updates ONLY status + delivered_at/read_at/rejected_at + meta_message_id + failure_reason
+    on row matched by message_id=logid; pushes raw payload to status_history
     and to whatsapp_callback_logs (audit)
    ↓
 Dashboard reads whatsapp_message_logs — never reads from AuthKey live
@@ -36,33 +37,36 @@ Dashboard reads whatsapp_message_logs — never reads from AuthKey live
 ### 1.3 In scope (this CR)
 - **Phase 1** — Send-side row refactor: G1, G2, G3, G4, G5, G6, G7, G8, G9, G10.
 - **Phase 2** — Schema unification: G11. (G12 legacy migration: **dropped**.)
-- **Phase 3 (skeleton)** — Webhook receive-side: G16 (state machine), G18 (callback log collection), defensive multi-key parser. **Final field-name mapping deferred** (Blocker 1).
+- **Phase 3** — Webhook receive-side: G13, G14, G15, G16, G18 (all parser rules now locked post B1 resolution).
 - **Phase 5** — Dashboard polish.
 
 ### 1.4 Out of scope (this CR)
-- **G19** — AuthKey payload schema confirmation (Blocker 1, owner-driven).
-- **G17** — HMAC verification (Blocker 2; env hook only; activation deferred).
-- **G20** — AuthKey console URL registration (Blocker 3, owner-driven).
+- **G17** — HMAC verification activation (Blocker B2; env hook only, code dormant until secret lands).
+- **G20** — AuthKey console URL registration (Blocker B3, owner-driven).
 - **G21** — Preview/staging webhook strategy.
 - **G22** — Historical backfill of `message_id=None` rows (owner declined).
 - **G12** — Legacy `sent`/`failed` row migration (owner declined).
 
-### 1.5 Strict rules adhered to
-- No DB writes from this task (the running app will write to remote Mongo during normal operation; no migration scripts run).
-- No production code push (owner pushes from this repo).
-- No "AI slop" guesses on AuthKey payload — placeholder skeleton only, real parser waits for G19.
-- Clean refactor (allowed by owner) — not patches.
-- Do NOT modify `memory/crm/crm_1_0/handoff/CRM_1_0_BASELINE_CLOSE_2026_05_26.md`.
+### 1.5 Locked decisions
+
+| Decision | Value | Locked from |
+|---|---|---|
+| OTP idempotency | **Skipped for `reset_password`** — owner can re-request OTPs freely | Q1 reply |
+| Cron idempotency window | **Daily** — `f"{customer_id}_{today_iso_date}_{event_type}"` | Q2 reply |
+| `message_body_text` fallback | **None** — field left null if template body unknown | Q3 reply |
+| "Show test sends" default | **OFF** — toggle in filter bar (default hides test rows from table + stats) | Q4 reply |
+| Late `delivered` after `read` | **No status regression** — late event appended to `status_history` for audit, `status` stays `read` | Q5 reply |
+| AuthKey webhook payload schema | **Locked** — see §3.6 | B1 reply |
 
 ---
 
-## 2. Blockers (3) — recorded, work proceeds around them
+## 2. Blockers — 1 resolved, 2 remaining (do not block any of Commits 1–7)
 
-| # | Blocker | Owner | Resolves what | Workaround in this CR |
-|---|---|---|---|---|
-| B1 | AuthKey delivery-report payload schema | Owner (Abhishek) → AuthKey support | Final field-name parsing (LogID vs message_id, status enum, timestamp keys) | Webhook handler logs raw body to `whatsapp_callback_logs` and accepts a defensive union of likely keys. Parser finalization deferred to a follow-up commit. |
-| B2 | AuthKey webhook signing secret | Owner | G17 HMAC verification | Env var `AUTHKEY_WEBHOOK_SECRET` hook in code; verification module written but gated by `if AUTHKEY_WEBHOOK_SECRET:` — activates automatically when value lands. |
-| B3 | AuthKey console URL registration (prod) | Owner | End-to-end verification | Code is verified via unit tests + curl probe; real Delivered/Read transitions only occur once owner registers `https://crm.mygenie.online/api/whatsapp/status-callback` and pushes this code to prod. |
+| # | Blocker | Status | Owner | Resolves what | Workaround in this CR |
+|---|---|---|---|---|---|
+| B1 | AuthKey delivery-report payload schema | ✅ **RESOLVED 2026-05-28** | Owner shared real sample | Final field-name parsing | Parser locked to exact keys; see §3.6 + §6.3 |
+| B2 | AuthKey webhook signing secret | ⏳ Open | Owner (live-test time) | G17 HMAC verification activation | Env var `AUTHKEY_WEBHOOK_SECRET` hook in code; verification module written but gated by `if AUTHKEY_WEBHOOK_SECRET:` — activates automatically when value lands in `.env`. **Does not block any code in this CR.** |
+| B3 | AuthKey console URL registration (prod) | ⏳ Open | Owner (live-test time) | End-to-end verification | Code is verified via unit tests + curl probes; real Delivered/Read transitions only occur once owner registers the URL. **Architecture note**: AuthKey currently posts to `preprod.mygenie.online` (MyGenie's Laravel app) per evidence in B1 sample headers — owner needs to add a second URL pointing at our CRM, OR have Laravel forward, OR switch the URL. This is a B3 ops decision, not a code dependency. |
 
 ---
 
@@ -77,33 +81,32 @@ Dashboard reads whatsapp_message_logs — never reads from AuthKey live
 | `backend/models/schemas.py` | 1208 | `POS_EVENTS`, `CRM_EVENTS`, `AUTOMATION_EVENTS` | **NO** — already correct post P3 |
 | `backend/core/whatsapp_variables.py` | (registry) | Variable registry | NO |
 | `backend/routers/pos.py` | 2853 | 4 trigger callsites: lines 1462, 1477, 1489, 2174 | **YES — pass `idempotency_key` into event_data** |
-| `backend/routers/coupons.py` | — | 2 callsites (lines 258, 271) | **YES** — pass `idempotency_key` where natural (e.g. `f"{coupon_code}_{customer_id}_coupon_earned"`) |
+| `backend/routers/coupons.py` | — | 2 callsites (lines 258, 271) | **YES** — pass `idempotency_key` |
 | `backend/routers/wallet.py` | — | 4 callsites (lines 55, 60, 65, 70) | **YES** — pass `idempotency_key` from wallet `transaction_id` |
 | `backend/routers/points.py` | — | 3 callsites (lines 133, 137, 143) | **YES** — same pattern |
-| `backend/routers/auth.py` | — | 1 callsite (line 515) — `reset_password` | **YES** — idempotency optional (OTP regen is fine) |
+| `backend/routers/auth.py` | — | 1 callsite (line 515) — `reset_password` | **YES** — NO idempotency_key (locked decision §1.5) |
 | `backend/services/feedback_service.py` | — | 1 callsite (line 59) | **YES** — `idempotency_key = feedback_id` |
 | `backend/core/loyalty.py` | — | 1 callsite (line 456) | **YES** — minor |
-| `backend/core/loyalty_jobs.py` | — | 5 callsites (lines 105, 205, 288, 418, 457) — birthday, anniversary, points_expiring, coupon_expiring, inactive_customer | **YES** — daily cron jobs need idempotency (`{customer_id}_{date}_{event}`) to avoid double-fires |
+| `backend/core/loyalty_jobs.py` | — | 5 callsites (lines 105, 205, 288, 418, 457) — birthday, anniversary, points_expiring, coupon_expiring, inactive_customer | **YES** — daily idempotency keys |
 
 ### 3.2 Frontend files involved
 
 | File | Lines | Role | Touched? |
 |---|---|---|---|
 | `frontend/src/pages/MessageStatusPage.jsx` | 537 | Dashboard | **YES — Phase 5 polish** |
-| `frontend/src/components/shared/WhatsAppAutomationContent.jsx` | 1832 | Automation event mapping page; contains legacy descriptions (`first_visit`, `feedback_received`, `inactive_reminder`) | **YES (small)** — drop dead description entries (see §6) |
-| `frontend/src/pages/DashboardPage.jsx` | — | Embeds MessageStatusContent on main dashboard | NO direct changes; benefits indirectly |
+| `frontend/src/components/shared/WhatsAppAutomationContent.jsx` | 1832 | Automation page; contains 3 legacy descriptions | **YES (small)** — dead-code drop (see §6.8) |
+| `frontend/src/pages/DashboardPage.jsx` | — | Embeds `MessageStatusContent` | NO direct changes |
 | `frontend/src/App.js` | — | Routes `/message-status` | NO |
 
-### 3.3 Current `whatsapp_message_logs` row shapes (two writers)
+### 3.3 Current `whatsapp_message_logs` row shapes (two writers — to be unified)
 
 **Path A** — `core/whatsapp.py::log_message_attempt` (event triggers):
 ```python
 {
-  "id": uuid,
-  "user_id", "customer_id", "customer_name", "customer_phone", "country_code",
+  "id": uuid, "user_id", "customer_id", "customer_name", "customer_phone", "country_code",
   "event_type", "template_id", "template_name", "campaign_id",
   "status": "pending"|"rejected",
-  "message_id": None,                # ← BUG: AuthKey returns LogID, never extracted
+  "message_id": None,                # ← BUG G1: AuthKey returns logid, never extracted
   "error", "body_values",
   "resend_count": 0,
   "status_history": [{status, timestamp, action:"initial_send"}],
@@ -117,12 +120,12 @@ Dashboard reads whatsapp_message_logs — never reads from AuthKey live
   "id": uuid, "user_id", "customer_id": None,
   "phone",                            # ← wrong field name (should be customer_phone)
   "event_type": "test", "template_id",
-  "status": "sent"|"failed",          # ← wrong values (should be pending|rejected)
+  "status": "sent"|"failed",          # ← values not in MESSAGE_STATUSES
   "message_id", "error", "body_values",
   "is_test": True,
   "created_at"
-                                       # ← missing: customer_name, country_code, template_name,
-                                       #            status_history, updated_at
+                                       # missing: customer_name, country_code, template_name,
+                                       #          status_history, updated_at
 }
 ```
 
@@ -132,28 +135,90 @@ Dashboard reads whatsapp_message_logs — never reads from AuthKey live
 |---|---|---|---|
 | `eventDescriptions["first_visit"]` | `WhatsAppAutomationContent.jsx:480` | Legacy — renamed to `welcome_message` in P3 | **DELETE** |
 | `eventDescriptions["feedback_received"]` | `WhatsAppAutomationContent.jsx:483` | Legacy — renamed to `feedback_request` in P3 | **DELETE** |
-| `eventDescriptions["inactive_reminder"]` | `WhatsAppAutomationContent.jsx:484` | Never existed in master list; closest match is new `inactive_customer` | **DELETE** |
-| Legacy descriptions block (lines 475-485) "Legacy descriptions" comment | Same file | Comment + dead keys | **REMOVE comment + dead keys** |
-| `send_bulk_messages` `message_id` packing (line 187) | `core/whatsapp.py` | Returns None because of G1; no live caller relies on it (no callsite invokes `send_bulk_messages` from production paths today — segment broadcast not built yet) | **Fix via G1 fix; no API change** |
+| `eventDescriptions["inactive_reminder"]` | `WhatsAppAutomationContent.jsx:484` | Never in master list | **DELETE** |
+| "Legacy descriptions" comment block | Same file, lines 475-485 | Old block boundary | Remove comment, promote still-active keys into `crmEventDescriptions` |
 
 ### 3.5 Collections involved
 
-| Collection | Existing? | This CR adds? |
+| Collection | Existing? | This CR action |
 |---|---|---|
 | `whatsapp_message_logs` | yes | new fields written; **no schema migration** |
 | `whatsapp_event_template_map` | yes | unchanged |
 | `whatsapp_template_variable_map` | yes | unchanged |
-| `whatsapp_callback_logs` | **no** | **NEW** — created on first write, no migration needed |
+| `whatsapp_callback_logs` | **no** | **NEW** — created on first write, no migration |
 
-### 3.6 Endpoints involved
+### 3.6 AuthKey webhook payload — **LOCKED schema** (post B1)
+
+Real sample captured 2026-05-28 15:48:23 IST (verbatim from owner-shared log):
+
+```json
+{
+  "logid":          "6eec3f25a3434aad924c3ccca2009580",
+  "mobile":         "919306459030",
+  "status":         "delivered",
+  "time":           "2026-05-28 15:48:22",
+  "channel":        "wp",
+  "meta_messageid": "wamid.HBgMOTE5MzA2NDU5MDMwFQIAERgSNkQzRUQ0RkI3RUEwM0M0Q0M2AA==",
+  "keypress":       null,
+  "button_param_value": "OTE2NTc3",
+  "1": "NEW SMART 101",
+  "2": "251.00",
+  "3": "The Craft Restaurant",
+  "4": "cash",
+  "5": "May 28, 2026",
+  "6": "0",
+  "7": "0"
+}
+```
+
+**Parser rules (locked):**
+
+| AuthKey field | Mapping | Notes |
+|---|---|---|
+| `logid` | `message_id` lookup key | Lowercase, no underscore. Primary join. |
+| `status` (lowercase) | Translation table below | Defensive fallback: unknown values → log, do not update |
+| `time` (no TZ) | Parse as `Asia/Kolkata`, convert to UTC ISO 8601 | Single field, dispatch by `status` (see below) |
+| `mobile` | Verification only: must equal `row.country_code + row.customer_phone` | If mismatch → set `mobile_mismatch=true`, still process |
+| `channel` | `channel` (new field; default `"wp"` on send) | Future-proofs SMS/voice |
+| `meta_messageid` | `meta_message_id` (new field, optional) | Meta WABA reconciliation aid |
+| `keypress` | `keypress` (new field, optional) | Future button interactivity (CR-012) |
+| `button_param_value` | `button_param_value` (new field, optional) | Future button payload (CR-012) |
+| `"1"`–`"7"` | Verification only against `row.body_values` | v1: log mismatch only, no enforcement |
+
+**Status translation (locked):**
+
+| AuthKey `status` (lowercase) | Our `status` | Timestamp field set from `time` |
+|---|---|---|
+| `sent` | `pending` | (none — pending has no dedicated timestamp; `created_at` already set) |
+| `delivered` | `delivered` | `delivered_at` |
+| `read` | `read` | `read_at` |
+| `failed` | `rejected` | `rejected_at` + `failure_reason="failed"` (overridable by payload.reason if present) |
+| `undelivered` | `rejected` | `rejected_at` + `failure_reason="undelivered"` |
+| `rejected` | `rejected` | `rejected_at` + `failure_reason="rejected"` |
+| anything else | (no update) | Log to `whatsapp_callback_logs` with `verdict="unknown_status"` |
+
+**Time parsing rule (locked):**
+
+```python
+# Webhook 'time' is local IST string "YYYY-MM-DD HH:MM:SS"
+# Always store time_raw (verbatim) for audit
+# Convert to UTC for derived timestamp fields
+from zoneinfo import ZoneInfo
+ist = ZoneInfo("Asia/Kolkata")
+ts_local = datetime.strptime(payload["time"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=ist)
+ts_utc_iso = ts_local.astimezone(timezone.utc).isoformat()
+# If parsing fails: fall back to webhook-received-at (now_utc), log warning, still set time_raw
+```
+
+### 3.7 Endpoints involved
 
 | Method | Path | Handler | Touched? |
 |---|---|---|---|
-| `POST` | `/api/whatsapp/status-callback` | `message_status_callback` | **REFACTOR** — raw log + state machine; field-name parser stubbed pending B1 |
+| `POST` | `/api/whatsapp/status-callback` | `message_status_callback` | **REFACTOR** — locked parser, state machine, raw audit log |
 | `POST` | `/api/whatsapp/test-template` | `send_test_message` | **REFACTOR** — call `log_message_attempt` (unify shape) |
-| `GET` | `/api/whatsapp/message-logs` | `get_message_logs` | **EXTEND** — `is_test` filter, name search, regex escape |
+| `GET` | `/api/whatsapp/message-logs` | `get_message_logs` | **EXTEND** — `is_test` filter, name search, regex escape, date range |
 | `GET` | `/api/whatsapp/message-stats` | `get_message_stats` | **EXTEND** — exclude `is_test=true` by default |
-| `GET` | `/api/whatsapp/message-filters` | `get_message_filters` | minor — dedupe templates by normalized key |
+| `GET` | `/api/whatsapp/message-filters` | `get_message_filters` | Minor — normalize template names for dedupe |
 | `POST` | `/api/whatsapp/resend` | `resend_messages` | **HARDEN** — guard pending<30min, fix phone field |
 
 ---
@@ -163,100 +228,121 @@ Dashboard reads whatsapp_message_logs — never reads from AuthKey live
 ```jsonc
 {
   // Identity & ownership
-  "id": "uuid-v4",                       // our PK
-  "user_id": "string",                   // tenant
-  "is_test": false,                       // true only for /test-template sends
+  "id":              "uuid-v4",               // our PK
+  "user_id":         "string",                // tenant
+  "is_test":         false,                    // true only for /test-template sends
 
-  // Reference back to triggering object (NEW)
-  "event_type": "send_bill",
-  "reference_type": "order" | "coupon" | "feedback" | "wallet_tx" | "points_tx" | "customer" | null,
-  "reference_id": "869305",              // e.g. POS order_id, coupon_id, feedback_id
-  "pos_order_id": "869305",              // duplicated for fast filter when event is POS-driven; null otherwise
-  "idempotency_key": "869305_send_bill", // unique per (user_id, idempotency_key); prevents double-fires
+  // Reference back to triggering object
+  "event_type":      "send_bill",
+  "reference_type":  "order" | "coupon" | "feedback" | "wallet_tx" | "points_tx" | "customer" | null,
+  "reference_id":    "869305",                // POS order_id / coupon_id / feedback_id / etc.
+  "pos_order_id":    "869305",                // duplicated for fast filter on POS events
+  "idempotency_key": "869305_send_bill",      // unique per (user_id, idempotency_key); null for reset_password
 
   // Recipient
-  "customer_id": "uuid-or-null",
-  "customer_name": "abhishek jain",
-  "customer_phone": "7505242126",        // digits only, no spaces/dashes
-  "country_code": "91",                  // digits only, no +
+  "customer_id":     "uuid-or-null",
+  "customer_name":   "abhishek jain",
+  "customer_phone":  "7505242126",            // digits only
+  "country_code":    "91",                    // digits only
 
   // Template
-  "template_id": "26508",                // AuthKey wid
-  "template_name": "send_bill_to_customer",
-  "campaign_id": null,                   // populated only for segment broadcasts
+  "template_id":     "26508",                 // AuthKey wid
+  "template_name":   "send_bill_to_customer",
+  "campaign_id":     null,                    // only for segment broadcasts
 
   // What was sent
-  "body_values": {"1": "abhishek jain", "2": "Rs.775", "3": "your order", "4": "counter", "5": "Kunafa Mahal"},
-  "message_body_text": "Hi abhishek jain, your order at Kunafa Mahal is ready ...", // rendered from template + body_values
-  "media_url": null,
-  "media_filename": null,
+  "body_values":     {"1": "...", "2": "...", ...},
+  "message_body_text": "Rendered template text" | null,   // null if template body unknown (no fallback)
+  "media_url":       null,
+  "media_filename":  null,
+  "channel":         "wp",                    // wp | sms | voice — default "wp" at send
 
-  // AuthKey send-time response (NEW — full capture)
-  "message_id": "28bf7375bb54540ba03a4eb873d4da44",  // ← AuthKey LogID; primary join key for webhook
-  "authkey_http_status": 200,
-  "authkey_raw_response": {"LogID": "...", "Message": "Submitted Successfully"},
+  // AuthKey send-time response (captured fully)
+  "message_id":              "6eec3f25...",   // = AuthKey logid (primary join key for webhook)
+  "authkey_http_status":     200,
+  "authkey_raw_response":    {"logid": "...", "Message": "Submitted Successfully"},
+
+  // AuthKey webhook-derived fields (populated AFTER webhook arrives)
+  "meta_message_id":         null,            // wamid.xxx== from webhook
+  "keypress":                null,            // button click response (future)
+  "button_param_value":      null,            // button payload (future)
+  "time_raw":                null,            // verbatim "time" string from latest webhook (audit)
+  "mobile_mismatch":         false,           // true if webhook.mobile != country_code+phone
 
   // Lifecycle
-  "status": "pending",                    // pending | delivered | read | rejected
-  "delivered_at": null,                   // ISO; promoted from webhook
-  "read_at": null,                        // ISO; promoted from webhook
-  "rejected_at": null,                    // ISO; on failure (either at send time or carrier rejection)
-  "failure_reason": null,                 // human-readable; promoted from webhook
-  "error": null,                          // initial send error (only for status=rejected pre-webhook)
-  "resend_count": 0,
-  "last_resend_at": null,
+  "status":          "pending",                // pending | delivered | read | rejected
+  "delivered_at":    null,                     // ISO UTC; from webhook (status=delivered)
+  "read_at":         null,                     // ISO UTC; from webhook (status=read)
+  "rejected_at":     null,                     // ISO UTC; send-time or carrier failure
+  "failure_reason":  null,                     // "failed" | "undelivered" | "rejected" | initial-send error
+  "error":           null,                     // send-time error string (only when initial status=rejected)
+  "resend_count":    0,
+  "last_resend_at":  null,
 
   // Audit
   "status_history": [
     {"status": "pending", "timestamp": "2026-05-28T09:00:00+00:00", "action": "initial_send"}
   ],
-  "created_at": "2026-05-28T09:00:00+00:00",
-  "updated_at": "2026-05-28T09:00:00+00:00"
+  "created_at":      "2026-05-28T09:00:00+00:00",
+  "updated_at":      "2026-05-28T09:00:00+00:00"
 }
 ```
 
 ### Field changes vs current
-- **NEW**: `is_test`, `reference_type`, `reference_id`, `pos_order_id`, `idempotency_key`, `message_body_text`, `media_url`, `media_filename`, `authkey_http_status`, `authkey_raw_response`, `delivered_at`, `read_at`, `rejected_at`, `failure_reason`, `last_resend_at`.
-- **FIXED**: `message_id` actually populated (from `LogID`).
-- **PATH B NORMALIZED**: `phone` → `customer_phone`, `status` values aligned, missing fields added.
-- **NO MIGRATION**: existing rows keep their old shape — readers must tolerate missing new fields.
 
-### Indexes to create (Mongo) — additive only
+- **NEW (send-time)**: `is_test`, `reference_type`, `reference_id`, `pos_order_id`, `idempotency_key`, `message_body_text`, `media_url`, `media_filename`, `channel`, `authkey_http_status`, `authkey_raw_response`.
+- **NEW (webhook-time, all post B1)**: `meta_message_id`, `keypress`, `button_param_value`, `time_raw`, `mobile_mismatch`, `delivered_at`, `read_at`, `rejected_at`, `failure_reason`, `last_resend_at`.
+- **FIXED**: `message_id` actually populated from `logid`.
+- **PATH B NORMALIZED**: `phone` → `customer_phone`, status values aligned, missing fields added.
+- **NO MIGRATION**: existing rows keep their old shape; readers tolerate missing new fields (default `null` / `false`).
+
+### Indexes to create (Mongo, additive, all sparse)
+
+In `server.py` lifespan startup:
+
 ```python
-await db.whatsapp_message_logs.create_index([("user_id", 1), ("created_at", -1)], name="idx_user_created")
-await db.whatsapp_message_logs.create_index([("user_id", 1), ("status", 1)], name="idx_user_status")
-await db.whatsapp_message_logs.create_index("message_id", sparse=True, name="idx_message_id")  # webhook lookup
-await db.whatsapp_message_logs.create_index([("user_id", 1), ("idempotency_key", 1)], unique=True, sparse=True, name="idx_user_idem")
-await db.whatsapp_callback_logs.create_index([("received_at", -1)], name="idx_cb_received")
-await db.whatsapp_callback_logs.create_index([("log_id", 1)], sparse=True, name="idx_cb_logid")
+await db.whatsapp_message_logs.create_index([("user_id", 1), ("created_at", -1)], name="idx_wml_user_created")
+await db.whatsapp_message_logs.create_index([("user_id", 1), ("status", 1)],       name="idx_wml_user_status")
+await db.whatsapp_message_logs.create_index("message_id", sparse=True,              name="idx_wml_message_id")
+await db.whatsapp_message_logs.create_index(
+    [("user_id", 1), ("idempotency_key", 1)], unique=True, sparse=True,             name="idx_wml_user_idem"
+)
+await db.whatsapp_callback_logs.create_index([("received_at", -1)],                 name="idx_wcl_received")
+await db.whatsapp_callback_logs.create_index("logid", sparse=True,                  name="idx_wcl_logid")
 ```
-- All `sparse=True` so existing rows without the field don't violate `unique`.
-- Created in `server.py` lifespan `startup`, similar to existing index creation pattern (see `server.py:25-44`).
 
 ---
 
-## 5. State machine (Phase 3 skeleton)
+## 5. State machine (locked)
+
+Pure function `core/whatsapp_status.next_status(current, event) -> Optional[str]`:
 
 ```
-INITIAL: (none)
-   └─ initial_send →
-        success      → pending
-        failure      → rejected (terminal)
+INITIAL: None
+   └─ "initial_send_success" → pending
+   └─ "initial_send_failure" → rejected
 
 pending
-   ├─ delivered  → delivered
-   ├─ read       → read (terminal)
-   └─ rejected   → rejected (terminal)
+   ├─ delivered → delivered
+   ├─ read      → read
+   ├─ rejected  → rejected
 
 delivered
-   ├─ read       → read (terminal)
-   └─ rejected   → rejected (terminal — late carrier failure rare)
+   ├─ read      → read
+   ├─ rejected  → rejected  (rare late carrier failure)
+   ├─ delivered → (no-op, dedupe)
 
-read       → terminal (no transitions)
-rejected   → terminal (only via resend, which creates a new attempt entry; status not reverted)
+read
+   ├─ delivered → (no-op, log to history, no status change)  [Q5 decision]
+   ├─ read      → (no-op, dedupe)
+   ├─ <anything else> → (no-op, log warning)
+
+rejected
+   └─ <anything> → (no-op; rejected is terminal except via /resend, which writes a new attempt to history)
 ```
 
-Implementation: pure function `next_status(current, event) -> Optional[str]` in `core/whatsapp_status.py` (new file). Returns `None` for invalid transitions; webhook drops invalid events with a warning log. Unit-testable in isolation.
+- Returns `None` for invalid transitions → caller logs warning, **still appends to `status_history`** for audit but does not `$set` the `status` field.
+- Pure function, no DB, unit-testable.
 
 ---
 
@@ -264,196 +350,354 @@ Implementation: pure function `next_status(current, event) -> Optional[str]` in 
 
 ### 6.1 `backend/core/whatsapp.py` (primary refactor)
 
-**Edits:**
-
-| Region | Lines (current) | Change |
+| Region | Lines | Change |
 |---|---|---|
-| `SendResult` dataclass | 30-37 | Add fields: `http_status: Optional[int]`, `raw_response: Optional[Dict]` |
-| `send_single_message` — message_id extraction | 114 | Accept `LogID` and `log_id` in addition to `message_id`/`msgid` |
-| `send_single_message` — return both branches | 109-125 | Populate `http_status=response.status_code`, `raw_response=response_data` on both success and failure |
-| `send_bulk_messages` result packing | 184-189 | Add `http_status`, `raw_response` to each per-message dict (now possible) |
-| `log_message_attempt` signature | 389-402 | Add params: `reference_id`, `reference_type`, `pos_order_id`, `idempotency_key`, `is_test=False`, `media_url`, `media_filename`, `message_body_text` |
-| `log_message_attempt` body | 411-438 | Build new row shape (§4). Use `db.whatsapp_message_logs.insert_one` with try/except for duplicate key on `idempotency_key` — if duplicate, log warning and skip (POS retry case). Return None or the existing row. |
-| `trigger_whatsapp_event` | 442-576 | Wrap whole function so a try/except around steps 1–4 still calls `log_message_attempt` with `status="rejected"` and `error=<exception>`. Compute `message_body_text` after `build_body_values`. Derive `reference_id`/`reference_type`/`pos_order_id`/`idempotency_key` from `event_data`. |
-| New helper | (new) | `render_template_body(template_text, body_values) -> str` — fetches stored template body from `whatsapp_event_template_map` (or AuthKey template cache) and substitutes `{{1}}, {{2}}...`. If template body unknown, fall back to JSON of body_values. |
+| `SendResult` dataclass | 30-37 | Add `http_status: Optional[int]`, `raw_response: Optional[Dict]` |
+| `send_single_message` — id extraction | 114 | `message_id = response_data.get("logid") or response_data.get("LogID") or response_data.get("log_id") or response_data.get("message_id") or response_data.get("msgid")` — **`logid` lowercase first (matches AuthKey real response)** |
+| `send_single_message` — return both branches | 109-125 | Populate `http_status=response.status_code`, `raw_response=response_data` on success AND failure paths |
+| `send_bulk_messages` result packing | 184-189 | Add `http_status`, `raw_response` to each per-message dict |
+| `log_message_attempt` signature | 389-402 | Add params: `reference_id`, `reference_type`, `pos_order_id`, `idempotency_key`, `is_test=False`, `media_url`, `media_filename`, `message_body_text`, `channel="wp"` |
+| `log_message_attempt` body | 411-438 | Build new row shape (§4). Wrap `db.whatsapp_message_logs.insert_one` in try/except for `DuplicateKeyError` on `idempotency_key` — if duplicate, log INFO ("idempotency hit, skipping duplicate") and return existing row. |
+| `trigger_whatsapp_event` | 442-576 | Wrap steps 1–4 in try/except so failure-before-send still calls `log_message_attempt` with `status="rejected"`, `error=<exception_message>`, `rejected_at=now_utc`. Compute `message_body_text` after `build_body_values`. Derive `reference_id`/`reference_type`/`pos_order_id`/`idempotency_key` from `event_data` (with sensible defaults). |
+| New helper | (new, near bottom) | `render_template_body(db, user_id, template_id, body_values) -> Optional[str]` — fetches stored template body from `whatsapp_event_template_map.template_body` (if exists); substitutes `{{N}}` placeholders; returns rendered string or `None` (no fallback per §1.5 Q3) |
 
-**Dead code dropped:** none (all current helpers reused).
+### 6.2 `backend/core/whatsapp_status.py` — **NEW FILE**
 
-### 6.2 `backend/core/whatsapp_status.py` — NEW FILE
+Pure helpers, no DB. ~40 lines.
 
-Pure state-machine helpers, no DB:
 ```python
-ALLOWED = {
+"""WhatsApp message status state machine. Pure functions, no IO."""
+
+ALLOWED_TRANSITIONS = {
     None:        {"initial_send_success": "pending",
                   "initial_send_failure": "rejected"},
     "pending":   {"delivered": "delivered", "read": "read", "rejected": "rejected"},
     "delivered": {"read": "read", "rejected": "rejected"},
-    "read":      {},
-    "rejected":  {},
+    "read":      {},   # terminal; out-of-order delivered ignored (Q5 decision)
+    "rejected":  {},   # terminal
 }
-def next_status(current, event): ...
-def is_terminal(status): ...
+
+TERMINAL_STATUSES = {"read", "rejected"}
+
+def next_status(current, event):
+    """Return new status or None if transition not allowed (no-op signal)."""
+    return ALLOWED_TRANSITIONS.get(current, {}).get(event)
+
+def is_terminal(status):
+    return status in TERMINAL_STATUSES
 ```
-Unit test file: `backend/tests/test_whatsapp_status_machine.py`.
+
+Unit tests: `backend/tests/test_whatsapp_status_machine.py` (~12 cases).
 
 ### 6.3 `backend/routers/whatsapp.py`
 
-**Edits:**
-
-| Endpoint | Lines (current) | Change |
+| Endpoint | Lines | Change |
 |---|---|---|
-| `MESSAGE_STATUSES` | 17 | Unchanged. |
-| `send_test_message` | 656-740 | Replace inline `db.whatsapp_message_logs.insert_one` (line 726) with call to `log_message_attempt(... is_test=True, event_type="test", reference_type=None)`. Phone field becomes `customer_phone`. Status values now `pending`/`rejected`. |
-| `get_message_stats` | 747-786 | Add default `exclude_test=True` query param; query filters `is_test: {"$ne": True}` unless explicitly set false. |
-| `get_message_logs` | 789-836 | Add `is_test` filter param (default exclude); extend search to `$or: [{customer_phone: regex}, {customer_name: regex}]` with `re.escape`; document field via docstring. |
-| `get_message_filters` | 839-896 | Normalize template names (`.strip().lower()`) before adding to set to dedupe casing variants. |
-| `message_status_callback` | 899-956 | **REFACTOR**:<br>1. Read raw body, insert into `whatsapp_callback_logs` (always, before parsing).<br>2. Defensive key extraction: `log_id = payload.get("LogID") or payload.get("log_id") or payload.get("message_id") or payload.get("msgId")`.<br>3. Defensive status extraction: `raw_status = (payload.get("status") or payload.get("Status") or "").lower()`.<br>4. Map via existing `status_map` (extended with any future enums).<br>5. Lookup current row by `message_id=log_id` AND `user_id` unconstrained (webhook is unauth).<br>6. Use `next_status(current, mapped)` — if `None` (invalid transition), log warn, no update.<br>7. `$set` `status`, `updated_at`, AND dedicated timestamp field (`delivered_at`, `read_at`, `rejected_at`) parsed from payload if present (placeholder fields: `delivered_at`/`deliveredAt`/`delivery_time`, etc. — to be finalized post B1).<br>8. `$set` `failure_reason` if applicable.<br>9. `$push` to `status_history` with raw payload.<br>10. HMAC verification stub: `if AUTHKEY_WEBHOOK_SECRET: verify(request, secret)` — falls through if env var unset. |
-| `resend_messages` | 963-1051 | Guard: skip rows where `status="pending"` AND `created_at > now - 30min` AND `len(status_history) == 1` (in-flight). Return `{skipped: [...]}` for those. Continue to use `customer_phone` (now correctly populated post G11). |
+| `send_test_message` | 656-740 | Replace inline `db.whatsapp_message_logs.insert_one` (line 726) with `log_message_attempt(... is_test=True, event_type="test", reference_type=None, channel="wp")`. Field becomes `customer_phone` not `phone`. Status `pending`/`rejected`. |
+| `get_message_stats` | 747-786 | Add query param `include_test: bool = False`. When false, query adds `"is_test": {"$ne": True}`. |
+| `get_message_logs` | 789-836 | Add params `include_test=False`, `date_from`, `date_to`. Search becomes `$or: [{customer_phone: {$regex: re.escape(search), $options: "i"}}, {customer_name: {$regex: re.escape(search), $options: "i"}}]`. |
+| `get_message_filters` | 839-896 | Normalize template names (`.strip().lower()`) into a `seen` set; preserve original case in output. |
+| `message_status_callback` | 899-956 | **FULL REWRITE** per §6.3.1 below |
+| `resend_messages` | 963-1051 | Guard: if `msg.status == "pending"` and `now - msg.created_at < 30min` and `len(msg.status_history) <= 1`, skip with `{id, success: False, error: "in_flight_grace_period"}`. Continue to read `customer_phone` (now correctly populated post G11). |
+
+#### 6.3.1 `message_status_callback` — full rewrite contract
+
+```python
+@router.post("/status-callback")
+async def message_status_callback(request: Request):
+    """
+    AuthKey delivery-report webhook. Public endpoint.
+    Locked payload schema per CR-004 P3.5 §3.6.
+    """
+    received_at = datetime.now(timezone.utc).isoformat()
+    
+    # 1. Capture raw body FIRST — always, before any parsing
+    raw_bytes = await request.body()
+    try:
+        payload = json.loads(raw_bytes) if raw_bytes else {}
+    except Exception:
+        payload = {}
+    
+    callback_log = {
+        "id": str(uuid.uuid4()),
+        "received_at": received_at,
+        "headers": dict(request.headers),
+        "raw_body": raw_bytes.decode("utf-8", errors="replace"),
+        "parsed": payload if isinstance(payload, dict) else None,
+        "logid": payload.get("logid") if isinstance(payload, dict) else None,
+        "verdict": "pending",   # updated below
+        "verdict_reason": None,
+    }
+    
+    # 2. HMAC verification (B2 — dormant until secret in env)
+    secret = os.environ.get("AUTHKEY_WEBHOOK_SECRET")
+    if secret:
+        if not verify_hmac(request.headers, raw_bytes, secret):
+            callback_log["verdict"] = "rejected_signature"
+            await db.whatsapp_callback_logs.insert_one(callback_log)
+            raise HTTPException(401, "Invalid signature")
+    
+    # 3. Defensive id extraction (logid is canonical; others kept for safety)
+    logid = (
+        payload.get("logid") or payload.get("LogID")
+        or payload.get("log_id") or payload.get("message_id") or payload.get("msgId")
+    )
+    if not logid:
+        callback_log["verdict"] = "rejected_no_logid"
+        await db.whatsapp_callback_logs.insert_one(callback_log)
+        return {"success": False, "error": "logid required"}
+    
+    # 4. Status translation
+    raw_status = (payload.get("status") or "").lower()
+    status_map = {
+        "sent": "pending",
+        "delivered": "delivered",
+        "read": "read",
+        "failed": "rejected",
+        "undelivered": "rejected",
+        "rejected": "rejected",
+    }
+    mapped_status = status_map.get(raw_status)
+    if not mapped_status:
+        callback_log["verdict"] = "unknown_status"
+        callback_log["verdict_reason"] = f"status={raw_status!r}"
+        await db.whatsapp_callback_logs.insert_one(callback_log)
+        return {"success": False, "error": f"unknown status: {raw_status}"}
+    
+    # 5. Time parsing (IST → UTC)
+    time_raw = payload.get("time")
+    try:
+        ts_local = datetime.strptime(time_raw, "%Y-%m-%d %H:%M:%S").replace(tzinfo=ZoneInfo("Asia/Kolkata"))
+        ts_utc_iso = ts_local.astimezone(timezone.utc).isoformat()
+    except Exception:
+        ts_utc_iso = received_at
+        logger.warning(f"webhook time parse failed: {time_raw!r}, falling back to received_at")
+    
+    # 6. Lookup row
+    row = await db.whatsapp_message_logs.find_one({"message_id": logid}, {"_id": 0})
+    if not row:
+        callback_log["verdict"] = "no_matching_row"
+        await db.whatsapp_callback_logs.insert_one(callback_log)
+        return {"success": True, "logid": logid, "updated": False}
+    
+    # 7. State machine
+    new_status = next_status(row.get("status"), mapped_status)
+    
+    # 8. Recipient sanity check
+    webhook_mobile = payload.get("mobile") or ""
+    expected_mobile = f"{row.get('country_code', '')}{row.get('customer_phone', '')}"
+    mobile_mismatch = bool(webhook_mobile and webhook_mobile != expected_mobile)
+    
+    # 9. Build update
+    set_fields = {"updated_at": received_at, "time_raw": time_raw}
+    if payload.get("meta_messageid"):
+        set_fields["meta_message_id"] = payload["meta_messageid"]
+    if payload.get("keypress") is not None:
+        set_fields["keypress"] = payload["keypress"]
+    if payload.get("button_param_value"):
+        set_fields["button_param_value"] = payload["button_param_value"]
+    if payload.get("channel"):
+        set_fields["channel"] = payload["channel"]
+    if mobile_mismatch:
+        set_fields["mobile_mismatch"] = True
+    
+    # Dispatch time to status-specific timestamp field
+    if mapped_status == "delivered":
+        set_fields["delivered_at"] = ts_utc_iso
+    elif mapped_status == "read":
+        set_fields["read_at"] = ts_utc_iso
+    elif mapped_status == "rejected":
+        set_fields["rejected_at"] = ts_utc_iso
+        set_fields["failure_reason"] = payload.get("reason") or raw_status
+    
+    # 10. Apply status only if transition is valid
+    if new_status:
+        set_fields["status"] = new_status
+        callback_log["verdict"] = "applied"
+    else:
+        callback_log["verdict"] = "transition_ignored"
+        callback_log["verdict_reason"] = f"{row.get('status')!r} → {mapped_status!r} not allowed"
+    
+    # 11. Always push history entry (even for ignored transitions — audit)
+    history_entry = {
+        "status": mapped_status,
+        "timestamp": ts_utc_iso,
+        "received_at": received_at,
+        "action": "webhook",
+        "applied": bool(new_status),
+        "raw_payload": payload,
+    }
+    
+    await db.whatsapp_message_logs.update_one(
+        {"id": row["id"]},
+        {"$set": set_fields, "$push": {"status_history": history_entry}},
+    )
+    
+    await db.whatsapp_callback_logs.insert_one(callback_log)
+    
+    return {
+        "success": True,
+        "logid": logid,
+        "status": new_status or row.get("status"),
+        "applied": bool(new_status),
+    }
+```
 
 ### 6.4 `backend/server.py`
 
-Add new index creations to lifespan startup (§4). One block, ~6 lines.
+Add 6 index creations to lifespan startup (§4 — Indexes block). Place after existing index creation block at lines 25-44.
 
-### 6.5 Callsite updates (event triggers — pass new context)
+### 6.5 Callsite enrichment — event-data extensions
 
-**Pattern**: every callsite already passes `event_data` dict; we add `idempotency_key` (and `reference_type`, `reference_id` where useful) inside that dict. `trigger_whatsapp_event` extracts them. **No signature change to `trigger_whatsapp_event`** — backward compatible.
+**Pattern**: every callsite already passes `event_data` dict; we add `idempotency_key`, `reference_type`, `reference_id` inside that dict. `trigger_whatsapp_event` extracts them. **No signature change** — fully backward-compatible.
 
-| File | Callsite | event_data key added |
+| File | Callsite | Keys added to event_data |
 |---|---|---|
-| `routers/pos.py:1462` `send_bill` | `idempotency_key=f"{pos_order_id}_send_bill"`, `reference_type="order"`, `reference_id=order_id` (already has `pos_order_id`) |
-| `routers/pos.py:1477` `welcome_message` | `idempotency_key=f"{customer_id}_welcome"`, `reference_type="customer"`, `reference_id=customer_id` |
-| `routers/pos.py:1489` `tier_upgrade` | `idempotency_key=f"{customer_id}_tier_{new_tier}"` |
-| `routers/pos.py:2174` POS event gateway | `idempotency_key=f"{event_data.order_id}_{internal_event}"`, `reference_type="order"`, `reference_id=event_data.order_id` |
-| `routers/coupons.py:258` `coupon_earned` | `idempotency_key=f"{coupon_code}_{customer_id}_coupon_earned"`, `reference_type="coupon"`, `reference_id=coupon["id"]` |
-| `routers/wallet.py:55,65` `wallet_credit/debit` | `idempotency_key=f"{transaction_id}_{event}"`, `reference_type="wallet_tx"`, `reference_id=tx_doc.id` |
-| `routers/points.py:133,143` `bonus_points`, `tier_upgrade` | `idempotency_key=f"{tx_doc.id}_bonus_points"` / `f"{customer_id}_tier_{new_tier}"` |
-| `routers/auth.py:515` `reset_password` | `idempotency_key=f"{customer_phone}_otp_{otp}"` (OTP is unique per request) |
-| `services/feedback_service.py:59` `feedback_request` | `idempotency_key=feedback_id`, `reference_type="feedback"`, `reference_id=feedback_id` |
-| `core/loyalty.py:456` | `idempotency_key=f"{customer_id}_points_earned_{points}"` |
-| `core/loyalty_jobs.py` (5 cron sites) | `idempotency_key=f"{customer_id}_{today_iso_date}_{event_type}"` — **prevents double-fire if cron runs twice on the same day** |
+| `routers/pos.py:1462` (`send_bill`) | `idempotency_key=f"{order_data.order_id}_send_bill"`, `reference_type="order"`, `reference_id=order_id` |
+| `routers/pos.py:1477` (`welcome_message`) | `idempotency_key=f"{customer['id']}_welcome"`, `reference_type="customer"`, `reference_id=customer['id']` |
+| `routers/pos.py:1489` (`tier_upgrade`) | `idempotency_key=f"{customer['id']}_tier_{new_tier}"`, `reference_type="customer"`, `reference_id=customer['id']` |
+| `routers/pos.py:2174` (POS event gateway) | `idempotency_key=f"{event_data.order_id}_{internal_event}"`, `reference_type="order"`, `reference_id=event_data.order_id` |
+| `routers/coupons.py:258` (`coupon_earned`) | `idempotency_key=f"{code.upper()}_{customer['id']}_coupon_earned"`, `reference_type="coupon"`, `reference_id=coupon["id"]` |
+| `routers/coupons.py:271` (`points_earned` follow-up) | `idempotency_key=f"{code.upper()}_{customer['id']}_pts"`, `reference_type="coupon"`, `reference_id=coupon["id"]` |
+| `routers/wallet.py:55,65` (`wallet_credit`/`debit`) | `idempotency_key=f"{tx_doc['id']}_{event}"`, `reference_type="wallet_tx"`, `reference_id=tx_doc["id"]` |
+| `routers/wallet.py:60,70` (follow-up `points_earned`) | `idempotency_key=f"{tx_doc['id']}_pts"`, `reference_type="wallet_tx"`, `reference_id=tx_doc["id"]` |
+| `routers/points.py:133` (`bonus_points`) | `idempotency_key=f"{tx_doc['id']}_bonus"`, `reference_type="points_tx"`, `reference_id=tx_doc["id"]` |
+| `routers/points.py:137` (follow-up `points_earned`) | `idempotency_key=f"{tx_doc['id']}_pts"`, `reference_type="points_tx"`, `reference_id=tx_doc["id"]` |
+| `routers/points.py:143` (`tier_upgrade`) | `idempotency_key=f"{customer['id']}_tier_{new_tier}"`, `reference_type="customer"`, `reference_id=customer['id']` |
+| `routers/auth.py:515` (`reset_password`) | **NO `idempotency_key`** (locked decision §1.5 Q1). Pass `reference_type="customer"`, `reference_id=customer.get("id")` only. |
+| `services/feedback_service.py:59` (`feedback_request`) | `idempotency_key=feedback_id`, `reference_type="feedback"`, `reference_id=feedback_id` |
+| `core/loyalty.py:456` | `idempotency_key=f"{customer['id']}_pts_{tx_id or 'auto'}"`, `reference_type="points_tx"`, `reference_id=tx_id` |
+| `core/loyalty_jobs.py:105` (birthday cron) | `idempotency_key=f"{customer['id']}_{today_iso}_birthday"`, `reference_type="customer"`, `reference_id=customer['id']` |
+| `core/loyalty_jobs.py:205` (anniversary cron) | `idempotency_key=f"{customer['id']}_{today_iso}_anniversary"`, similar |
+| `core/loyalty_jobs.py:288` (points_expiring) | `idempotency_key=f"{customer['id']}_{today_iso}_points_expiring"`, similar |
+| `core/loyalty_jobs.py:418` (coupon_expiring) | `idempotency_key=f"{customer['id']}_{coupon['id']}_{today_iso}_coupon_expiring"`, `reference_type="coupon"`, `reference_id=coupon['id']` |
+| `core/loyalty_jobs.py:457` (inactive_customer) | `idempotency_key=f"{customer['id']}_{today_iso}_inactive"`, `reference_type="customer"`, `reference_id=customer['id']` |
 
-All changes are additive (extra keys in dict). If `idempotency_key` is absent, the unique index allows the row through (sparse).
+> `today_iso` is computed at the top of each cron job: `today_iso = datetime.now(timezone.utc).date().isoformat()`.
 
-### 6.6 `backend/routers/whatsapp.py` — `trigger_points_earned_event` callsites
+### 6.6 `trigger_points_earned_event` (no change)
 
-`trigger_points_earned_event` is a thin wrapper around `trigger_whatsapp_event` — no signature change needed; downstream `trigger_whatsapp_event` already picks up the event_data dict.
+Thin wrapper around `trigger_whatsapp_event` — picks up event_data keys naturally. No changes needed in the wrapper itself; only its 2 callers (`wallet.py:60,70` and `points.py:137`) already updated in §6.5.
 
 ### 6.7 Frontend — `MessageStatusPage.jsx`
 
 | Region | Change |
 |---|---|
-| `filters` state init | Add `is_test: false` (default off), `date_from: null`, `date_to: null` |
-| Stats fetch | Pass `exclude_test=true` unless toggle on |
-| Logs fetch | Append `is_test`, `date_from`, `date_to` to URLSearchParams |
-| Filter bar | Add "Show test sends" toggle (Switch component); add a date-range picker (use existing `react-day-picker` already in deps) |
-| Search | Already wired; backend now searches name + phone — no FE change |
-| Table row | Add a small grey badge `TEST` when `log.is_test`; add second line under Status showing `delivered_at` and `read_at` (formatted relative) when present |
-| Resend button | If `log.status === "pending"` AND `Date.now() - new Date(log.created_at) < 30*60*1000` AND `log.status_history.length <= 1`, disable with tooltip "Waiting for delivery report (auto-updates)" |
-| Stats cards | Split Failed into two: "Rejected" (AuthKey refused) vs "Undelivered" (handset failed). Backend distinguishes via `failure_reason` presence; until B1 confirms, both show under "Failed" unified card — UI is ready for the split. |
+| `filters` state init (line 81) | Add `include_test: false`, `date_from: null`, `date_to: null` |
+| Stats fetch (line 99) | Pass `include_test` query param |
+| Logs fetch (line 119) | Append `include_test`, `date_from`, `date_to` to URLSearchParams |
+| Filter bar (lines 256-325) | Add "Show test sends" Switch + date-range picker (use `react-day-picker` already in deps) |
+| Table row (lines 386-425) | Add `TEST` badge when `log.is_test`; add second-line subtext under Status showing relative `delivered_at` / `read_at` when present |
+| Resend button (lines 411-422) | Disable when `log.status === "pending"` AND `(Date.now() - new Date(log.created_at).getTime()) < 30*60*1000` AND `(log.status_history?.length ?? 1) <= 1`; tooltip "Waiting for delivery report" |
+| Stats cards (lines 247-253) | Keep current 5 cards. Failed-split deferred (needs `failure_reason` data first; UI stays single "Failed" for v1). |
 
 ### 6.8 Frontend — `WhatsAppAutomationContent.jsx` dead-code cleanup
 
-Lines 475-485 — delete:
+Lines 471-486 — refactor:
+
 ```js
-// Legacy descriptions
-"points_redeemed": ..., // KEEP — still active, just move into crmEventDescriptions
-"bonus_points": ..., // KEEP — move into crmEventDescriptions
-"wallet_credit": ..., // KEEP — move into crmEventDescriptions
-"wallet_debit": ..., // KEEP — move into crmEventDescriptions
-"first_visit": ..., // DELETE
-"tier_upgrade": ..., // KEEP — move into crmEventDescriptions
-"coupon_earned": ..., // KEEP — move into crmEventDescriptions
-"feedback_received": ..., // DELETE
-"inactive_reminder": ..., // DELETE
-"send_bill": ... // KEEP — move into crmEventDescriptions
+// BEFORE: 11 keys including 3 dead (first_visit, feedback_received, inactive_reminder)
+// AFTER: 8 active keys all promoted into crmEventDescriptions block (lines 461-469)
+//        which is then spread into eventDescriptions via {...crmEventDescriptions}
 ```
-Net result: 3 dead keys deleted, others promoted to `crmEventDescriptions` (where they belong), single source of descriptions.
+
+Specifically:
+- **DELETE** `"first_visit"`, `"feedback_received"`, `"inactive_reminder"` entries entirely.
+- **MOVE** `"points_redeemed"`, `"bonus_points"`, `"wallet_credit"`, `"wallet_debit"`, `"tier_upgrade"`, `"coupon_earned"`, `"send_bill"` into `crmEventDescriptions` (lines 461-469).
+- **DELETE** the `// Legacy descriptions` comment.
+- After cleanup `eventDescriptions` collapses to `{...posEventDescriptions, ...crmEventDescriptions}` — single source.
 
 ---
 
-## 7. Test plan (per phase)
+## 7. Test plan
 
-### 7.1 Unit tests (new)
+### 7.1 Unit tests (NEW)
 
-| File | What it asserts |
+| File | Asserts |
 |---|---|
-| `backend/tests/test_whatsapp_status_machine.py` | `next_status(None, "initial_send_success") == "pending"`; pending→read direct allowed; rejected→delivered returns None; etc. ~12 cases. |
-| `backend/tests/test_log_message_attempt.py` | Given a mocked SendResult with `LogID`, the row written has `message_id=<LogID>`; idempotency duplicate raises `DuplicateKeyError` and is handled. |
-| `backend/tests/test_whatsapp_callback.py` | Raw body is always written to `whatsapp_callback_logs`; defensive key parser handles `{"LogID":"..."}`, `{"message_id":"..."}`, missing keys; invalid transition does not update. |
+| `backend/tests/test_whatsapp_status_machine.py` | All allowed transitions; rejected→delivered returns None; out-of-order (read→delivered) returns None; initial_send_success from None → pending; initial_send_failure from None → rejected; terminals are terminal. ~12 cases. |
+| `backend/tests/test_log_message_attempt.py` | Given mocked `SendResult(message_id="LOGID123")`, row has `message_id="LOGID123"`. Duplicate `idempotency_key` raises `DuplicateKeyError`, handled, no second row. `is_test=True` flag set when passed. Failed result writes `status=rejected` with `rejected_at` populated. |
+| `backend/tests/test_whatsapp_callback.py` | Real-sample payload (§3.6) → row `status: pending` with `message_id=<logid>` becomes `delivered`, `delivered_at` set, `meta_message_id` captured, `keypress`/`button_param_value` populated, `time_raw` preserved. Unknown status → no row update, callback log `verdict="unknown_status"`. Missing logid → 200 with `{success: false, error: "logid required"}`, callback log `verdict="rejected_no_logid"`. Out-of-order `delivered` after `read` → status stays `read`, history entry pushed with `applied: false`. Mobile mismatch → `mobile_mismatch: true` set, update still applied. |
 
-### 7.2 Integration probes (curl, no DB writes from script)
+### 7.2 Integration probes (curl, run by main agent post-implementation; no DB writes scripted)
 
-1. Hit `/api/whatsapp/status-callback` with empty body → 200 with raw log appended (not 400).
-2. Hit with `{"LogID":"FAKE","status":"delivered"}` → 200, `updated:false` (no matching row).
-3. Hit `/test-template` with a known `template_id` → row written in new shape.
-4. Hit `/message-logs?is_test=false` → does not return test row from probe 3.
+1. `curl POST /api/whatsapp/status-callback -d '{}'` → 200, `{success:false, error:"logid required"}`, one row in `whatsapp_callback_logs` with `verdict="rejected_no_logid"`.
+2. `curl POST /api/whatsapp/status-callback -d '{"logid":"NOMATCH","status":"delivered","time":"2026-05-28 15:48:22"}'` → 200, `{success:true, logid:"NOMATCH", updated:false}`, callback log `verdict="no_matching_row"`.
+3. `curl POST /api/whatsapp/test-template` (with auth + known template_id) → row written in new shape with `is_test=true`, returns success.
+4. `curl GET /api/whatsapp/message-logs` → does NOT include test row from probe 3 by default; `?include_test=true` does.
+5. `curl GET /api/whatsapp/message-stats` → `total` excludes test row from probe 3.
 
 ### 7.3 Frontend smoke
-- `MessageStatusPage` loads, all filters render, toggle test sends works, date picker filters correctly, resend disabled correctly for fresh pending.
+- `/message-status` page loads, all filters render.
+- Toggle "Show test sends" → test row from probe 3 appears with `TEST` badge.
+- Date range picker filters correctly.
+- Resend button disabled with tooltip on a row whose `created_at < 30 min` ago AND `status_history.length <= 1`.
+- Search "abhi" matches name; "750" matches phone.
 
-### 7.4 What we CANNOT test until blockers resolve
-- Real AuthKey delivery callback → Delivered transition (needs B1 + B3).
-- HMAC verification (needs B2).
+### 7.4 What cannot be tested until blockers resolve
+- Real AuthKey delivery callback → live status transition (needs B3).
+- HMAC verification rejection (needs B2 — code path covered by mocked unit test only).
 
 ---
 
-## 8. Risk register (this CR specifically)
+## 8. Risk register
 
 | Risk | Mitigation |
 |---|---|
-| Unique index on `idempotency_key` blocks legitimate retries (e.g. owner intentionally resending the same OTP) | OTP path uses OTP value in key → each OTP is unique; resend endpoint bypasses idempotency by writing through `update_one` with `$inc resend_count`, not `insert_one`. |
-| `message_body_text` rendering depends on knowing template body, which we don't always have stored | Best-effort: try `event_template_map`, else AuthKey `getAllTemplate.php` cache, else fall back to `json.dumps(body_values)`. Never blocks send. |
-| Defensive key parser in webhook accepts a slightly-wrong payload during B1 wait | All accepted keys are logged to `whatsapp_callback_logs` — full audit; parser is replaced once B1 confirms. |
-| Adding `unique sparse` index on existing collection — does Mongo allow it with existing nulls? | Yes — sparse means nulls are not indexed; existing rows pass through unaffected. |
-| `next_status` rejects an out-of-order webhook (e.g. `delivered` arrives after `read`) → row stays at `read` | Correct behavior. Logged for diagnostics. |
-| Resend "freshness guard" (30 min) might frustrate owner if AuthKey is genuinely slow | Surface tooltip explaining; allow manual override via a second-confirm dialog (out of this CR's scope — fast-follow). |
-| Two writers temporarily coexist during deploy (old prod + new preview) | Both write to same collection; new fields are additive, old reader (current dashboard) ignores new fields. Safe. |
+| Unique index on `idempotency_key` blocks a legitimate retry | All deliberate retry paths go through `/resend` which uses `update_one` not `insert_one`. New attempts via direct call only happen for genuinely new events. OTP path has no idempotency key by design. |
+| `message_body_text` rendering depends on stored template body | If `whatsapp_event_template_map.template_body` is not set, field is null. No fallback (Q3 locked). |
+| Two writers temporarily coexist during deploy (prod still old, preview new) | New fields are additive; old reader (current dashboard) ignores them. Safe. |
+| Adding `unique sparse` index on existing collection — does Mongo allow it with existing null `idempotency_key`? | Yes — `sparse=True` excludes documents missing the field from the index. Existing rows pass through unaffected. |
+| AuthKey ever changes its timezone behavior | `time_raw` preserved verbatim; we can re-derive timestamps offline. |
+| AuthKey sends a new status enum value we don't recognize | Callback logged with `verdict="unknown_status"`, row not modified. Ops can review `whatsapp_callback_logs` and we extend the map. |
+| Out-of-order webhooks (delivered after read) | State machine returns None → no status regression. Event still appended to history for audit (Q5 locked). |
+| Webhook endpoint is public until B2 | Defensive: every inbound logged to `whatsapp_callback_logs` regardless. HMAC check is dormant code-path, activates automatically when secret lands. No exploit can corrupt a row's other fields (only status + timestamp + reason can be moved, and only forward per state machine). |
+| Two webhooks pointing at same URL (Laravel + our CRM) — race | Status updates are idempotent (`$set` of same status is no-op via state machine). Status_history may show two near-identical entries — acceptable audit overhead. |
 
 ---
 
-## 9. Sequenced implementation order (commits)
+## 9. Sequenced commits (8 commits)
 
-**Commit 1** — Foundations (no behavior change yet):
-- New file `core/whatsapp_status.py` + unit tests.
-- New file: this planning doc (already present at this path).
+**Commit 1** — Foundations (additive, no behavior change):
+- `core/whatsapp_status.py` NEW + unit tests.
+- This planning doc (already at this path).
 
-**Commit 2** — Send-side row schema (Phase 1, G1-G10):
-- `core/whatsapp.py`: SendResult fields, LogID extraction, `log_message_attempt` new shape, `trigger_whatsapp_event` wrap-with-rejected-row, `render_template_body` helper.
-- `server.py`: new indexes.
+**Commit 2** — Send-side row schema (Phase 1, G1–G10):
+- `core/whatsapp.py`: `SendResult` fields, `logid` extraction, new `log_message_attempt` shape, wrap `trigger_whatsapp_event` always-log on exceptions, `render_template_body` helper.
+- `server.py`: 6 new indexes.
 
 **Commit 3** — Callsite enrichment (Phase 1 cont.):
-- All trigger callsites pass `idempotency_key` + `reference_*` in event_data.
-- 11 files (pos, coupons, wallet, points, auth, feedback_service, loyalty, loyalty_jobs).
+- All trigger callsites in 8 files pass `idempotency_key` + `reference_*` in event_data.
 
 **Commit 4** — Path B unification (Phase 2, G11):
 - `routers/whatsapp.py::send_test_message` calls `log_message_attempt`.
 - Unit test for test-send row shape.
 
-**Commit 5** — Webhook hardening (Phase 3 skeleton):
-- `whatsapp_callback_logs` collection writes.
-- Defensive parser + state machine integration.
-- HMAC stub.
+**Commit 5** — Webhook hardening (Phase 3, locked parser):
+- `routers/whatsapp.py::message_status_callback` full rewrite per §6.3.1.
+- `whatsapp_callback_logs` writes.
+- HMAC verifier function (dormant; gated by env var).
 - Unit + integration tests.
 
 **Commit 6** — Dashboard backend extensions:
-- `message-logs` and `message-stats` extended with `is_test`, `date_from`, `date_to`, name-search.
+- `message-logs` and `message-stats` extended (`include_test`, `date_from`, `date_to`, name+phone search).
 - `resend` freshness guard.
 
 **Commit 7** — Frontend polish (Phase 5):
-- `MessageStatusPage.jsx` filter additions, badge, resend guard.
+- `MessageStatusPage.jsx` filter additions, TEST badge, resend guard.
 - `WhatsAppAutomationContent.jsx` dead-code cleanup.
 
-**Commit 8** — Final-mile (post-blocker):
-- Parser locked to real AuthKey payload (after B1).
-- HMAC activation flip (after B2).
-- Owner registers URL (B3).
+**Commit 8** — Closeouts (post blocker resolution by owner):
+- B2: when owner places `AUTHKEY_WEBHOOK_SECRET` in `backend/.env`, restart backend → verification auto-activates. (Optional: tighten HMAC signature format once AuthKey shares it.)
+- B3: owner registers URL in AuthKey console. End-to-end live test on production.
+- (If real samples reveal any status enum we missed, add to `status_map`.)
 
 ---
 
 ## 10. Files touched — final manifest
 
-### Backend (12 files)
-1. `backend/core/whatsapp.py` — major refactor (SendResult, send_single_message, log_message_attempt, trigger_whatsapp_event)
+### Backend (12 files modified, 1 new)
+1. `backend/core/whatsapp.py` — major refactor (SendResult, send_single_message, log_message_attempt, trigger_whatsapp_event, render_template_body)
 2. `backend/core/whatsapp_status.py` — **NEW**
 3. `backend/server.py` — add 6 indexes
 4. `backend/routers/whatsapp.py` — webhook refactor, send_test_message rewrite, message-logs/stats extensions, resend guard
@@ -461,7 +705,7 @@ Net result: 3 dead keys deleted, others promoted to `crmEventDescriptions` (wher
 6. `backend/routers/coupons.py` — 2 callsites
 7. `backend/routers/wallet.py` — 4 callsites
 8. `backend/routers/points.py` — 3 callsites
-9. `backend/routers/auth.py` — 1 callsite
+9. `backend/routers/auth.py` — 1 callsite (no idempotency_key)
 10. `backend/services/feedback_service.py` — 1 callsite
 11. `backend/core/loyalty.py` — 1 callsite
 12. `backend/core/loyalty_jobs.py` — 5 callsites
@@ -471,45 +715,44 @@ Net result: 3 dead keys deleted, others promoted to `crmEventDescriptions` (wher
 14. `backend/tests/test_log_message_attempt.py` — **NEW**
 15. `backend/tests/test_whatsapp_callback.py` — **NEW**
 
-### Frontend (2 files)
-16. `frontend/src/pages/MessageStatusPage.jsx` — filter additions, badge, resend guard
+### Frontend (2 files modified)
+16. `frontend/src/pages/MessageStatusPage.jsx` — filter additions, TEST badge, resend guard
 17. `frontend/src/components/shared/WhatsAppAutomationContent.jsx` — dead-code cleanup
 
-### Docs (this file)
+### Docs (1 file)
 18. `memory/crm/crm_roi_sprint/planning/CR_004_PHASE_3_5_MESSAGE_STATUS_PIPELINE_REFACTOR_PLAN.md` — **this doc**
 
-### Env (owner sets later)
-19. `backend/.env` — owner adds `AUTHKEY_WEBHOOK_SECRET=<value>` when B2 resolves (not committed)
+### Env (owner-managed, not committed)
+19. `backend/.env` — owner adds `AUTHKEY_WEBHOOK_SECRET` when B2 resolves
 
-**Total: 18 files (1 NEW core, 3 NEW tests, 14 EDITED, 1 NEW doc). 0 deletions.**
+**Total: 18 files (4 NEW, 14 EDITED), 0 deletions.**
 
 ---
 
-## 11. Definition of Done (this CR)
+## 11. Definition of Done
 
 - [ ] All 18 files updated per §10.
-- [ ] All new unit tests pass (`pytest backend/tests/test_whatsapp_status_machine.py backend/tests/test_log_message_attempt.py backend/tests/test_whatsapp_callback.py`).
-- [ ] Linter clean (`ruff backend/`, ESLint frontend).
-- [ ] Preview pod restarts cleanly, `/api/health` green.
-- [ ] Curl probes (§7.2 items 1–4) all pass.
+- [ ] All new unit tests pass: `pytest backend/tests/test_whatsapp_status_machine.py backend/tests/test_log_message_attempt.py backend/tests/test_whatsapp_callback.py`.
+- [ ] `ruff check backend/` and frontend ESLint both clean.
+- [ ] Backend `/api/health` green after restart.
+- [ ] All 5 curl probes in §7.2 pass.
 - [ ] Frontend smoke (§7.3) passes via screenshot.
-- [ ] No `whatsapp_message_logs` migration ran; no historical row touched.
-- [ ] No write to remote Mongo from any script (only via app endpoints during testing).
-- [ ] Doc updated to `status: implementation_complete_awaiting_blocker_resolution` once commits 1–7 merge.
-- [ ] **Held open** until B1, B2, B3 resolve, then Commit 8 closes it.
+- [ ] No `whatsapp_message_logs` row migrated; no historical document modified by any script.
+- [ ] No DB write from any non-app-code path.
+- [ ] Doc status moves to `implementation_complete_awaiting_blocker_resolution` once Commits 1–7 land.
+- [ ] **Held open** until B2 + B3 close on production side, then Commit 8 closes it.
 
 ---
 
-## 12. Open questions to confirm before I cut Commit 1
+## 12. Decisions log (resolved before implementation)
 
-1. **Idempotency on OTP**: do you want `reset_password` to be **strictly idempotent** (one OTP per customer per minute)? Or allow repeat OTPs (current behavior — owner can request new OTP freely)? My plan uses the OTP value itself as part of the key → repeats with same OTP are blocked, but a new OTP always goes through. Confirm?
+| Q | Question | Decision | Source |
+|---|---|---|---|
+| Q1 | OTP idempotency strictness | Skip idempotency_key for `reset_password` entirely | owner reply |
+| Q2 | Cron idempotency window | Daily — `{customer_id}_{today_iso}_{event}` | owner reply |
+| Q3 | message_body_text fallback when template body unknown | None — field stays null | owner reply |
+| Q4 | "Show test sends" default | Off (hide test rows from table & stats) | owner reply |
+| Q5 | Late `delivered` after `read` behavior | No status regression; append to history for audit | owner reply |
+| B1 | AuthKey delivery webhook payload schema | Locked — §3.6 | owner-shared real sample |
 
-2. **Cron idempotency window**: for daily cron jobs (birthday, anniversary, etc.), I'm using `f"{customer_id}_{today_iso_date}_{event}"` — this means if cron is re-run on the same day, no duplicate. If you want stricter (per-year) for birthday, say so.
-
-3. **`message_body_text` rendering fallback**: if template body is not in `event_template_map`, I'll fall back to `json.dumps(body_values)` in the field. Acceptable, or skip the field entirely on fallback?
-
-4. **Frontend "Show test sends" toggle default**: off (hide tests) — confirm?
-
-5. **State machine — late `delivered` after `read`**: my plan ignores it. Some teams prefer to record it in `status_history` even if `status` stays at `read`. I'm doing the latter. OK?
-
-Reply with any of these and I'll cut Commit 1 (foundations + this planning doc finalization).
+**No open questions. Ready to cut Commit 1.**
