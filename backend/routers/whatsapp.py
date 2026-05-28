@@ -8,6 +8,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import uuid
 import httpx
 
@@ -767,11 +768,19 @@ async def test_template(request: TestTemplateRequest, user: dict = Depends(get_c
 async def get_message_stats(
     user: dict = Depends(get_current_user),
     date_from: Optional[str] = None,
-    date_to: Optional[str] = None
+    date_to: Optional[str] = None,
+    include_test: bool = False,
 ):
-    """Get message statistics by status"""
+    """Get message statistics by status.
+
+    CR-004 P3.5 Commit 6: `include_test` (default False) excludes is_test=True
+    rows so owner-initiated /test-template sends don't inflate the stats.
+    """
     query = {"user_id": user["id"]}
-    
+
+    if not include_test:
+        query["is_test"] = {"$ne": True}
+
     if date_from:
         query["created_at"] = {"$gte": date_from}
     if date_to:
@@ -779,14 +788,14 @@ async def get_message_stats(
             query["created_at"]["$lte"] = date_to
         else:
             query["created_at"] = {"$lte": date_to}
-    
+
     # Aggregate counts by status
     pipeline = [
         {"$match": query},
         {"$group": {"_id": "$status", "count": {"$sum": 1}}}
     ]
     results = await db.whatsapp_message_logs.aggregate(pipeline).to_list(10)
-    
+
     stats = {
         "total": 0,
         "delivered": 0,
@@ -794,14 +803,14 @@ async def get_message_stats(
         "pending": 0,
         "rejected": 0
     }
-    
+
     for r in results:
         status = r["_id"]
         count = r["count"]
         stats["total"] += count
         if status in stats:
             stats[status] = count
-    
+
     return stats
 
 
@@ -815,12 +824,21 @@ async def get_message_logs(
     search: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    include_test: bool = False,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, le=200)
 ):
-    """Get paginated message logs with filters"""
-    query = {"user_id": user["id"]}
-    
+    """Get paginated message logs with filters.
+
+    CR-004 P3.5 Commit 6:
+      - `include_test` (default False) excludes is_test=True rows.
+      - `search` matches BOTH customer_phone and customer_name (regex-escaped).
+    """
+    query: Dict[str, Any] = {"user_id": user["id"]}
+
+    if not include_test:
+        query["is_test"] = {"$ne": True}
+
     if status and status != "all":
         query["status"] = status
     if event_type and event_type != "all":
@@ -830,7 +848,13 @@ async def get_message_logs(
     if template_name and template_name != "all":
         query["template_name"] = template_name
     if search:
-        query["customer_phone"] = {"$regex": search, "$options": "i"}
+        # CR-004 P3.5 Commit 6: regex-escape + match across name AND phone
+        safe = re.escape(search.strip())
+        if safe:
+            query["$or"] = [
+                {"customer_phone": {"$regex": safe, "$options": "i"}},
+                {"customer_name": {"$regex": safe, "$options": "i"}},
+            ]
     if date_from:
         query["created_at"] = {"$gte": date_from}
     if date_to:
@@ -863,8 +887,17 @@ async def get_message_filters(user: dict = Depends(get_current_user)):
     event_types = AUTOMATION_EVENTS
     
     # Get templates from authkey templates + custom templates
-    template_names = set()
-    
+    # CR-004 P3.5 Commit 6: dedupe by normalized key (lowercase + strip) to collapse
+    # casing/whitespace variants while preserving the first-seen original case.
+    template_names: Dict[str, str] = {}
+
+    def _add_template(name: Optional[str]):
+        if not name:
+            return
+        key = name.strip().lower()
+        if key and key not in template_names:
+            template_names[key] = name
+
     # Get AuthKey templates if API key configured
     if user.get("authkey_api_key"):
         try:
@@ -880,37 +913,33 @@ async def get_message_filters(user: dict = Depends(get_current_user)):
                     data = response.json()
                     templates = data.get("templates", [])
                     for t in templates:
-                        name = t.get("temp_name") or t.get("name")
-                        if name:
-                            template_names.add(name)
+                        _add_template(t.get("temp_name") or t.get("name"))
         except Exception:
             pass
-    
+
     # Get custom templates from DB
     custom_templates = await db.custom_templates.find(
         {"user_id": user["id"]}, {"_id": 0, "name": 1}
     ).to_list(100)
     for t in custom_templates:
-        if t.get("name"):
-            template_names.add(t["name"])
-    
+        _add_template(t.get("name"))
+
     # Get configured template mappings
     mappings = await db.whatsapp_event_template_map.find(
         {"user_id": user["id"]}, {"_id": 0, "template_name": 1}
     ).to_list(100)
     for m in mappings:
-        if m.get("template_name"):
-            template_names.add(m["template_name"])
-    
+        _add_template(m.get("template_name"))
+
     # Get campaigns (segments)
     campaigns = await db.segments.find(
         {"user_id": user["id"]}, {"_id": 0, "id": 1, "name": 1}
     ).to_list(100)
-    
+
     return {
         "statuses": MESSAGE_STATUSES,
         "event_types": event_types,
-        "template_names": sorted(list(template_names)),
+        "template_names": sorted(template_names.values()),
         "campaigns": campaigns
     }
 
@@ -1143,9 +1172,33 @@ async def resend_messages(
     
     results = []
     now = datetime.now(timezone.utc).isoformat()
-    
+    now_dt = datetime.now(timezone.utc)
+    GRACE_MINUTES = 30  # CR-004 P3.5 Commit 6: in-flight grace window
+
     for msg in messages:
+        # CR-004 P3.5 Commit 6: guard against resending in-flight pending messages.
+        # If a message is `pending`, was sent in the last 30 minutes, AND has only
+        # the initial_send entry in status_history, the delivery webhook just
+        # hasn't arrived yet. Resending would duplicate-deliver to the customer.
         try:
+            if msg.get("status") == "pending":
+                created_at_raw = msg.get("created_at")
+                history_len = len(msg.get("status_history") or [])
+                if created_at_raw and history_len <= 1:
+                    try:
+                        created_dt = datetime.fromisoformat(created_at_raw.replace("Z", "+00:00"))
+                    except Exception:
+                        created_dt = None
+                    if created_dt and (now_dt - created_dt) < timedelta(minutes=GRACE_MINUTES):
+                        results.append({
+                            "id": msg["id"],
+                            "success": False,
+                            "skipped": True,
+                            "error": "in_flight_grace_period",
+                            "message": f"Pending < {GRACE_MINUTES} min, awaiting delivery report",
+                        })
+                        continue
+
             # Build WhatsApp message
             wa_msg = WhatsAppMessage(
                 phone=msg.get("customer_phone"),
@@ -1153,13 +1206,13 @@ async def resend_messages(
                 template_id=msg.get("template_id"),
                 body_values=msg.get("body_values", {})
             )
-            
+
             # Send message
             result = await send_single_message(authkey_api_key, wa_msg)
-            
+
             new_status = "pending" if result.success else "rejected"
             new_message_id = result.message_id if result.success else msg.get("message_id")
-            
+
             # Update the log with new attempt
             await db.whatsapp_message_logs.update_one(
                 {"id": msg["id"]},
@@ -1182,26 +1235,28 @@ async def resend_messages(
                     }
                 }
             )
-            
+
             results.append({
                 "id": msg["id"],
                 "success": result.success,
                 "new_status": new_status,
                 "error": result.error if not result.success else None
             })
-        
+
         except Exception as e:
             results.append({
                 "id": msg["id"],
                 "success": False,
                 "error": str(e)
             })
-    
-    success_count = sum(1 for r in results if r["success"])
-    
+
+    success_count = sum(1 for r in results if r.get("success"))
+    skipped_count = sum(1 for r in results if r.get("skipped"))
+
     return {
         "total": len(messages),
         "success_count": success_count,
-        "failed_count": len(messages) - success_count,
+        "skipped_count": skipped_count,
+        "failed_count": len(messages) - success_count - skipped_count,
         "results": results
     }

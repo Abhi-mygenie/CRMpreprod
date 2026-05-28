@@ -65,7 +65,7 @@ Dashboard reads whatsapp_message_logs — never reads from AuthKey live
 | # | Blocker | Status | Owner | Resolves what | Workaround in this CR |
 |---|---|---|---|---|---|
 | B1 | AuthKey delivery-report payload schema | ✅ **RESOLVED 2026-05-28** | Owner shared real sample | Final field-name parsing | Parser locked to exact keys; see §3.6 + §6.3 |
-| B2 | AuthKey webhook signing secret | ⏳ Open | Owner (live-test time) | G17 HMAC verification activation | Env var `AUTHKEY_WEBHOOK_SECRET` hook in code; verification module written but gated by `if AUTHKEY_WEBHOOK_SECRET:` — activates automatically when value lands in `.env`. **Does not block any code in this CR.** |
+| B2 | AuthKey webhook signing secret | ✅ **RESOLVED 2026-05-28** (no secret needed) | n/a | G17 HMAC verification activation | **AuthKey does not sign webhooks.** Real sample headers (2026-05-28 15:48:23) carried no signature header (no `x-auth-signature`, no `authorization`, no `x-hmac`). AuthKey's only key is the outbound API key. Verifier in Commit 5 stays dormant forever (unless AuthKey adds signing later). See §13 Security Analysis for the defense-in-depth without HMAC. |
 | B3 | AuthKey console URL registration (prod) | ⏳ Open | Owner (live-test time) | End-to-end verification | Code is verified via unit tests + curl probes; real Delivered/Read transitions only occur once owner registers the URL. **Architecture note**: AuthKey currently posts to `preprod.mygenie.online` (MyGenie's Laravel app) per evidence in B1 sample headers — owner needs to add a second URL pointing at our CRM, OR have Laravel forward, OR switch the URL. This is a B3 ops decision, not a code dependency. |
 
 ---
@@ -759,5 +759,52 @@ Specifically:
 | Q4 | "Show test sends" default | Off (hide test rows from table & stats) | owner reply |
 | Q5 | Late `delivered` after `read` behavior | No status regression; append to history for audit | owner reply |
 | B1 | AuthKey delivery webhook payload schema | Locked — §3.6 | owner-shared real sample |
+| B2 | AuthKey webhook signing secret | Resolved (no signing) | sample headers show no signature; AuthKey only has outbound API key |
 
 **No open questions. Ready to cut Commit 1.**
+
+---
+
+## 13. Security Analysis — webhook endpoint without HMAC
+
+### 13.1 What AuthKey actually provides
+AuthKey has **one key**: the outbound API key (e.g. `d70e42b590e7fed7` for R689). This key authenticates **us → AuthKey** when we call `requestjson.php` to send a message. It is sent in the `Authorization: Basic <key>` header on outbound HTTPS calls.
+
+AuthKey provides **no inbound auth concept**. The real webhook sample captured 2026-05-28 15:48:23 had these headers and only these headers:
+
+```
+connection, content-length, accept-encoding, x-forwarded-proto, cf-visitor,
+cf-ipcountry, cf-connecting-ip, cdn-loop, accept, content-type, host,
+cf-ray, x-forwarded-for
+```
+
+No `x-auth-signature`, no `x-signature`, no `x-hmac`, no `authorization`. AuthKey does not sign webhooks.
+
+### 13.2 Consequence
+- `AUTHKEY_WEBHOOK_SECRET` env var **must stay unset**. Setting it activates the HMAC verifier in `message_status_callback`, which would reject every real AuthKey webhook (because they carry no signature header).
+- The `AUTHKEY_API_KEY` is **not needed in `.env`** — it lives in `db.users[R689].authkey_api_key` and is read from there by the send-side code.
+
+### 13.3 Defense-in-depth without HMAC
+
+The Commit 5 webhook design accepts this asymmetry by being deliberately permissive but tightly scoped:
+
+1. **Audit-first**: every inbound POST is logged verbatim to `whatsapp_callback_logs` (headers + raw body + parse verdict). No data loss, no silent drops.
+2. **Lookup is keyed by `logid`**: a 32-char hex string (~10³⁸ keyspace). An attacker must know a real `logid` of a recent send to affect anything. Brute-force-blind spoofing of "guess a logid and flip it" is impractical.
+3. **State machine**: status can only move forward (`pending → delivered → read`, or any state → `rejected`). No regression possible. Spoofed `delivered` after real `read` is silently ignored.
+4. **Limited blast radius**: the webhook can only set `status`, `delivered_at`, `read_at`, `rejected_at`, `failure_reason`, plus the optional `meta_message_id`/`keypress`/`button_param_value`/`channel`/`time_raw`. It **cannot** alter recipient, template, body_values, customer_id, user_id, or any send-time field.
+5. **No PII leak via webhook**: response is always a small JSON envelope (`{success, logid, status, applied}`); no row data echoed back. Attackers can't enumerate logids via response timing or content.
+
+### 13.4 Optional fast-follow hardening (Commit 8 backlog)
+
+Documented for later; not in this CR's scope:
+
+- **IP allowlist** at the reverse-proxy or app middleware level. AuthKey's outbound IP visible in the sample: `157.245.105.3` (DigitalOcean New York). Confirm full IP range with AuthKey support, then restrict `/api/whatsapp/status-callback` to that allowlist. Real defense; doesn't need any secret from AuthKey.
+- **Rate limit** by source IP (e.g. 50 req/min) — bounded keyspace of legitimate webhooks per minute.
+- **Replay window** check: reject callbacks whose `time` is more than 24h old (or 24h in the future). Captures cases of stolen-and-replayed payloads.
+- **Per-user logid index lookup** with `user_id` constraint — currently the lookup is only by `message_id`; could constrain `{message_id, user_id}` if we ever derive `user_id` from the payload (we don't today; AuthKey doesn't echo it).
+
+### 13.5 Decision (locked)
+- `.env` carries **no** AuthKey-related secrets.
+- HMAC verifier in `message_status_callback` stays present as code-path (cheap insurance) but dormant.
+- IP allowlist deferred to Commit 8 as optional hardening.
+- This decision is reversible: if AuthKey ever rolls out signed webhooks, set `AUTHKEY_WEBHOOK_SECRET` and the existing verifier activates automatically.
