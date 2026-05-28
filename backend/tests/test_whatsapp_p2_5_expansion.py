@@ -6,7 +6,9 @@ from core.whatsapp_variables import fills_on, WHATSAPP_VARIABLES
 
 
 def test_variable_count_is_23():
-    assert len(WHATSAPP_VARIABLES) == 23
+    # CR-015 T5 (2026-05-29): expanded to 37 (23 baseline + 14 order-context).
+    # Test name preserved for legacy git history; assertion updated.
+    assert len(WHATSAPP_VARIABLES) == 37
 
 
 # --- Tier 1: zero-code-change variables ---

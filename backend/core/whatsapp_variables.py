@@ -1,7 +1,7 @@
 """
-Canonical WhatsApp template variable registry — P2.5 expanded.
+Canonical WhatsApp template variable registry.
 
-23 variables total (10 original + 13 new).
+37 variables total (23 from CR-004 P2.5 + 14 from CR-015 T5 — 2026-05-29).
 Each variable declares sources, fills_on_events, formatter.
 Resolution at send time by core.whatsapp.resolve_variable().
 
@@ -9,6 +9,10 @@ Variable scopes:
   - "customer": from customer document (always available)
   - "event": from event_data dict (available only on specific events)
   - "brand": from users collection (always available via brand_data injection)
+
+CR-015 T5 additions (2026-05-29): order-context variables populated by
+build_order_event_context() in core.whatsapp at POS order-triggered callsites.
+See planning/CR_015_PHASE_1_PLAN.md §4.1 for the full table.
 """
 
 ALL_EVENTS = "*"
@@ -336,6 +340,188 @@ WHATSAPP_VARIABLES = [
             {"from": "brand", "field": "feedback_link"},
         ],
         "fills_on_events": ALL_EVENTS,
+        "formatter": None,
+    },
+
+    # ── CR-015 T5 (2026-05-29): Order-context variables ──
+    # Source from event_data populated by build_order_event_context() at POS
+    # order-triggered callsites. Backward-compatible: existing templates that
+    # don't reference these keys are unaffected.
+    {
+        "key": "payment_method",
+        "label": "Payment Method",
+        "example": "UPI",
+        "description": "Payment method used (UPI, Card, Cash, etc.). Title-cased for display.",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "payment_method"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": "titlecase",
+    },
+    {
+        "key": "order_date",
+        "label": "Order Date",
+        "example": "25 May 2026",
+        "description": "Date the order was placed.",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "order_created_at"},
+            {"from": "event", "field": "order_date"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": "date",
+    },
+    {
+        "key": "order_time",
+        "label": "Order Time",
+        "example": "7:45 PM",
+        "description": "Time the order was placed (12-hour with AM/PM).",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "order_created_at"},
+            {"from": "event", "field": "order_time"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": "time",
+    },
+    {
+        "key": "restaurant_order_id",
+        "label": "Bill Number",
+        "example": "KM-1234",
+        "description": "Restaurant's own bill/order number (printed on receipt).",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "restaurant_order_id"},
+            {"from": "event", "field": "pos_order_id"},
+            {"from": "event", "field": "order_id"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": None,
+    },
+    {
+        "key": "transaction_id",
+        "label": "Transaction ID",
+        "example": "TXN9876543",
+        "description": "Payment gateway transaction reference.",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "transaction_id"},
+        ],
+        "fills_on_events": ORDER_EVENTS + ["wallet_credit", "wallet_debit"],
+        "formatter": None,
+    },
+    {
+        "key": "table_id",
+        "label": "Table Number",
+        "example": "T5",
+        "description": "Table identifier for dine-in orders.",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "table_id"},
+            {"from": "event", "field": "table_no"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": None,
+    },
+    {
+        "key": "waiter_name",
+        "label": "Waiter Name",
+        "example": "Ramesh",
+        "description": "Staff member who served the order.",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "employee_name"},
+            {"from": "event", "field": "waiter_name"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": None,
+    },
+    {
+        "key": "order_type",
+        "label": "Order Type",
+        "example": "Dine-In",
+        "description": "Dine-In, Takeaway, or Delivery (title-cased).",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "order_type"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": "titlecase",
+    },
+    {
+        "key": "loyalty_points_used",
+        "label": "Loyalty Points Used",
+        "example": "200",
+        "description": "Loyalty points redeemed on this order.",
+        "category": "loyalty",
+        "sources": [
+            {"from": "event", "field": "loyalty_points_used"},
+            {"from": "event", "field": "points_redeemed"},
+        ],
+        "fills_on_events": ORDER_EVENTS + ["points_redeemed"],
+        "formatter": "integer",
+    },
+    {
+        "key": "loyalty_discount",
+        "label": "Loyalty Discount",
+        "example": "Rs.50",
+        "description": "₹ discount from loyalty redemption on this order.",
+        "category": "loyalty",
+        "sources": [
+            {"from": "event", "field": "loyalty_discount"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": "currency",
+    },
+    {
+        "key": "wallet_used",
+        "label": "Wallet Used",
+        "example": "Rs.100",
+        "description": "Wallet amount applied to this order.",
+        "category": "wallet",
+        "sources": [
+            {"from": "event", "field": "wallet_used"},
+            {"from": "event", "field": "amount"},
+        ],
+        "fills_on_events": ORDER_EVENTS + ["wallet_debit"],
+        "formatter": "currency",
+    },
+    {
+        "key": "tax_amount",
+        "label": "Tax Amount",
+        "example": "Rs.85",
+        "description": "Total tax on this order (GST/VAT inclusive).",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "tax_amount"},
+            {"from": "event", "field": "gst_tax"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": "currency",
+    },
+    {
+        "key": "item_count",
+        "label": "Item Count",
+        "example": "3",
+        "description": "Number of items in the order.",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "item_count"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
+        "formatter": "integer",
+    },
+    {
+        "key": "order_notes",
+        "label": "Order Notes",
+        "example": "No onion in biryani",
+        "description": "Special instructions or notes for the order.",
+        "category": "order",
+        "sources": [
+            {"from": "event", "field": "order_notes"},
+        ],
+        "fills_on_events": ORDER_EVENTS,
         "formatter": None,
     },
 ]

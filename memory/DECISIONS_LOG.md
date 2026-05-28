@@ -148,6 +148,28 @@
 
 ---
 
+### 2026-05-29 [CR-015] Phase 1.5 ground-truth probe — findings + Q9
+**Decision (Q9)**: Leave R689's empty brand fields (`einvoice_link`, `instagram_link`, `google_review_link`, `feedback_link`) empty for CR-015. Out-of-scope; handled by CR-014/future.
+**Source**: Owner reply "Q9 a" (2026-05-29) after reviewing probe report.
+**Probe report**: `/app/memory/crm/crm_roi_sprint/investigations/CR_015_PRE_IMPL_GROUND_TRUTH_2026_05_29.md`
+**Key findings**:
+- Bug #1 confirmed active on R689 `send_bill` (template_id=25140 stored as `int`; last 5 `send_bill` logs show 0/0 bodyValues populated when template_id is int, 5/5 when str)
+- Bug #2 confirmed: R689 template 25140 slots {{4}}/{{5}} hold text-mode garbage strings; {{7}} duplicates {{6}}
+- **T2 scope drastically smaller than planned**: only R689 has int rows (2 rows total); variable_map collection is uniformly str (3 rows)
+- **T7 broader scope clean**: 0 unknown var_keys across all tenants in map mode; only R689 template 25140 has text-mode garbage
+- Effort revises **5 days → ~3.5 days**
+**Locks**: implementation can start Day 1 (T1 + T5).
+
+### 2026-05-29 [CR-015] Plan v1.1 APPROVED — implementation authorized
+**Decision**: Phase 1 plan v1.1 approved. All 11 sign-off boxes accepted (10 from v1.1 + Q9). Implementation begins Day 1 with T1 (resolver hardening) + T5 (registry expansion + 2 new formatters).
+**Source**: Owner reply "approved" 2026-05-29 after probe review.
+**Locks**:
+- Plan doc status → `cr015_planning_phase_1_approved_implementation_authorized`
+- Implementation closeout doc: `/app/memory/crm/crm_roi_sprint/implementation/CR_015_VARIABLE_MAPPING_FIDELITY_CLOSEOUT.md`
+- Sequence: T1+T5 (Day 1) → T3 (Day 2) → T6+T7+T4-minor (Day 3) → T2 + live test (Day 4)
+
+---
+
 ## How to add a new decision
 
 1. Append a new `### YYYY-MM-DD [CR-XXX] §<section> — <title>` block at the bottom of the appropriate session group.

@@ -245,6 +245,27 @@ def _format_value(value, formatter):
             return str(value)
         except (ValueError, TypeError):
             return str(value)
+    # CR-015 T5 (2026-05-29): new formatters for order_time + order_type variables.
+    if formatter == "time":
+        from datetime import datetime as dt
+        try:
+            if isinstance(value, str):
+                d = dt.fromisoformat(value.replace("Z", "+00:00"))
+                # "7:45 PM" — no leading zero on hour
+                return d.strftime("%I:%M %p").lstrip("0")
+            return str(value)
+        except (ValueError, TypeError):
+            return str(value)
+    if formatter == "titlecase":
+        # "dine_in" → "Dine-In"; "takeaway" → "Takeaway"; "DELIVERY" → "Delivery";
+        # "take_away" → "Take-Away"; preserves hyphen-compound form.
+        s = str(value).strip()
+        if not s:
+            return ""
+        had_compound = ("_" in s) or ("-" in s)
+        cleaned = s.replace("_", " ").replace("-", " ")
+        titled = cleaned.title()
+        return titled.replace(" ", "-") if had_compound else titled
     return str(value)
 
 
@@ -376,6 +397,14 @@ async def get_event_template_config(db, user_id: str, event_key: str) -> Optiona
     
     Returns:
         Dict with template_id, template_name, is_enabled, variable_mappings
+
+    CR-015 T1 (2026-05-29): defensive type-agnostic lookup. Some legacy save
+    paths stored `template_id` as int on `whatsapp_event_template_map`, while
+    `whatsapp_template_variable_map` always writes str (routers/whatsapp.py:644).
+    The mismatch caused `var_map=None` → empty `variable_mappings` → AuthKey
+    renders template defaults ("Test"). We coerce the lookup key and fall back
+    to the original type. After T2 normalization runs (one-time str migration),
+    the fallback branch becomes dead code and will be removed.
     """
     # Get event-template mapping
     event_map = await db.whatsapp_event_template_map.find_one(
@@ -387,17 +416,24 @@ async def get_event_template_config(db, user_id: str, event_key: str) -> Optiona
         return None
     
     template_id = event_map.get("template_id")
-    if not template_id:
+    if template_id is None:
         return None
-    
-    # Get variable mappings for this template
+
+    # CR-015 T1: canonical-str lookup with int fallback for legacy rows.
+    template_id_str = str(template_id)
     var_map = await db.whatsapp_template_variable_map.find_one(
-        {"user_id": user_id, "template_id": template_id},
+        {"user_id": user_id, "template_id": template_id_str},
         {"_id": 0}
     )
-    
+    if var_map is None and not isinstance(template_id, str):
+        # Defensive: legacy row that was somehow saved as int. Pre-T2 sweep.
+        var_map = await db.whatsapp_template_variable_map.find_one(
+            {"user_id": user_id, "template_id": template_id},
+            {"_id": 0}
+        )
+
     return {
-        "template_id": template_id,
+        "template_id": template_id_str,   # CR-015 T1: canonical str downstream
         "template_name": event_map.get("template_name", ""),
         "is_enabled": event_map.get("is_enabled", True),
         "variable_mappings": var_map.get("mappings", {}) if var_map else {},
