@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import uuid
+from urllib.parse import parse_qs
 import httpx
 
 from core.database import db
@@ -967,12 +968,40 @@ async def message_status_callback(request: Request):
     except Exception:
         raw_bytes = b""
 
-    try:
-        payload = json.loads(raw_bytes) if raw_bytes else {}
-        if not isinstance(payload, dict):
-            payload = {}
-    except Exception:
-        payload = {}
+    # CR-004 P3.5 hotfix (2026-05-28): AuthKey delivery webhooks arrive as
+    # application/x-www-form-urlencoded on the wire (real captured sample),
+    # not JSON as the original sample suggested. Support both formats; pick
+    # parser by Content-Type, fall back to "try JSON then form".
+    content_type = (request.headers.get("content-type") or "").lower()
+    payload: Dict[str, Any] = {}
+
+    def _parse_form(b: bytes) -> Dict[str, Any]:
+        try:
+            decoded = b.decode("utf-8", errors="replace")
+            parsed = parse_qs(decoded, keep_blank_values=True)
+            # Flatten single-value lists; keep lists for repeated keys.
+            return {k: (v[0] if len(v) == 1 else v) for k, v in parsed.items()}
+        except Exception:
+            return {}
+
+    def _parse_json(b: bytes) -> Dict[str, Any]:
+        try:
+            obj = json.loads(b) if b else {}
+            return obj if isinstance(obj, dict) else {}
+        except Exception:
+            return {}
+
+    if "application/x-www-form-urlencoded" in content_type:
+        payload = _parse_form(raw_bytes)
+        if not payload:
+            payload = _parse_json(raw_bytes)
+    elif "application/json" in content_type:
+        payload = _parse_json(raw_bytes)
+        if not payload:
+            payload = _parse_form(raw_bytes)
+    else:
+        # Unknown content-type: be defensive — try JSON first, then form.
+        payload = _parse_json(raw_bytes) or _parse_form(raw_bytes)
 
     callback_log = {
         "id": str(uuid.uuid4()),
