@@ -97,7 +97,6 @@ These callsites are the **system-signal hooks** — they fire on real-world even
 | `is_enabled` | bool | tenant can toggle off |
 | `source_signal` | enum | which system signal triggers this event (see §3.2) |
 | `conditions` | array | filter list (see §3.3) |
-| `cooldown_seconds` | int, optional | rate-limit per customer (e.g. don't send same event > 1×/day) |
 | `available_variables` | array | which `WHATSAPP_VARIABLES` keys this event provides via its event_data (informs admin UI when mapping templates) |
 | `created_at`, `updated_at`, `created_by` | | |
 
@@ -148,26 +147,28 @@ The dispatcher checks both rules against the order data. If both are true → ev
 
 **Zero conditions** = event fires on every occurrence of the source signal (matches today's hardcoded behaviour).
 
-### 3.4 Cooldown (anti-spam)
+### 3.4 Frequency control — handled by the source signal itself, NOT by cooldown
 
-**Plain-language definition**: A "Cooldown" is a **wait period after firing the event before it can fire again to the same customer**. Without cooldown, the same WhatsApp could go out twice to the same person within minutes (e.g. if they place 3 orders in an hour, they'd get 3 `send_bill` messages — which is what we want — but they would NOT want 3 `welcome_message` messages if they re-register thrice).
+**Decision (owner 2026-05-28 evening)**: Events are inherently event-driven — the source signal already controls firing cadence. There is **no separate cooldown mechanism in CR-016**.
 
-**Example owner scenarios**:
-- `birthday` event → cooldown **365 days** (one wish per year per customer)
-- `feedback_request` event → cooldown **7 days** (don't pester after every visit)
-- `inactive_customer` win-back → cooldown **30 days** (one win-back per month)
-- `send_bill` → cooldown **0** (every order MUST get a bill — no cooldown)
+Examples of how each signal naturally controls frequency without needing cooldown:
 
-**How it works**:
-- On every firing attempt, dispatcher queries `whatsapp_message_logs` for a row matching `user_id + event_type + customer_id` within the cooldown window.
-- If a recent row exists → silently skip (log a `cooldown_blocked` row for audit).
-- If no recent row → proceed with normal send.
+| Signal | Natural cadence | Why no cooldown needed |
+|---|---|---|
+| `pos.order.received` | Once per order placed | Every order legitimately needs its bill / thank-you |
+| `customer.registered` | Once per customer (lifetime) | Customer cannot re-register; signal fires once |
+| `daily.birthday` | Once per customer per year | Daily cron + birthday-match filter inherently produces once-a-year cadence |
+| `daily.anniversary` | Once per customer per year | Same as birthday |
+| `customer.tier_changed` | Only when tier actually changes | Tier change is a discrete event |
+| `daily.points_expiring_in_N_days` | Once per N-day window | Window-based daily cron |
+| `daily.inactive_customer` | Once when inactivity threshold crossed | Threshold-based; doesn't re-trigger until customer becomes active then inactive again |
+| `coupon.issued` | Once per coupon | Coupon issuance is discrete |
 
-**Where it lives**: single field on the event — `cooldown_seconds` (default `0` = no cooldown). Set in the event modal's "Basics" tab as a friendly picker (None / Hours / Days / Weeks / Months / Custom seconds).
+**Implication for tenant-created custom events**: If a tenant builds a custom event listening to a frequent signal (e.g. `pos.order.received`), they have **conditions** to narrow the firing — not a cooldown. If they want "only fire on the customer's 5th order", they add a condition like `customer.total_visits == 5`.
 
 ### 3.5 Per-tenant override of built-in events
 
-Built-in events (the 27 hardcoded) are seeded as `is_builtin=true, user_id=null`. Tenant who wants to customize creates an override doc `is_builtin=false, user_id=<tenant>, event_key=<same as builtin>` — the resolver picks tenant doc first, falls back to builtin. Built-in event_key + display_name + source_signal are NOT editable by tenant (UI shows them as readonly); only `is_enabled`, `conditions`, `cooldown_seconds` are editable.
+Built-in events (the 27 hardcoded) are seeded as `is_builtin=true, user_id=null`. Tenant who wants to customize creates an override doc `is_builtin=false, user_id=<tenant>, event_key=<same as builtin>` — the resolver picks tenant doc first, falls back to builtin. Built-in event_key + display_name + source_signal are NOT editable by tenant (UI shows them as readonly); only `is_enabled` and `conditions` are editable.
 
 Tenant-only fields (no built-in counterpart) are fully editable.
 
@@ -177,7 +178,6 @@ Code change: every system-signal emitter calls a new `dispatch_signal(signal_key
 1. Loads all `events` rows where `source_signal == signal_key` (tenant + global)
 2. Evaluates each event's `conditions` against `event_data`
 3. For each matching enabled event:
-   - Checks cooldown (lookback in `whatsapp_message_logs` for same `event_key + customer_id`)
    - Calls `trigger_whatsapp_event(event_key=event.event_key, event_data, user_id, ...)` (same downstream path as today)
 
 Existing trigger_whatsapp_event signature unchanged → CR-015 work (variable resolution) drops in cleanly.
@@ -191,10 +191,9 @@ Existing trigger_whatsapp_event signature unchanged → CR-015 work (variable re
 ### 4.1 Changes to the existing Events list (`WhatsAppAutomationContent.jsx`)
 
 1. Add a **"+ New Event"** button at the top right.
-2. Add **3 new columns** to each row:
+2. Add **2 new columns** to each row:
    - **Source Signal** (read for built-ins; shown for clarity)
    - **Conditions** (small chip like "2 conditions" → click to view/edit)
-   - **Cooldown** (formatted like "7 days" or "—")
 3. Built-in row Edit action stays as today (map template, toggle).
 4. Custom row Edit action opens the **New/Edit Event modal** (below) with full editing.
 
@@ -207,14 +206,14 @@ Modal is opened by:
 
 | Tab | Fields |
 |---|---|
-| **1. Basics** | Display Name (text), Event Key (auto-slug, editable for custom), Description, Category (dropdown), Cooldown picker (None / N hours / N days / N weeks / N months / Custom seconds), Enable toggle |
+| **1. Basics** | Display Name (text), Event Key (auto-slug, editable for custom), Description, Category (dropdown), Enable toggle |
 | **2. Trigger** | Source Signal (dropdown of 16, see §3.2), Conditions list (rows of `field` / `operator` / `value` with **+ Add Condition** button), Zero-condition note ("Fires every time the signal occurs") |
 | **3. Variables** | Multi-select chips of `WHATSAPP_VARIABLES` keys this event will provide via event_data — informs the template-mapping UI later. Read-only for built-ins. |
 | **4. Template** | Inline reuse of the existing template-mapping UI — pick approved template, set `{{N}}` mappings. Optional: "Skip — I'll map later" button. (When skipped, event still saves; can map from list row later.) |
 
 ### 4.3 Built-in event constraints in the modal
 
-For `is_builtin=true` rows: Tab 1 fields except Cooldown + Enable are readonly; Tab 2 Source Signal is readonly (Conditions editable); Tab 3 is readonly; Tab 4 is fully editable. UI shows a small lock icon next to readonly fields with a tooltip "Built-in — metadata managed by system".
+For `is_builtin=true` rows: Tab 1 fields except Enable are readonly; Tab 2 Source Signal is readonly (Conditions editable); Tab 3 is readonly; Tab 4 is fully editable. UI shows a small lock icon next to readonly fields with a tooltip "Built-in — metadata managed by system".
 
 ---
 
@@ -244,7 +243,7 @@ Each row says **"what someone might expect us to do here"** and **"why we're not
 |---|---|---|---|
 | Migration of 27 built-in events to `events` collection drops/misfires WhatsApp in production | Low (preview-first) | High | One-time seed script with idempotency; staged rollout; dispatcher falls back to old direct-trigger if `events` collection empty for a signal |
 | Condition evaluator allows injection (e.g. `field` containing dotted path traverses prototype) | Med | Med | Whitelist allowed field paths per source_signal; reject unknown paths |
-| Cooldown lookup adds latency to every send | Low | Low | Index on `whatsapp_message_logs.(user_id, event_type, customer_id, created_at)`; lookback bounded (e.g. 30 days max) |
+| Cooldown lookup adds latency to every send | ~~Low~~ | ~~Low~~ | **N/A — cooldown removed from scope per owner direction 2026-05-28 evening; frequency is controlled by source signal cadence + conditions only** |
 | Tenant creates infinite cascading events | Low | Med | Hard cap: ≤ 50 events per tenant, ≤ 10 conditions per event |
 | Built-in events become out-of-sync with hardcoded callsites | Med | High | Tests that walk every `trigger_whatsapp_event` callsite + assert event_key exists as a builtin |
 | Removing direct `trigger_whatsapp_event` calls breaks existing flows | Med | High | v1 keeps direct calls (additive); dispatcher complements rather than replaces; switch to dispatcher-only in v2 |
@@ -255,16 +254,14 @@ Each row says **"what someone might expect us to do here"** and **"why we're not
 
 | # | Question | Recommended default |
 |---|---|---|
-| Q1 | Built-in events policy: locked metadata + editable conditions, OR fully editable (rename, change source_signal)? | **Locked metadata, editable conditions + cooldown + enable** (prevents tenant from breaking the link to system emitter) |
+| Q1 | Built-in events policy: locked metadata + editable conditions, OR fully editable (rename, change source_signal)? | **Locked metadata, editable conditions + enable** (prevents tenant from breaking the link to system emitter) |
 | Q2 | Event-key namespacing: per-tenant unique only, OR globally unique? | **Per-tenant unique** (tenant can call their custom event `big_order` even if another tenant uses same key) |
 | Q3 | Custom event creation by tenant — allow free editing OR admin-of-admins approval? | **Free editing** — restaurant CRM is per-tenant SaaS, owner is sole admin |
 | Q4 | v1 condition operator set | `eq, neq, gt, gte, lt, lte, in, not_in, contains, exists` (10 ops). Owner: keep / trim? |
-| Q5 | Cooldown: per-customer or per-tenant? | **Per-customer** (don't send same event to same customer twice in cooldown window) |
-| Q6 | Cooldown max value | 30 days |
-| Q7 | Event hard cap per tenant | 50 events / 10 conditions per event — owner: agree / adjust? |
-| Q8 | Should daily-cron source signals (birthday, anniversary, etc.) be eligible for tenant-created custom events too? E.g. tenant creates `vip_birthday` that listens to `daily.birthday` + filters `tier == "Platinum"` | **Yes** — that's the killer use case |
-| Q9 | When tenant deletes a custom event with templates mapped, what happens? | **Soft-delete + warn** (mark `deleted_at`; mapping stays but won't fire; restorable for 30 days) |
-| Q10 | UI placement — extend existing WhatsApp Automation page vs new sidebar entry | **Extend existing page** (per owner direction 2026-05-28 evening — reuse `WhatsAppAutomationContent.jsx`, add "+ New Event" button + 4-tab create/edit modal) |
+| Q5 | Event hard cap per tenant | 50 events / 10 conditions per event — owner: agree / adjust? |
+| Q6 | Should daily-cron source signals (birthday, anniversary, etc.) be eligible for tenant-created custom events too? E.g. tenant creates `vip_birthday` that listens to `daily.birthday` + filters `tier == "Platinum"` | **Yes** — that's the killer use case |
+| Q7 | When tenant deletes a custom event with templates mapped, what happens? | **Soft-delete + warn** (mark `deleted_at`; mapping stays but won't fire; restorable for 30 days) |
+| Q8 | UI placement — extend existing WhatsApp Automation page vs new sidebar entry | **Extend existing page** (per owner direction 2026-05-28 evening — reuse `WhatsAppAutomationContent.jsx`, add "+ New Event" button + 4-tab create/edit modal) |
 
 ---
 
@@ -274,30 +271,28 @@ Each row says **"what someone might expect us to do here"** and **"why we're not
 |---|---|---|
 | `events` collection schema + Pydantic models | ~60 | 0.25 day |
 | Seed script for 27 built-in events | ~120 | 0.5 day |
-| `dispatch_signal(...)` dispatcher + condition evaluator | ~250 | 1.5 days |
+| `dispatch_signal(...)` dispatcher + condition evaluator | ~220 | 1 day |
 | Refactor 15 callsites to emit signals (additive, not replacing) | ~150 | 1 day |
 | API endpoints — `GET/POST/PUT/DELETE /api/events` + `/api/signals` | ~180 | 1 day |
-| Admin UI — Events list page | ~300 | 1.5 days |
+| Admin UI — Extend `WhatsAppAutomationContent.jsx` (list columns + "+ New Event" button) | ~200 | 1 day |
 | Admin UI — Create/Edit modal (4 tabs) | ~500 | 2 days |
-| Cooldown indexer + lookup | ~50 | 0.5 day |
-| Unit tests (condition evaluator, dispatcher routing, cooldown) | ~400 | 1.5 days |
+| Unit tests (condition evaluator, dispatcher routing) | ~350 | 1 day |
 | Integration test (synthetic POS order → custom event → WhatsApp) | ~150 | 0.5 day |
 | Docs (planning + impl + QA) | — | 1 day |
 
-**Total**: ~11-12 dev-days for v1.
+**Total**: ~9-10 dev-days for v1.
 
 ---
 
 ## 9. Definition of done
 
 1. New `events` collection seeded with all 27 built-ins
-2. Admin Events page CRUD works for built-in (limited) + custom (full)
+2. Admin Events list (extended `WhatsAppAutomationContent.jsx`) CRUD works for built-in (limited) + custom (full)
 3. Dispatcher fires custom events on matching signals + conditions
-4. Cooldown prevents duplicate sends within window
-5. Existing 27 events continue firing identically (zero regression)
-6. Live test: R689 owner creates custom event `vip_thank_you` (signal: `pos.order.received`, condition: `order_amount > 1000`), maps it to a template, places synthetic Rs.1500 order → WhatsApp arrives. Places Rs.500 order → no extra event WhatsApp.
-7. QA report at `qa/CR_016_DYNAMIC_EVENT_REGISTRY_QA_REPORT.md`
-8. Register row 17 status → `cr016_closed_live_test_passed`
+4. Existing 27 events continue firing identically (zero regression)
+5. Live test: R689 owner creates custom event `vip_thank_you` (signal: `pos.order.received`, condition: `order_amount > 1000`), maps it to a template, places synthetic Rs.1500 order → WhatsApp arrives. Places Rs.500 order → no extra event WhatsApp.
+6. QA report at `qa/CR_016_DYNAMIC_EVENT_REGISTRY_QA_REPORT.md`
+7. Register row 17 status → `cr016_closed_live_test_passed`
 
 ---
 
@@ -319,14 +314,14 @@ Each row says **"what someone might expect us to do here"** and **"why we're not
 - New `events` collection schema
 - Per-tenant override model for built-in events
 - Condition evaluator design (AND-only, 10 operators, whitelisted paths)
-- Cooldown design
-- Admin UI plan (list page + 4-tab create/edit modal)
+- Frequency control via source signal cadence (no cooldown layer — events are inherently event-driven, per owner direction 2026-05-28 evening)
+- Admin UI plan (extend existing `WhatsAppAutomationContent.jsx` + 4-tab create/edit modal)
 - 7 risks with mitigations
-- 10 owner decisions with recommended defaults
-- ~11-12 dev-day estimate
+- 8 owner decisions with recommended defaults (Q8 = UI placement already locked to "reuse existing page")
+- ~9-10 dev-day estimate
 
 ### What's blocking unpark
-Owner answers to §7 (most have defaults; Q1, Q4, Q8 are the consequential ones).
+Owner answers to §7 (most have defaults; Q1, Q4, Q6 are the consequential ones).
 
 ### Resume signal
 > "Resume CR-016" → re-read this doc, ask owner the §7 questions, then write `planning/CR_016_PHASE_1_PLAN.md`.
