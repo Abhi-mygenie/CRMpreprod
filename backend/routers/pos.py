@@ -1472,10 +1472,10 @@ async def pos_order_webhook(
             }
         ))
 
-        # first_visit trigger - only for new customers
+        # welcome_message trigger - only for new customers
         if is_new:
             asyncio.create_task(trigger_whatsapp_event(
-                db, user["id"], "first_visit", updated_customer,
+                db, user["id"], "welcome_message", updated_customer,
                 {
                     "first_visit_bonus": first_visit_bonus,
                     "order_amount": order_data.order_amount,

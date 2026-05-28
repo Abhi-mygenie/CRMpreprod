@@ -63,6 +63,15 @@ async def get_automation_events():
         "points_earned": "Notify when customer earns loyalty points",
         "points_expiring": "Remind customers before their points expire",
         "feedback_request": "Request feedback from customers after visit",
+        "send_bill": "Send bill/receipt to customer after order",
+        "tier_upgrade": "Congratulate customer on loyalty tier upgrade",
+        "coupon_earned": "Notify customer when they earn a coupon",
+        "wallet_credit": "Confirm wallet top-up to customer",
+        "wallet_debit": "Confirm wallet payment to customer",
+        "bonus_points": "Notify customer of bonus points awarded",
+        "points_redeemed": "Confirm points redemption to customer",
+        "coupon_expiring": "Remind customers about expiring coupons",
+        "inactive_customer": "Win-back message for inactive customers",
     }
     
     # Combined for backward compatibility
@@ -842,10 +851,9 @@ async def get_message_filters(user: dict = Depends(get_current_user)):
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    "https://api.authkey.io/request",
+                    "https://console.authkey.io/restapi/getAllTemplate.php",
                     params={
                         "authkey": user["authkey_api_key"],
-                        "type": "getAllTemplate"
                     },
                     timeout=10
                 )
@@ -985,7 +993,6 @@ async def resend_messages(
             wa_msg = WhatsAppMessage(
                 phone=msg.get("customer_phone"),
                 country_code=msg.get("country_code", "91"),
-                template_name=msg.get("template_name"),
                 template_id=msg.get("template_id"),
                 body_values=msg.get("body_values", {})
             )

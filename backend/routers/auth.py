@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone, timedelta
+import asyncio
 import uuid
 import os
 import random
@@ -496,8 +497,26 @@ async def request_forgot_password_otp(data: dict):
     # Check if WhatsApp is configured
     whatsapp_key = user.get("authkey_api_key")
     
-    # TODO: Send OTP via WhatsApp when configured
-    # For now, return OTP for testing purposes
+    # Fire reset_password WhatsApp trigger if configured
+    if whatsapp_key:
+        # Find customer by phone to get customer doc for template
+        customer_phone = user.get("phone")
+        if customer_phone:
+            from core.whatsapp import trigger_whatsapp_event
+            customer = await db.customers.find_one(
+                {"user_id": user["id"], "phone": customer_phone}, {"_id": 0}
+            )
+            if not customer:
+                customer = {
+                    "name": user.get("restaurant_name", "User"),
+                    "phone": customer_phone,
+                    "country_code": "+91",
+                }
+            asyncio.create_task(trigger_whatsapp_event(
+                db, user["id"], "reset_password", customer,
+                {"otp": otp, "restaurant_name": user.get("restaurant_name", "")}
+            ))
+    
     if not whatsapp_key:
         # No WhatsApp configured - return OTP for testing
         return {

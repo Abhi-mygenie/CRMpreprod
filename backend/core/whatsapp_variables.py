@@ -15,7 +15,7 @@ ALL_EVENTS = "*"
 COUPON_EVENTS = ["coupon_earned"]
 EXPIRY_EVENTS = ["points_expiring"]
 ORDER_EVENTS = ["send_bill", "send_bill_auto", "send_bill_manual", "new_order_customer"]
-FEEDBACK_EVENTS = ["feedback_received"]
+FEEDBACK_EVENTS = ["feedback_request"]
 
 WHATSAPP_VARIABLES = [
     # ── General / Customer ────────────────────────────────────────
@@ -76,7 +76,7 @@ WHATSAPP_VARIABLES = [
         ],
         "fills_on_events": [
             "points_earned", "bonus_points", "birthday", "anniversary",
-            "first_visit", "welcome_message", "send_bill", "send_bill_auto",
+            "welcome_message", "send_bill", "send_bill_auto",
         ],
         "formatter": "integer",
     },
@@ -215,7 +215,7 @@ WHATSAPP_VARIABLES = [
             {"from": "event", "field": "order_id"},
             {"from": "event", "field": "pos_order_id"},
         ],
-        "fills_on_events": ORDER_EVENTS + ["first_visit"],
+        "fills_on_events": ORDER_EVENTS + ["welcome_message"],
         "formatter": None,
     },
 

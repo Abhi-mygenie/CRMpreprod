@@ -1192,6 +1192,15 @@ CRM_EVENTS = [
     "points_earned",           # Points Earned
     "points_expiring",         # Points Expiring Reminder
     "feedback_request",        # Feedback Request
+    "send_bill",               # Bill sent to customer (every order)
+    "tier_upgrade",            # Customer tier upgraded (Bronze→Silver→Gold→Platinum)
+    "coupon_earned",           # Customer earned/applied a coupon
+    "wallet_credit",           # Wallet credited (top-up)
+    "wallet_debit",            # Wallet debited (payment)
+    "bonus_points",            # Bonus points awarded manually
+    "points_redeemed",         # Points redeemed on order
+    "coupon_expiring",         # Coupon about to expire (daily reminder)
+    "inactive_customer",       # Customer inactive 30+ days (win-back)
 ]
 
 # All automation events (combined for backward compatibility)

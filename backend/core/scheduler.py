@@ -15,6 +15,8 @@ from core.loyalty_jobs import (
     run_anniversary_bonus,
     run_expiry_reminders,
     run_points_expiry,
+    run_coupon_expiry_reminders,
+    run_inactive_customer_reminders,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,6 +53,8 @@ async def daily_loyalty_jobs():
         "anniversary": {"total_awarded": 0, "total_points": 0},
         "expiry_reminders": {"total_reminded": 0},
         "expiry": {"total_expired": 0, "customers_affected": 0},
+        "coupon_expiry_reminders": {"coupons_expiring": 0, "customers_notified": 0},
+        "inactive_customer_reminders": {"customers_notified": 0},
         "errors": [],
     }
 
@@ -75,6 +79,15 @@ async def daily_loyalty_jobs():
             summary["expiry"]["total_expired"] += expiry["total_expired"]
             summary["expiry"]["customers_affected"] += expiry["customers_affected"]
 
+            # Coupon expiry reminders (no settings dependency)
+            cpn_expiry = await run_coupon_expiry_reminders(user_id)
+            summary["coupon_expiry_reminders"]["coupons_expiring"] += cpn_expiry["coupons_expiring"]
+            summary["coupon_expiry_reminders"]["customers_notified"] += cpn_expiry["customers_notified"]
+
+            # Inactive customer win-back (no settings dependency)
+            inactive = await run_inactive_customer_reminders(user_id)
+            summary["inactive_customer_reminders"]["customers_notified"] += inactive["customers_notified"]
+
         except Exception as e:
             logger.error(f"Error processing user {user_id}: {e}")
             summary["errors"].append({"user_id": user_id, "error": str(e)})
@@ -96,6 +109,8 @@ async def daily_loyalty_jobs():
     logger.info(f"  Anniversary: {summary['anniversary']['total_awarded']} awarded")
     logger.info(f"  Expiry reminders: {summary['expiry_reminders']['total_reminded']} reminded")
     logger.info(f"  Expired: {summary['expiry']['total_expired']} points from {summary['expiry']['customers_affected']} customers")
+    logger.info(f"  Coupon expiry reminders: {summary['coupon_expiry_reminders']['coupons_expiring']} coupons, {summary['coupon_expiry_reminders']['customers_notified']} notified")
+    logger.info(f"  Inactive customer win-back: {summary['inactive_customer_reminders']['customers_notified']} notified")
 
     return summary
 

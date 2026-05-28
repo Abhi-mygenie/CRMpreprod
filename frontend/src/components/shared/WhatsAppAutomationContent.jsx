@@ -425,23 +425,21 @@ export function WhatsAppAutomationContent({ embedded = false }) {
         "points_earned": "Points Earned",
         "points_expiring": "Points Expiring",
         "feedback_request": "Feedback Request",
+        "send_bill": "Send Bill",
+        "tier_upgrade": "Tier Upgrade",
+        "coupon_earned": "Coupon Earned",
+        "wallet_credit": "Wallet Top-up",
+        "wallet_debit": "Wallet Payment",
+        "bonus_points": "Bonus Points Awarded",
+        "points_redeemed": "Points Redeemed",
+        "coupon_expiring": "Coupon Expiring Reminder",
+        "inactive_customer": "Inactive Customer Win-back",
     };
 
     // Combined event labels for backward compatibility
     const eventLabels = {
         ...posEventLabels,
         ...crmEventLabels,
-        // Legacy labels for old events
-        "points_redeemed": "Points Redeemed",
-        "bonus_points": "Bonus Points Given",
-        "wallet_credit": "Wallet Top-up",
-        "wallet_debit": "Wallet Payment",
-        "first_visit": "First Visit Welcome",
-        "tier_upgrade": "Tier Upgrade",
-        "coupon_earned": "Coupon Received",
-        "feedback_received": "Feedback Thank You",
-        "inactive_reminder": "Win-back Message",
-        "send_bill": "Send Bill (New Order)"
     };
 
     // POS Events descriptions

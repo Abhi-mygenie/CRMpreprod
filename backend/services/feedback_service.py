@@ -54,10 +54,10 @@ async def create_feedback_entry(user_id: str, feedback_data: dict):
             await db.points_transactions.insert_one(tx_doc)
             customer["total_points"] = new_balance
     
-    # Fire feedback_received WhatsApp trigger
+    # Fire feedback_request WhatsApp trigger
     if customer:
         asyncio.create_task(trigger_whatsapp_event(
-            db, user_id, "feedback_received", customer,
+            db, user_id, "feedback_request", customer,
             {
                 "rating": feedback_data.get("rating"),
                 "feedback_message": feedback_data.get("message") or "",

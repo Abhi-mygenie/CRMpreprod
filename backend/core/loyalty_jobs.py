@@ -381,3 +381,88 @@ async def run_points_expiry(user_id: str, settings: dict) -> dict:
         "customers_affected": customers_affected,
         "expired_details": expired_details
     }
+
+
+async def run_coupon_expiry_reminders(user_id: str) -> dict:
+    """Send WhatsApp reminders for coupons expiring within 3 days."""
+    from core.whatsapp import trigger_whatsapp_event
+
+    now = datetime.now(timezone.utc)
+    reminder_cutoff = (now + timedelta(days=3)).strftime("%Y-%m-%d")
+    today_str = now.strftime("%Y-%m-%d")
+
+    # Find active coupons expiring within 3 days
+    expiring_coupons = await db.coupons.find({
+        "user_id": user_id,
+        "is_active": True,
+        "end_date": {"$gte": today_str, "$lte": reminder_cutoff},
+    }, {"_id": 0}).to_list(50)
+
+    if not expiring_coupons:
+        return {"coupons_expiring": 0, "customers_notified": 0}
+
+    # Get active customers (ordered in last 90 days) to notify
+    cutoff_90d = (now - timedelta(days=90)).isoformat()
+    customers = await db.customers.find({
+        "user_id": user_id,
+        "phone": {"$exists": True, "$ne": ""},
+        "$or": [
+            {"last_order_at": {"$gte": cutoff_90d}},
+            {"updated_at": {"$gte": cutoff_90d}},
+        ],
+    }, {"_id": 0}).to_list(200)
+
+    customers_notified = 0
+    for coupon in expiring_coupons:
+        for customer in customers[:50]:  # Cap 50 per coupon per day
+            asyncio.create_task(trigger_whatsapp_event(
+                db, user_id, "coupon_expiring", customer,
+                {
+                    "coupon_code": coupon.get("code", ""),
+                    "coupon_title": coupon.get("title", ""),
+                    "coupon_discount": coupon.get("discount_value", ""),
+                    "coupon_expiry": coupon.get("end_date", ""),
+                }
+            ))
+            customers_notified += 1
+
+    return {
+        "coupons_expiring": len(expiring_coupons),
+        "customers_notified": customers_notified,
+    }
+
+
+async def run_inactive_customer_reminders(user_id: str) -> dict:
+    """Send win-back WhatsApp messages to customers inactive for 30+ days."""
+    from core.whatsapp import trigger_whatsapp_event
+
+    now = datetime.now(timezone.utc)
+    inactive_cutoff = (now - timedelta(days=30)).isoformat()
+
+    # Find customers whose last activity was 30+ days ago
+    customers = await db.customers.find({
+        "user_id": user_id,
+        "phone": {"$exists": True, "$ne": ""},
+        "$or": [
+            {"last_order_at": {"$exists": True, "$lt": inactive_cutoff}},
+            {
+                "last_order_at": {"$exists": False},
+                "created_at": {"$lt": inactive_cutoff},
+            },
+        ],
+    }, {"_id": 0}).to_list(50)  # Cap 50 per user per day
+
+    customers_notified = 0
+    for customer in customers:
+        asyncio.create_task(trigger_whatsapp_event(
+            db, user_id, "inactive_customer", customer,
+            {
+                "customer_name": customer.get("name", ""),
+                "points_balance": customer.get("total_points", 0),
+                "tier": customer.get("tier", "Bronze"),
+                "total_visits": customer.get("total_visits", 0),
+            }
+        ))
+        customers_notified += 1
+
+    return {"customers_notified": customers_notified}

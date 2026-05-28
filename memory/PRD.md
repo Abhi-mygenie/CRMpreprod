@@ -20,7 +20,7 @@ CRM for restaurant loyalty, coupons, WhatsApp automation, POS integration. Codeb
 | 2 | CR-002B Customer CRM Benefits Visibility | `cr002b_authenticated_qa_passed` | PASS |
 | 3 | POS-CRM Cross-Sell Suggestions API | `pos_crm_cross_sell_phase_1_v1_1_shipped_pos_green` | PASS |
 | 4 | CR-003 Coupon Analytics Dashboard | `cr003_phase_4_qa_passed` | PASS (P1-P4 all QA'd) |
-| 5 | CR-004 WhatsApp Utility + Marketing | `cr004_phase_2_5b_qa_passed` | PASS (P1/P2/P2.5/P2.5-B all QA'd) |
+| 5 | **CR-004 WhatsApp Utility + Marketing** | **`cr004_phase_3_qa_passed`** | **PASS (P1/P2/P2.5/P2.5-B/P3 all QA'd)** |
 | 6 | CR-006 Coupon Engine POS Regression | `cr006_b11_fixed_real_data_reproduction_complete` | PASS |
 | 7 | Hotfix Customer Detail Crash | `hotfix_customer_detail_crash_fixed_owner_verified` | PASS |
 | 8 | CR-007 Loyalty Redemption Fix | `cr007_implemented_and_tested` | No standalone QA doc |
@@ -34,41 +34,35 @@ CRM for restaurant loyalty, coupons, WhatsApp automation, POS integration. Codeb
 ### What Was Done This Session (2026-05-28)
 
 **P2 QA Debt — 6 QA reports written and verified:**
-1. **CR-003 Phase 3 QA** — Custom date picker, CSV export (13 columns), PDF export (branded reportlab). 15 scenarios all passed.
-2. **CR-003 Phase 4 QA** — ROI Score card, insight banner, per-coupon ROI column with band coloring (Strong/Good/Watch/Risk), CSV/PDF ROI fields. 14 scenarios all passed.
-3. **CR-004 Phase 1 QA** — Legacy endpoints 404, canonical variables API (23 vars), text mode at send time, legacy UI modals removed. Residual auth.py bug confirmed fixed. 12 scenarios all passed.
-4. **CR-004 Phase 2 QA** — Enriched variable registry with `sources/fills_on_events/formatter`, resolver function, brand data injection, validator warnings. 19 unit tests + 14 scenarios all passed.
-5. **CR-004 Phase 2.5 QA** — Variable expansion 10→23 in 7 categories, sample-data endpoint, P2 regression. 25 unit tests + 16 scenarios all passed.
-6. **CR-004 Phase 2.5-B QA** — Coupon summary API, `coupon_pick` validation, picker field on 4 coupon vars, 3-mode toggle UI, auto-fill siblings. 12 scenarios all passed.
+1. CR-003 Phase 3 QA — Custom date picker, CSV export, PDF export
+2. CR-003 Phase 4 QA — ROI Score card, insight banner, per-coupon ROI column
+3. CR-004 Phase 1 QA — Legacy endpoints 404, canonical variables API, text mode
+4. CR-004 Phase 2 QA — Enriched variable registry, resolver, brand injection
+5. CR-004 Phase 2.5 QA — Variable expansion 10→23 in 7 categories
+6. CR-004 Phase 2.5-B QA — Coupon picker, coupon_pick mode
 
-**Combined test suite:** 50 unit tests all green (`test_whatsapp_*.py`)
+**P3a — CR-004 Phase 3: Event Reconciliation (full lifecycle: Discovery→Planning→Implementation→QA):**
+- Added 9 new events to CRM_EVENTS (total: 27 = 11 POS + 16 CRM)
+- Fixed 2 naming mismatches (`first_visit` → `welcome_message`, `feedback_received` → `feedback_request`)
+- Added 3 Tier 2 triggers: `reset_password` (auth OTP), `coupon_expiring` (daily cron), `inactive_customer` (daily cron)
+- Fixed 2 bugs: resend TypeError, message-filters wrong AuthKey URL
+- Updated frontend to display all 16 CRM events in Automation page
 
 ### Session Plan Remaining
-- **P3a:** CR-004 P3 Event Reconciliation
 - **P3b:** CR-011 Coupon Optimizer Discovery
 
-### QA Reports Written (this session)
-| Report | Path |
+### Docs Written (this session)
+| Type | Path |
 |---|---|
-| CR-003 Phase 3 QA | `/app/memory/crm/crm_roi_sprint/qa/CR_003_COUPON_ANALYTICS_DASHBOARD_PHASE_3_QA_REPORT.md` |
-| CR-003 Phase 4 QA | `/app/memory/crm/crm_roi_sprint/qa/CR_003_COUPON_ANALYTICS_DASHBOARD_PHASE_4_QA_REPORT.md` |
-| CR-004 Phase 1 QA | `/app/memory/crm/crm_roi_sprint/qa/CR_004_PHASE_1_FOUNDATION_CLEANUP_QA_REPORT.md` |
-| CR-004 Phase 2 QA | `/app/memory/crm/crm_roi_sprint/qa/CR_004_PHASE_2_VARIABLE_DB_MAPPING_QA_REPORT.md` |
-| CR-004 Phase 2.5 QA | `/app/memory/crm/crm_roi_sprint/qa/CR_004_PHASE_2_5_VARIABLE_EXPANSION_QA_REPORT.md` |
-| CR-004 Phase 2.5-B QA | `/app/memory/crm/crm_roi_sprint/qa/CR_004_PHASE_2_5B_COUPON_AWARE_VARIABLE_MAPPING_QA_REPORT.md` |
-
-## Key Files Reference
-| Area | Files |
-|---|---|
-| WhatsApp variable registry | `backend/core/whatsapp_variables.py` (23 vars, `picker: "coupon"` on 4) |
-| WhatsApp resolver + send | `backend/core/whatsapp.py` (`build_body_values` with `coupon_pick` mode) |
-| WhatsApp router | `backend/routers/whatsapp.py` |
-| Coupons router | `backend/routers/coupons.py` |
-| Analytics | `backend/routers/analytics.py`, `backend/services/analytics_service.py` |
-| PDF report | `backend/services/pdf_report.py` |
-| Templates page | `frontend/src/pages/TemplatesPage.jsx` |
-| WhatsApp Automation | `frontend/src/components/shared/WhatsAppAutomationContent.jsx` |
-| Coupon Analytics | `frontend/src/pages/CouponAnalyticsPage.jsx` |
+| CR-003 P3 QA | `qa/CR_003_COUPON_ANALYTICS_DASHBOARD_PHASE_3_QA_REPORT.md` |
+| CR-003 P4 QA | `qa/CR_003_COUPON_ANALYTICS_DASHBOARD_PHASE_4_QA_REPORT.md` |
+| CR-004 P1 QA | `qa/CR_004_PHASE_1_FOUNDATION_CLEANUP_QA_REPORT.md` |
+| CR-004 P2 QA | `qa/CR_004_PHASE_2_VARIABLE_DB_MAPPING_QA_REPORT.md` |
+| CR-004 P2.5 QA | `qa/CR_004_PHASE_2_5_VARIABLE_EXPANSION_QA_REPORT.md` |
+| CR-004 P2.5-B QA | `qa/CR_004_PHASE_2_5B_COUPON_AWARE_VARIABLE_MAPPING_QA_REPORT.md` |
+| CR-004 P3 Planning | `planning/CR_004_PHASE_3_EVENT_RECONCILIATION_PLAN.md` |
+| CR-004 P3 Impl | `implementation/CR_004_PHASE_3_EVENT_RECONCILIATION_IMPLEMENTATION_REPORT.md` |
+| CR-004 P3 QA | `qa/CR_004_PHASE_3_EVENT_RECONCILIATION_QA_REPORT.md` |
 
 ## Strict Rules
 - Do NOT modify CRM 1.0 baseline close doc

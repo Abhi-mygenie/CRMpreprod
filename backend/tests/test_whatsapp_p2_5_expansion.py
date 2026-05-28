@@ -37,7 +37,7 @@ def test_rating():
     assert resolve_variable("rating", {}, {"rating": 5}, {}) == "5"
 
 def test_rating_only_on_feedback():
-    assert fills_on("rating", "feedback_received") is True
+    assert fills_on("rating", "feedback_request") is True
     assert fills_on("rating", "birthday") is False
 
 
