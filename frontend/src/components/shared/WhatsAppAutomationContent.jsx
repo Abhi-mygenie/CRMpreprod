@@ -267,6 +267,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
     const [templateVariableMappings, setTemplateVariableMappings] = useState({});
     const [templateVariableModes, setTemplateVariableModes] = useState({});
     const [savingVariableMapping, setSavingVariableMapping] = useState(false);
+    const [variableMappingErrors, setVariableMappingErrors] = useState({});
     
     // Sample customer data for previews
     const [sampleCustomerData, setSampleCustomerData] = useState({});
@@ -658,6 +659,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
         const existingModes = templateVariableModes[template.wid] || {};
         setVariableMappings(existingMappings);
         setVariableMappingModes(existingModes);
+        setVariableMappingErrors({});
         // CR-004 P2.5-B: Detect existing coupon_pick and set selectedCouponId
         let detectedCouponId = null;
         for (const [, mapped] of Object.entries(existingMappings)) {
@@ -698,7 +700,16 @@ export function WhatsAppAutomationContent({ embedded = false }) {
             setVariableMappings({});
             setVariableMappingModes({});
         } catch (err) {
-            toast.error("Failed to save variable mappings");
+            // CR-015 T6: Parse 422 validation errors into per-row display
+            const detail = err?.response?.data?.detail;
+            if (err?.response?.status === 422 && detail?.errors) {
+                const errMap = {};
+                detail.errors.forEach(e => { errMap[e.placeholder] = e.message; });
+                setVariableMappingErrors(errMap);
+                toast.error("Some variable mappings are invalid. See errors below.");
+            } else {
+                toast.error("Failed to save variable mappings");
+            }
         } finally {
             setSavingVariableMapping(false);
         }
@@ -1635,6 +1646,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                                                     )}
                                                 </div>
                                             ) : currentMode === "text" ? (
+                                                <>
                                                 <Input
                                                     type="text"
                                                     value={variableMappings[variable] || ""}
@@ -1646,6 +1658,8 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                                                     className="h-10 rounded-lg"
                                                     data-testid={`var-text-${variable}`}
                                                 />
+                                                <p className="text-xs text-gray-400 mt-1">This text will be sent to customers exactly as typed.</p>
+                                                </>
                                             ) : (
                                                 <Select
                                                     value={variableMappings[variable] || ""}
@@ -1683,6 +1697,11 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                                                     </SelectContent>
                                                 </Select>
                                             )}
+                                        {variableMappingErrors[variable] && (
+                                            <p className="text-xs text-red-500 mt-1 ml-1" data-testid={`var-error-${variable}`}>
+                                                {variableMappingErrors[variable]}
+                                            </p>
+                                        )}
                                         </div>
                                         );
                                     })}
@@ -1696,6 +1715,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                                             setMappingTemplate(null);
                                             setVariableMappings({});
                                             setVariableMappingModes({});
+                                            setVariableMappingErrors({});
                                         }}
                                     >
                                         Cancel

@@ -2,7 +2,7 @@
 
 **Sprint**: ROI Measurement / CRM
 **CR code**: CR-015
-**Lifecycle stage**: `cr015_implementation_phase_2_day_2_complete_t3_landed`
+**Lifecycle stage**: `cr015_day_3_implemented_t7_waiting_owner_commit_approval`
 **Plan ref**: `/app/memory/crm/crm_roi_sprint/planning/CR_015_PHASE_1_PLAN.md` (v1.1, approved 2026-05-29)
 **Probe ref**: `/app/memory/crm/crm_roi_sprint/investigations/CR_015_PRE_IMPL_GROUND_TRUTH_2026_05_29.md`
 **Author**: agent (live-tracked, one entry per commit)
@@ -120,9 +120,9 @@
 | 1 | T1 lands; live R689 probe shows `variable_mappings` non-empty for `send_bill` (template_id 25140 int) | ✅ done (Day 1) |
 | 2 | T5 lands; 14 new entries + 2 new formatters; unit tests pass; backward-compatible | ✅ done (Day 1) |
 | 3 | T3 lands; live POS order against R689 trace shows all `order_ctx` keys present in `event_data` | ✅ done (Day 2 — 119/119 tests, lint clean, health green) |
-| 4 | T6 server-side rejects bad var_keys (422); client-side surfaces inline error | ⏳ |
-| 5 | T7 R689 template 25140 mapping cleaned to all-valid keys | ⏳ |
-| 6 | T4 minor enrichments (wallet:55/77, points:133, loyalty:456) | ⏳ |
+| 4 | T6 server-side rejects bad var_keys (422); client-side surfaces inline error | ✅ done (Day 3) |
+| 5 | T7 R689 template 25140 mapping cleaned to all-valid keys | ⏸ dry-run done; awaiting owner commit approval |
+| 6 | T4 minor enrichments (wallet:55/77, points:133, loyalty:456) | ✅ done (Day 3) |
 | 7 | T2 mongodump taken; R689's 2 int rows coerced to str; resolver fallback branch removed | ⏳ |
 | 8 | Live integration test (plan §9.3) passes — Rs.1850 order → WhatsApp arrives with all 7 slots populated correctly + `delivered`/`read` callbacks | ⏳ |
 | 9 | Coupon-applied order renders coupon variables correctly | ⏳ |
@@ -133,4 +133,4 @@
 
 ---
 
-**Status**: Day 2 complete. T1+T5+T3 all landed.
+**Status**: Day 3 complete (T4+T6+T7-dry-run). T7 commit awaiting owner approval. T1+T5+T3+T4+T6 all landed.

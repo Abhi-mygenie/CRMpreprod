@@ -135,6 +135,9 @@ async def create_points_transaction(tx_data: PointsTransactionCreate, user: dict
             {
                 "bonus_points": tx_data.points,
                 "points_balance": new_balance,
+                # CR-015 T4: enrichments for template variable resolution
+                "bill_amount": tx_data.bill_amount,
+                "description": tx_data.description,
                 # CR-004 P3.5
                 "idempotency_key": f"{tx_doc['id']}_bonus_points",
                 "reference_type": "points_tx",

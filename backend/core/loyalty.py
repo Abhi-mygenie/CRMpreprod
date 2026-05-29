@@ -462,6 +462,9 @@ async def redeem_loyalty_points(
                     "points_redeemed": actual_points,
                     "points_balance": new_balance,
                     "redeemed_value": redeemed_value,
+                    # CR-015 T4: enrichments for template variable resolution
+                    "order_id": order_id,
+                    "order_total": order_total,
                     # CR-004 P3.5
                     "idempotency_key": f"{tx_doc['id']}_points_redeemed",
                     "reference_type": "points_tx",

@@ -118,7 +118,7 @@ If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 | 012 | WhatsApp Template Builder | Planning | 🔵 | — | (see register) | — |
 | 013 | Template Gallery | Discovery | 🔴 blocked by CR-012 P1 | — | (see register) | — |
 | **014** | **E-Invoice PDF + Mobile HTML Link** | **Discovery Phase 0 done** | **⏸** | ~8-10 days | **2 owner confirmations**: C1 address strategy, C2 required-vs-optional (see CR-014 §15.6) | **2026-05-28** |
-| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Day 2 done (T1+T5+T3 landed); Day 3 spec FROZEN, ready for impl (T6+T7+T4)** | **🟡** | ~1.5 days remaining | Day 3 freeze doc at `planning/CR_015_DAY_3_FROZEN_SPEC.md` — 17 acceptance checks in §8. Then Day 4: T2 (DB norm) + live test. | **2026-05-29** |
+| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Day 3 done (T4+T6 landed, T7 dry-run done); T7 commit awaiting owner approval** | **🟡** | ~1 day remaining (T7 commit + T2 + live test) | T7 dry-run output ready for owner review. After commit: Day 4 = T2 (DB norm) + live test. | **2026-05-29** |
 | **016** | **Dynamic Event Registry + Trigger Configuration UI** | **Discovery Phase 0 done — DEFERRED to next sprint** | **⏸ next-sprint** | ~9-10 days | **Deferred 2026-05-29 by owner**: existing event mapping/firing fidelity (CR-015) takes priority. §7 Q1–Q8 still open. | **2026-05-29** |
 
 > When a row's first column shows a number ≤ 010 with no detail above, look up the full row in `crm/crm_roi_sprint/00_register/ROI_MEASUREMENT_CR_REGISTER.md`.
@@ -156,6 +156,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-05-29 | CR-015 | 🟡 Day 3 frozen → 🟡 **Day 3 DONE — T4+T6 landed, T7 dry-run complete, awaiting owner commit** (119/119 tests, 5/5 smoke probes, frontend compiles) |
 | 2026-05-29 | CR-015 | 🟡 Day 2 done → 🟡 **Day 3 spec FROZEN** (T6+T7+T4 freeze doc at `planning/CR_015_DAY_3_FROZEN_SPEC.md`, 17 acceptance checks) |
 | 2026-05-29 | CR-015 | 🟡 Day 2 frozen → 🟡 **Day 2 DONE — T3 landed** (`build_order_event_context` + 3 pos.py callsites refactored, 119/119 tests, lint clean) |
 | 2026-05-29 | CR-015 | 🟡 Day 1 done → 🟡 **Day 2 spec FROZEN, T3 ready for implementation** (freeze doc at `planning/CR_015_DAY_2_FROZEN_SPEC.md`) |

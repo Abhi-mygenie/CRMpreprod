@@ -605,7 +605,7 @@ async def save_template_variable_mapping(
     user: dict = Depends(get_current_user)
 ):
     """Save variable mappings for a template + return warnings for incompatible event/variable combos."""
-    from core.whatsapp_variables import fills_on, COUPON_VARIABLE_KEYS
+    from core.whatsapp_variables import fills_on, COUPON_VARIABLE_KEYS, VARIABLES_BY_KEY
 
     now = datetime.now(timezone.utc).isoformat()
     clean_mappings = {k: v for k, v in (data.get("mappings") or {}).items() if v and v != "none"}
@@ -641,6 +641,29 @@ async def save_template_variable_mapping(
                 f"Coupon '{coupon_id}' not found or does not belong to your account"
             )
 
+    # CR-015 T6 (2026-05-29): Validate map-mode var_keys against registry.
+    # Block save if any map-mode mapping uses an unknown variable key.
+    map_mode_errors = []
+    for placeholder, mapped_value in clean_mappings.items():
+        mode = modes.get(placeholder, "map")
+        if mode in ("text", "coupon_pick"):
+            continue  # text = literal string (valid); coupon_pick = already validated above
+        clean_key = (mapped_value or "").strip()
+        if clean_key in ("", "none"):
+            continue  # explicit no-mapping, allowed
+        if clean_key not in VARIABLES_BY_KEY:
+            map_mode_errors.append({
+                "placeholder": placeholder,
+                "type": "unknown_variable",
+                "message": f"Unknown variable '{mapped_value}' for {placeholder}. Pick from the available list."
+            })
+
+    if map_mode_errors:
+        raise HTTPException(
+            status_code=422,
+            detail={"errors": map_mode_errors}
+        )
+
     await db.whatsapp_template_variable_map.update_one(
         {"user_id": user["id"], "template_id": template_id},
         {"$set": {
@@ -656,6 +679,26 @@ async def save_template_variable_mapping(
 
     # P2: Compute warnings — check each map-mode variable against events using this template
     warnings = []
+
+    # CR-015 T6: Warn on text-mode values that look like placeholders/notes
+    suspicious_tokens = ("missing", "todo", "tbd", "n/a", "none", "placeholder", "test")
+    for placeholder, mapped_value in clean_mappings.items():
+        mode = modes.get(placeholder, "map")
+        if mode != "text":
+            continue
+        val_lower = (mapped_value or "").lower().strip()
+        is_suspicious = (
+            any(token in val_lower for token in suspicious_tokens)
+            or (mapped_value or "").strip() != (mapped_value or "")  # trailing/leading whitespace
+        )
+        if is_suspicious:
+            warnings.append({
+                "placeholder": placeholder,
+                "type": "text_mode_suspicious_value",
+                "variable": mapped_value,
+                "message": f"{placeholder}: '{mapped_value}' looks like a placeholder — this text will be sent to customers literally."
+            })
+
     event_mappings = await db.whatsapp_event_template_map.find(
         {"user_id": user["id"], "template_id": template_id},
         {"_id": 0, "event_key": 1},

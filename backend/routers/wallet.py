@@ -57,6 +57,10 @@ async def create_wallet_transaction(tx_data: WalletTransactionCreate, user: dict
             {
                 "amount": tx_data.amount,
                 "wallet_balance": new_balance,
+                # CR-015 T4: enrichments for template variable resolution
+                "payment_method": tx_data.payment_method,
+                "transaction_id": tx_id,
+                "description": tx_data.description,
                 # CR-004 P3.5
                 "idempotency_key": f"{tx_id}_wallet_credit",
                 "reference_type": "wallet_tx",
@@ -79,6 +83,11 @@ async def create_wallet_transaction(tx_data: WalletTransactionCreate, user: dict
             {
                 "amount": tx_data.amount,
                 "wallet_balance": new_balance,
+                # CR-015 T4: enrichments for template variable resolution
+                "payment_method": tx_data.payment_method,
+                "transaction_id": tx_id,
+                "description": tx_data.description,
+                "wallet_used": tx_data.amount,
                 # CR-004 P3.5
                 "idempotency_key": f"{tx_id}_wallet_debit",
                 "reference_type": "wallet_tx",
