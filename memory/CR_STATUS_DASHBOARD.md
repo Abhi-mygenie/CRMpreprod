@@ -8,22 +8,21 @@
 
 ## 📌 Latest Session Snapshot
 
-**Session date**: 2026-05-29 (T7 committed + T2 skipped + live test executed + {{6}} fix + full audit)
+**Session date**: 2026-05-29 (CR-015 CLOSED — full live test passed)
 **Pod URL**: `https://c158ad1e-e16c-449c-b11f-8eaabb028c19.preview.emergentagent.com`
 
 ### What happened this session (full chronology)
 
 1. **Repo re-bootstrapped** from branch `29-may` (was `28-may`). Deps installed, services UP, health green.
-2. **Doc audit** — verified CR-015a/b/c docs were updated in `29-may`. Found DECISIONS_LOG.md missing 4 entries → appended (CR-015c removal, CR-015b dead-code, sprint priority, real creds).
-3. **T7 script updated + committed** — original script safety-aborted because `{{4}}`/`{{5}}` were already fixed via Templates page UI. Narrowed to `{{7}}` only (`points_earned` → `points_balance`). Owner approved, committed to remote DB.
-4. **T2 SKIPPED** — owner decided int→str DB normalization unnecessary; T1 resolver already handles it.
-5. **Live test UNPARKED** — owner repointed POS + AuthKey webhook to preview pod. Order 869329 (R689, Rs.745, 1106 loyalty points redeemed) landed. WhatsApp sent + delivered (status=read).
-6. **{{6}} semantic mismatch found** — template says "Loyalty Points Used" but `{{6}}` was mapped to `points_earned` (showed "0" when customer used 1106). Root cause: CR-015 probe checked registry validity only, not semantic match against template text.
-7. **{{6}} fixed** — remapped `points_earned` → `loyalty_points_used`. DB write verified.
-8. **Full template-vs-mapping audit** — all 4 R689 templates (18 slots) cross-referenced against AuthKey template body text. Result: **0 remaining mismatches**. 27 of 37 registry variables available but unmapped (ready for future templates).
-9. **Governance docs updated** — DECISIONS_LOG, dashboard, closeout, register, PRD.
-
-> CR-015 is now **code-complete + data-clean**. Live test partially validated (order 869329 sent + read, but with {{6}} bug — next order will be the clean test).
+2. **Doc audit** — verified CR-015a/b/c docs were updated in `29-may`. Found DECISIONS_LOG.md missing 4 entries → appended.
+3. **T7 script updated + committed** — narrowed to `{{7}}` only (`points_earned` → `points_balance`). `{{4}}`/`{{5}}` already fixed via UI.
+4. **T2 SKIPPED** — owner decided resolver handles int→str already.
+5. **Live test UNPARKED** — owner repointed POS + AuthKey webhook to preview pod.
+6. **Order 869329** — WhatsApp sent+read but `{{6}}` showed "Loyalty Points Used: 0" when 1106 were used. Root cause: `{{6}}` mapped to `points_earned` instead of `loyalty_points_used`.
+7. **{{6}} fixed** — remapped to `loyalty_points_used`. DB write verified.
+8. **Full template-vs-mapping audit** — 4 templates, 18 slots, 0 remaining mismatches.
+9. **Clean live test PASSED** — orders 869331 (009577, Rs.409, points_balance=70) and 869333 (009579, Rs.2571, points_balance=128) both sent + read with all 7 slots correct.
+10. **CR-015 CLOSED** — `cr015_closed_live_test_passed`.
 
 ### 🎯 Next-agent handoff message
 
@@ -33,14 +32,11 @@ You are picking up the MyGenie CRM ROI sprint.
 READ FIRST: README.md → CR_STATUS_DASHBOARD.md (this snapshot) → DECISIONS_LOG.md
 
 CURRENT STATE (2026-05-29):
-- CR-015 PARENT: CODE COMPLETE + DATA CLEAN.
-    All tracks landed (T1-T7). T2 skipped. {{6}} semantic mismatch found + fixed.
-    Full audit passed (0 remaining mismatches across all R689 templates).
-    POS + AuthKey pointed at preview. Awaiting one clean order for formal closure.
-- CR-015a: ✅ DONE
-- CR-015b: ✅ DONE
-- CR-015c: ✅ DONE
-- CR-014: ⏸ parked (2 questions in §15.6 — ready to unpark)
+- CR-015: 🟢 CLOSED (live test passed — 2 clean orders verified)
+- CR-015a: 🟢 DONE
+- CR-015b: 🟢 DONE
+- CR-015c: 🟢 DONE
+- CR-014: ⏸ parked (2 questions in §15.6 — NEXT to unpark)
 - CR-016: ⏸ deferred to next sprint
 
 TEST LOGIN: owner@kunafamahal.com (see test_credentials.md)
@@ -48,8 +44,7 @@ TEST LOGIN: owner@kunafamahal.com (see test_credentials.md)
 DO NOT:
 - Re-introduce demo login
 - Add variable-mapping UI to WhatsApp Automation / Segments (Templates-page-only by design)
-- Run T2 normalization (owner skipped it)
-- Remap {{6}} back to points_earned (semantic mismatch — must stay loyalty_points_used)
+- Remap {{6}} back to points_earned
 ```
 
 ### Sanity checks for the next agent
@@ -58,15 +53,14 @@ DO NOT:
 sudo supervisorctl status                          # backend + frontend RUNNING
 curl -s http://localhost:8001/api/health           # {"status":"healthy",...}
 grep REACT_APP_BACKEND_URL /app/frontend/.env      # confirm preview URL
-cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_cr015_event_context.py tests/test_whatsapp_*.py -q  # 119 passed
 ```
 
 ### Active queue (this sprint)
 
 | Order | CR | Status | Next action |
 |---|---|---|---|
-| 1 | **CR-015** | 🟡 Code complete + data clean, awaiting clean order | POS pointed at preview. One clean order to verify {{6}} fix → close. |
-| 2 | **CR-014** | ⏸ Discovery parked | Ready to unpark — 2 questions (§15.6 C1+C2) |
+| 1 | **CR-014** | ⏸ Discovery parked | Ready to unpark — 2 questions (§15.6 C1+C2) |
+| — | ~~CR-015~~ | 🟢 CLOSED | Live test passed |
 | — | ~~CR-016~~ | ⏸ Deferred next sprint | — |
 
 ### Sanity checks for the next agent (run before any work)
@@ -114,7 +108,7 @@ If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 | 012 | WhatsApp Template Builder | Planning | 🔵 | — | (see register) | — |
 | 013 | Template Gallery | Discovery | 🔴 blocked by CR-012 P1 | — | (see register) | — |
 | **014** | **E-Invoice PDF + Mobile HTML Link** | **Discovery Phase 0 done** | **⏸** | ~8-10 days | **2 owner confirmations**: C1 address strategy, C2 required-vs-optional (see CR-014 §15.6) | **2026-05-28** |
-| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Code complete + data clean. All mappings audit-verified. Awaiting clean live test.** | **🟡** | 1 clean order remaining | T1-T7 done. T2 skipped. {{6}} mismatch found + fixed. Full audit: 0 remaining mismatches. POS pointed at preview. | **2026-05-29** |
+| **015** | **WhatsApp Template Variable Mapping Fidelity** | **CLOSED — live test passed** | **🟢** | done | T1-T7 done. T2 skipped. {{6}} mismatch fixed. Full audit passed. Live test: orders 869331+869333, 7/7 slots correct, status=read. | **2026-05-29** |
 | **015a** | **Preview Sample Data Gap for T5 Variables** | **Implemented & verified** | **🟢** | done | Preview "NA" fixed: 14 T5 sample values in `customers.py` sample-data + frontend registry-`example` fallback. Closeout: `implementation/CR_015A_PREVIEW_SAMPLE_DATA_CLOSEOUT.md`. | **2026-05-29** |
 | **015b** | **Dead Variable-Mapping Code Removal** | **Implemented & verified** | **🟢** | done | Removed orphaned/unreachable mapping modal cluster on WhatsApp Automation page + unused `availableFields`/`getPreviewMessage` on Segments. Mapping is **Templates-page-only**. Closeout: `implementation/CR_015B_DEAD_VARIABLE_MAPPING_CODE_CLOSEOUT.md`. | **2026-05-29** |
 | **015c** | **Remove Demo Login** | **Implemented & verified** | **🟢** | done | Demo login fully removed (was 404). Backend endpoint/constants/`is_demo` + frontend button/banner/context. Tests → real login (11 pass). Closeout: `implementation/CR_015C_REMOVE_DEMO_LOGIN_CLOSEOUT.md`. | **2026-05-29** |
@@ -130,8 +124,8 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Order | CR | Why first |
 |---|---|---|
-| 1 | **CR-015** | Foundation — code complete + data clean. Full audit passed. Awaiting 1 clean order. |
-| 2 | **CR-014** | E-invoice mobile link — ready to unpark. 2 questions in §15.6 (C1+C2). |
+| 1 | **CR-014** | E-invoice mobile link — ready to unpark. 2 questions in §15.6 (C1+C2). |
+| — | ~~CR-015~~ | **🟢 CLOSED** — live test passed (2026-05-29). |
 | — | ~~CR-016~~ | **Deferred to next sprint** (2026-05-29). |
 
 ---
@@ -184,6 +178,14 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 ## How to update this dashboard
 
 1. After any CR phase transition, edit the row's `Phase` + `Status` + `Last touched` cells.
+2. Append a row to "Recent transitions" with date + CR + from→to.
+3. If a brand-new CR is registered, add a new row above the relevant section and reference its discovery doc.
+4. If a CR is closed, change light to 🟢 and clear "Blockers / Owner asks" column.
+
+---
+
+**End of dashboard.**
+er any CR phase transition, edit the row's `Phase` + `Status` + `Last touched` cells.
 2. Append a row to "Recent transitions" with date + CR + from→to.
 3. If a brand-new CR is registered, add a new row above the relevant section and reference its discovery doc.
 4. If a CR is closed, change light to 🟢 and clear "Blockers / Owner asks" column.

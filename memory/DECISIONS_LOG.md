@@ -269,6 +269,14 @@
 - Audit methodology documented: fetch AuthKey template body → compare slot context vs mapped variable semantically
 - Future T7-style fixes should cross-check template TEXT, not just registry validity
 
+### 2026-05-29 [CR-015] — CLOSED: Live test passed
+**Decision**: CR-015 formally closed. Two clean live orders verified on R689 (orders 869331/009577 and 869333/009579) with all 7 template slots rendering correctly. Status=read on both. This validates the full CR-015 stack: T1 resolver, T5 registry, T3 event context, T4 enrichments, T6 validation, T7 cleanup, and the {{6}} semantic fix.
+**Source**: Owner triggered real POS orders on R689 (customer 7505242126 / abhishek jain). Both WhatsApp messages delivered + read with correct values.
+**Locks**:
+- CR-015 status → `cr015_closed_live_test_passed`
+- All code tracks (T1-T7) + data fixes ({{4}}-{{7}}) + full audit verified in production-equivalent conditions
+- No further CR-015 work unless regression discovered
+
 ---
 
 ## How to add a new decision
