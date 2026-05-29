@@ -80,14 +80,6 @@ cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_cr01
 
 If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 
-### Active queue (this sprint)
-
-| Order | CR | Status | Why |
-|---|---|---|---|
-| 1 | **CR-015** | 🟡 Code complete, live test parked | All code tracks landed. Live test when POS repoints to preview or code pushes to prod. |
-| 2 | **CR-014** | ⏸ Discovery parked | E-invoice mobile link — ready to unpark (2 questions in §15.6). |
-| — | ~~CR-016~~ | ⏸ Deferred to next sprint | Dynamic event registry — owner decided to stabilize existing events first. |
-
 ---
 
 ## Status legend
