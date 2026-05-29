@@ -99,6 +99,7 @@ sudo supervisorctl status
 - **CR-015 live test** ✅ PARTIAL — POS repointed to preview. Order 869329 (Rs.745, 1106 loyalty points) sent + delivered (status=read). Found `{{6}}` semantic mismatch: template says "Loyalty Points Used" but mapped to `points_earned` → fixed to `loyalty_points_used`.
 - **CR-015 full audit** ✅ PASSED — all 4 R689 templates (18 slots) cross-referenced against AuthKey template body text. 0 remaining mismatches. 27 of 37 registry variables available for future templates.
 - **CR-017** ✅ CLOSED — hot production fix. Added `projected_points_earned`, `projected_earn_percent`, `earn_ratio_display` to `POST /api/pos/max-redeemable`. POS can now show "you'll earn X points" before payment. POS handoff doc updated.
+- **CR-018** ✅ CLOSED — feature enhancement. Added `projected_tier_after`, `tier_upgrade`, `tier_upgrade_message` to `POST /api/pos/max-redeemable`. POS can now nudge "Complete this order and you'll upgrade to Silver!". POS handoff doc updated.
 
 ### ⏳ Pending owner ops (NOT this agent's work)
 - ~~Push branch `28-may` to production CRM~~ — no longer blocking; Option A bypassed need (preview ran full code path successfully).

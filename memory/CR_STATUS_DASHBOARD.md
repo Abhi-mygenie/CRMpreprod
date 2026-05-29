@@ -8,7 +8,7 @@
 
 ## 📌 Latest Session Snapshot
 
-**Session date**: 2026-05-29 (CR-015 🟢 CLOSED + CR-017 🟢 CLOSED)
+**Session date**: 2026-05-29 (SESSION CLOSED — CR-015 🟢 + CR-017 🟢 + CR-018 🟢)
 **Pod URL**: `https://c158ad1e-e16c-449c-b11f-8eaabb028c19.preview.emergentagent.com`
 **Branch**: `29-may`
 **POS + AuthKey webhook**: pointed at this preview pod (owner repointed mid-session)
@@ -26,6 +26,8 @@
 9. **Clean live test PASSED** — orders 869331 (009577) and 869333 (009579) both sent + read, all 7 slots correct.
 10. **CR-015 CLOSED** — `cr015_closed_live_test_passed`.
 11. **CR-017 registered + implemented + closed** — hot production fix. Added `projected_points_earned`, `projected_earn_percent`, `earn_ratio_display` to `/pos/max-redeemable`. Curl-verified. POS handoff doc updated.
+12. **CR-018 registered + implemented + closed** — feature enhancement. Added `projected_tier_after`, `tier_upgrade`, `tier_upgrade_message` to `/pos/max-redeemable`. Curl-verified. POS handoff doc updated.
+13. **Session closed** — all governance docs updated. `/pos/max-redeemable` now returns 13 fields (was 7 at session start).
 
 ### 🎯 Next-agent handoff message
 
@@ -37,10 +39,12 @@ READ FIRST: README.md → CR_STATUS_DASHBOARD.md (this snapshot) → DECISIONS_L
 CURRENT STATE (2026-05-29 session close):
 - CR-015: 🟢 CLOSED (live test passed — 2 clean orders, 7/7 slots correct)
 - CR-015a/b/c: 🟢 ALL DONE
-- CR-017: 🟢 CLOSED (projected points earned added to /pos/max-redeemable)
+- CR-017: 🟢 CLOSED (3 fields: earning projection on /pos/max-redeemable)
+- CR-018: 🟢 CLOSED (3 fields: tier upgrade projection on /pos/max-redeemable)
 - CR-014: ⏸ parked — NEXT to unpark (2 questions in §15.6 C1+C2)
 - CR-016: ⏸ deferred to next sprint
 
+/pos/max-redeemable now returns 13 fields (was 7 at session start).
 POS + AuthKey webhook: pointed at this preview pod.
 TEST LOGIN: owner@kunafamahal.com (see test_credentials.md)
 
