@@ -8,18 +8,19 @@
 
 ## 📌 Latest Session Snapshot
 
-**Session date**: 2026-05-29 (cleanup + CR-015a fix session)
-**Pod URL**: `https://crm-variable-mapping.preview.emergentagent.com`
+**Session date**: 2026-05-29 (T7 committed + T2 skipped + live test parked)
+**Pod URL**: `https://c158ad1e-e16c-449c-b11f-8eaabb028c19.preview.emergentagent.com`
 
 ### What happened this session (full chronology)
 
-1. **CR-015a IMPLEMENTED** — preview "NA" for the 14 T5 order-context variables fixed. Backend: 14 static sample values added to `GET /api/customers/sample-data` (`routers/customers.py`). Frontend: registry-`example` fallback in `resolvePreviewWithSampleData` (`WhatsAppAutomationContent.jsx` + `TemplatesPage.jsx`). Verified via curl (37 keys) + visual (no red "NA"). Closeout written.
-2. **CR-015b IMPLEMENTED** — owner flagged that variable mapping is editable only on the Templates page. Audited all 3 surfaces and removed the orphaned/unreachable variable-mapping modal cluster on the WhatsApp Automation page (`openVariableMappingModal` was never wired to any button) + unused `availableFields`/`getPreviewMessage` on Segments. Templates page untouched. Zero residual refs; lint/compile clean.
-3. **CR-015c IMPLEMENTED** — owner: "there should not be any demo login." Fully removed demo login (was already 404 — `demo@restaurant.com` never existed in DB). Backend `/demo-login` endpoint + constants + `is_demo` schema field; frontend Demo Login button + `demoLogin`/`isDemoMode` + `DemoModeBanner`. `test_segments_crm.py` switched to real login (11 passed). Nothing in DB to clean.
-4. **Owner provided real test login** (`owner@kunafamahal.com`) — saved to `test_credentials.md`. Used for visual + integration verification.
-5. **Governance docs updated** — PRD.md, this dashboard, register (3 new rows), 3 implementation closeouts, DECISIONS_LOG.md.
+1. **Repo re-bootstrapped** from branch `29-may` (was `28-may`). Deps installed, services UP, health green.
+2. **Doc audit** — verified CR-015a/b/c docs were updated in `29-may`. Found DECISIONS_LOG.md missing 4 entries → appended (CR-015c removal, CR-015b dead-code, sprint priority, real creds).
+3. **T7 script updated + committed** — original script safety-aborted because `{{4}}`/`{{5}}` were already fixed via Templates page UI. Narrowed to `{{7}}` only (`points_earned` → `points_balance`). Owner approved, committed to remote DB. All 7 slots of R689 template 25140 now correct.
+4. **T2 SKIPPED** — owner decided int→str DB normalization unnecessary; T1 resolver already handles it. 2 legacy int rows remain as non-blocking tech debt.
+5. **Live test PARKED** — POS sends orders to production, not preview pod. Order 009573 did not land. Test can happen when POS repoints or code pushes to prod.
+6. **Governance docs updated** — DECISIONS_LOG (T7 commit, T2 skip, live test park), closeout, dashboard, register, PRD.
 
-> CR-015 PARENT still has **T7 commit + Day 4** pending owner action (unchanged).
+> CR-015 is now **code-complete**. Only live integration test remains for formal closure.
 
 ### 🎯 Next-agent handoff message
 
@@ -29,22 +30,20 @@ You are picking up the MyGenie CRM ROI sprint.
 READ FIRST: README.md → CR_STATUS_DASHBOARD.md (this snapshot) → DECISIONS_LOG.md
 
 CURRENT STATE (2026-05-29):
-- CR-015 PARENT: Day 1-3 done. STILL PENDING:
-    ⏸ T7 COMMIT — owner must say "commit" to run
-        scripts/cr015_t7_cleanup_r689_template_25140.py --commit (writes remote DB)
-    ⏳ Day 4 — T2 DB normalization (int→str template IDs, mongodump first) + live test → close CR-015
+- CR-015 PARENT: CODE COMPLETE. All tracks landed (T1-T7). T2 skipped (owner decision). 
+    Only a live integration test remains for formal closure — parked because POS points at prod.
 - CR-015a: ✅ DONE (preview "NA" fixed)
 - CR-015b: ✅ DONE (dead mapping-modal code removed; mapping is Templates-page-only)
-- CR-015c: ✅ DONE (demo login fully removed; demo-login now 404)
-- CR-014: ⏸ parked (unpark after CR-015 closes)
+- CR-015c: ✅ DONE (demo login fully removed)
+- CR-014: ⏸ parked (2 questions in §15.6 — ready to unpark)
 - CR-016: ⏸ deferred to next sprint
 
-TEST LOGIN: owner@kunafamahal.com (see test_credentials.md). Auth returns access_token.
+TEST LOGIN: owner@kunafamahal.com (see test_credentials.md)
 
 DO NOT:
-- Run T7 --commit without explicit owner "commit"
 - Re-introduce demo login
-- Add variable-mapping UI to WhatsApp Automation / Segments (mapping is Templates-page-only by design)
+- Add variable-mapping UI to WhatsApp Automation / Segments (Templates-page-only by design)
+- Run T2 normalization (owner skipped it)
 ```
 
 ### Sanity checks for the next agent
@@ -60,72 +59,27 @@ cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_cr01
 
 | Order | CR | Status | Next action |
 |---|---|---|---|
-| 1 | **CR-015** | 🟡 Day 3 done, T7 commit pending | Owner says "commit" → T7 applied → Day 4 (T2 + live test) |
-| 1a | **CR-015a** | ⏸ Discovery done | Owner approves → implement (~15 min) |
-| 2 | CR-014 | ⏸ Discovery parked | Unpark after CR-015 closes |
+| 1 | **CR-015** | 🟡 Code complete, live test parked | Repoint POS to preview OR push to prod → live test → close |
+| 2 | **CR-014** | ⏸ Discovery parked | Ready to unpark — 2 questions (§15.6 C1+C2) |
 | — | ~~CR-016~~ | ⏸ Deferred next sprint | — |
-
-### 🎯 Next-agent handoff message
-
-```
-You are picking up the MyGenie CRM ROI sprint mid-flight.
-CR-015 (Variable Mapping Fidelity) is IN FLIGHT — Day 1 done, Day 2 frozen.
-
-READ FIRST in this order:
-1. /app/memory/README.md
-2. /app/memory/CR_STATUS_DASHBOARD.md (this snapshot)
-3. /app/memory/DECISIONS_LOG.md (especially 2026-05-29 entries)
-4. /app/memory/crm/crm_roi_sprint/planning/CR_015_DAY_2_FROZEN_SPEC.md  ← YOUR NEXT WORK
-
-CURRENT STATE (2026-05-29 end of session):
-- CR-004 P3.5 is CLOSED (full live test passed 2026-05-28)
-- CR-016 is DEFERRED to NEXT sprint — do not touch
-- CR-014 is PARKED in Phase 0 — 2 questions in §15.6 of its discovery doc (UNPARK AFTER CR-015)
-- CR-015 is IN FLIGHT:
-    ✅ Day 1: T1 (resolver hardening) + T5 (registry expansion) DONE — 109/109 tests
-    ✅ Day 2: Spec FROZEN — ready for implementation
-    ⏳ Day 2 impl: T3 (build_order_event_context + 3 pos.py callsites) — PICK UP HERE
-    ⏳ Day 3: T6 (admin UI 422 validation) + T7 (R689 cleanup) + T4 (minor enrichments)
-    ⏳ Day 4: T2 (DB normalization) + live integration test
-
-WHAT TO DO:
-1. Open /app/memory/crm/crm_roi_sprint/planning/CR_015_DAY_2_FROZEN_SPEC.md
-2. Read §4 (frozen code spec) and §9 (handoff instructions)
-3. Implement T3 mechanically per the spec — DO NOT improvise
-4. If spec contradicts code, STOP and surface to owner
-5. After T3: run all tests (expect 54+65=119), update closeout doc, update dashboard
-
-DO NOT:
-- Call testing_agent_v3
-- Push to crm.mygenie.online
-- Write to remote MongoDB from ad-hoc scripts without explicit per-change approval
-- Open CR-016 unless owner explicitly says "Resume CR-016"
-- Skip the freeze doc and re-derive T3 from the plan — the freeze doc IS the spec
-
-Sanity-check first thing:
-  sudo supervisorctl status
-  curl -s http://localhost:8001/api/health
-  Confirm pod URL matches /app/frontend/.env::REACT_APP_BACKEND_URL
-  If pod URL changed since this snapshot, follow RUNBOOK §11.
-```
 
 ### Sanity checks for the next agent (run before any work)
 
 ```bash
 sudo supervisorctl status                          # backend + frontend RUNNING
 curl -s http://localhost:8001/api/health           # {"status":"healthy",...}
-grep REACT_APP_BACKEND_URL /app/frontend/.env      # confirm preview URL still valid
-cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_whatsapp_*.py -q  # 109 passed
+grep REACT_APP_BACKEND_URL /app/frontend/.env      # confirm preview URL
+cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_cr015_event_context.py tests/test_whatsapp_*.py -q  # 119 passed
 ```
 
 If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 
-### Active queue (this sprint, after 2026-05-29 deferral + Day 1 work)
+### Active queue (this sprint)
 
 | Order | CR | Status | Why |
 |---|---|---|---|
-| 1 | **CR-015** | **🟡 Day 2 frozen, T3 ready for impl** | Foundation — ensure the 27 existing hardcoded events fire + render variables correctly. T1+T5 done; T3 next. |
-| 2 | CR-014 | ⏸ Discovery parked | E-invoice mobile link — depends on variable layer (CR-015). Unpark after CR-015. |
+| 1 | **CR-015** | 🟡 Code complete, live test parked | All code tracks landed. Live test when POS repoints to preview or code pushes to prod. |
+| 2 | **CR-014** | ⏸ Discovery parked | E-invoice mobile link — ready to unpark (2 questions in §15.6). |
 | — | ~~CR-016~~ | ⏸ Deferred to next sprint | Dynamic event registry — owner decided to stabilize existing events first. |
 
 ---
@@ -162,7 +116,7 @@ If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 | 012 | WhatsApp Template Builder | Planning | 🔵 | — | (see register) | — |
 | 013 | Template Gallery | Discovery | 🔴 blocked by CR-012 P1 | — | (see register) | — |
 | **014** | **E-Invoice PDF + Mobile HTML Link** | **Discovery Phase 0 done** | **⏸** | ~8-10 days | **2 owner confirmations**: C1 address strategy, C2 required-vs-optional (see CR-014 §15.6) | **2026-05-28** |
-| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Day 3 done (T1-T6 landed, T7 dry-run done); T7 commit + Day 4 remaining** | **🟡** | ~1 day remaining (T7 commit + T2 + live test) | T7 dry-run output ready for owner review. After commit: Day 4 = T2 (DB norm) + live test. | **2026-05-29** |
+| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Code complete (T1-T7 all landed, T2 skipped). Live test parked.** | **🟡** | live test remaining | T7 committed ({{7}} fixed). T2 skipped (owner: resolver handles int→str). Live test parked (POS at prod). | **2026-05-29** |
 | **015a** | **Preview Sample Data Gap for T5 Variables** | **Implemented & verified** | **🟢** | done | Preview "NA" fixed: 14 T5 sample values in `customers.py` sample-data + frontend registry-`example` fallback. Closeout: `implementation/CR_015A_PREVIEW_SAMPLE_DATA_CLOSEOUT.md`. | **2026-05-29** |
 | **015b** | **Dead Variable-Mapping Code Removal** | **Implemented & verified** | **🟢** | done | Removed orphaned/unreachable mapping modal cluster on WhatsApp Automation page + unused `availableFields`/`getPreviewMessage` on Segments. Mapping is **Templates-page-only**. Closeout: `implementation/CR_015B_DEAD_VARIABLE_MAPPING_CODE_CLOSEOUT.md`. | **2026-05-29** |
 | **015c** | **Remove Demo Login** | **Implemented & verified** | **🟢** | done | Demo login fully removed (was 404). Backend endpoint/constants/`is_demo` + frontend button/banner/context. Tests → real login (11 pass). Closeout: `implementation/CR_015C_REMOVE_DEMO_LOGIN_CLOSEOUT.md`. | **2026-05-29** |
@@ -178,8 +132,8 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Order | CR | Why first |
 |---|---|---|
-| 1 | **CR-015** | Foundation — without clean variable mapping, the existing 27 events render incorrectly. Sprint priority per owner direction 2026-05-29. |
-| 2 | **CR-014** | E-invoice mobile link — depends on (a) variables (CR-015) and (b) `send_bill` reliability (CR-004 P3.5 done ✅). Could ship in parallel once CR-015 mid-flight. |
+| 1 | **CR-015** | Foundation — code complete, all tracks landed. Live test parked (POS at prod). |
+| 2 | **CR-014** | E-invoice mobile link — ready to unpark. 2 questions in §15.6 (C1+C2). |
 | — | ~~CR-016~~ | **Deferred to next sprint** (2026-05-29). |
 
 ---
@@ -203,6 +157,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-05-29 | CR-015 | 🟡 Day 3 done, T7 pending → 🟡 **CODE COMPLETE, live test parked**. T7 committed ({{7}} `points_earned`→`points_balance`; {{4}}/{{5}} were already fixed via UI). T2 skipped (owner: resolver handles int→str). Live test parked (POS at prod, order 009573 didn't land on preview). |
 | 2026-05-29 | CR-015a | ⏸ frozen spec → 🟢 **IMPLEMENTED** (backend: 14 T5 sample values in `customers.py` sample-data — curl-verified 37 keys; frontend: registry-example fallback in `WhatsAppAutomationContent.jsx` + `TemplatesPage.jsx`; preview shows values, no "NA"). Doc: `planning/CR_015A_PREVIEW_SAMPLE_DATA_FROZEN_SPEC.md` |
 | 2026-05-29 | CR-015c | — → 🟢 **Demo login FULLY REMOVED** (owner-approved). Backend `/demo-login` endpoint + constants + `is_demo` schema field; frontend Demo Login button + AuthContext demo code + DemoModeBanner (deleted) + CustomersPage `isDemoMode`. Tests switched to real login (11 passed). demo-login now 404. Doc: `discovery/CR_015C_REMOVE_DEMO_LOGIN_DISCOVERY.md` |
 | 2026-05-29 | CR-015b | — → 🟢 **Dead variable-mapping code REMOVED** (owner-approved B2 + Segments leftovers; orphaned mapping modal cluster on WhatsApp Automation page + unused `availableFields`/`getPreviewMessage` on Segments deleted; lint/compile clean, zero residual refs). Doc: `discovery/CR_015B_DEAD_VARIABLE_MAPPING_CODE_DISCOVERY.md` |

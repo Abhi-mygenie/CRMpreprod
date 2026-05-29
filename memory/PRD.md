@@ -2,8 +2,8 @@
 
 > **Read this first.** Single canonical entry point for any agent picking up this project.
 
-**Last updated**: 2026-05-29 (CR-015a IMPLEMENTED — preview "NA" fixed; CR-015b dead mapping-modal code removed; CR-015c demo login fully removed. CR-015 T7 commit + Day 4 still pending owner)
-**Branch**: `28-may`
+**Last updated**: 2026-05-29 (CR-015 code complete — T7 committed, T2 skipped, live test parked. CR-015a/b/c done. Next: CR-014 unpark.)
+**Branch**: `29-may`
 **Codebase pulled from**: `https://github.com/Abhi-mygenie/CRMpreprod.git`
 **Working tree**: `/app` (preview pod)
 **Preview URL**: `https://crm-variable-mapping.preview.emergentagent.com`
@@ -94,6 +94,9 @@ sudo supervisorctl status
 - **CR-015a** ✅ — preview "NA" for 14 T5 order-context variables fixed: 14 static sample values added to `GET /api/customers/sample-data`; frontend registry-`example` fallback in `WhatsAppAutomationContent.jsx` + `TemplatesPage.jsx`. Verified (curl + visual).
 - **CR-015b** ✅ — removed orphaned/dead variable-mapping modal cluster on the WhatsApp Automation page (`openVariableMappingModal` was never wired to a button) + unused `availableFields`/`getPreviewMessage` on Segments. Templates page untouched.
 - **CR-015c** ✅ — **demo login fully removed** (owner: "there should not be any demo login"). Deleted `/api/auth/demo-login`, `DEMO_EMAIL`/`DEMO_PASSWORD`, `is_demo` schema field, frontend Demo Login button, `demoLogin`/`isDemoMode`, `DemoModeBanner`. `test_segments_crm.py` switched to real login (11 passed). Nothing in DB to clean.
+- **CR-015 T7** ✅ — R689 template 25140 slot `{{7}}` fixed (`points_earned` → `points_balance`). Slots `{{4}}`/`{{5}}` were already corrected via Templates page UI. All 7 slots now correct.
+- **CR-015 T2** ⏭ SKIPPED — owner decided int→str DB normalization unnecessary. T1 resolver handles it.
+- **CR-015 live test** ⏸ PARKED — POS points at production, not preview. Order 009573 didn't land.
 
 ### ⏳ Pending owner ops (NOT this agent's work)
 - ~~Push branch `28-may` to production CRM~~ — no longer blocking; Option A bypassed need (preview ran full code path successfully).

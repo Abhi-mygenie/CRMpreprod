@@ -219,6 +219,34 @@
 - Replaces the now-deleted demo login as the testing path
 - All future test/verification flows must use real auth, not demo
 
+### 2026-05-29 [CR-015] T7 — Script narrowed + committed ({{7}} only)
+**Decision**: T7 cleanup script updated to fix only `{{7}}` (`points_earned` → `points_balance`). Slots `{{4}}` and `{{5}}` were already corrected (via Templates page UI) before this session — script safety-abort confirmed they were clean. Committed against remote DB.
+**Source**: Owner said "commit" (2026-05-29) after reviewing dry-run output showing single-slot change.
+**Rationale**: Original T7 targeted 3 slots but 2 were already fixed. Safety check caught this; script narrowed to avoid overwriting good data.
+**Locks**:
+- R689 template 25140 all 7 slots now correct: `{{1}}`=customer_name, `{{2}}`=amount, `{{3}}`=restaurant_order_id, `{{4}}`=payment_method, `{{5}}`=order_date, `{{6}}`=points_earned, `{{7}}`=points_balance
+- `scripts/cr015_t7_cleanup_r689_template_25140.py` updated to reflect narrowed scope
+- DB write verified: `matched=1, modified=1`, re-read confirmed
+
+### 2026-05-29 [CR-015] T2 — Skipped (resolver handles int→str)
+**Decision**: Skip T2 DB normalization (converting 2 int `template_id` rows to str in `whatsapp_event_template_map`). Owner does not care about old data as long as new messages work.
+**Source**: Owner: "if we dont care of old date will decision change" → confirmed skip after explanation that T1 resolver already handles int→str coercion.
+**Rationale**: T1 hardened the resolver with int→str coercion + fallback lookup. The 2 legacy int rows (R689 `send_bill`=25140, `new_order_customer`=28311) cause zero functional issues. Skipping avoids a DB write on shared prod data for no user-facing benefit.
+**Locks**:
+- T2 normalization script NOT created, NOT run
+- 2 int `template_id` rows remain in `whatsapp_event_template_map` (tech debt, non-blocking)
+- Resolver int-fallback branch in `get_event_template_config` stays (minor dead-code, functional safety net)
+- CR-015 can close without T2
+
+### 2026-05-29 [CR-015] — Live test parked
+**Decision**: Live integration test (synthetic POS order → WhatsApp trace) parked. POS is pointed at production, not this preview pod.
+**Source**: Owner: "ok we will park this, whats next" (2026-05-29) after confirming order 009573 was hitting production not preview.
+**Rationale**: Preview pod cannot receive real POS orders unless POS endpoint is repointed. Test can be performed when POS points at preview or after code is pushed to production.
+**Locks**:
+- CR-015 status → `cr015_code_complete_live_test_parked`
+- Live test remains a prerequisite for formal closure (`cr015_closed_live_test_passed`)
+- Can be unparked anytime by either repointing POS to preview or pushing code to prod and testing there
+
 ---
 
 ## How to add a new decision

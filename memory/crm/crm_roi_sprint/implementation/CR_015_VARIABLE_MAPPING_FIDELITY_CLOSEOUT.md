@@ -121,10 +121,10 @@
 | 2 | T5 lands; 14 new entries + 2 new formatters; unit tests pass; backward-compatible | ✅ done (Day 1) |
 | 3 | T3 lands; live POS order against R689 trace shows all `order_ctx` keys present in `event_data` | ✅ done (Day 2 — 119/119 tests, lint clean, health green) |
 | 4 | T6 server-side rejects bad var_keys (422); client-side surfaces inline error | ✅ done (Day 3) |
-| 5 | T7 R689 template 25140 mapping cleaned to all-valid keys | ⏸ dry-run done; awaiting owner commit approval |
+| 5 | T7 R689 template 25140 mapping cleaned to all-valid keys | ✅ done (committed — {{7}} narrowed, {{4}}/{{5}} already fixed via UI) |
 | 6 | T4 minor enrichments (wallet:55/77, points:133, loyalty:456) | ✅ done (Day 3) |
-| 7 | T2 mongodump taken; R689's 2 int rows coerced to str; resolver fallback branch removed | ⏳ |
-| 8 | Live integration test (plan §9.3) passes — Rs.1850 order → WhatsApp arrives with all 7 slots populated correctly + `delivered`/`read` callbacks | ⏳ |
+| 7 | T2 mongodump taken; R689's 2 int rows coerced to str; resolver fallback branch removed | ⏭ SKIPPED (owner decision — resolver handles int→str; no functional impact) |
+| 8 | Live integration test (plan §9.3) passes — Rs.1850 order → WhatsApp arrives with all 7 slots populated correctly + `delivered`/`read` callbacks | ⏸ PARKED (POS points at prod, not preview) |
 | 9 | Coupon-applied order renders coupon variables correctly | ⏳ |
 | 10 | QA report at `qa/CR_015_LIVE_TEST_REPORT.md` with acceptance matrix | ⏳ |
 | 11 | Dashboard row 15 status → `cr015_closed_live_test_passed` | ⏳ |
@@ -134,3 +134,12 @@
 ---
 
 **Status**: Day 3 complete (T4+T6+T7-dry-run). T7 commit awaiting owner approval. T1+T5+T3+T4+T6 all landed.
+(`matched=1, modified=1`). All 7 slots of R689 template 25140 now correct.
+
+**[T2 SKIPPED]** — Owner decided to skip T2 DB normalization (2 int `template_id` rows → str). T1 resolver handles int→str coercion already. No functional impact. 2 legacy int rows remain as tech debt.
+
+**[LIVE TEST PARKED]** — POS is pointed at production, not preview pod. Order 009573 did not land on preview. Live test can be done when POS repoints to preview or code is pushed to prod.
+
+---
+
+**Status**: Code complete. T1+T5+T3+T4+T6+T7 all landed. T2 skipped (owner decision). Live test parked (POS points at prod). Status → `cr015_code_complete_live_test_parked`.
