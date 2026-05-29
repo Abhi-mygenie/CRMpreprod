@@ -298,6 +298,11 @@
 - POS handoff doc (`CR_001C_LR_REDEMPTION_FINAL_PAYLOAD_HANDOFF_TO_POS.md` §3.2) updated with new fields
 - CR-017 status → `cr017_closed_implemented_verified`
 
+### 2026-05-29 [CR-018] — Registered: projected tier upgrade
+**Decision**: Register CR-018 — add `projected_tier_after`, `tier_upgrade` (bool), `tier_upgrade_message` to `/pos/max-redeemable`. Conversion nudge: "Complete this order and you'll upgrade to Silver!".
+**Source**: Agent recommendation accepted by owner: "yes register a CR and go by play book" (2026-05-29).
+**Locks**: CR-018 registered, discovery doc created, awaiting owner approval before implementation.
+
 ---
 
 ## How to add a new decision
