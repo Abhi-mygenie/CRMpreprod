@@ -8,18 +8,78 @@
 
 ## 📌 Latest Session Snapshot
 
-**Session date**: 2026-05-29 (end of session)
+**Session date**: 2026-05-29 (session closed)
 **Pod URL**: `https://130d0c66-4570-4905-b61d-f2c58758616d.preview.emergentagent.com` (pod rotated; AuthKey webhook needs updating by owner)
 
 ### What happened this session (full chronology)
 
 1. **Project re-bootstrap** into new pod (`130d0c66-…`) — repo re-cloned from branch `28-may`, deps installed, services UP, `/api/health` 200, remote MongoDB connected.
-2. **CR-016 DEFERRED to next sprint** — owner decision (verbatim): *"actually it will come very complex we have almost definate event we used need to ensure they map and fire correctly for now we can mark cr to be taken in next spirint"*. §7 Q1–Q8 remain open. See `DECISIONS_LOG.md` 2026-05-29 entry.
-3. **CR-015 unparked** — owner answered all Q1–Q8 with option `a` (recommended defaults). Plan v1.1 approved. Implementation authorized.
-4. **CR-015 Phase 1.5 ground-truth probe** — deep DB investigation confirmed Bug #1 (template_id int vs str mismatch on R689 `send_bill`) and Bug #2 (R689 template 25140 slots {{4}}/{{5}} contain text-mode garbage). T2 scope drastically smaller than planned (only 2 int rows for R689). Effort revised **5 days → ~3.5 days**. Probe report: `investigations/CR_015_PRE_IMPL_GROUND_TRUTH_2026_05_29.md`.
-5. **CR-015 Day 1 DONE** — T1 (resolver hardening) + T5 (registry expansion: 14 new entries + `time`/`titlecase` formatters) landed. 109/109 tests pass (44 new + 65 baseline). Live smoke probe: R689 `send_bill` now returns non-empty `variable_mappings` (Bug #1 functionally resolved). Slots {{4}}/{{5}} still show text-mode garbage → T7 Day 3.
-6. **CR-015 Day 2 spec FROZEN** — owner requested a deep code audit before Day 2 implementation (due to v1.0→v1.1 drift episode). All plan v1.1 §5.2/§5.4 claims re-verified file-by-file. 2 minor refinements, no scope changes. Frozen spec at `planning/CR_015_DAY_2_FROZEN_SPEC.md` — single source of truth for implementation agent.
-7. **Handoff**: Implementation agent picks up T3 (`build_order_event_context` + 3 callsite refactors in `routers/pos.py`) directly from the freeze doc. Then T6+T7+T4-minor (Day 3), T2+live test (Day 4).
+2. **Doc restoration** — CR_STATUS_DASHBOARD.md snapshot was stale (described start-of-previous-session, not Day 1 work/probe/freeze). PRD.md was accidentally overwritten to 39 lines; restored to 487-line original from git. Both updated to reflect current state.
+3. **CR-016 DEFERRED to next sprint** — owner decision. §7 Q1–Q8 remain open.
+4. **CR-015 Day 2 IMPLEMENTED** — T3 (`build_order_event_context` + 3 pos.py callsite refactors). 10 new tests, 119/119 total pass.
+5. **CR-015 Day 3 investigation** — full code audit of T6/T7/T4 against plan v1.1. No scope deviations found.
+6. **CR-015 Day 3 frozen spec** written — `planning/CR_015_DAY_3_FROZEN_SPEC.md`, 17 acceptance checks.
+7. **CR-015 Day 3 IMPLEMENTED** — T4 (4 callsite enrichments) + T6 (server 422 validation + frontend error surfacing) + T7 scripts (dry-run complete). 119/119 tests, 5/5 curl smoke probes, frontend compiles. **T7 commit awaiting owner approval.**
+8. **CR-015a discovered** — owner reported preview shows "NA" for new T5 variables. Root cause: `GET /api/customers/sample-data` missing 14 T5 keys. Discovery doc written. Fix scoped (~22 LoC).
+
+### 🎯 Next-agent handoff message
+
+```
+You are picking up the MyGenie CRM ROI sprint. CR-015 is Day 3 done.
+
+READ FIRST in this order:
+1. /app/memory/README.md
+2. /app/memory/CR_STATUS_DASHBOARD.md (this snapshot)
+3. /app/memory/DECISIONS_LOG.md
+
+CURRENT STATE (2026-05-29 session close):
+- CR-004 P3.5: CLOSED (live test passed 2026-05-28)
+- CR-016: DEFERRED to next sprint
+- CR-014: PARKED in Phase 0 (2 questions in §15.6)
+- CR-015: Day 3 DONE. Status:
+    ✅ Day 1: T1 (resolver) + T5 (14 new variables + 2 formatters)
+    ✅ Day 2: T3 (build_order_event_context + 3 pos.py callsites)
+    ✅ Day 3: T4 (4 minor enrichments) + T6 (server 422 + frontend errors) + T7 (dry-run done)
+    ⏸ T7 COMMIT: awaiting owner approval (say "commit" to apply R689 cleanup)
+    ⏳ Day 4: T2 (DB normalization) + live integration test → CR-015 closure
+- CR-015a (sub-CR): Preview shows "NA" for T5 variables — sample-data endpoint
+    missing 14 keys. Discovery complete, fix is ~22 LoC.
+    Doc: discovery/CR_015A_PREVIEW_SAMPLE_DATA_GAP_DISCOVERY.md
+
+TWO OWNER ACTIONS NEEDED:
+1. T7 commit: review dry-run output, say "commit" to fix R689 template 25140
+2. CR-015a: approve fix approach (recommend Option A+B per discovery doc §5)
+
+AFTER OWNER ACTIONS:
+- Implement CR-015a (~15 min)
+- Run T7 --commit
+- Day 4: T2 + live integration test → close CR-015
+- Then: unpark CR-014
+
+DO NOT:
+- Call testing_agent_v3
+- Push to crm.mygenie.online
+- Write to remote MongoDB without explicit per-change approval
+- Start CR-016
+```
+
+### Sanity checks for the next agent
+
+```bash
+sudo supervisorctl status                          # backend + frontend RUNNING
+curl -s http://localhost:8001/api/health           # {"status":"healthy",...}
+grep REACT_APP_BACKEND_URL /app/frontend/.env      # confirm preview URL
+cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_cr015_event_context.py tests/test_whatsapp_*.py -q  # 119 passed
+```
+
+### Active queue (this sprint)
+
+| Order | CR | Status | Next action |
+|---|---|---|---|
+| 1 | **CR-015** | 🟡 Day 3 done, T7 commit pending | Owner says "commit" → T7 applied → Day 4 (T2 + live test) |
+| 1a | **CR-015a** | ⏸ Discovery done | Owner approves → implement (~15 min) |
+| 2 | CR-014 | ⏸ Discovery parked | Unpark after CR-015 closes |
+| — | ~~CR-016~~ | ⏸ Deferred next sprint | — |
 
 ### 🎯 Next-agent handoff message
 
@@ -118,7 +178,8 @@ If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 | 012 | WhatsApp Template Builder | Planning | 🔵 | — | (see register) | — |
 | 013 | Template Gallery | Discovery | 🔴 blocked by CR-012 P1 | — | (see register) | — |
 | **014** | **E-Invoice PDF + Mobile HTML Link** | **Discovery Phase 0 done** | **⏸** | ~8-10 days | **2 owner confirmations**: C1 address strategy, C2 required-vs-optional (see CR-014 §15.6) | **2026-05-28** |
-| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Day 3 done (T4+T6 landed, T7 dry-run done); T7 commit awaiting owner approval** | **🟡** | ~1 day remaining (T7 commit + T2 + live test) | T7 dry-run output ready for owner review. After commit: Day 4 = T2 (DB norm) + live test. | **2026-05-29** |
+| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Day 3 done (T1-T6 landed, T7 dry-run done); T7 commit + Day 4 remaining** | **🟡** | ~1 day remaining (T7 commit + T2 + live test) | T7 dry-run output ready for owner review. After commit: Day 4 = T2 (DB norm) + live test. | **2026-05-29** |
+| **015a** | **Preview Sample Data Gap for T5 Variables** | **Discovery complete** | **⏸** | ~15 min | Sub-CR of 015. Preview shows "NA" for 14 T5 variables — `sample-data` endpoint missing keys. Discovery at `discovery/CR_015A_PREVIEW_SAMPLE_DATA_GAP_DISCOVERY.md`. Awaiting owner approval of fix approach. | **2026-05-29** |
 | **016** | **Dynamic Event Registry + Trigger Configuration UI** | **Discovery Phase 0 done — DEFERRED to next sprint** | **⏸ next-sprint** | ~9-10 days | **Deferred 2026-05-29 by owner**: existing event mapping/firing fidelity (CR-015) takes priority. §7 Q1–Q8 still open. | **2026-05-29** |
 
 > When a row's first column shows a number ≤ 010 with no detail above, look up the full row in `crm/crm_roi_sprint/00_register/ROI_MEASUREMENT_CR_REGISTER.md`.
@@ -156,6 +217,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-05-29 | CR-015a | — → ⏸ **Registered + discovery complete** (sub-CR: preview sample-data missing 14 T5 keys) |
 | 2026-05-29 | CR-015 | 🟡 Day 3 frozen → 🟡 **Day 3 DONE — T4+T6 landed, T7 dry-run complete, awaiting owner commit** (119/119 tests, 5/5 smoke probes, frontend compiles) |
 | 2026-05-29 | CR-015 | 🟡 Day 2 done → 🟡 **Day 3 spec FROZEN** (T6+T7+T4 freeze doc at `planning/CR_015_DAY_3_FROZEN_SPEC.md`, 17 acceptance checks) |
 | 2026-05-29 | CR-015 | 🟡 Day 2 frozen → 🟡 **Day 2 DONE — T3 landed** (`build_order_event_context` + 3 pos.py callsites refactored, 119/119 tests, lint clean) |

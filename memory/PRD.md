@@ -2,7 +2,7 @@
 
 > **Read this first.** Single canonical entry point for any agent picking up this project.
 
-**Last updated**: 2026-05-29 (CR-015 Day 2 done — T3 landed; Day 3 next: T6+T7+T4; CR-016 deferred; CR-014 parked)
+**Last updated**: 2026-05-29 (session closed — CR-015 Day 3 done, T7 commit pending; CR-015a discovered; CR-016 deferred; CR-014 parked)
 **Branch**: `28-may`
 **Codebase pulled from**: `https://github.com/Abhi-mygenie/CRMpreprod.git`
 **Working tree**: `/app` (preview pod)
@@ -354,14 +354,18 @@ This session worked on **CR-004 P3.5** — a follow-up to CR-004 Phase 3 (Event 
 - CR-012 WhatsApp Template Builder Production Readiness — planning
 - CR-013 Template Gallery — blocked by CR-012 P1
 - **CR-014 E-Invoice PDF + Mobile HTML Link** — *Phase 0 Discovery complete (2026-05-28) + Profile-page fields appendix added. PARKED awaiting 2 owner confirmations (§15.6 of discovery doc). Auto-generate mobile-friendly HTML invoice (with PDF download) on every POS order, injected into `send_bill` WhatsApp via `einvoice_link` variable. Direct follow-on from CR-004 P3.5.*
-- **CR-015 WhatsApp Template Variable Mapping Fidelity** — *Phase 2 Implementation IN FLIGHT (2026-05-29). Bug: resolver type-mismatch (template_id int vs str) + event-data forwarding leak (only 10 of 40 POS fields forwarded) + registry/UI data-quality gaps. **Day 1 DONE**: T1 resolver hardening landed (Bug #1 functionally resolved — R689 `send_bill` now returns non-empty `variable_mappings`), T5 registry expansion landed (14 new entries + `time`/`titlecase` formatters), 109/109 tests pass. Pre-impl ground-truth probe confirmed both bugs, revised effort 5→3.5 days. **Day 2 FROZEN**: spec at `planning/CR_015_DAY_2_FROZEN_SPEC.md` — T3 event-data expansion (3 callsites in pos.py, `build_order_event_context` helper). Implementation agent picks up from freeze doc. Remaining: T3 (Day 2) → T6+T7+T4-minor (Day 3) → T2+live test (Day 4).*
+- **CR-015 WhatsApp Template Variable Mapping Fidelity** — *Phase 2 Implementation — **Day 3 DONE** (2026-05-29). Day 1: T1 resolver hardening + T5 registry expansion (14 new vars, 2 formatters). Day 2: T3 `build_order_event_context` + 3 pos.py callsites. Day 3: T4 (4 minor callsite enrichments) + T6 (server 422 validation + frontend error surfacing) + T7 (R689 cleanup script, dry-run done). 119/119 tests pass. **T7 commit awaiting owner approval.** Remaining: T7 commit → Day 4 (T2 DB normalization + live integration test) → CR-015 closure.*
+- **CR-015a Preview Sample Data Gap** — *Sub-CR of CR-015. Discovery complete (2026-05-29). Template preview shows "NA" for 14 T5 variables because `GET /api/customers/sample-data` only returns original 23 keys. Fix: add 14 keys to backend endpoint + frontend fallback to registry `example` field. ~22 LoC, ~15 min. Awaiting owner approval of fix approach. Doc: `discovery/CR_015A_PREVIEW_SAMPLE_DATA_GAP_DISCOVERY.md`.*
 - **CR-016 Dynamic Event Registry + Trigger Configuration UI** — *Phase 0 Discovery complete (2026-05-28 evening). **DEFERRED to next sprint** (owner decision 2026-05-29: "we have almost definate event we used need to ensure they map and fire correctly"). §7 Q1–Q8 still open; rolls over to next sprint. See `DECISIONS_LOG.md` 2026-05-29 entry.*
 
 ### CR-014 Resume signal
 > "Resume CR-014" → read `memory/crm/crm_roi_sprint/discovery/CR_014_E_INVOICE_PDF_LINK_DISCOVERY.md` end-to-end, ask owner the 2 confirmations in §15.6 of that doc, then write `planning/CR_014_EINVOICE_PHASE_1_PLAN.md`.
 
 ### CR-015 Resume signal
-> **CR-015 is IN FLIGHT** — Day 1 (T1+T5) done, Day 2 spec frozen. Implementation agent should read `planning/CR_015_DAY_2_FROZEN_SPEC.md` and execute T3 mechanically. After T3, proceed to T6+T7+T4-minor (Day 3), then T2+live test (Day 4). See `implementation/CR_015_VARIABLE_MAPPING_FIDELITY_CLOSEOUT.md` for handover notes.
+> **CR-015 Day 3 is DONE.** Two owner actions needed: (1) say "commit" for T7 R689 cleanup, (2) approve CR-015a fix approach. After both: implement CR-015a (~15 min), run T7 --commit, then Day 4 = T2 (DB normalization) + live integration test → CR-015 closure. See `implementation/CR_015_VARIABLE_MAPPING_FIDELITY_CLOSEOUT.md` and `implementation/CR_015_DAY_3_IMPLEMENTATION_REPORT.md`.
+
+### CR-015a Resume signal
+> Approve fix approach per `discovery/CR_015A_PREVIEW_SAMPLE_DATA_GAP_DISCOVERY.md` §5 (Option A+B recommended: backend adds 14 keys + frontend fallback to registry example). Then implement — no frozen spec needed for ~22 LoC.
 
 ### CR-016 Resume signal
 > "Resume CR-016" → **DEFERRED to next sprint.** When unparked: read `memory/crm/crm_roi_sprint/discovery/CR_016_DYNAMIC_EVENT_REGISTRY_DISCOVERY.md` end-to-end, ask owner the 8 questions in §7 of that doc (Q1–Q8 still open), then write `planning/CR_016_PHASE_1_PLAN.md`.

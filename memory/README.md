@@ -185,7 +185,7 @@ Agent does:
 │   │   ├── pdf_report.py                   # existing reportlab analytics PDFs (CR-014 reference)
 │   │   └── feedback_service.py
 │   ├── models/schemas.py                   # POSOrderWebhook + AUTOMATION_EVENTS (CR-016 source)
-│   ├── tests/test_whatsapp_*.py            # 65 passing tests
+│   ├── tests/test_whatsapp_*.py            # 65 baseline + 54 CR-015 = 119 passing tests
 │   └── .env                                # MONGO_URL, DB_NAME
 ├── frontend/                               # React 19 + craco + Tailwind + Radix UI
 │   ├── src/
