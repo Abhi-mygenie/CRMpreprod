@@ -6,7 +6,7 @@
 **Branch**: `28-may`
 **Codebase pulled from**: `https://github.com/Abhi-mygenie/CRMpreprod.git`
 **Working tree**: `/app` (preview pod)
-**Preview URL**: `https://130d0c66-4570-4905-b61d-f2c58758616d.preview.emergentagent.com`
+**Preview URL**: `https://crm-variable-mapping.preview.emergentagent.com`
 
 ---
 
@@ -37,7 +37,7 @@ Multi-tenant. Each restaurant = one `user_id` (e.g. R689 Kunafa Mahal = `pos_000
 ### Service URLs
 - Backend internal: `http://localhost:8001` (all routes prefixed `/api`)
 - Frontend internal: `http://localhost:3000`
-- **Preview external (current pod)**: `https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com`
+- **Preview external (current pod)**: `https://crm-variable-mapping.preview.emergentagent.com`
 - Production: `https://crm.mygenie.online` (owner manages)
 
 ### Environment files
@@ -91,7 +91,7 @@ sudo supervisorctl status
 
 ### ⏳ Pending owner ops (NOT this agent's work)
 - ~~Push branch `28-may` to production CRM~~ — no longer blocking; Option A bypassed need (preview ran full code path successfully).
-- Webhook URL **HAS BEEN REGISTERED** in AuthKey console pointing to current preview URL (`https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com/api/whatsapp/status-callback`) — confirmed working with real form-encoded callbacks from AuthKey egress IP `157.245.105.3` (2026-05-28).
+- Webhook URL **HAS BEEN REGISTERED** in AuthKey console pointing to current preview URL (`https://crm-variable-mapping.preview.emergentagent.com/api/whatsapp/status-callback`) — confirmed working with real form-encoded callbacks from AuthKey egress IP `157.245.105.3` (2026-05-28).
 - **Optional**: owner may push `28-may` to `crm.mygenie.online` whenever convenient — code is proven safe; not blocking.
 - **Optional**: owner may repoint AuthKey webhook URL back to prod once prod is pushed, OR keep on preview.
 
@@ -432,7 +432,7 @@ view_bulk paths:
 
 ```bash
 # Replace <ts> with epoch seconds; pos_order_id must be unique
-curl -X POST "https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com/api/pos/orders" \
+curl -X POST "https://crm-variable-mapping.preview.emergentagent.com/api/pos/orders" \
   -H "X-API-Key: dp_live_-sF0sATfNhf72UbrG9BPaKM4icqWnAb7Q4tB6DN3ktE" \
   -H "Content-Type: application/json" \
   -d '{

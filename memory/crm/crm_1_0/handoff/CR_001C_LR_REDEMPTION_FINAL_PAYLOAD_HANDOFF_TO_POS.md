@@ -250,7 +250,7 @@ Contract is unchanged from the original LR handoff (see `CR_001C_LR_POS_LOYALTY_
 - New coverage: `/max-redeemable` alignment (7 assertions), calculator-cap == commit-cap parity (1), `/pos/orders` embedded redeem (3), order-retry idempotency fallback (1), order-webhook hard-fail (1), **POS-legacy alias `used_loyalty_point` accepted with identical commit semantics (QA-21, added 2026-05-24)**.
 - Old coverage preserved: all 36 original LR assertions still pass through the shared helper.
 
-POS may run their own integration tests against the preview origin (`https://coupon-roi-preview.preview.emergentagent.com`). All redeem paths are idempotent — replaying the same order is safe.
+POS may run their own integration tests against the preview origin (`https://crm-variable-mapping.preview.emergentagent.com`). All redeem paths are idempotent — replaying the same order is safe.
 
 ## 7. Migration Note for POS
 

@@ -44,7 +44,7 @@ When a cashier selects a CRM customer in POS, call this **one endpoint** to get 
 POST /api/pos/customers/order-suggestions
 ```
 
-**Preview origin:** `https://coupon-roi-preview.preview.emergentagent.com`
+**Preview origin:** `https://crm-variable-mapping.preview.emergentagent.com`
 
 **Auth:** Same `X-API-Key` as all existing `/api/pos/*` endpoints. No new key needed.
 
@@ -343,7 +343,7 @@ When the customer has 0 or 1 visits:
 ### 8.1 Full request (customer with history + cart + selected item)
 
 ```bash
-curl -X POST 'https://coupon-roi-preview.preview.emergentagent.com/api/pos/customers/order-suggestions' \
+curl -X POST 'https://crm-variable-mapping.preview.emergentagent.com/api/pos/customers/order-suggestions' \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: <restaurant_api_key>' \
   -d '{

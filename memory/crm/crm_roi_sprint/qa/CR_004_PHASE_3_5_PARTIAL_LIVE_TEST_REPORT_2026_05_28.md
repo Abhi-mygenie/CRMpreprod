@@ -6,7 +6,7 @@
 **Date**: 2026-05-28
 **Tenant**: R689 Kunafa Mahal (`pos_0001_restaurant_689`)
 **Test customer**: abhishek jain / `7505242126` / `country_code=+91`
-**Preview URL used**: `https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com`
+**Preview URL used**: `https://crm-variable-mapping.preview.emergentagent.com`
 **Production CRM URL**: `https://crm.mygenie.online`
 
 ---
@@ -30,7 +30,7 @@ CR has been **parked** at owner's request until they choose between Option A (ro
 | AuthKey callback URL registered | Preview `/api/whatsapp/status-callback` ✅ |
 | `send_bill` event mapping (R689) | Template `26508` `send_bill_to_customer`, enabled ✅ |
 | `send_bill_manual`, `send_bill_auto` mappings | Both enabled, same template ✅ |
-| Customer record (abhi) | Exists, `id=1779d4fc-7161-4407-ac8c-cce30beb3e53` ✅ |
+| Customer record (abhi) | Exists, `id=crm-variable-mapping` ✅ |
 | Webhook hotfix applied | 2026-05-28 13:54 UTC ✅ |
 
 ---
@@ -41,7 +41,7 @@ CR has been **parked** at owner's request until they choose between Option A (ro
 
 - **Placed**: 2026-05-28 13:50:51 UTC (19:20:51 IST)
 - **Customer/total**: abhishek jain / Rs.754
-- **Send-side row** (`whatsapp_message_logs.id=05c46938-d1a1-4bfa-8fc8-e36e8b92ac3e`):
+- **Send-side row** (`whatsapp_message_logs.id=crm-variable-mapping`):
   - `message_id = null` ❌ (proves prod still on old code)
   - `idempotency_key = null` ❌
   - `reference_type / reference_id = null / null` ❌
@@ -61,7 +61,7 @@ CR has been **parked** at owner's request until they choose between Option A (ro
 
 - **Placed**: 2026-05-28 13:57:57 UTC (19:27:57 IST)
 - **Customer/total**: abhishek jain / Rs.2,181
-- **Send-side row** (`whatsapp_message_logs.id=95306395-4e58-4352-9e19-730e156e84eb`):
+- **Send-side row** (`whatsapp_message_logs.id=crm-variable-mapping`):
   - Same null pattern as order 869310 (prod still on old code)
 - **AuthKey logid (from callback)**: `20cba66ccf0559840eeefe641beffb5e`
 - **Callbacks received**:
@@ -180,7 +180,7 @@ else:
 
 ### Option A (recommended — fast feedback, no prod touch)
 1. Owner routes POS terminal's order endpoint to preview URL for one test order, OR
-2. Agent (with permission) fires synthetic POST to `https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com/api/pos/orders` with:
+2. Agent (with permission) fires synthetic POST to `https://crm-variable-mapping.preview.emergentagent.com/api/pos/orders` with:
    - Header: `X-API-Key: dp_live_-sF0sATfNhf72UbrG9BPaKM4icqWnAb7Q4tB6DN3ktE`
    - Body: real POS order shape, customer phone `7505242126`, unique `pos_order_id` (e.g. `E2E_<timestamp>`)
 3. Preview runs new code → row written WITH `message_id=<logid>` → real WhatsApp sent → real callback → dashboard reflects full lifecycle within ~60s

@@ -342,7 +342,7 @@ V3-B is ~40% bigger than V3-A due to dual item picker + mode toggle + benefit ty
 
 ## 9. QA Plan (post-implementation)
 
-15 tests against `https://coupon-roi-preview.preview.emergentagent.com/coupons` with R689 JWT. Backend has 49/49 V3-B QA already — these are **UI-only** smoke tests.
+15 tests against `https://crm-variable-mapping.preview.emergentagent.com/coupons` with R689 JWT. Backend has 49/49 V3-B QA already — these are **UI-only** smoke tests.
 
 | # | Test | Expected |
 |---|---|---|

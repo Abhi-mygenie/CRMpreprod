@@ -103,7 +103,7 @@ All pre-existing test-ids preserved (`whatsapp-settings-card`, `settings-title`,
 ### 4.2 Live browser test (Playwright)
 
 Test user: `pos_0001_restaurant_689` (R689 Kunafa Mahal)
-Test URL: `https://coupon-roi-preview.preview.emergentagent.com/settings`
+Test URL: `https://crm-variable-mapping.preview.emergentagent.com/settings`
 
 | # | Action | Assertion | Result |
 |---|---|---|---|

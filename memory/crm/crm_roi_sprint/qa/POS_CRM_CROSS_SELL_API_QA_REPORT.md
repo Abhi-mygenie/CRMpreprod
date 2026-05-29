@@ -14,7 +14,7 @@
 | Parameter | Value |
 |---|---|
 | Backend | FastAPI on `0.0.0.0:8001` (supervisor-managed) |
-| External URL | `https://coupon-roi-preview.preview.emergentagent.com` |
+| External URL | `https://crm-variable-mapping.preview.emergentagent.com` |
 | Database | External MongoDB `52.66.232.149:27017/mygenie` |
 | Restaurant | R689 — Kunafa Mahal (`user_id = pos_0001_restaurant_689`) |
 | API Key | `dp_live_-sF0sATfNhf72UbrG9BPaKM4icqWnAb7Q4tB6DN3ktE` |

@@ -302,7 +302,7 @@ No blocker. Proceed with defaults unless owner overrides.
 
 ## 8. QA Plan (post-implementation)
 
-15 manual checks against `https://coupon-roi-preview.preview.emergentagent.com/coupons` using the existing R689 JWT.
+15 manual checks against `https://crm-variable-mapping.preview.emergentagent.com/coupons` using the existing R689 JWT.
 
 **Backend already at 49/49 V3-B QA** — these are **UI-only** smoke tests; no need to re-prove backend semantics.
 

@@ -4,7 +4,7 @@
 **Session:** Session 1
 **Branch:** `25-may` (Abhi-mygenie/CRMpreprod.git)
 **Database:** External MongoDB at `52.66.232.149:27017/mygenie`
-**Preview URL:** `https://coupon-roi-preview.preview.emergentagent.com`
+**Preview URL:** `https://crm-variable-mapping.preview.emergentagent.com`
 
 ---
 

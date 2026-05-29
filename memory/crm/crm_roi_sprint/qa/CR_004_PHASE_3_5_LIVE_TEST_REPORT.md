@@ -6,7 +6,7 @@
 **Closure date**: 2026-05-28 (evening)
 **Test path**: Option A — synthetic POS order routed through preview environment
 **Tenant**: R689 Kunafa Mahal (`pos_0001_restaurant_689`)
-**Preview URL used**: `https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com`
+**Preview URL used**: `https://crm-variable-mapping.preview.emergentagent.com`
 **Linked artifacts**:
 - `../planning/CR_004_PHASE_3_5_MESSAGE_STATUS_PIPELINE_REFACTOR_PLAN.md`
 - `../implementation/CR_004_P3_5_IMPLEMENTATION_CLOSEOUT.md`
@@ -46,7 +46,7 @@ CR-004 P3.5 is **fully closed**. End-to-end `pending → delivered → read` lif
 14:47:43 UTC  POST /api/pos/orders accepted
 14:47:43 UTC  orders.insert_one(pos_order_id=E2E1779979662, customer_id=1779d4..., 
               order_amount=555.0, gst_tax=55.0, points_earned=38, tier=Silver)
-              → returns id=caded8d6-b4b3-4700-a9db-7e1ffd2f01e9
+              → returns id=crm-variable-mapping
               POSResponse: {success: true, points_earned: 38, total_points: 1002}
 ```
 

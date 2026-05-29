@@ -9,7 +9,7 @@
 ## 📌 Latest Session Snapshot
 
 **Session date**: 2026-05-29 (session closed)
-**Pod URL**: `https://130d0c66-4570-4905-b61d-f2c58758616d.preview.emergentagent.com` (pod rotated; AuthKey webhook needs updating by owner)
+**Pod URL**: `https://crm-variable-mapping.preview.emergentagent.com` (pod rotated; AuthKey webhook needs updating by owner)
 
 ### What happened this session (full chronology)
 

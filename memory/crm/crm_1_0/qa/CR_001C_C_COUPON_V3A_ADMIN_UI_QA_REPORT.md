@@ -12,8 +12,8 @@
 
 | Property | Value |
 |---|---|
-| Frontend URL | `https://coupon-roi-preview.preview.emergentagent.com` |
-| Backend API | `https://coupon-roi-preview.preview.emergentagent.com/api` |
+| Frontend URL | `https://crm-variable-mapping.preview.emergentagent.com` |
+| Backend API | `https://crm-variable-mapping.preview.emergentagent.com/api` |
 | Restaurant | R689 (Kunafa Mahal) — `pos_0001_restaurant_689` |
 | JWT generation | `from core.auth import create_token; create_token('pos_0001_restaurant_689')` |
 | Database | External MongoDB `52.66.232.149:27017/mygenie` |

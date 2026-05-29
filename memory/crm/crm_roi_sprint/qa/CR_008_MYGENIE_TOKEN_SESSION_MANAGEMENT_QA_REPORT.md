@@ -28,7 +28,7 @@ No code, DB, env, or CRM 1.0 doc changes were made during this QA pass.
 | Item | Value |
 |---|---|
 | Backend URL (internal) | `http://localhost:8001` |
-| Frontend / E2E URL | `https://coupon-roi-preview.preview.emergentagent.com` |
+| Frontend / E2E URL | `https://crm-variable-mapping.preview.emergentagent.com` |
 | MongoDB | `mongodb://mygenie_admin:***@52.66.232.149:27017/mygenie` |
 | Test user | `pos_0001_restaurant_689` (Kunafa Mahal — R689) |
 | Test user mygenie_token in DB | present, 120 chars (real token) |
