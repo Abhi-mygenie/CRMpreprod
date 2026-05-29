@@ -105,7 +105,7 @@ grep REACT_APP_BACKEND_URL /app/frontend/.env      # confirm preview URL
 | **014** | **E-Invoice PDF + Mobile HTML Link** | **Discovery Phase 0 done** | **⏸** | ~8-10 days | **2 owner confirmations**: C1 address strategy, C2 required-vs-optional (see CR-014 §15.6) | **2026-05-28** |
 | **015** | **WhatsApp Template Variable Mapping Fidelity** | **CLOSED — live test passed** | **🟢** | done | T1-T7 done. T2 skipped. {{6}} mismatch fixed. Full audit passed. Live test: orders 869331+869333, 7/7 slots correct, status=read. | **2026-05-29** |
 | **017** | **/pos/max-redeemable Projected Points Earned** | **CLOSED — implemented + verified** | **🟢** | done | Hot fix. 3 additive fields: `projected_points_earned`, `projected_earn_percent`, `earn_ratio_display`. Curl-verified. POS handoff updated. | **2026-05-29** |
-| **018** | **/pos/max-redeemable Projected Tier Upgrade** | **Discovery complete — awaiting owner approval** | **⏸** | ~30 min | Add `projected_tier_after`, `tier_upgrade`, `tier_upgrade_message`. Same endpoint, additive, non-breaking. | **2026-05-29** |
+| **018** | **/pos/max-redeemable Projected Tier Upgrade** | **CLOSED — implemented + verified** | **🟢** | done | 3 additive fields: `projected_tier_after`, `tier_upgrade`, `tier_upgrade_message`. Curl-verified. POS handoff updated. | **2026-05-29** |
 | **015a** | **Preview Sample Data Gap for T5 Variables** | **Implemented & verified** | **🟢** | done | Preview "NA" fixed: 14 T5 sample values in `customers.py` sample-data + frontend registry-`example` fallback. Closeout: `implementation/CR_015A_PREVIEW_SAMPLE_DATA_CLOSEOUT.md`. | **2026-05-29** |
 | **015b** | **Dead Variable-Mapping Code Removal** | **Implemented & verified** | **🟢** | done | Removed orphaned/unreachable mapping modal cluster on WhatsApp Automation page + unused `availableFields`/`getPreviewMessage` on Segments. Mapping is **Templates-page-only**. Closeout: `implementation/CR_015B_DEAD_VARIABLE_MAPPING_CODE_CLOSEOUT.md`. | **2026-05-29** |
 | **015c** | **Remove Demo Login** | **Implemented & verified** | **🟢** | done | Demo login fully removed (was 404). Backend endpoint/constants/`is_demo` + frontend button/banner/context. Tests → real login (11 pass). Closeout: `implementation/CR_015C_REMOVE_DEMO_LOGIN_CLOSEOUT.md`. | **2026-05-29** |
@@ -146,6 +146,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-05-29 | **CR-018** | ⏸ discovery → **🟢 CLOSED**. Approved, implemented, verified in single session. 3 fields added to `/pos/max-redeemable`: tier upgrade projection. POS handoff updated. |
 | 2026-05-29 | **CR-018** | — → ⏸ **REGISTERED + Discovery complete**. Feature: projected tier upgrade on `/pos/max-redeemable`. Awaiting owner approval. |
 | 2026-05-29 | **CR-017** | — → ⏸ → **🟢 CLOSED**. Registered, discovered, approved, implemented, verified in single session. 3 fields added to `/pos/max-redeemable`. POS handoff updated. |
 | 2026-05-29 | **CR-015** | 🟡 code complete + data clean → **🟢 CLOSED — live test passed**. Orders 869331 (009577, Rs.409, abhi123, points_balance=70) and 869333 (009579, Rs.2571, abhishek jain, points_balance=128) — both WhatsApp sent + read, all 7 slots correct. |

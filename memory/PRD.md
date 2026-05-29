@@ -2,7 +2,7 @@
 
 > **Read this first.** Single canonical entry point for any agent picking up this project.
 
-**Last updated**: 2026-05-29 (CR-015 🟢 CLOSED. CR-017 🟢 CLOSED. CR-018 registered. Next: CR-018 approval → CR-014 unpark.)
+**Last updated**: 2026-05-29 (CR-015 🟢. CR-017 🟢. CR-018 🟢. Next: CR-014 unpark.)
 **Branch**: `29-may`
 **Codebase pulled from**: `https://github.com/Abhi-mygenie/CRMpreprod.git`
 **Working tree**: `/app` (preview pod)

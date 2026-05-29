@@ -523,6 +523,19 @@ async def pos_max_redeemable(
     else:
         earn_ratio_display = ""
 
+    # CR-018 (2026-05-29): Project tier after this order.
+    current_tier = customer.get("tier", "Bronze")
+    if loyalty_enabled and settings:
+        current_points = customer.get("total_points", 0)
+        projected_total = current_points + projected_earned
+        projected_tier = calculate_tier(projected_total, settings)
+        tier_upgrade = projected_tier != current_tier
+        tier_upgrade_message = f"Complete this order and you'll upgrade to {projected_tier}!" if tier_upgrade else ""
+    else:
+        projected_tier = current_tier
+        tier_upgrade = False
+        tier_upgrade_message = ""
+
     data = {
         "max_points_redeemable": cap["max_points_redeemable"],
         "max_discount_value": cap["max_discount_value"],
@@ -534,6 +547,9 @@ async def pos_max_redeemable(
         "projected_points_earned": projected_earned,
         "projected_earn_percent": earn_percent,
         "earn_ratio_display": earn_ratio_display,
+        "projected_tier_after": projected_tier,
+        "tier_upgrade": tier_upgrade,
+        "tier_upgrade_message": tier_upgrade_message,
     }
     if cap["code"]:
         data["error"] = {"code": cap["code"], "message": cap["message"]}

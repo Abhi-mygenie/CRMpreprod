@@ -104,7 +104,10 @@ Strict 6-key blob: `tier, tier_label, total_points, ratio_per_point, points_valu
     "loyalty_enabled":       true,
     "projected_points_earned": 50,
     "projected_earn_percent":  5.0,
-    "earn_ratio_display":      "₹1 per ₹20 spent"
+    "earn_ratio_display":      "₹1 per ₹20 spent",
+    "projected_tier_after":    "Gold",
+    "tier_upgrade":            false,
+    "tier_upgrade_message":    ""
   }
 }
 ```
@@ -114,6 +117,12 @@ Strict 6-key blob: `tier, tier_label, total_points, ratio_per_point, points_valu
 > - `projected_earn_percent` (float): the tier's earn rate (e.g. 5.0 = 5%).
 > - `earn_ratio_display` (string): human-readable earn rate for cashier display (e.g. "₹1 per ₹20 spent"). POS can render as-is without formatting.
 > - When `loyalty_enabled=false` or bill is below `min_order_value`: `projected_points_earned=0`.
+>
+> **CR-018 (2026-05-29)**: 3 more fields added. POS can now nudge "Complete this order and you'll upgrade to Silver!".
+> - `projected_tier_after` (string): tier the customer will be in after earning points from this order (e.g. "Silver").
+> - `tier_upgrade` (boolean): `true` if the projected points push the customer past the next tier threshold.
+> - `tier_upgrade_message` (string): human-readable nudge for cashier display. Empty if no upgrade.
+> - When `loyalty_enabled=false`: `projected_tier_after` = current tier, `tier_upgrade=false`.
 ```
 
 #### Failure responses (`success=true` preserved; POS branches on `data.error.code`)

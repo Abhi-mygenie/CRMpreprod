@@ -303,6 +303,14 @@
 **Source**: Agent recommendation accepted by owner: "yes register a CR and go by play book" (2026-05-29).
 **Locks**: CR-018 registered, discovery doc created, awaiting owner approval before implementation.
 
+### 2026-05-29 [CR-018] — Approved + implemented
+**Decision**: CR-018 approved. 3 additive fields added to `/pos/max-redeemable`: `projected_tier_after`, `tier_upgrade`, `tier_upgrade_message`. Implemented, verified (2 curl tests), POS handoff doc updated.
+**Source**: Owner: "approve" (2026-05-29) after reviewing discovery doc with 8 ACs.
+**Locks**:
+- `/pos/max-redeemable` now returns 13 fields (was 10 after CR-017)
+- POS handoff doc updated with new fields
+- CR-018 status → `cr018_closed_implemented_verified`
+
 ---
 
 ## How to add a new decision
