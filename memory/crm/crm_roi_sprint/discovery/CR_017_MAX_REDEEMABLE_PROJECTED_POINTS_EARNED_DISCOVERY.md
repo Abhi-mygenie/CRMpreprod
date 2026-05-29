@@ -40,22 +40,24 @@ The earn calculation logic already exists in `core/loyalty.py::calculate_points(
 
 **Single endpoint change**: `POST /api/pos/max-redeemable` in `routers/pos.py`
 
-Add 2 fields to the response:
+Add 3 fields to the response:
 
 ```json
 {
   ...existing 7 fields...,
   "projected_points_earned": 42,
-  "projected_earn_percent": 5.0
+  "projected_earn_percent": 5.0,
+  "earn_ratio_display": "₹1 per ₹20 spent"
 }
 ```
 
-### Implementation plan (~10 lines)
+### Implementation plan (~15 lines)
 
 1. Import `calculate_points` (already used elsewhere in `pos.py`)
 2. After `compute_max_redeemable()` call (line 506), call `calculate_points(bill_amount, customer, settings)`
-3. Add `projected_points_earned` and `projected_earn_percent` to the `data` dict (line 508)
-4. No schema changes needed — `POSResponse` uses generic `data: dict`
+3. Add `projected_points_earned`, `projected_earn_percent`, and `earn_ratio_display` to the `data` dict (line 508)
+4. `earn_ratio_display` = human-readable string derived from earn_percent: e.g. 5% → "₹1 per ₹20 spent", 10% → "₹1 per ₹10 spent"
+5. No schema changes needed — `POSResponse` uses generic `data: dict`
 
 ### What does NOT change
 - No other endpoints affected
@@ -76,10 +78,11 @@ Add 2 fields to the response:
 |---|---|
 | AC-1 | `POST /api/pos/max-redeemable` response includes `projected_points_earned` (integer) |
 | AC-2 | `POST /api/pos/max-redeemable` response includes `projected_earn_percent` (float) |
-| AC-3 | Projected earning matches what `/pos/orders` would return for same bill_amount + customer |
-| AC-4 | When `loyalty_enabled=false`, both fields return 0 |
-| AC-5 | Existing 7 response fields unchanged |
-| AC-6 | POS handoff doc updated with new fields |
+| AC-3 | `POST /api/pos/max-redeemable` response includes `earn_ratio_display` (string, e.g. "₹1 per ₹20 spent") |
+| AC-4 | Projected earning matches what `/pos/orders` would return for same bill_amount + customer |
+| AC-5 | When `loyalty_enabled=false`, `projected_points_earned=0`, `projected_earn_percent=0`, `earn_ratio_display=""` |
+| AC-6 | Existing 7 response fields unchanged |
+| AC-7 | POS handoff doc updated with new fields |
 
 ## 6. Owner Approval Gate
 
