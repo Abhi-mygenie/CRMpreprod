@@ -2,7 +2,7 @@
 
 > **Read this first.** Single canonical entry point for any agent picking up this project.
 
-**Last updated**: 2026-05-29 (CR-015 Day 1 done, Day 2 frozen; CR-016 deferred to next sprint; CR-014 still parked)
+**Last updated**: 2026-05-29 (CR-015 Day 2 done — T3 landed; Day 3 next: T6+T7+T4; CR-016 deferred; CR-014 parked)
 **Branch**: `28-may`
 **Codebase pulled from**: `https://github.com/Abhi-mygenie/CRMpreprod.git`
 **Working tree**: `/app` (preview pod)

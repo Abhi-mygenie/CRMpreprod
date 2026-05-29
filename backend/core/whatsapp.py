@@ -331,6 +331,116 @@ def _format_coupon_field(field, value):
     return str(value) if value else ""
 
 
+
+# ── CR-015 T3 (2026-05-29): POS order event-data context builder ──
+
+def build_order_event_context(
+    order_data,
+    customer: Dict[str, Any],
+    *,
+    points_earned: int,
+    new_points: int,
+    wallet_used: float,
+    new_wallet_balance: float,
+    crm_loyalty_points_redeemed: int = 0,
+    crm_loyalty_discount: float = 0.0,
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    CR-015 T3 (2026-05-29): Build a single event_data dict for ALL POS
+    order-triggered WhatsApp events (send_bill, welcome_message, tier_upgrade).
+
+    Strategy is additive: caller spreads {**order_ctx, ...event_specific...}
+    when calling trigger_whatsapp_event(). Existing keys consumed by the
+    resolver continue working; new keys (payment_method, order_date, etc.)
+    flow through to the registry's `event` sources.
+
+    Args:
+        order_data: POSOrderWebhook Pydantic instance (routers/pos.py:1116)
+        customer:   Updated customer dict (post-points/wallet/tier update)
+        points_earned, new_points: outcomes from points calc
+        wallet_used, new_wallet_balance: outcomes from wallet adjustment
+        crm_loyalty_points_redeemed, crm_loyalty_discount:
+            outcomes from CRM-side loyalty redemption back-calc (0 if none)
+        extra: optional dict merged at the end (caller injection point)
+
+    Returns:
+        Dict with ~25 keys. None and empty-string values are stripped so the
+        resolver's source-chain fallback works (registry -> event -> customer -> brand).
+
+    Notes:
+        * Coupon fields are read directly from `order_data` (POS payload
+          carries them as first-class fields). This is correct even though
+          coupon_usage recording happens AFTER the trigger fires in pos.py
+          (line 1510), because the POS-supplied coupon data is the source
+          of truth for the customer-facing message.
+        * `restaurant_name` is intentionally NOT included -- it's resolved
+          from `brand_data` at trigger time (whatsapp.py:581-587).
+        * `order_id` is the POS-supplied id (`order_data.order_id`).
+          The caller may override `reference_id` to the persisted internal id.
+    """
+    items = list(getattr(order_data, "items", None) or [])
+    ctx: Dict[str, Any] = {
+        # -- Identification --
+        "order_id": order_data.order_id,
+        "pos_order_id": order_data.order_id,
+        "restaurant_order_id": (
+            order_data.restaurant_order_id or order_data.order_id
+        ),
+        # -- Amounts --
+        "order_amount": order_data.order_amount,
+        "order_sub_total_amount": order_data.order_sub_total_amount,
+        "order_discount": order_data.order_discount,
+        "self_discount": order_data.self_discount,
+        # -- Taxes --
+        "tax_amount": order_data.tax_amount,
+        "gst_tax": order_data.gst_tax,
+        "vat_tax": order_data.vat_tax,
+        "service_tax": order_data.service_tax,
+        # -- Tips / charges --
+        "tip_amount": order_data.tip_amount,
+        "delivery_charge": order_data.delivery_charge,
+        "round_up": order_data.round_up,
+        # -- Payment --
+        "payment_method": order_data.payment_method,
+        "payment_status": order_data.payment_status,
+        "payment_type": order_data.payment_type,
+        "transaction_id": order_data.transaction_id,
+        # -- Order meta --
+        "order_status": order_data.order_status,
+        "order_type": order_data.order_type,
+        "table_id": order_data.table_id,
+        "employee_name": order_data.employee_name,
+        "waiter_name": order_data.employee_name,           # registry alias
+        "order_created_at": order_data.order_created_at,
+        "order_date": order_data.order_created_at,         # registry alias
+        "order_time": order_data.order_created_at,         # registry alias
+        "order_notes": order_data.order_notes,
+        # -- Derived --
+        "item_count": len(items),
+        # -- Loyalty / wallet outcomes (caller-supplied) --
+        "points_earned": points_earned,
+        "points_balance": new_points,
+        "wallet_used": wallet_used if wallet_used else (order_data.wallet_used or 0.0),
+        "wallet_balance": new_wallet_balance,
+        "loyalty_points_used": (
+            crm_loyalty_points_redeemed or order_data.loyalty_points_used or 0
+        ),
+        "loyalty_discount": (
+            crm_loyalty_discount or order_data.loyalty_discount or 0.0
+        ),
+        # -- Coupon (from POS payload -- first-class on POSOrderWebhook) --
+        "coupon_code": order_data.coupon_code,
+        "coupon_title": order_data.coupon_title,
+        "coupon_discount": order_data.coupon_discount,
+        "coupon_type": order_data.coupon_type,
+    }
+    if extra:
+        ctx.update(extra)
+    # Strip None and empty-string values; preserve 0 / 0.0 (valid integers/currency)
+    return {k: v for k, v in ctx.items() if v is not None and v != ""}
+
+
 def build_body_values(
     template_variables: List[str],
     variable_mappings: Dict[str, str],

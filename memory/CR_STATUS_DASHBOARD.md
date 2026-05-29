@@ -118,7 +118,7 @@ If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 | 012 | WhatsApp Template Builder | Planning | 🔵 | — | (see register) | — |
 | 013 | Template Gallery | Discovery | 🔴 blocked by CR-012 P1 | — | (see register) | — |
 | **014** | **E-Invoice PDF + Mobile HTML Link** | **Discovery Phase 0 done** | **⏸** | ~8-10 days | **2 owner confirmations**: C1 address strategy, C2 required-vs-optional (see CR-014 §15.6) | **2026-05-28** |
-| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Day 1 done (T1+T5 landed); Day 2 spec FROZEN, ready for impl** | **🟡** | ~2.5 days remaining | Day 2 freeze doc at `planning/CR_015_DAY_2_FROZEN_SPEC.md` — 10 acceptance checks in §8.3. Implementation agent picks up from there. | **2026-05-29** |
+| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Day 2 done (T1+T5+T3 landed); Day 3 next (T6+T7+T4)** | **🟡** | ~1.5 days remaining | Day 3: T6 (admin UI 422), T7 (R689 cleanup), T4 (minor enrichments). Day 4: T2 (DB norm) + live test. | **2026-05-29** |
 | **016** | **Dynamic Event Registry + Trigger Configuration UI** | **Discovery Phase 0 done — DEFERRED to next sprint** | **⏸ next-sprint** | ~9-10 days | **Deferred 2026-05-29 by owner**: existing event mapping/firing fidelity (CR-015) takes priority. §7 Q1–Q8 still open. | **2026-05-29** |
 
 > When a row's first column shows a number ≤ 010 with no detail above, look up the full row in `crm/crm_roi_sprint/00_register/ROI_MEASUREMENT_CR_REGISTER.md`.
@@ -156,6 +156,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-05-29 | CR-015 | 🟡 Day 2 frozen → 🟡 **Day 2 DONE — T3 landed** (`build_order_event_context` + 3 pos.py callsites refactored, 119/119 tests, lint clean) |
 | 2026-05-29 | CR-015 | 🟡 Day 1 done → 🟡 **Day 2 spec FROZEN, T3 ready for implementation** (freeze doc at `planning/CR_015_DAY_2_FROZEN_SPEC.md`) |
 | 2026-05-29 | CR-015 | 🟡 Phase 1 plan approved → 🟡 **Day 1 DONE** (T1 resolver hardening + T5 registry expansion landed, 109/109 tests, live smoke confirmed Bug #1 resolved) |
 | 2026-05-29 | CR-015 | ⏸ discovery parked → 🟡 **Phase 1 plan drafted, awaiting sign-off** (Q1–Q8 all answered `a`) |
