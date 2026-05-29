@@ -28,14 +28,12 @@ USER_ID = "pos_0001_restaurant_689"
 TEMPLATE_ID = "25140"
 
 # Expected current state (safety check)
-EXPECTED_SLOT_4 = "payment method missing "
-EXPECTED_SLOT_5 = "order dare missing "
+# NOTE: {{4}} and {{5}} were already fixed (via Templates page UI) before this script ran.
+# Only {{7}} remains wrong — it duplicates {{6}} (points_earned) instead of points_balance.
 EXPECTED_SLOT_7 = "points_earned"
 
-# Proposed corrections
+# Proposed corrections ({{4}}/{{5}} removed — already clean)
 CORRECTIONS = {
-    "{{4}}": {"old": EXPECTED_SLOT_4, "new": "payment_method", "remove_mode": True},
-    "{{5}}": {"old": EXPECTED_SLOT_5, "new": "order_date", "remove_mode": True},
     "{{7}}": {"old": EXPECTED_SLOT_7, "new": "points_balance", "remove_mode": False},
 }
 
