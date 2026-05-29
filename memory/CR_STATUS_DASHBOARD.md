@@ -8,45 +8,55 @@
 
 ## 📌 Latest Session Snapshot
 
-**Session date**: 2026-05-29
-**Pod URL**: `https://a28cb9e3-2ed4-46d3-b9be-e6ab5f64fc70.preview.emergentagent.com` (AuthKey webhook rotated to this URL by owner on 2026-05-29)
+**Session date**: 2026-05-29 (end of session)
+**Pod URL**: `https://130d0c66-4570-4905-b61d-f2c58758616d.preview.emergentagent.com` (pod rotated; AuthKey webhook needs updating by owner)
 
-### What happened this session
-1. Project re-bootstrap into new pod (`a28cb9e3-…`) — repo re-cloned from branch `28-may`, deps installed, services UP, `/api/health` 200, remote MongoDB connected.
-2. Pod URL rotation acknowledged — owner is updating AuthKey delivery-callback webhook to the new pod URL.
-3. **CR-016 DEFERRED to next sprint** — owner decision (verbatim): *"actually it will come very complex we have almost definate event we used need to ensure they map and fire correctly for now we can mark cr to be taken in next spirint"*. §7 Q1–Q8 remain open and roll over to the next sprint. See `DECISIONS_LOG.md` 2026-05-29 entry.
-4. Sprint focus pivots to **CR-015 first** (existing-event mapping + variable rendering fidelity), then **CR-014** (e-invoice mobile link). No event-engine work this sprint.
+### What happened this session (full chronology)
+
+1. **Project re-bootstrap** into new pod (`130d0c66-…`) — repo re-cloned from branch `28-may`, deps installed, services UP, `/api/health` 200, remote MongoDB connected.
+2. **CR-016 DEFERRED to next sprint** — owner decision (verbatim): *"actually it will come very complex we have almost definate event we used need to ensure they map and fire correctly for now we can mark cr to be taken in next spirint"*. §7 Q1–Q8 remain open. See `DECISIONS_LOG.md` 2026-05-29 entry.
+3. **CR-015 unparked** — owner answered all Q1–Q8 with option `a` (recommended defaults). Plan v1.1 approved. Implementation authorized.
+4. **CR-015 Phase 1.5 ground-truth probe** — deep DB investigation confirmed Bug #1 (template_id int vs str mismatch on R689 `send_bill`) and Bug #2 (R689 template 25140 slots {{4}}/{{5}} contain text-mode garbage). T2 scope drastically smaller than planned (only 2 int rows for R689). Effort revised **5 days → ~3.5 days**. Probe report: `investigations/CR_015_PRE_IMPL_GROUND_TRUTH_2026_05_29.md`.
+5. **CR-015 Day 1 DONE** — T1 (resolver hardening) + T5 (registry expansion: 14 new entries + `time`/`titlecase` formatters) landed. 109/109 tests pass (44 new + 65 baseline). Live smoke probe: R689 `send_bill` now returns non-empty `variable_mappings` (Bug #1 functionally resolved). Slots {{4}}/{{5}} still show text-mode garbage → T7 Day 3.
+6. **CR-015 Day 2 spec FROZEN** — owner requested a deep code audit before Day 2 implementation (due to v1.0→v1.1 drift episode). All plan v1.1 §5.2/§5.4 claims re-verified file-by-file. 2 minor refinements, no scope changes. Frozen spec at `planning/CR_015_DAY_2_FROZEN_SPEC.md` — single source of truth for implementation agent.
+7. **Handoff**: Implementation agent picks up T3 (`build_order_event_context` + 3 callsite refactors in `routers/pos.py`) directly from the freeze doc. Then T6+T7+T4-minor (Day 3), T2+live test (Day 4).
 
 ### 🎯 Next-agent handoff message
 
 ```
 You are picking up the MyGenie CRM ROI sprint mid-flight.
+CR-015 (Variable Mapping Fidelity) is IN FLIGHT — Day 1 done, Day 2 frozen.
 
 READ FIRST in this order:
 1. /app/memory/README.md
-2. /app/memory/CR_STATUS_DASHBOARD.md (especially the "Latest Session Snapshot")
-3. /app/memory/DECISIONS_LOG.md (every owner decision so far — note 2026-05-29 CR-016 deferral)
+2. /app/memory/CR_STATUS_DASHBOARD.md (this snapshot)
+3. /app/memory/DECISIONS_LOG.md (especially 2026-05-29 entries)
+4. /app/memory/crm/crm_roi_sprint/planning/CR_015_DAY_2_FROZEN_SPEC.md  ← YOUR NEXT WORK
 
-CURRENT STATE (2026-05-29):
+CURRENT STATE (2026-05-29 end of session):
 - CR-004 P3.5 is CLOSED (full live test passed 2026-05-28)
-- CR-016 is DEFERRED to NEXT sprint — do not ask its §7 questions this sprint
-- 2 CRs are parked in Phase 0 discovery, in this priority order:
-  - CR-015 Variable Mapping Fidelity — 8 questions in §7 of its discovery doc (UNPARK FIRST)
-  - CR-014 E-Invoice — 2 questions in §15.6 of its discovery doc (UNPARK SECOND)
+- CR-016 is DEFERRED to NEXT sprint — do not touch
+- CR-014 is PARKED in Phase 0 — 2 questions in §15.6 of its discovery doc (UNPARK AFTER CR-015)
+- CR-015 is IN FLIGHT:
+    ✅ Day 1: T1 (resolver hardening) + T5 (registry expansion) DONE — 109/109 tests
+    ✅ Day 2: Spec FROZEN — ready for implementation
+    ⏳ Day 2 impl: T3 (build_order_event_context + 3 pos.py callsites) — PICK UP HERE
+    ⏳ Day 3: T6 (admin UI 422 validation) + T7 (R689 cleanup) + T4 (minor enrichments)
+    ⏳ Day 4: T2 (DB normalization) + live integration test
 
 WHAT TO DO:
-Wait for the owner to say "Resume CR-015" or "Resume CR-014".
-Then:
-  1. Read /app/memory/crm/crm_roi_sprint/discovery/CR_XYZ_*_DISCOVERY.md end-to-end
-  2. Ask the owner the questions listed in §7 (or §15.6 for CR-014)
-  3. After answers, write /app/memory/crm/crm_roi_sprint/planning/CR_XYZ_PHASE_1_PLAN.md
-  4. Then implementation, then QA per CR lifecycle (README §4)
+1. Open /app/memory/crm/crm_roi_sprint/planning/CR_015_DAY_2_FROZEN_SPEC.md
+2. Read §4 (frozen code spec) and §9 (handoff instructions)
+3. Implement T3 mechanically per the spec — DO NOT improvise
+4. If spec contradicts code, STOP and surface to owner
+5. After T3: run all tests (expect 54+65=119), update closeout doc, update dashboard
 
 DO NOT:
 - Call testing_agent_v3
 - Push to crm.mygenie.online
 - Write to remote MongoDB from ad-hoc scripts without explicit per-change approval
-- Open CR-016 unless owner explicitly says "Resume CR-016 — moving up from next sprint"
+- Open CR-016 unless owner explicitly says "Resume CR-016"
+- Skip the freeze doc and re-derive T3 from the plan — the freeze doc IS the spec
 
 Sanity-check first thing:
   sudo supervisorctl status
@@ -61,17 +71,18 @@ Sanity-check first thing:
 sudo supervisorctl status                          # backend + frontend RUNNING
 curl -s http://localhost:8001/api/health           # {"status":"healthy",...}
 grep REACT_APP_BACKEND_URL /app/frontend/.env      # confirm preview URL still valid
+cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_whatsapp_*.py -q  # 109 passed
 ```
 
 If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 
-### Active queue (this sprint, after 2026-05-29 deferral)
+### Active queue (this sprint, after 2026-05-29 deferral + Day 1 work)
 
-| Order | CR | Why |
-|---|---|---|
-| 1 | CR-015 | Foundation — ensure the 27 existing hardcoded events fire + render variables correctly. Owner's stated sprint priority. |
-| 2 | CR-014 | E-invoice mobile link — independent track; depends only on `send_bill` reliability (CR-004 P3.5 done ✅) + variable layer (CR-015). |
-| — | CR-016 | **Deferred to next sprint.** |
+| Order | CR | Status | Why |
+|---|---|---|---|
+| 1 | **CR-015** | **🟡 Day 2 frozen, T3 ready for impl** | Foundation — ensure the 27 existing hardcoded events fire + render variables correctly. T1+T5 done; T3 next. |
+| 2 | CR-014 | ⏸ Discovery parked | E-invoice mobile link — depends on variable layer (CR-015). Unpark after CR-015. |
+| — | ~~CR-016~~ | ⏸ Deferred to next sprint | Dynamic event registry — owner decided to stabilize existing events first. |
 
 ---
 
@@ -145,6 +156,8 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-05-29 | CR-015 | 🟡 Day 1 done → 🟡 **Day 2 spec FROZEN, T3 ready for implementation** (freeze doc at `planning/CR_015_DAY_2_FROZEN_SPEC.md`) |
+| 2026-05-29 | CR-015 | 🟡 Phase 1 plan approved → 🟡 **Day 1 DONE** (T1 resolver hardening + T5 registry expansion landed, 109/109 tests, live smoke confirmed Bug #1 resolved) |
 | 2026-05-29 | CR-015 | ⏸ discovery parked → 🟡 **Phase 1 plan drafted, awaiting sign-off** (Q1–Q8 all answered `a`) |
 | 2026-05-29 | CR-016 | ⏸ discovery parked → ⏸ **deferred to next sprint** (owner: "we have almost definate event we used need to ensure they map and fire correctly") |
 | 2026-05-29 | sprint queue | reaffirmed: CR-015 (P1) → CR-014 (P2); CR-016 out of this sprint |
