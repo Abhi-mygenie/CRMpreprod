@@ -247,6 +247,28 @@
 - Live test remains a prerequisite for formal closure (`cr015_closed_live_test_passed`)
 - Can be unparked anytime by either repointing POS to preview or pushing code to prod and testing there
 
+### 2026-05-29 [CR-015] — Live test: POS repointed to preview, order 869329 received
+**Decision**: Owner repointed POS + AuthKey webhook URLs to preview pod. Order 869329 (R689, Rs.745, cash, 1106 loyalty points redeemed) landed successfully. WhatsApp sent and delivered (status=read). Identified `{{6}}` semantic mismatch during live trace.
+**Source**: Owner: "check for this order 869329 in 689 — i received this message" + "i think its code issue we have not moved code only api url we pointed here"
+**Locks**:
+- POS + AuthKey webhook now point at preview pod `c158ad1e-…`
+- Live test is no longer parked — orders are flowing through preview code
+
+### 2026-05-29 [CR-015] — {{6}} semantic mismatch found + fixed
+**Decision**: Template 25140 slot `{{6}}` remapped from `points_earned` → `loyalty_points_used`. The Meta template text says "Loyalty Points Used: {{6}}" but was mapped to `points_earned` (how many earned, not used). Order 869329 showed "Loyalty Points Used: 0" when customer actually used 1106 points. The CR-015 probe (Phase 1.5) missed this because it only checked if var_keys were valid registry entries — not whether they semantically matched the template text.
+**Source**: Owner reported wrong values in received WhatsApp; confirmed "ok fix this only" after root cause analysis.
+**Locks**:
+- R689 template 25140 `{{6}}` = `loyalty_points_used` (was `points_earned`)
+- DB write verified: `matched=1, modified=1`
+
+### 2026-05-29 [CR-015] — Full template-vs-mapping audit: all clear
+**Decision**: Ran systematic read-only audit across all 4 R689 templates (18 slots total), cross-referencing AuthKey template body text with DB variable mappings. Result: 0 remaining mismatches after the `{{6}}` fix. 3 slots use intentional text-mode (static values). 27 of 37 registry variables are available but unmapped (ready for future templates).
+**Source**: Owner: "we have 23 variables is there a similar issue for any other variable, can we run a audit summary" → confirmed "ok update docs"
+**Locks**:
+- All R689 template mappings verified correct as of 2026-05-29
+- Audit methodology documented: fetch AuthKey template body → compare slot context vs mapped variable semantically
+- Future T7-style fixes should cross-check template TEXT, not just registry validity
+
 ---
 
 ## How to add a new decision

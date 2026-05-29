@@ -2,7 +2,7 @@
 
 > **Read this first.** Single canonical entry point for any agent picking up this project.
 
-**Last updated**: 2026-05-29 (CR-015 code complete — T7 committed, T2 skipped, live test parked. CR-015a/b/c done. Next: CR-014 unpark.)
+**Last updated**: 2026-05-29 (CR-015 code complete + data clean — T7 committed, {{6}} mismatch fixed, full audit passed. Awaiting 1 clean order. CR-015a/b/c done. Next: CR-014 unpark.)
 **Branch**: `29-may`
 **Codebase pulled from**: `https://github.com/Abhi-mygenie/CRMpreprod.git`
 **Working tree**: `/app` (preview pod)
@@ -96,7 +96,8 @@ sudo supervisorctl status
 - **CR-015c** ✅ — **demo login fully removed** (owner: "there should not be any demo login"). Deleted `/api/auth/demo-login`, `DEMO_EMAIL`/`DEMO_PASSWORD`, `is_demo` schema field, frontend Demo Login button, `demoLogin`/`isDemoMode`, `DemoModeBanner`. `test_segments_crm.py` switched to real login (11 passed). Nothing in DB to clean.
 - **CR-015 T7** ✅ — R689 template 25140 slot `{{7}}` fixed (`points_earned` → `points_balance`). Slots `{{4}}`/`{{5}}` were already corrected via Templates page UI. All 7 slots now correct.
 - **CR-015 T2** ⏭ SKIPPED — owner decided int→str DB normalization unnecessary. T1 resolver handles it.
-- **CR-015 live test** ⏸ PARKED — POS points at production, not preview. Order 009573 didn't land.
+- **CR-015 live test** ✅ PARTIAL — POS repointed to preview. Order 869329 (Rs.745, 1106 loyalty points) sent + delivered (status=read). Found `{{6}}` semantic mismatch: template says "Loyalty Points Used" but mapped to `points_earned` → fixed to `loyalty_points_used`.
+- **CR-015 full audit** ✅ PASSED — all 4 R689 templates (18 slots) cross-referenced against AuthKey template body text. 0 remaining mismatches. 27 of 37 registry variables available for future templates.
 
 ### ⏳ Pending owner ops (NOT this agent's work)
 - ~~Push branch `28-may` to production CRM~~ — no longer blocking; Option A bypassed need (preview ran full code path successfully).

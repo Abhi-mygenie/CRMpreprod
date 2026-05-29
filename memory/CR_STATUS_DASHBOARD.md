@@ -8,19 +8,22 @@
 
 ## 📌 Latest Session Snapshot
 
-**Session date**: 2026-05-29 (T7 committed + T2 skipped + live test parked)
+**Session date**: 2026-05-29 (T7 committed + T2 skipped + live test executed + {{6}} fix + full audit)
 **Pod URL**: `https://c158ad1e-e16c-449c-b11f-8eaabb028c19.preview.emergentagent.com`
 
 ### What happened this session (full chronology)
 
 1. **Repo re-bootstrapped** from branch `29-may` (was `28-may`). Deps installed, services UP, health green.
 2. **Doc audit** — verified CR-015a/b/c docs were updated in `29-may`. Found DECISIONS_LOG.md missing 4 entries → appended (CR-015c removal, CR-015b dead-code, sprint priority, real creds).
-3. **T7 script updated + committed** — original script safety-aborted because `{{4}}`/`{{5}}` were already fixed via Templates page UI. Narrowed to `{{7}}` only (`points_earned` → `points_balance`). Owner approved, committed to remote DB. All 7 slots of R689 template 25140 now correct.
-4. **T2 SKIPPED** — owner decided int→str DB normalization unnecessary; T1 resolver already handles it. 2 legacy int rows remain as non-blocking tech debt.
-5. **Live test PARKED** — POS sends orders to production, not preview pod. Order 009573 did not land. Test can happen when POS repoints or code pushes to prod.
-6. **Governance docs updated** — DECISIONS_LOG (T7 commit, T2 skip, live test park), closeout, dashboard, register, PRD.
+3. **T7 script updated + committed** — original script safety-aborted because `{{4}}`/`{{5}}` were already fixed via Templates page UI. Narrowed to `{{7}}` only (`points_earned` → `points_balance`). Owner approved, committed to remote DB.
+4. **T2 SKIPPED** — owner decided int→str DB normalization unnecessary; T1 resolver already handles it.
+5. **Live test UNPARKED** — owner repointed POS + AuthKey webhook to preview pod. Order 869329 (R689, Rs.745, 1106 loyalty points redeemed) landed. WhatsApp sent + delivered (status=read).
+6. **{{6}} semantic mismatch found** — template says "Loyalty Points Used" but `{{6}}` was mapped to `points_earned` (showed "0" when customer used 1106). Root cause: CR-015 probe checked registry validity only, not semantic match against template text.
+7. **{{6}} fixed** — remapped `points_earned` → `loyalty_points_used`. DB write verified.
+8. **Full template-vs-mapping audit** — all 4 R689 templates (18 slots) cross-referenced against AuthKey template body text. Result: **0 remaining mismatches**. 27 of 37 registry variables available but unmapped (ready for future templates).
+9. **Governance docs updated** — DECISIONS_LOG, dashboard, closeout, register, PRD.
 
-> CR-015 is now **code-complete**. Only live integration test remains for formal closure.
+> CR-015 is now **code-complete + data-clean**. Live test partially validated (order 869329 sent + read, but with {{6}} bug — next order will be the clean test).
 
 ### 🎯 Next-agent handoff message
 
@@ -30,11 +33,13 @@ You are picking up the MyGenie CRM ROI sprint.
 READ FIRST: README.md → CR_STATUS_DASHBOARD.md (this snapshot) → DECISIONS_LOG.md
 
 CURRENT STATE (2026-05-29):
-- CR-015 PARENT: CODE COMPLETE. All tracks landed (T1-T7). T2 skipped (owner decision). 
-    Only a live integration test remains for formal closure — parked because POS points at prod.
-- CR-015a: ✅ DONE (preview "NA" fixed)
-- CR-015b: ✅ DONE (dead mapping-modal code removed; mapping is Templates-page-only)
-- CR-015c: ✅ DONE (demo login fully removed)
+- CR-015 PARENT: CODE COMPLETE + DATA CLEAN.
+    All tracks landed (T1-T7). T2 skipped. {{6}} semantic mismatch found + fixed.
+    Full audit passed (0 remaining mismatches across all R689 templates).
+    POS + AuthKey pointed at preview. Awaiting one clean order for formal closure.
+- CR-015a: ✅ DONE
+- CR-015b: ✅ DONE
+- CR-015c: ✅ DONE
 - CR-014: ⏸ parked (2 questions in §15.6 — ready to unpark)
 - CR-016: ⏸ deferred to next sprint
 
@@ -44,6 +49,7 @@ DO NOT:
 - Re-introduce demo login
 - Add variable-mapping UI to WhatsApp Automation / Segments (Templates-page-only by design)
 - Run T2 normalization (owner skipped it)
+- Remap {{6}} back to points_earned (semantic mismatch — must stay loyalty_points_used)
 ```
 
 ### Sanity checks for the next agent
@@ -59,7 +65,7 @@ cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_cr01
 
 | Order | CR | Status | Next action |
 |---|---|---|---|
-| 1 | **CR-015** | 🟡 Code complete, live test parked | Repoint POS to preview OR push to prod → live test → close |
+| 1 | **CR-015** | 🟡 Code complete + data clean, awaiting clean order | POS pointed at preview. One clean order to verify {{6}} fix → close. |
 | 2 | **CR-014** | ⏸ Discovery parked | Ready to unpark — 2 questions (§15.6 C1+C2) |
 | — | ~~CR-016~~ | ⏸ Deferred next sprint | — |
 
@@ -116,7 +122,7 @@ If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 | 012 | WhatsApp Template Builder | Planning | 🔵 | — | (see register) | — |
 | 013 | Template Gallery | Discovery | 🔴 blocked by CR-012 P1 | — | (see register) | — |
 | **014** | **E-Invoice PDF + Mobile HTML Link** | **Discovery Phase 0 done** | **⏸** | ~8-10 days | **2 owner confirmations**: C1 address strategy, C2 required-vs-optional (see CR-014 §15.6) | **2026-05-28** |
-| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Code complete (T1-T7 all landed, T2 skipped). Live test parked.** | **🟡** | live test remaining | T7 committed ({{7}} fixed). T2 skipped (owner: resolver handles int→str). Live test parked (POS at prod). | **2026-05-29** |
+| **015** | **WhatsApp Template Variable Mapping Fidelity** | **Code complete + data clean. All mappings audit-verified. Awaiting clean live test.** | **🟡** | 1 clean order remaining | T1-T7 done. T2 skipped. {{6}} mismatch found + fixed. Full audit: 0 remaining mismatches. POS pointed at preview. | **2026-05-29** |
 | **015a** | **Preview Sample Data Gap for T5 Variables** | **Implemented & verified** | **🟢** | done | Preview "NA" fixed: 14 T5 sample values in `customers.py` sample-data + frontend registry-`example` fallback. Closeout: `implementation/CR_015A_PREVIEW_SAMPLE_DATA_CLOSEOUT.md`. | **2026-05-29** |
 | **015b** | **Dead Variable-Mapping Code Removal** | **Implemented & verified** | **🟢** | done | Removed orphaned/unreachable mapping modal cluster on WhatsApp Automation page + unused `availableFields`/`getPreviewMessage` on Segments. Mapping is **Templates-page-only**. Closeout: `implementation/CR_015B_DEAD_VARIABLE_MAPPING_CODE_CLOSEOUT.md`. | **2026-05-29** |
 | **015c** | **Remove Demo Login** | **Implemented & verified** | **🟢** | done | Demo login fully removed (was 404). Backend endpoint/constants/`is_demo` + frontend button/banner/context. Tests → real login (11 pass). Closeout: `implementation/CR_015C_REMOVE_DEMO_LOGIN_CLOSEOUT.md`. | **2026-05-29** |
@@ -132,7 +138,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Order | CR | Why first |
 |---|---|---|
-| 1 | **CR-015** | Foundation — code complete, all tracks landed. Live test parked (POS at prod). |
+| 1 | **CR-015** | Foundation — code complete + data clean. Full audit passed. Awaiting 1 clean order. |
 | 2 | **CR-014** | E-invoice mobile link — ready to unpark. 2 questions in §15.6 (C1+C2). |
 | — | ~~CR-016~~ | **Deferred to next sprint** (2026-05-29). |
 
@@ -157,6 +163,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-05-29 | CR-015 | 🟡 Code complete, live test parked → 🟡 **CODE COMPLETE + DATA CLEAN**. POS repointed to preview. Order 869329 received (WhatsApp sent+read). {{6}} semantic mismatch found (`points_earned` mapped where template says "Loyalty Points Used") → fixed to `loyalty_points_used`. Full audit across all 4 R689 templates (18 slots): **0 remaining mismatches**. Awaiting 1 clean order for formal closure. |
 | 2026-05-29 | CR-015 | 🟡 Day 3 done, T7 pending → 🟡 **CODE COMPLETE, live test parked**. T7 committed ({{7}} `points_earned`→`points_balance`; {{4}}/{{5}} were already fixed via UI). T2 skipped (owner: resolver handles int→str). Live test parked (POS at prod, order 009573 didn't land on preview). |
 | 2026-05-29 | CR-015a | ⏸ frozen spec → 🟢 **IMPLEMENTED** (backend: 14 T5 sample values in `customers.py` sample-data — curl-verified 37 keys; frontend: registry-example fallback in `WhatsAppAutomationContent.jsx` + `TemplatesPage.jsx`; preview shows values, no "NA"). Doc: `planning/CR_015A_PREVIEW_SAMPLE_DATA_FROZEN_SPEC.md` |
 | 2026-05-29 | CR-015c | — → 🟢 **Demo login FULLY REMOVED** (owner-approved). Backend `/demo-login` endpoint + constants + `is_demo` schema field; frontend Demo Login button + AuthContext demo code + DemoModeBanner (deleted) + CustomersPage `isDemoMode`. Tests switched to real login (11 passed). demo-login now 404. Doc: `discovery/CR_015C_REMOVE_DEMO_LOGIN_DISCOVERY.md` |
