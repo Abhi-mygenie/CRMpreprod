@@ -127,7 +127,7 @@ Agent does:
 |---|---|
 | Backend internal | `http://localhost:8001` (all routes `/api/*`) |
 | Frontend internal | `http://localhost:3000` |
-| **Preview external** (current pod, AuthKey webhook points here) | `https://crm-variable-mapping.preview.emergentagent.com` |
+| **Preview external** (current pod, POS + AuthKey webhook point here) | `https://c158ad1e-e16c-449c-b11f-8eaabb028c19.preview.emergentagent.com` |
 | **Production** | `https://crm.mygenie.online` |
 | Remote MongoDB | `mongodb://...@52.66.232.149:27017/mygenie` (shared between prod + preview) |
 | `MONGO_URL` location | `/app/backend/.env` |

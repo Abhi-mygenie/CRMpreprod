@@ -8,21 +8,24 @@
 
 ## 📌 Latest Session Snapshot
 
-**Session date**: 2026-05-29 (CR-015 CLOSED — full live test passed)
+**Session date**: 2026-05-29 (CR-015 🟢 CLOSED + CR-017 🟢 CLOSED)
 **Pod URL**: `https://c158ad1e-e16c-449c-b11f-8eaabb028c19.preview.emergentagent.com`
+**Branch**: `29-may`
+**POS + AuthKey webhook**: pointed at this preview pod (owner repointed mid-session)
 
 ### What happened this session (full chronology)
 
 1. **Repo re-bootstrapped** from branch `29-may` (was `28-may`). Deps installed, services UP, health green.
-2. **Doc audit** — verified CR-015a/b/c docs were updated in `29-may`. Found DECISIONS_LOG.md missing 4 entries → appended.
+2. **Doc audit** — verified CR-015a/b/c docs were updated in `29-may`. Found DECISIONS_LOG.md missing 4 entries → appended (CR-015c removal, CR-015b dead-code, sprint priority, real creds).
 3. **T7 script updated + committed** — narrowed to `{{7}}` only (`points_earned` → `points_balance`). `{{4}}`/`{{5}}` already fixed via UI.
 4. **T2 SKIPPED** — owner decided resolver handles int→str already.
 5. **Live test UNPARKED** — owner repointed POS + AuthKey webhook to preview pod.
 6. **Order 869329** — WhatsApp sent+read but `{{6}}` showed "Loyalty Points Used: 0" when 1106 were used. Root cause: `{{6}}` mapped to `points_earned` instead of `loyalty_points_used`.
 7. **{{6}} fixed** — remapped to `loyalty_points_used`. DB write verified.
-8. **Full template-vs-mapping audit** — 4 templates, 18 slots, 0 remaining mismatches.
-9. **Clean live test PASSED** — orders 869331 (009577, Rs.409, points_balance=70) and 869333 (009579, Rs.2571, points_balance=128) both sent + read with all 7 slots correct.
+8. **Full template-vs-mapping audit** — 4 R689 templates, 18 slots, 0 remaining mismatches.
+9. **Clean live test PASSED** — orders 869331 (009577) and 869333 (009579) both sent + read, all 7 slots correct.
 10. **CR-015 CLOSED** — `cr015_closed_live_test_passed`.
+11. **CR-017 registered + implemented + closed** — hot production fix. Added `projected_points_earned`, `projected_earn_percent`, `earn_ratio_display` to `/pos/max-redeemable`. Curl-verified. POS handoff doc updated.
 
 ### 🎯 Next-agent handoff message
 
@@ -31,20 +34,21 @@ You are picking up the MyGenie CRM ROI sprint.
 
 READ FIRST: README.md → CR_STATUS_DASHBOARD.md (this snapshot) → DECISIONS_LOG.md
 
-CURRENT STATE (2026-05-29):
-- CR-015: 🟢 CLOSED (live test passed — 2 clean orders verified)
-- CR-015a: 🟢 DONE
-- CR-015b: 🟢 DONE
-- CR-015c: 🟢 DONE
-- CR-014: ⏸ parked (2 questions in §15.6 — NEXT to unpark)
+CURRENT STATE (2026-05-29 session close):
+- CR-015: 🟢 CLOSED (live test passed — 2 clean orders, 7/7 slots correct)
+- CR-015a/b/c: 🟢 ALL DONE
+- CR-017: 🟢 CLOSED (projected points earned added to /pos/max-redeemable)
+- CR-014: ⏸ parked — NEXT to unpark (2 questions in §15.6 C1+C2)
 - CR-016: ⏸ deferred to next sprint
 
+POS + AuthKey webhook: pointed at this preview pod.
 TEST LOGIN: owner@kunafamahal.com (see test_credentials.md)
 
 DO NOT:
 - Re-introduce demo login
 - Add variable-mapping UI to WhatsApp Automation / Segments (Templates-page-only by design)
-- Remap {{6}} back to points_earned
+- Remap {{6}} back to points_earned (must stay loyalty_points_used)
+- Run T2 normalization (owner skipped it)
 ```
 
 ### Sanity checks for the next agent
@@ -61,18 +65,8 @@ grep REACT_APP_BACKEND_URL /app/frontend/.env      # confirm preview URL
 |---|---|---|---|
 | 1 | **CR-014** | ⏸ Discovery parked | Ready to unpark — 2 questions (§15.6 C1+C2) |
 | — | ~~CR-015~~ | 🟢 CLOSED | Live test passed |
+| — | ~~CR-017~~ | 🟢 CLOSED | Implemented + verified |
 | — | ~~CR-016~~ | ⏸ Deferred next sprint | — |
-
-### Sanity checks for the next agent (run before any work)
-
-```bash
-sudo supervisorctl status                          # backend + frontend RUNNING
-curl -s http://localhost:8001/api/health           # {"status":"healthy",...}
-grep REACT_APP_BACKEND_URL /app/frontend/.env      # confirm preview URL
-cd /app/backend && python -m pytest tests/test_cr015_resolver.py tests/test_cr015_event_context.py tests/test_whatsapp_*.py -q  # 119 passed
-```
-
-If any of those fail → see `RUNBOOK.md` §1, §2, §11.
 
 ---
 
