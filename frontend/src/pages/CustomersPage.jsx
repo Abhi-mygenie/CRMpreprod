@@ -60,7 +60,7 @@ const SortableHeader = ({ label, field, currentSort, currentOrder, onSort, align
 };
 
 export default function CustomersPage() {
-    const { api, isDemoMode } = useAuth();
+    const { api } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [customers, setCustomers] = useState([]);
@@ -568,8 +568,8 @@ export default function CustomersPage() {
                         Customers
                     </h1>
                     <div className="flex gap-2">
-                        {/* Sync button only shows when NOT in demo mode AND no customers exist */}
-                        {!isDemoMode && !loading && customers.length === 0 && (
+                        {/* Sync button only shows when no customers exist */}
+                        {!loading && customers.length === 0 && (
                             <Button 
                                 onClick={() => navigate("/settings?tab=migration")}
                                 variant="outline"

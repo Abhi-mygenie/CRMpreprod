@@ -199,7 +199,6 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user: UserResponse
     pos_config: Optional[dict] = None
-    is_demo: bool = False
     # CR-008: MyGenie session token returned to frontend for header-based propagation.
     mygenie_token: Optional[str] = None
 

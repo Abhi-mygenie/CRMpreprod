@@ -56,12 +56,12 @@
 POST  /api/pos/loyalty/redeem
 ```
 
-**Preview origin:** `https://coupon-roi-preview.preview.emergentagent.com`
+**Preview origin:** `https://crm-variable-mapping.preview.emergentagent.com`
 
 Full URL in preview:
 
 ```
-https://coupon-roi-preview.preview.emergentagent.com/api/pos/loyalty/redeem
+https://crm-variable-mapping.preview.emergentagent.com/api/pos/loyalty/redeem
 ```
 
 Prod origin will be the existing CRM prod host. The path is unchanged across environments.
@@ -260,7 +260,7 @@ The PT-row schema is **forward-compatible** with the future loyalty reverse endp
 ### 10.1 Successful redeem
 
 ```bash
-curl -X POST 'https://coupon-roi-preview.preview.emergentagent.com/api/pos/loyalty/redeem' \
+curl -X POST 'https://crm-variable-mapping.preview.emergentagent.com/api/pos/loyalty/redeem' \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: <restaurant_api_key>' \
   -d '{

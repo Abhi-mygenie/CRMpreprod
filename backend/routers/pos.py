@@ -11,7 +11,7 @@ from core.database import db
 from core.auth import get_current_user, generate_api_key, verify_pos_auth
 from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_peak_bonus, get_redemption_value_for_tier
 from core.loyalty import build_pos_loyalty_blob, redeem_loyalty_points, compute_max_redeemable, calculate_points, default_loyalty_settings
-from core.whatsapp import trigger_whatsapp_event
+from core.whatsapp import trigger_whatsapp_event, build_order_event_context
 from models.schemas import (
     POSPaymentWebhook, POSCustomerLookup, POSResponse,
     MessageRequest, POS_EVENTS,
@@ -1457,19 +1457,25 @@ async def pos_order_webhook(
             "total_spent": new_total_spent
         }
 
+        # CR-015 T3 (2026-05-29): build a single event_data context shared by all
+        # POS order-triggered events. See core.whatsapp.build_order_event_context.
+        order_ctx = build_order_event_context(
+            order_data, updated_customer,
+            points_earned=points_earned,
+            new_points=new_points,
+            wallet_used=wallet_used,
+            new_wallet_balance=new_wallet_balance,
+            crm_loyalty_points_redeemed=crm_loyalty_points_redeemed,
+            crm_loyalty_discount=crm_loyalty_discount,
+        )
+
         # 8. Fire WhatsApp triggers
         # send_bill trigger - for every order
         asyncio.create_task(trigger_whatsapp_event(
             db, user["id"], "send_bill", updated_customer,
             {
-                "order_id": order_id,
-                "pos_order_id": order_data.order_id,
-                "order_amount": order_data.order_amount,
-                "points_earned": points_earned,
-                "points_balance": new_points,
-                "wallet_used": wallet_used,
-                "wallet_balance": new_wallet_balance,
-                # CR-004 P3.5: idempotency + reference enrichment
+                **order_ctx,
+                # CR-004 P3.5: idempotency + reference enrichment (per-event override)
                 "idempotency_key": f"{order_data.order_id}_send_bill",
                 "reference_type": "order",
                 "reference_id": order_id,
@@ -1481,10 +1487,8 @@ async def pos_order_webhook(
             asyncio.create_task(trigger_whatsapp_event(
                 db, user["id"], "welcome_message", updated_customer,
                 {
+                    **order_ctx,
                     "first_visit_bonus": first_visit_bonus,
-                    "order_amount": order_data.order_amount,
-                    "points_balance": new_points,
-                    # CR-004 P3.5
                     "idempotency_key": f"{updated_customer.get('id')}_welcome",
                     "reference_type": "customer",
                     "reference_id": updated_customer.get("id"),
@@ -1497,10 +1501,9 @@ async def pos_order_webhook(
             asyncio.create_task(trigger_whatsapp_event(
                 db, user["id"], "tier_upgrade", updated_customer,
                 {
+                    **order_ctx,
                     "old_tier": old_tier,
                     "new_tier": new_tier,
-                    "points_balance": new_points,
-                    # CR-004 P3.5
                     "idempotency_key": f"{updated_customer.get('id')}_tier_{new_tier}",
                     "reference_type": "customer",
                     "reference_id": updated_customer.get("id"),

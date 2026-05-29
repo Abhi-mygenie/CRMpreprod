@@ -123,7 +123,13 @@ export default function TemplatesPage() {
                 let sampleValue;
                 if (mode === "text") sampleValue = mappedField;
                 else if (mode === "coupon_pick") sampleValue = getCouponPickPreviewValue(mappedField);
-                else sampleValue = sampleCustomerData[mappedField];
+                else {
+                    sampleValue = sampleCustomerData[mappedField];
+                    // CR-015a: fall back to registry example when sample-data lacks the key
+                    if (sampleValue === undefined || sampleValue === null || String(sampleValue).trim() === "") {
+                        sampleValue = availableVariables.find(v => v.key === mappedField)?.example;
+                    }
+                }
                 if (sampleValue && String(sampleValue).trim() !== "") {
                     parts.push({ type: "data", value: String(sampleValue) });
                 } else {

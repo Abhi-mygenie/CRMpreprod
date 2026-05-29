@@ -73,23 +73,6 @@ export const SegmentsPageContent = () => {
         { id: "birthday_club", name: "Birthday Club" }
     ];
 
-    // Available database fields for variable mapping (same as Automation tab)
-    const availableFields = [
-        { key: "customer_name", label: "Customer Name", example: "John Doe" },
-        { key: "phone", label: "Phone Number", example: "+91 98765 43210" },
-        { key: "points_balance", label: "Points Balance", example: "500" },
-        { key: "points_earned", label: "Points Earned", example: "50" },
-        { key: "points_redeemed", label: "Points Redeemed", example: "100" },
-        { key: "wallet_balance", label: "Wallet Balance", example: "₹250" },
-        { key: "amount", label: "Amount", example: "₹1,500" },
-        { key: "tier", label: "Tier", example: "Gold" },
-        { key: "restaurant_name", label: "Restaurant Name", example: "Demo Restaurant" },
-        { key: "coupon_code", label: "Coupon Code", example: "SAVE20" },
-        { key: "expiry_date", label: "Expiry Date", example: "31 Mar 2026" },
-        { key: "order_id", label: "Order ID", example: "ORD-12345" },
-        { key: "visit_count", label: "Visit Count", example: "15" }
-    ];
-
     // Fetch templates from API
     const fetchTemplates = async () => {
         setTemplatesLoading(true);
@@ -161,18 +144,6 @@ export const SegmentsPageContent = () => {
     const currentTemplate = templates.find(t => t.id === messageTemplate);
 
     // Generate preview with filled variables
-    const getPreviewMessage = () => {
-        if (!currentTemplate) return "";
-        let preview = currentTemplate.message;
-        // Replace static variables
-        preview = preview.replace(/\{\{name\}\}/g, "John Doe");
-        preview = preview.replace(/\{\{points\}\}/g, "500");
-        // Replace dynamic variables with user input
-        Object.keys(templateVariables).forEach(key => {
-            preview = preview.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), templateVariables[key] || `[${key}]`);
-        });
-        return preview;
-    };
 
     // Handle template change - reset variables and modes
     const handleTemplateChange = (templateId) => {

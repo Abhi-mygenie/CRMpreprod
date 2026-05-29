@@ -756,6 +756,22 @@ async def get_sample_customer_data(user: dict = Depends(get_current_user)):
             "amount":            f"Rs.{customer.get('total_spent', 0)}",
             # Order
             "order_id":          "",
+            # CR-015a: T5 order-context sample values (static, mirror registry `example`).
+            # Preview-only; live sends use build_order_event_context().
+            "payment_method":      "UPI",
+            "order_date":          "25 May 2026",
+            "order_time":          "7:45 PM",
+            "restaurant_order_id": "KM-1234",
+            "transaction_id":      "TXN9876543",
+            "table_id":            "T5",
+            "waiter_name":         "Ramesh",
+            "order_type":          "Dine-In",
+            "loyalty_points_used": "200",
+            "loyalty_discount":    "Rs.50",
+            "wallet_used":         "Rs.100",
+            "tax_amount":          "Rs.85",
+            "item_count":          "3",
+            "order_notes":         "No onion in biryani",
             # Coupon
             "coupon_code":       "",
             "coupon_title":      "",
@@ -1141,7 +1157,7 @@ qr_router = APIRouter(prefix="/qr", tags=["QR Code"])
 @qr_router.get("/generate")
 async def generate_customer_qr(user: dict = Depends(get_current_user)):
     """Generate QR code for customer registration"""
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://coupon-roi-preview.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://crm-variable-mapping.preview.emergentagent.com')
     registration_url = f"{frontend_url}/register-customer/{user['id']}"
     
     qr_base64 = generate_qr_code(registration_url)

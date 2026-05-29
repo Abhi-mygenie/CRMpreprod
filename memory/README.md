@@ -127,7 +127,7 @@ Agent does:
 |---|---|
 | Backend internal | `http://localhost:8001` (all routes `/api/*`) |
 | Frontend internal | `http://localhost:3000` |
-| **Preview external** (current pod, AuthKey webhook points here) | `https://5f05cc67-3064-4ad7-867f-57dadd86ee50.preview.emergentagent.com` |
+| **Preview external** (current pod, AuthKey webhook points here) | `https://crm-variable-mapping.preview.emergentagent.com` |
 | **Production** | `https://crm.mygenie.online` |
 | Remote MongoDB | `mongodb://...@52.66.232.149:27017/mygenie` (shared between prod + preview) |
 | `MONGO_URL` location | `/app/backend/.env` |
@@ -185,7 +185,7 @@ Agent does:
 │   │   ├── pdf_report.py                   # existing reportlab analytics PDFs (CR-014 reference)
 │   │   └── feedback_service.py
 │   ├── models/schemas.py                   # POSOrderWebhook + AUTOMATION_EVENTS (CR-016 source)
-│   ├── tests/test_whatsapp_*.py            # 65 passing tests
+│   ├── tests/test_whatsapp_*.py            # 65 baseline + 54 CR-015 = 119 passing tests
 │   └── .env                                # MONGO_URL, DB_NAME
 ├── frontend/                               # React 19 + craco + Tailwind + Radix UI
 │   ├── src/

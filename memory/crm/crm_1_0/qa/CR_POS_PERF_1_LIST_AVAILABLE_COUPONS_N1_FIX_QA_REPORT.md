@@ -11,7 +11,7 @@
 
 | Property | Value |
 |---|---|
-| Backend URL | `https://coupon-roi-preview.preview.emergentagent.com` |
+| Backend URL | `https://crm-variable-mapping.preview.emergentagent.com` |
 | Restaurant | R689 (Kunafa Mahal) — 25 active coupons, 0 `coupon_usage` rows |
 | Test customer_id | `1779d4fc-7161-4407-ac8c-cce30beb3e53` |
 | Database | External MongoDB `52.66.232.149:27017/mygenie` |

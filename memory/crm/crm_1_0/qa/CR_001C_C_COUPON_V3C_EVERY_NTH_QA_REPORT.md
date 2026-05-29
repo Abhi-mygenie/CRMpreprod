@@ -136,7 +136,7 @@ cd /app/backend && python -m py_compile core/coupon.py models/schemas.py routers
 ## 8. Live HTTP Smoke
 
 ```
-curl -s https://coupon-roi-preview.preview.emergentagent.com/api/health
+curl -s https://crm-variable-mapping.preview.emergentagent.com/api/health
 → {"status":"healthy","timestamp":"2026-05-25T03:09:27.585941+00:00"}
 ```
 

@@ -2,7 +2,7 @@
 Test suite for CRM Segments functionality
 - Test POST /api/segments/preview-count endpoint
 - Test segment CRUD operations
-- Test demo login authentication flow
+- Test authentication flow (real login)
 """
 import pytest
 import requests
@@ -10,21 +10,39 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-class TestDemoLogin:
-    """Authentication via demo login"""
-    
-    def test_demo_login_success(self):
-        """Test demo login returns a valid token"""
-        response = requests.post(f"{BASE_URL}/api/auth/demo-login")
-        assert response.status_code == 200, f"Demo login failed: {response.text}"
-        
+# Test login credentials (see /app/memory/test_credentials.md)
+TEST_EMAIL = os.environ.get('TEST_LOGIN_EMAIL', 'owner@kunafamahal.com')
+TEST_PASSWORD = os.environ.get('TEST_LOGIN_PASSWORD', 'Qplazm@10')
+
+
+def get_auth_token():
+    """Authenticate via real login and return access_token (or skip if unavailable)."""
+    response = requests.post(
+        f"{BASE_URL}/api/auth/login",
+        json={"email": TEST_EMAIL, "password": TEST_PASSWORD},
+    )
+    if response.status_code == 200:
+        return response.json().get("access_token")
+    pytest.skip(f"Login failed ({response.status_code}) - skipping authenticated tests")
+
+
+class TestLogin:
+    """Authentication via real login"""
+
+    def test_login_success(self):
+        """Test login returns a valid token"""
+        response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": TEST_EMAIL, "password": TEST_PASSWORD},
+        )
+        assert response.status_code == 200, f"Login failed: {response.text}"
+
         data = response.json()
         assert "access_token" in data, "access_token not in response"
         assert "user" in data, "user not in response"
         assert isinstance(data["access_token"], str)
         assert len(data["access_token"]) > 0
-        print(f"Demo login successful - User: {data['user'].get('email', 'N/A')}")
-        return data["access_token"]
+        print(f"Login successful - User: {data['user'].get('email', 'N/A')}")
 
 
 class TestSegmentsPreviewCount:
@@ -32,11 +50,8 @@ class TestSegmentsPreviewCount:
     
     @pytest.fixture
     def auth_token(self):
-        """Get authentication token via demo login"""
-        response = requests.post(f"{BASE_URL}/api/auth/demo-login")
-        if response.status_code == 200:
-            return response.json().get("access_token")
-        pytest.skip("Demo login failed - skipping authenticated tests")
+        """Get authentication token via real login"""
+        return get_auth_token()
     
     def test_preview_count_no_auth_returns_403(self):
         """Preview count without auth should return 403 Forbidden"""
@@ -98,11 +113,8 @@ class TestSegmentsCRUD:
     
     @pytest.fixture
     def auth_token(self):
-        """Get authentication token via demo login"""
-        response = requests.post(f"{BASE_URL}/api/auth/demo-login")
-        if response.status_code == 200:
-            return response.json().get("access_token")
-        pytest.skip("Demo login failed")
+        """Get authentication token via real login"""
+        return get_auth_token()
     
     def test_list_segments(self, auth_token):
         """List all segments"""
@@ -166,11 +178,8 @@ class TestCustomersPage:
     
     @pytest.fixture
     def auth_token(self):
-        """Get authentication token via demo login"""
-        response = requests.post(f"{BASE_URL}/api/auth/demo-login")
-        if response.status_code == 200:
-            return response.json().get("access_token")
-        pytest.skip("Demo login failed")
+        """Get authentication token via real login"""
+        return get_auth_token()
     
     def test_list_customers(self, auth_token):
         """List customers"""
@@ -205,10 +214,7 @@ class TestCleanup:
     
     @pytest.fixture
     def auth_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/demo-login")
-        if response.status_code == 200:
-            return response.json().get("access_token")
-        pytest.skip("Demo login failed")
+        return get_auth_token()
     
     def test_cleanup_test_segments(self, auth_token):
         """Delete test segments created during testing"""

@@ -229,7 +229,7 @@ No blocker. Proceed with defaults unless owner overrides.
 
 ## 8. QA Plan (post-implementation)
 
-The agent that implements this plan must run these manual checks against the running preview at `https://coupon-roi-preview.preview.emergentagent.com/coupons` (existing R689 JWT). **No POS integration test needed** (V3-A is pre-validation only; POS pipeline does not need to change for Happy Hour).
+The agent that implements this plan must run these manual checks against the running preview at `https://crm-variable-mapping.preview.emergentagent.com/coupons` (existing R689 JWT). **No POS integration test needed** (V3-A is pre-validation only; POS pipeline does not need to change for Happy Hour).
 
 | # | Test | Expected |
 |---|---|---|

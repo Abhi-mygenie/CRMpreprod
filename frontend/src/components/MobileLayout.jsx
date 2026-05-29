@@ -1,6 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, Users, FileText, MessageSquare, Settings } from "lucide-react";
-import { DemoModeBanner } from "@/components/shared/DemoModeBanner";
 
 export const MobileLayout = ({ children }) => {
     const navigate = useNavigate();
@@ -16,7 +15,6 @@ export const MobileLayout = ({ children }) => {
 
     return (
         <div className="min-h-screen bg-[#F5F5F5] pb-20">
-            <DemoModeBanner />
             {children}
             
             {/* Bottom Navigation */}

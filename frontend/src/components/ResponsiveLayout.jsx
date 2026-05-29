@@ -6,7 +6,6 @@ import {
     LayoutDashboard, BarChart3, Activity, LogOut, User, RefreshCw,
     Wallet, UserPlus
 } from "lucide-react";
-import { DemoModeBanner } from "@/components/shared/DemoModeBanner";
 import { cn } from "@/lib/utils";
 
 export const ResponsiveLayout = ({ children }) => {
@@ -75,7 +74,6 @@ export const ResponsiveLayout = ({ children }) => {
 
     return (
         <div className="min-h-screen bg-[#F5F5F5]">
-            <DemoModeBanner />
             
             {/* Desktop Sidebar - Hidden on mobile */}
             <aside 

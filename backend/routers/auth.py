@@ -129,10 +129,6 @@ async def _register_crm_token_with_pos(
             pass  # Absolute last resort — never crash login
 
 
-# Demo user credentials
-DEMO_EMAIL = "demo@restaurant.com"
-DEMO_PASSWORD = "demo123"
-
 # OTP expiry time in minutes
 OTP_EXPIRY_MINUTES = 10
 
@@ -241,35 +237,6 @@ async def reset_password(data: dict, user: dict = Depends(get_current_user)):
     )
     
     return {"message": "Password updated successfully"}
-
-@router.post("/demo-login", response_model=TokenResponse)
-async def demo_login():
-    """
-    Demo mode login - uses local test user without MyGenie authentication
-    For testing and demonstration purposes only
-    """
-    user = await db.users.find_one({"email": DEMO_EMAIL}, {"_id": 0})
-    
-    if not user:
-        raise HTTPException(
-            status_code=404, 
-            detail="Demo user not found. Please run setup first."
-        )
-    
-    token = create_token(user["id"])
-    return TokenResponse(
-        access_token=token,
-        user=UserResponse(
-            id=user["id"],
-            email=user["email"],
-            restaurant_name=user["restaurant_name"],
-            phone=user["phone"],
-            pos_id=user.get("pos_id", ""),
-            pos_name=user.get("pos_name", ""),
-            created_at=user["created_at"]
-        ),
-        is_demo=True
-    )
 
 @router.post("/mygenie-login", response_model=TokenResponse)
 async def mygenie_login(credentials: UserLogin):
@@ -391,7 +358,6 @@ async def mygenie_login(credentials: UserLogin):
                         created_at=existing_user["created_at"]
                     ),
                     pos_config=_build_pos_config(api_key),
-                    is_demo=False,
                     mygenie_token=mygenie_token
                 )
             
@@ -440,7 +406,6 @@ async def mygenie_login(credentials: UserLogin):
                     created_at=now
                 ),
                 pos_config=_build_pos_config(api_key),
-                is_demo=False,
                 mygenie_token=mygenie_token
             )
             

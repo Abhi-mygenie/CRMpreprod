@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { MessageSquare, Settings, Plus, Check, X, Trash2, Eye, Tag, ChevronLeft, KeyRound, Pause, Play, Send, FlaskConical, Lock } from "lucide-react";
+import { MessageSquare, Settings, Plus, Check, X, Trash2, Eye, ChevronLeft, KeyRound, Pause, Play, Send, FlaskConical, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -259,15 +259,10 @@ export function WhatsAppAutomationContent({ embedded = false }) {
     });
     const [savingTemplate, setSavingTemplate] = useState(false);
     
-    // Variable mapping state
-    const [showVariableMappingModal, setShowVariableMappingModal] = useState(false);
-    const [mappingTemplate, setMappingTemplate] = useState(null);
-    const [variableMappings, setVariableMappings] = useState({});
-    const [variableMappingModes, setVariableMappingModes] = useState({});
+    // Saved variable mappings (READ-ONLY on this page; edited only on the Templates page)
     const [templateVariableMappings, setTemplateVariableMappings] = useState({});
     const [templateVariableModes, setTemplateVariableModes] = useState({});
-    const [savingVariableMapping, setSavingVariableMapping] = useState(false);
-    
+
     // Sample customer data for previews
     const [sampleCustomerData, setSampleCustomerData] = useState({});
     
@@ -282,80 +277,6 @@ export function WhatsAppAutomationContent({ embedded = false }) {
 
     // Available template variables — fetched from API (CR-004 P1)
     const [availableVariables, setAvailableVariables] = useState([]);
-
-    // CR-004 P2.5-B: Coupon picker state
-    const [couponSummary, setCouponSummary] = useState([]);
-    const [couponSummaryLoading, setCouponSummaryLoading] = useState(false);
-    const [couponSummaryError, setCouponSummaryError] = useState(null);
-    const [couponSearchQuery, setCouponSearchQuery] = useState("");
-    const [selectedCouponId, setSelectedCouponId] = useState(null);
-
-    const fetchCouponSummary = async () => {
-        setCouponSummaryLoading(true);
-        setCouponSummaryError(null);
-        try {
-            const res = await api.get("/coupons/summary");
-            setCouponSummary(res.data.coupons || []);
-        } catch (err) {
-            setCouponSummaryError("Unable to load coupons. Check your connection and try again.");
-        } finally {
-            setCouponSummaryLoading(false);
-        }
-    };
-
-    // Check if a variable is a coupon-category variable
-    const isCouponVariable = (varKey) => {
-        const mapped = variableMappings[varKey];
-        const varInfo = availableVariables.find(v => v.key === mapped);
-        return varInfo?.picker === "coupon";
-    };
-
-    // Get coupon field from a coupon_pick mapping like "coupon:<id>:<field>"
-    const parseCouponPickMapping = (mapping) => {
-        if (!mapping) return null;
-        const parts = mapping.split(":");
-        if (parts.length === 3 && parts[0] === "coupon") {
-            return { couponId: parts[1], field: parts[2] };
-        }
-        return null;
-    };
-
-    // Get selected coupon data
-    const getSelectedCoupon = () => couponSummary.find(c => c.id === selectedCouponId);
-
-    // Handle coupon selection — auto-fill all coupon-category variables (D-3)
-    const handleCouponSelect = (coupon) => {
-        setSelectedCouponId(coupon.id);
-        const newMappings = { ...variableMappings };
-        const newModes = { ...variableMappingModes };
-        (mappingTemplate?.variables || []).forEach(varKey => {
-            const currentMapping = newMappings[varKey];
-            const currentField = availableVariables.find(v => v.key === currentMapping);
-            if (currentField?.picker === "coupon") {
-                const couponField = currentField.key.replace("coupon_", "");
-                const fieldKey = couponField === "code" ? "code" : couponField;
-                newMappings[varKey] = `coupon:${coupon.id}:${fieldKey}`;
-                newModes[varKey] = "coupon_pick";
-            }
-        });
-        setVariableMappings(newMappings);
-        setVariableMappingModes(newModes);
-    };
-
-    // Get the resolved preview value for a coupon_pick mapping
-    const getCouponPickPreviewValue = (mapping) => {
-        const parsed = parseCouponPickMapping(mapping);
-        if (!parsed) return null;
-        const coupon = couponSummary.find(c => c.id === parsed.couponId);
-        if (!coupon) return null;
-        const fieldMap = {
-            code: coupon.code,
-            title: coupon.title,
-            discount: coupon.discount_display,
-            expiry: coupon.end_date_display,
-        };
-        return fieldMap[parsed.field] || "";
-    };
 
     // Helper: Resolve preview text using sample customer data
     const resolvePreviewWithSampleData = (templateBody, mappings, modes) => {
@@ -379,10 +300,12 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                 let sampleValue;
                 if (mode === "text") {
                     sampleValue = mappedField; // custom text is the value itself
-                } else if (mode === "coupon_pick") {
-                    sampleValue = getCouponPickPreviewValue(mappedField);
                 } else {
                     sampleValue = sampleCustomerData[mappedField];
+                    // CR-015a: fall back to registry example when sample-data lacks the key
+                    if (sampleValue === undefined || sampleValue === null || String(sampleValue).trim() === "") {
+                        sampleValue = availableVariables.find(v => v.key === mappedField)?.example;
+                    }
                 }
                 if (sampleValue && String(sampleValue).trim() !== "") {
                     parts.push({ type: "data", value: String(sampleValue) });
@@ -650,60 +573,6 @@ export function WhatsAppAutomationContent({ embedded = false }) {
         });
     };
     
-    const openVariableMappingModal = (template) => {
-        const variables = (template.temp_body.match(/\{\{\d+\}\}/g) || []).filter((v, i, a) => a.indexOf(v) === i);
-        setMappingTemplate({ ...template, variables });
-        // Load existing mappings and modes for this template
-        const existingMappings = templateVariableMappings[template.wid] || {};
-        const existingModes = templateVariableModes[template.wid] || {};
-        setVariableMappings(existingMappings);
-        setVariableMappingModes(existingModes);
-        // CR-004 P2.5-B: Detect existing coupon_pick and set selectedCouponId
-        let detectedCouponId = null;
-        for (const [, mapped] of Object.entries(existingMappings)) {
-            const parsed = parseCouponPickMapping(mapped);
-            if (parsed) { detectedCouponId = parsed.couponId; break; }
-        }
-        setSelectedCouponId(detectedCouponId);
-        setCouponSearchQuery("");
-        // Fetch coupon summary for picker (cached if fresh)
-        if (couponSummary.length === 0) fetchCouponSummary();
-        setShowVariableMappingModal(true);
-    };
-
-    const handleSaveVariableMapping = async () => {
-        setSavingVariableMapping(true);
-        try {
-            const res = await api.put(`/whatsapp/template-variable-map/${mappingTemplate.wid}`, {
-                template_id: mappingTemplate.wid,
-                template_name: mappingTemplate.temp_name,
-                mappings: variableMappings,
-                modes: variableMappingModes
-            });
-            const warnings = res.data?.warnings || [];
-            if (warnings.length > 0) {
-                warnings.forEach(w => toast.warning(w.message, { duration: 5000 }));
-            }
-            setTemplateVariableMappings(prev => ({
-                ...prev,
-                [mappingTemplate.wid]: variableMappings
-            }));
-            setTemplateVariableModes(prev => ({
-                ...prev,
-                [mappingTemplate.wid]: variableMappingModes
-            }));
-            toast.success("Variable mappings saved!");
-            setShowVariableMappingModal(false);
-            setMappingTemplate(null);
-            setVariableMappings({});
-            setVariableMappingModes({});
-        } catch (err) {
-            toast.error("Failed to save variable mappings");
-        } finally {
-            setSavingVariableMapping(false);
-        }
-    };
-
     const fetchVariableMappings = async () => {
         try {
             const res = await api.get("/whatsapp/template-variable-map");
@@ -1423,294 +1292,6 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                                 </Button>
                             </DialogFooter>
                         </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Variable Mapping Modal */}
-                <Dialog open={showVariableMappingModal} onOpenChange={setShowVariableMappingModal}>
-                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Tag className="w-5 h-5" />
-                                Map Template Variables
-                            </DialogTitle>
-                            <DialogDescription>
-                                Choose to map each variable to a customer field or enter custom text
-                            </DialogDescription>
-                        </DialogHeader>
-                        {mappingTemplate && (
-                            <div className="space-y-4">
-                                {/* WhatsApp-style Preview */}
-                                <div className="rounded-lg overflow-hidden bg-[#E5DDD5]">
-                                    <div className="p-3">
-                                        <div className="bg-[#DCF8C6] rounded-lg p-3 shadow-sm">
-                                            {(() => {
-                                                const parts = resolvePreviewWithSampleData(mappingTemplate.temp_body, variableMappings, variableMappingModes);
-                                                return (
-                                                    <>
-                                                        <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap pr-10">
-                                                            {parts.map((part, idx) => {
-                                                                if (part.type === "na") return <span key={idx} className="text-red-500 font-medium">NA</span>;
-                                                                return <span key={idx}>{part.value}</span>;
-                                                            })}
-                                                        </p>
-                                                        <div className="flex items-center justify-end gap-1 mt-1">
-                                                            <span className="text-[10px] text-gray-500">
-                                                                {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                                                            </span>
-                                                            <svg className="w-4 h-4 text-[#53BDEB]" viewBox="0 0 16 15" fill="currentColor">
-                                                                <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267a.32.32 0 0 0 .484-.034l6.272-8.048a.366.366 0 0 0-.064-.51zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.89 7.77a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.32.32 0 0 0 .484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z"/>
-                                                            </svg>
-                                                        </div>
-                                                    </>
-                                                );
-                                            })()}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Variable Mapping Controls */}
-                                <div className="space-y-3">
-                                    {mappingTemplate.variables?.map(variable => {
-                                        const currentMapping = variableMappings[variable];
-                                        const currentMode = variableMappingModes[variable] || "map";
-                                        const mappedVarInfo = availableVariables.find(v => v.key === currentMapping);
-                                        const isCouponVar = mappedVarInfo?.picker === "coupon";
-                                        const isCouponPickMode = currentMode === "coupon_pick";
-                                        const parsed = parseCouponPickMapping(currentMapping);
-                                        const pickedCoupon = parsed ? couponSummary.find(c => c.id === parsed.couponId) : null;
-
-                                        return (
-                                        <div key={variable} className="bg-gray-50 rounded-xl p-3 space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <Badge variant="outline" className="bg-white font-mono text-sm">
-                                                    {variable}
-                                                </Badge>
-                                                <div className="flex rounded-lg border bg-white overflow-hidden">
-                                                    {/* For coupon-category vars: show Pick Coupon + Custom Text (D-2) */}
-                                                    {isCouponVar || isCouponPickMode ? (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setVariableMappingModes(prev => ({...prev, [variable]: "coupon_pick"}));
-                                                                    if (couponSummary.length === 0) fetchCouponSummary();
-                                                                    // D-3: If a coupon was already picked for a sibling, auto-fill
-                                                                    if (selectedCouponId && mappedVarInfo?.key) {
-                                                                        const cpn = couponSummary.find(c => c.id === selectedCouponId);
-                                                                        if (cpn) {
-                                                                            const couponField = mappedVarInfo.key.replace("coupon_", "");
-                                                                            setVariableMappings(prev => ({...prev, [variable]: `coupon:${cpn.id}:${couponField}`}));
-                                                                        }
-                                                                    }
-                                                                }}
-                                                                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                                                                    isCouponPickMode
-                                                                        ? "bg-[#F26B33] text-white"
-                                                                        : "bg-white text-gray-600 hover:bg-gray-100"
-                                                                }`}
-                                                                data-testid={`var-mode-coupon-pick-${variable}`}
-                                                            >
-                                                                Pick Coupon
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setVariableMappingModes(prev => ({...prev, [variable]: "text"}));
-                                                                    // Break coupon link for this variable only
-                                                                    setVariableMappings(prev => ({...prev, [variable]: ""}));
-                                                                }}
-                                                                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                                                                    currentMode === "text"
-                                                                        ? "bg-[#F26B33] text-white"
-                                                                        : "bg-white text-gray-600 hover:bg-gray-100"
-                                                                }`}
-                                                                data-testid={`var-mode-text-${variable}`}
-                                                            >
-                                                                Custom Text
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setVariableMappingModes(prev => ({...prev, [variable]: "map"}))}
-                                                                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                                                                    currentMode === "map"
-                                                                        ? "bg-[#F26B33] text-white"
-                                                                        : "bg-white text-gray-600 hover:bg-gray-100"
-                                                                }`}
-                                                                data-testid={`var-mode-map-${variable}`}
-                                                            >
-                                                                Map to Field
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setVariableMappingModes(prev => ({...prev, [variable]: "text"}))}
-                                                                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                                                                    currentMode === "text"
-                                                                        ? "bg-[#F26B33] text-white"
-                                                                        : "bg-white text-gray-600 hover:bg-gray-100"
-                                                                }`}
-                                                                data-testid={`var-mode-text-${variable}`}
-                                                            >
-                                                                Custom Text
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            
-                                            {/* CR-004 P2.5-B: coupon_pick mode — show locked read-only card */}
-                                            {isCouponPickMode && pickedCoupon ? (
-                                                <div className="bg-white border border-green-200 rounded-lg p-2.5 flex items-center gap-2" data-testid={`coupon-picked-${variable}`}>
-                                                    <Lock className="w-4 h-4 text-green-600 shrink-0" />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-gray-900 truncate">
-                                                            {getCouponPickPreviewValue(currentMapping) || "—"}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500">from {pickedCoupon.code}</p>
-                                                    </div>
-                                                </div>
-                                            ) : isCouponPickMode && !pickedCoupon ? (
-                                                /* Coupon picker — show coupon list */
-                                                <div className="space-y-2" data-testid={`coupon-picker-${variable}`}>
-                                                    {couponSummaryLoading ? (
-                                                        <div className="space-y-2">
-                                                            {[1,2,3].map(i => (
-                                                                <div key={i} className="h-14 bg-gray-200 rounded-lg animate-pulse" />
-                                                            ))}
-                                                        </div>
-                                                    ) : couponSummaryError ? (
-                                                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                                                            <p className="text-sm text-red-600">{couponSummaryError}</p>
-                                                            <button onClick={fetchCouponSummary} className="text-xs text-red-700 underline mt-1">Retry</button>
-                                                        </div>
-                                                    ) : couponSummary.length === 0 ? (
-                                                        <div className="bg-gray-100 rounded-lg p-3 text-center">
-                                                            <p className="text-sm text-gray-500">No coupons found. Create a coupon first.</p>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <Input
-                                                                type="text"
-                                                                value={couponSearchQuery}
-                                                                onChange={(e) => setCouponSearchQuery(e.target.value)}
-                                                                placeholder="Search coupons..."
-                                                                className="h-8 text-sm rounded-lg"
-                                                                data-testid="coupon-search-input"
-                                                            />
-                                                            <div className="max-h-40 overflow-y-auto space-y-1.5">
-                                                                {couponSummary
-                                                                    .filter(c => {
-                                                                        const q = couponSearchQuery.toLowerCase();
-                                                                        return !q || c.code.toLowerCase().includes(q) || (c.title || "").toLowerCase().includes(q);
-                                                                    })
-                                                                    .map(c => (
-                                                                        <button
-                                                                            key={c.id}
-                                                                            type="button"
-                                                                            onClick={() => handleCouponSelect(c)}
-                                                                            className="w-full text-left bg-white border rounded-lg p-2 hover:border-[#F26B33] hover:bg-orange-50 transition-colors"
-                                                                            data-testid={`coupon-option-${c.code}`}
-                                                                        >
-                                                                            <div className="flex items-center justify-between">
-                                                                                <span className="text-sm font-mono font-medium text-gray-900">{c.code}</span>
-                                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                                                                                    {c.is_active ? "Active" : "Inactive"}
-                                                                                </span>
-                                                                            </div>
-                                                                            <p className="text-xs text-gray-500 truncate">{c.title || "—"} · {c.discount_display}{c.end_date_display ? ` · Exp ${c.end_date_display}` : ""}</p>
-                                                                        </button>
-                                                                    ))
-                                                                }
-                                                                {couponSummary.filter(c => {
-                                                                    const q = couponSearchQuery.toLowerCase();
-                                                                    return !q || c.code.toLowerCase().includes(q) || (c.title || "").toLowerCase().includes(q);
-                                                                }).length === 0 && (
-                                                                    <p className="text-xs text-gray-400 text-center py-2">No coupons match your search.</p>
-                                                                )}
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            ) : currentMode === "text" ? (
-                                                <Input
-                                                    type="text"
-                                                    value={variableMappings[variable] || ""}
-                                                    onChange={(e) => setVariableMappings(prev => ({
-                                                        ...prev,
-                                                        [variable]: e.target.value
-                                                    }))}
-                                                    placeholder="Enter custom text..."
-                                                    className="h-10 rounded-lg"
-                                                    data-testid={`var-text-${variable}`}
-                                                />
-                                            ) : (
-                                                <Select
-                                                    value={variableMappings[variable] || ""}
-                                                    onValueChange={(val) => {
-                                                        setVariableMappings(prev => ({
-                                                            ...prev,
-                                                            [variable]: val
-                                                        }));
-                                                        // If user selects a coupon-category variable, auto-switch to coupon_pick toggle
-                                                        const selVar = availableVariables.find(v => v.key === val);
-                                                        if (selVar?.picker === "coupon") {
-                                                            setVariableMappingModes(prev => ({...prev, [variable]: "coupon_pick"}));
-                                                            if (couponSummary.length === 0) fetchCouponSummary();
-                                                            // D-3: If a coupon was already picked for a sibling, auto-fill this variable too
-                                                            if (selectedCouponId) {
-                                                                const cpn = couponSummary.find(c => c.id === selectedCouponId);
-                                                                if (cpn) {
-                                                                    const couponField = val.replace("coupon_", "");
-                                                                    setVariableMappings(prev => ({...prev, [variable]: `coupon:${cpn.id}:${couponField}`}));
-                                                                }
-                                                            }
-                                                        }
-                                                    }}
-                                                >
-                                                    <SelectTrigger className="h-10 rounded-lg bg-white" data-testid={`var-map-${variable}`}>
-                                                        <SelectValue placeholder="Select a field..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="none">-- None --</SelectItem>
-                                                        {availableVariables.map(field => (
-                                                            <SelectItem key={field.key} value={field.key}>
-                                                                {field.label} (e.g., {field.example})
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                        </div>
-                                        );
-                                    })}
-                                </div>
-
-                                <DialogFooter className="gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setShowVariableMappingModal(false);
-                                            setMappingTemplate(null);
-                                            setVariableMappings({});
-                                            setVariableMappingModes({});
-                                        }}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        onClick={handleSaveVariableMapping}
-                                        disabled={savingVariableMapping}
-                                        className="bg-[#25D366] hover:bg-[#1da851] text-white"
-                                        data-testid="save-variable-mapping-btn"
-                                    >
-                                        {savingVariableMapping ? "Saving..." : "Save Mappings"}
-                                    </Button>
-                                </DialogFooter>
-                            </div>
-                        )}
                     </DialogContent>
                 </Dialog>
 

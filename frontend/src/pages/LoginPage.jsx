@@ -231,37 +231,6 @@ export default function LoginPage() {
                     >
                         {isLoading ? "Signing in..." : "Sign In"}
                     </Button>
-                    
-                    <div className="relative my-4">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-[#F5F5F5] text-gray-500">or</span>
-                        </div>
-                    </div>
-                    
-                    <Button 
-                        type="button"
-                        onClick={async () => {
-                            setIsLoading(true);
-                            try {
-                                const res = await axios.post(`${API_URL}/api/auth/demo-login`);
-                                setUserAndToken(res.data.user, res.data.access_token);
-                                toast.success("Demo login successful!");
-                                navigate("/");
-                            } catch (err) {
-                                toast.error("Demo login failed");
-                            } finally {
-                                setIsLoading(false);
-                            }
-                        }}
-                        className="w-full h-12 rounded-full bg-gray-600 hover:bg-gray-700 text-white font-semibold active-scale font-body"
-                        disabled={isLoading}
-                        data-testid="demo-login-btn"
-                    >
-                        Demo Login
-                    </Button>
                 </form>
                 <p className="text-[10px] text-gray-400 text-right mt-4">Beta Version 0.1</p>
             </div>
