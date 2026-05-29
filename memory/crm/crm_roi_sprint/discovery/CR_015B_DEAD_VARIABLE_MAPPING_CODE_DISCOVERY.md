@@ -90,14 +90,26 @@ behavior change** for the automation page.
   branch in `resolvePreviewWithSampleData` (L383–384) to render the raw mapping label
   or "NA". Net behavior identical (coupons never resolved here anyway).
 
-### 3C. `SegmentsPage.jsx` — legacy unused preview
+### 3C. `SegmentsPage.jsx` — leftover scaffolding (NO mapping modal here)
+
+**Important:** Segments has **NO** variable-mapping modal and **NO** coupon picker — the
+orphaned modal cluster (3A) does **not** exist here. Confirmed: no `openVariableMappingModal`,
+no `setVariableMapping*`, no "Pick Coupon"/"Map to Field"/"Custom Text" UI, no
+`PUT /template-variable-map`. Mapping config does not happen on this page.
+
+Dead items found (different kind — unused leftovers, not the modal):
 
 | Symbol | Lines | Why dead |
 |---|---|---|
-| `getPreviewMessage` | 164–175 | never called; legacy `{{name}}`/`{{points}}` preview, superseded by inline `segmentSampleData` preview at L924–939 |
+| `availableFields` (array; comment: *"same as Automation tab"*) | 76–91 | defined, **never referenced** anywhere |
+| `getPreviewMessage` | 164–175 | never called; legacy `{{name}}`/`{{points}}` preview, superseded by inline `segmentSampleData` preview at L922–957 |
 
-- Keep `templateVariables` state — still used for the broadcast send payload (L242) and resets.
-- Segments has **no** mapping UI (confirms owner). Its inline preview (L924–939) is LIVE and shares the CR-015a "NA" gap (handled separately / deferred).
+**Keep (LIVE):**
+- `segmentTemplateVariableMappings` / `segmentTemplateVariableModes` — read saved maps for the
+  broadcast preview (L922–957) + `isSegmentTemplateFullyMapped` (L144) template-select filter.
+- `templateVariables` state — used for the broadcast send payload (L242) and resets.
+- Inline preview (L922–957) is LIVE and shares the CR-015a "NA" gap (`segmentSampleData[mappedField]`,
+  L939) — handled under CR-015a, not here.
 
 ### 3D. `TemplatesPage.jsx`
 
