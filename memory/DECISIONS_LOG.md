@@ -277,6 +277,19 @@
 - All code tracks (T1-T7) + data fixes ({{4}}-{{7}}) + full audit verified in production-equivalent conditions
 - No further CR-015 work unless regression discovered
 
+### 2026-05-29 [CR-017] — Registered as hot production fix
+**Decision**: Register `/pos/max-redeemable` missing projected points earned as CR-017. Hot production priority.
+**Source**: Owner: "register bug/cr, this will be hot production bug" (2026-05-29).
+**Locks**: CR-017 registered, discovery doc created.
+
+### 2026-05-29 [CR-017] — Owner added `earn_ratio_display` field
+**Decision**: Add a third field `earn_ratio_display` (string, e.g. "₹1 per ₹20 spent") to the `/pos/max-redeemable` response so the cashier sees a human-readable earn rate without POS frontend needing to format `projected_earn_percent`.
+**Source**: Owner suggestion: "Consider also adding earn_ratio_display (string, e.g., '₹1 per ₹20 spent') so the cashier sees a human-readable rate without frontend having to format projected_earn_percent."
+**Locks**:
+- CR-017 scope expanded from 2 fields to 3 fields
+- `earn_ratio_display` is a server-formatted string — POS displays as-is
+- Discovery doc + acceptance criteria updated (AC-3 added, total 7 ACs)
+
 ---
 
 ## How to add a new decision
