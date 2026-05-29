@@ -1,35 +1,38 @@
-# DinePoints / mygenie CRM — PRD
+# MyGenie CRM - PRD
 
 ## Original Problem Statement
-Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git, branch `28-may`. Wipe local /app first, then pull the remote repo directly into /app (public repo).
-Tech stack: Python (FastAPI) backend, React frontend, MongoDB.
-Use remote MongoDB only: `mongodb://mygenie_admin:****@52.66.232.149:27017/mygenie`.
-Do not use any local database. Do not modify the database unless explicitly required.
-Build the project as-is. Do not run a testing agent.
+Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git, branch 28-may. Wipe local /app, pull remote repo directly into /app. Use remote MongoDB only (mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie). Build the project as-is. No testing agent.
 
 ## Architecture
-- Backend: FastAPI (`/app/backend/server.py`) with routers under `/app/backend/routers/` (auth, customers, coupons, points, wallet, menu, pos, scan, analytics, feedback, suggestions, whatsapp, cron, migration).
-- Frontend: React (CRA + craco), pages under `/app/frontend/src/pages/`.
-- DB: Remote MongoDB at `52.66.232.149:27017` / db `mygenie` (read-only by default per user instruction).
-- Supervisor manages `backend` (uvicorn :8001) and `frontend` (CRA :3000). Ingress routes `/api/*` → backend.
+- **Backend**: Python FastAPI (port 8001, supervisor-managed)
+- **Frontend**: React with Craco, Tailwind CSS, shadcn/ui components (port 3000, supervisor-managed)
+- **Database**: Remote MongoDB at 52.66.232.149:27017 (DB: mygenie)
+- **Key libraries**: motor (async MongoDB), APScheduler, recharts, react-router-dom v7, radix-ui, lucide-react
 
-## Environment Config
-- `/app/backend/.env`
-  - `MONGO_URL="mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie?authSource=mygenie"`
-  - `DB_NAME="mygenie"`
-  - `CORS_ORIGINS="*"`
-- `/app/frontend/.env`
-  - `REACT_APP_BACKEND_URL=https://a28cb9e3-2ed4-46d3-b9be-e6ab5f64fc70.preview.emergentagent.com`
-  - `WDS_SOCKET_PORT=443`
+## Core Features (from codebase)
+- Auth (Login/Register)
+- Customer management & segments
+- Loyalty points & wallet
+- Coupon system (V1-V3)
+- Feedback collection & analytics
+- WhatsApp automation & message status
+- POS integration
+- QR code generation
+- Item analytics, customer lifecycle, coupon analytics
+- Migration tools
+- Menu management & suggestions
+- Profile & settings
 
-## Status (as of 2026-05-28)
-- /app wiped and replaced with repo contents from branch `28-may`.
-- Python deps installed via `pip install -r backend/requirements.txt`.
-- Frontend deps installed via `yarn install`.
-- Backend running on :8001 — `/api/` returns `{"message":"DinePoints API - Loyalty & CRM for Restaurants"}` (HTTP 200).
-- Frontend running on :3000 — preview URL loads the mygenie sign-in page.
-- Remote MongoDB configured via env vars; no local Mongo used.
+## What's Been Implemented (2026-05-29)
+- Cloned repo (branch 28-may) into /app
+- Configured backend .env with remote MongoDB connection
+- Configured frontend .env with preview URL
+- Installed all backend (pip) and frontend (yarn) dependencies
+- Both services running via supervisor
+- App loads successfully — login page confirmed via screenshot
 
-## Backlog / Next Action Items
-- Verify auth and feature flows against remote DB if/when user approves.
-- Per user instruction: no testing agent executed and no DB writes performed.
+## Prioritized Backlog
+- No changes requested — project built as-is per instructions
+
+## Next Tasks
+- Awaiting user instructions for any modifications or feature additions
