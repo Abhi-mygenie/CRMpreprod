@@ -290,6 +290,14 @@
 - `earn_ratio_display` is a server-formatted string — POS displays as-is
 - Discovery doc + acceptance criteria updated (AC-3 added, total 7 ACs)
 
+### 2026-05-29 [CR-017] — Approved + implemented
+**Decision**: CR-017 approved. 3 additive fields added to `/pos/max-redeemable`: `projected_points_earned`, `projected_earn_percent`, `earn_ratio_display`. Implemented, verified (2 curl tests), POS handoff doc updated.
+**Source**: Owner: "approved" (2026-05-29) after reviewing discovery doc with 7 ACs.
+**Locks**:
+- `/pos/max-redeemable` now returns 10 fields (was 7)
+- POS handoff doc (`CR_001C_LR_REDEMPTION_FINAL_PAYLOAD_HANDOFF_TO_POS.md` §3.2) updated with new fields
+- CR-017 status → `cr017_closed_implemented_verified`
+
 ---
 
 ## How to add a new decision

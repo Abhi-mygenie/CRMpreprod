@@ -101,9 +101,19 @@ Strict 6-key blob: `tier, tier_label, total_points, ratio_per_point, points_valu
     "tier":                  "Gold",
     "available_points":      240,
     "min_redemption_points": 50,
-    "loyalty_enabled":       true
+    "loyalty_enabled":       true,
+    "projected_points_earned": 50,
+    "projected_earn_percent":  5.0,
+    "earn_ratio_display":      "₹1 per ₹20 spent"
   }
 }
+```
+
+> **CR-017 (2026-05-29)**: 3 new fields added. POS can now show "you'll earn X points" on the pre-payment screen.
+> - `projected_points_earned` (int): points the customer will earn on this `bill_amount` at their current tier. Uses the same `calculate_points()` as the order flow.
+> - `projected_earn_percent` (float): the tier's earn rate (e.g. 5.0 = 5%).
+> - `earn_ratio_display` (string): human-readable earn rate for cashier display (e.g. "₹1 per ₹20 spent"). POS can render as-is without formatting.
+> - When `loyalty_enabled=false` or bill is below `min_order_value`: `projected_points_earned=0`.
 ```
 
 #### Failure responses (`success=true` preserved; POS branches on `data.error.code`)

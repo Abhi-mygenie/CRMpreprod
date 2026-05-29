@@ -505,6 +505,24 @@ async def pos_max_redeemable(
     # Shared calculator — same function the commit-side auto-cap uses.
     cap = compute_max_redeemable(customer, settings, request.bill_amount)
 
+    # CR-017 (2026-05-29): Project points the customer will earn on this bill.
+    # Uses the same calculate_points() function as the order flow.
+    loyalty_enabled = bool((settings or {}).get("loyalty_enabled", False))
+    if loyalty_enabled and settings:
+        pts = calculate_points(request.bill_amount, customer, settings)
+        earn_percent = get_earn_percent_for_tier(customer.get("tier", "Bronze"), settings)
+        projected_earned = pts["total_points"]
+    else:
+        earn_percent = 0.0
+        projected_earned = 0
+
+    # Human-readable earn ratio: e.g. 5% → "₹1 per ₹20 spent"
+    if earn_percent > 0:
+        spend_per_point = round(100 / earn_percent)
+        earn_ratio_display = f"₹1 per ₹{spend_per_point} spent"
+    else:
+        earn_ratio_display = ""
+
     data = {
         "max_points_redeemable": cap["max_points_redeemable"],
         "max_discount_value": cap["max_discount_value"],
@@ -513,6 +531,9 @@ async def pos_max_redeemable(
         "available_points": cap["available_points"],
         "min_redemption_points": cap["min_redemption_points"],
         "loyalty_enabled": cap["loyalty_enabled"],
+        "projected_points_earned": projected_earned,
+        "projected_earn_percent": earn_percent,
+        "earn_ratio_display": earn_ratio_display,
     }
     if cap["code"]:
         data["error"] = {"code": cap["code"], "message": cap["message"]}
