@@ -180,6 +180,45 @@
 - Helper signature: NO `coupon` param (coupon fields read directly from `order_data`)
 - Acceptance gate = 10 checks in §8.3 of freeze doc
 
+### 2026-05-29 [CR-015c] — Full demo login removal
+**Decision**: Remove demo login entirely — backend endpoint, frontend button, auth context, banner, schema field, test helpers. No demo user existed in DB; code was already 404.
+**Source**: "there should not be any demo login" (owner, 2026-05-29).
+**Rationale**: Demo login was broken (no `demo@restaurant.com` in remote DB) and misleading. Owner wants real-auth-only testing path.
+**Locks**:
+- `POST /api/auth/demo-login` endpoint must remain deleted — no re-introduction
+- No `is_demo` field in `TokenResponse` schema
+- No Demo Login button on `LoginPage.jsx`
+- No `demoLogin`/`isDemoMode` in `AuthContext`
+- No `DemoModeBanner` component
+- `test_segments_crm.py` uses real login only
+
+### 2026-05-29 [CR-015b] — Dead variable-mapping code removal approved
+**Decision**: Remove the orphaned/unreachable variable-mapping modal cluster on the WhatsApp Automation page + unused `availableFields`/`getPreviewMessage` on Segments. Variable mapping is edited **exclusively on the Templates page**.
+**Source**: Owner flagged "variable mapping is editable only on the Templates page" (2026-05-29); approved option B2 (full removal of WhatsApp Automation orphaned modal) + Segments leftovers.
+**Rationale**: `openVariableMappingModal` was never wired to any button — dead code. Templates page is the single live mapping surface (incl. coupon picker).
+**Locks**:
+- Variable mapping UI lives exclusively on the Templates page — by design, not by accident
+- WhatsApp Automation page must NOT have any mapping modal (orphaned `openVariableMappingModal` cluster stays deleted)
+- SegmentsPage must NOT have `availableFields` / `getPreviewMessage`
+- Templates page mapping modal + coupon picker untouched (the one live surface)
+
+### 2026-05-29 [sprint] — CR-015a prioritized before T7/Day 4
+**Decision**: Preview-NA fix (CR-015a) takes priority over T7 commit + Day 4 (T2 DB normalization + live test).
+**Source**: "work on mapping fix" (owner, 2026-05-29) — directed agent to fix the preview "NA" issue for 14 T5 variables before proceeding with T7 commit.
+**Rationale**: Preview UX defect was visible and blocking owner review of template mappings. T7 commit is a DB write requiring separate owner approval anyway.
+**Locks**:
+- Sprint sequence: CR-015a implemented before T7 commit + Day 4
+- T7 commit still requires explicit owner "commit" command — not auto-queued
+
+### 2026-05-29 [project] — Real owner credentials provided for testing
+**Decision**: Owner provided `owner@kunafamahal.com` as the canonical test login. Saved to `test_credentials.md`.
+**Source**: Owner provided real credentials (2026-05-29) after demo login was removed.
+**Rationale**: Replaces the now-deleted demo login as the testing path. All verification flows use real auth.
+**Locks**:
+- `owner@kunafamahal.com` is the canonical test login (stored in `test_credentials.md`)
+- Replaces the now-deleted demo login as the testing path
+- All future test/verification flows must use real auth, not demo
+
 ---
 
 ## How to add a new decision
