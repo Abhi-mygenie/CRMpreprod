@@ -1,0 +1,2473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Palm House — Guest Folio TH/006644</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .invoice { max-width: 480px; margin: 0 auto; background: #fff; }
+
+  .hdr { background: #2B2B2B; color: #fff; padding: 22px 20px 18px; }
+  .hdr-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .logo-img { width: 48px; height: 48px; border-radius: 10px; object-fit: contain; background: #fff; }
+  .logo-circle { width: 48px; height: 48px; border-radius: 50%; background: #F26B33; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; color: #fff; flex-shrink: 0; }
+  .r-info h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+  .r-info .tagline { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 1px; font-style: italic; }
+  .r-info .addr { font-size: 10px; color: rgba(255,255,255,0.8); margin-top: 4px; line-height: 1.4; }
+  .badge { display: inline-block; background: #F26B33; color: #fff; font-size: 9px; font-weight: 700; padding: 3px 10px; border-radius: 3px; letter-spacing: 1.5px; margin-top: 10px; }
+  .hdr-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; font-size: 11px; }
+  .hdr-meta dt { color: rgba(255,255,255,0.6); }
+  .hdr-meta dd { color: #fff; font-weight: 600; }
+
+  .g-strip { background: #f8f8f8; padding: 7px 20px; font-size: 10px; color: #666; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; }
+  .g-strip strong { color: #333; }
+
+  .meta { padding: 14px 20px; border-bottom: 1px solid #eee; }
+  .meta h3 { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .meta-grid .lbl { font-size: 10px; color: #888; }
+  .meta-grid .val { font-size: 11px; font-weight: 600; color: #333; }
+
+  /* Stay summary bar */
+  .stay-bar { background: #FFF8F0; border-bottom: 1px solid #FFE0CC; padding: 10px 20px; display: flex; justify-content: space-around; text-align: center; }
+  .stay-stat .num { font-size: 18px; font-weight: 800; color: #F26B33; }
+  .stay-stat .sl { font-size: 8px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Day groups */
+  .day-section { padding: 0 20px; }
+  .day-hdr { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 6px; border-bottom: 1px solid #eee; margin-top: 4px; }
+  .day-hdr .day-label { font-size: 11px; font-weight: 700; color: #F26B33; }
+  .day-hdr .day-total { font-size: 11px; font-weight: 700; color: #333; }
+  .day-items { padding: 2px 0 6px; }
+  .d-item { display: flex; align-items: center; padding: 3px 0; font-size: 11px; }
+  .d-item .d-name { flex: 1; color: #555; }
+  .d-item .d-qty { color: #888; margin-right: 8px; font-size: 10px; }
+  .d-item .d-price { font-weight: 600; color: #333; min-width: 60px; text-align: right; }
+  .d-vdot { width: 10px; height: 10px; border: 1.5px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; margin-right: 6px; flex-shrink: 0; }
+  .d-vdot.v { border-color: #2E7D32; }
+  .d-vdot.v::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #2E7D32; }
+  .d-vdot.nv { border-color: #C62828; }
+  .d-vdot.nv::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #C62828; }
+
+  .totals { padding: 10px 20px; border-top: 2px solid #eee; }
+  .t-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
+  .t-row .tl { color: #666; }
+  .t-row .tv { font-weight: 600; color: #333; }
+  .t-row.disc .tl, .t-row.disc .tv { color: #2E7D32; }
+  .t-row.tax .tl { color: #888; padding-left: 10px; font-size: 10px; }
+  .t-row.tax .tv { font-size: 10px; }
+  .t-row.grand { padding: 8px 0 4px; margin-top: 4px; border-top: 2px solid #2B2B2B; font-size: 15px; font-weight: 800; }
+  .t-row.grand .tl { color: #2B2B2B; }
+  .t-row.grand .tv { color: #F26B33; }
+  .words { font-size: 9px; color: #888; font-style: italic; padding: 1px 0 6px; }
+
+  .pay { background: #f8f8f8; padding: 9px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+  .pay-method { font-size: 11px; font-weight: 600; color: #333; }
+  .pay-badge { font-size: 9px; background: #E8F5E9; color: #2E7D32; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+  .loyalty { padding: 12px 20px; background: #FFF8F0; border-top: 1px solid #FFE0CC; }
+  .loyalty h3 { font-size: 9px; font-weight: 700; color: #F26B33; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .l-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .l-item { text-align: center; padding: 6px; background: #fff; border-radius: 6px; border: 1px solid #FFE0CC; }
+  .l-item .num { font-size: 16px; font-weight: 800; color: #F26B33; }
+  .l-item .ll { font-size: 8px; color: #999; margin-top: 1px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .footer { padding: 14px 20px; text-align: center; border-top: 1px solid #eee; }
+  .footer .ty { font-size: 13px; font-weight: 700; color: #F26B33; margin-bottom: 3px; }
+  .footer p { font-size: 9px; color: #999; line-height: 1.5; }
+  .footer .sac { font-size: 8px; color: #bbb; margin-top: 6px; }
+  .footer .terms { font-size: 8px; color: #aaa; margin-top: 6px; border-top: 1px dashed #eee; padding-top: 6px; text-align: left; }
+  .footer .social { margin-top: 6px; font-size: 9px; color: #888; }
+  .footer .social a { color: #F26B33; text-decoration: none; }
+
+  .pdf-btn { display: block; margin: 14px 20px; padding: 12px; background: #F26B33; color: #fff; text-align: center; border-radius: 10px; font-size: 13px; font-weight: 700; text-decoration: none; }
+  @media print { .pdf-btn { display: none; } }
+</style>
+</head>
+<body>
+<div class="invoice">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-top">
+      
+      <div class="logo-circle">TH</div>
+      
+      <div class="r-info">
+        <h1>The Palm House</h1>
+        
+        <div class="addr">
+          
+          
+          <br>Ph: 9123458765 | owner@palmhouse.com
+        </div>
+      </div>
+    </div>
+    <div class="badge">GUEST FOLIO</div>
+    <div class="hdr-meta">
+      <dt>Invoice No.</dt><dd>TH/006644</dd>
+      <dt>Date</dt><dd>14 Jan 2026, 05:28 PM</dd>
+      <dt>Bill No.</dt><dd>006644</dd>
+    </div>
+  </div>
+
+  <!-- GSTIN / FSSAI Strip -->
+  
+
+  <!-- Guest Info -->
+  <div class="meta">
+    <h3>Guest Details</h3>
+    <div class="meta-grid">
+      <div><div class="lbl">Guest</div><div class="val">Ms. Jamie Finlayson</div></div>
+      <div><div class="lbl">Phone</div><div class="val">+351927605555</div></div>
+      <div><div class="lbl">Room</div><div class="val">4708</div></div>
+      <div><div class="lbl">Check-in</div><div class="val">14 Jan 2026</div></div>
+      <div><div class="lbl">Check-out</div><div class="val">01 Apr 2026</div></div>
+      <div><div class="lbl">Duration</div><div class="val">60 Days</div></div>
+    </div>
+  </div>
+
+  <!-- Stay Summary Bar -->
+  <div class="stay-bar">
+    <div class="stay-stat"><div class="num">60</div><div class="sl">Days</div></div>
+    <div class="stay-stat"><div class="num">200</div><div class="sl">Items</div></div>
+    <div class="stay-stat"><div class="num">Rs.49,355</div><div class="sl">F&B Total</div></div>
+  </div>
+
+  <!-- Day-by-Day F&B -->
+  <div class="day-section">
+    
+    <div class="day-hdr">
+      <span class="day-label">14 Jan 2026</span>
+      <span class="day-total">Rs.860</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Green Halloumi Bowl</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Gin &amp; Tonic</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">15 Jan 2026</span>
+      <span class="day-total">Rs.350</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Toast</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Dirty Chai</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.200</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">16 Jan 2026</span>
+      <span class="day-total">Rs.690</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Eggs Benny</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Tropical Fruit Plate (V,GF)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">17 Jan 2026</span>
+      <span class="day-total">Rs.290</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Rum Ball</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Mini Banana And Apple Muffin</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.80</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">19 Jan 2026</span>
+      <span class="day-total">Rs.100</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">20 Jan 2026</span>
+      <span class="day-total">Rs.200</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Extra toast</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.200</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">21 Jan 2026</span>
+      <span class="day-total">Rs.210</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Extra toast</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">22 Jan 2026</span>
+      <span class="day-total">Rs.470</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Toast</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">23 Jan 2026</span>
+      <span class="day-total">Rs.370</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Rum Ball</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">24 Jan 2026</span>
+      <span class="day-total">Rs.310</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Toast</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">25 Jan 2026</span>
+      <span class="day-total">Rs.520</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Toast</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Rum Ball</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">26 Jan 2026</span>
+      <span class="day-total">Rs.320</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">27 Jan 2026</span>
+      <span class="day-total">Rs.160</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">29 Jan 2026</span>
+      <span class="day-total">Rs.810</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Zanzibar Burger (V)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">30 Jan 2026</span>
+      <span class="day-total">Rs.340</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Yoghurt Cup (GF)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">31 Jan 2026</span>
+      <span class="day-total">Rs.350</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Irish Coffee Cold Brew w Baileys (A)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">01 Feb 2026</span>
+      <span class="day-total">Rs.690</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.640</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Rum Ball</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">02 Feb 2026</span>
+      <span class="day-total">Rs.630</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Choc Protein Chia (V,GF)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.220</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">12 Feb 2026</span>
+      <span class="day-total">Rs.160</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">13 Feb 2026</span>
+      <span class="day-total">Rs.100</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">16 Feb 2026</span>
+      <span class="day-total">Rs.440</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Yoghurt Cup (GF)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Ginger Shot</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">18 Feb 2026</span>
+      <span class="day-total">Rs.1,710</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Ginger Shot</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Kingfisher Beer (2)</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Kingfisher Beer (2)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cocktail</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.300</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cocktail</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.300</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">20 Feb 2026</span>
+      <span class="day-total">Rs.590</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Ginger Shot</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Lemon Ginger Honey Tea</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.80</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">21 Feb 2026</span>
+      <span class="day-total">Rs.160</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">22 Feb 2026</span>
+      <span class="day-total">Rs.620</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">GRANOLA FRUIT BOWL</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.280</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Lemon Ginger Honey Tea</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.80</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Ginger Shot</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">23 Feb 2026</span>
+      <span class="day-total">Rs.600</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">GRANOLA FRUIT BOWL</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.280</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">24 Feb 2026</span>
+      <span class="day-total">Rs.420</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Ginger Shot</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">25 Feb 2026</span>
+      <span class="day-total">Rs.2,780</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cortado Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Watermelon Juice</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Tonic</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.90</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Irish Coffee Cold Brew w Baileys (A)</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.1,400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Zanzibar Burger (V)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">26 Feb 2026</span>
+      <span class="day-total">Rs.900</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Zanzibar Burger (V)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Coke</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Irish Coffee Cold Brew w Baileys (A)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">27 Feb 2026</span>
+      <span class="day-total">Rs.1,280</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">GRANOLA FRUIT BOWL</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.280</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Ginger Shot</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer Battered ‘Aubergine’ Fish &amp; Chips (V,A)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.300</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Watermelon Juice</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">28 Feb 2026</span>
+      <span class="day-total">Rs.1,010</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Irish Coffee Cold Brew w Baileys (A)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cortado Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">01 Mar 2026</span>
+      <span class="day-total">Rs.4,940</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Wine in Glass</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Salted Caramel Cupcake</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.240</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Irish Coffee Cold Brew w Baileys (A)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x6</span>
+        <span class="d-price">Rs.3,600</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">02 Mar 2026</span>
+      <span class="day-total">Rs.820</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Zanzibar Burger (V)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">03 Mar 2026</span>
+      <span class="day-total">Rs.3,640</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Watermelon Juice</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Salted Caramel Cupcake</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.240</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cortado Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Gin</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.260</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Espresso Martini</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x4</span>
+        <span class="d-price">Rs.1,600</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">04 Mar 2026</span>
+      <span class="day-total">Rs.650</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Ginger Shot</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Homemade Seasonal Fruit Jam</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Coke</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">05 Mar 2026</span>
+      <span class="day-total">Rs.680</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Pilgrim</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Chai</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.80</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">06 Mar 2026</span>
+      <span class="day-total">Rs.930</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Watermelon Juice</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">07 Mar 2026</span>
+      <span class="day-total">Rs.450</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Sprite</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">08 Mar 2026</span>
+      <span class="day-total">Rs.920</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">GRANOLA FRUIT BOWL</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.280</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Rum Ball</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Watermelon Juice</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">09 Mar 2026</span>
+      <span class="day-total">Rs.380</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Melon &amp; Feta Salad (V)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.220</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">10 Mar 2026</span>
+      <span class="day-total">Rs.440</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">GRANOLA FRUIT BOWL</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.280</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">11 Mar 2026</span>
+      <span class="day-total">Rs.160</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">13 Mar 2026</span>
+      <span class="day-total">Rs.125</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">ICE CREEM ONE SCOOP</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.125</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">15 Mar 2026</span>
+      <span class="day-total">Rs.2,900</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Rose and Pistachio Chocolate Slice</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.2,000</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Irish Coffee Cold Brew w Baileys (A)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cocktail</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.300</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">16 Mar 2026</span>
+      <span class="day-total">Rs.1,060</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cappuccino</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cortado Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">17 Mar 2026</span>
+      <span class="day-total">Rs.1,560</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Sriracha Chilli Scrambled Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.300</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Rum Ball</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.50</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">18 Mar 2026</span>
+      <span class="day-total">Rs.250</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">19 Mar 2026</span>
+      <span class="day-total">Rs.850</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Lemon Drizzle</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.200</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">20 Mar 2026</span>
+      <span class="day-total">Rs.410</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">22 Mar 2026</span>
+      <span class="day-total">Rs.400</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">23 Mar 2026</span>
+      <span class="day-total">Rs.3,280</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Zanzibar Burger (V)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Irish Coffee Cold Brew w Baileys (A)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.350</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Kingfisher Beer (2)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Kingfisher Beer (2)</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">GRANOLA FRUIT BOWL</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.280</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x3</span>
+        <span class="d-price">Rs.900</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Kingfisher Beer (2)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">24 Mar 2026</span>
+      <span class="day-total">Rs.750</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Beer</span>
+        <span class="d-qty">x2</span>
+        <span class="d-price">Rs.400</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">25 Mar 2026</span>
+      <span class="day-total">Rs.570</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">26 Mar 2026</span>
+      <span class="day-total">Rs.560</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Cortado Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Flat White Coffee</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.160</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">27 Mar 2026</span>
+      <span class="day-total">Rs.1,560</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Watermelon Juice</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Iced Lemon Ginger Honey</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.140</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Iced Lemon Ginger Honey</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.140</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Lamington</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.150</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Lemon Drizzle</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.200</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">28 Mar 2026</span>
+      <span class="day-total">Rs.1,450</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Spirits (30ml)</span>
+        <span class="d-qty">x3</span>
+        <span class="d-price">Rs.900</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Spirits (30ml)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Spirits (30ml)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Spirits (30ml)</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.100</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">29 Mar 2026</span>
+      <span class="day-total">Rs.250</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">30 Mar 2026</span>
+      <span class="day-total">Rs.180</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">Icy Coconut Slushie</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.180</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">31 Mar 2026</span>
+      <span class="day-total">Rs.250</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+    </div>
+    
+    <div class="day-hdr">
+      <span class="day-label">01 Apr 2026</span>
+      <span class="day-total">Rs.500</span>
+    </div>
+    <div class="day-items">
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">COCONUT ICED COFFEE</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+      <div class="d-item">
+        
+        <div class="d-vdot v"></div>
+        
+        <span class="d-name">My Favourite Eggs</span>
+        <span class="d-qty">x1</span>
+        <span class="d-price">Rs.250</span>
+      </div>
+      
+    </div>
+    
+  </div>
+
+  <!-- Totals -->
+  <div class="totals">
+    <div class="t-row"><span class="tl">F&B Total (60 days, 200 items)</span><span class="tv">Rs.49,355</span></div>
+    
+    
+    
+    
+    
+    
+    
+    <div class="t-row grand"><span class="tl">Grand Total</span><span class="tv">Rs.46,424</span></div>
+    
+    <div class="words">Rupees Forty Six Thousand Four Hundred Twenty Four Only</div>
+    
+  </div>
+
+  <!-- Payment -->
+  <div class="pay">
+    <div class="pay-method">Card</div>
+    <span class="pay-badge">PAID</span>
+  </div>
+
+  <!-- Loyalty -->
+  
+  <div class="loyalty">
+    <h3>Loyalty Rewards</h3>
+    <div class="l-grid">
+      <div class="l-item"><div class="num">+0</div><div class="ll">Points Earned</div></div>
+      <div class="l-item"><div class="num">—</div><div class="ll">Points Balance</div></div>
+      
+      
+    </div>
+  </div>
+  
+
+  <!-- Footer -->
+  <div class="footer">
+    
+    <p>This is a computer-generated folio and does not require a signature.
+    <br>For queries, contact us at 9123458765</p>
+    
+    
+    
+  </div>
+
+  <a href="" class="pdf-btn">Download PDF</a>
+  <div style="height:16px"></div>
+</div>
+</body>
+</html>
