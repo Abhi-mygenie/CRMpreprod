@@ -97,6 +97,26 @@ const CampaignsPageContent = () => {
         }
     };
 
+    // CR-024 Phase 4 P4.6: Pause / Resume actions
+    const handlePause = async (cid) => {
+        try {
+            await api.post(`/campaigns/${cid}/pause`);
+            toast.success("Campaign paused");
+            fetchCampaigns();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to pause");
+        }
+    };
+    const handleResume = async (cid) => {
+        try {
+            const res = await api.post(`/campaigns/${cid}/resume`);
+            toast.success(res.data?.message || "Campaign resumed");
+            fetchCampaigns();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to resume");
+        }
+    };
+
     const filtered = filter === "all" ? campaigns : campaigns.filter(c => {
         const ds = getDisplayStatus(c);
         return ds === filter;
@@ -291,6 +311,16 @@ const CampaignsPageContent = () => {
                                         <DropdownMenuItem onClick={() => navigate(`/campaigns/${campaign.id}`)}>
                                             <Eye className="w-4 h-4 mr-2" /> View
                                         </DropdownMenuItem>
+                                        {(ds === "scheduled" || ds === "active") && (
+                                            <DropdownMenuItem onClick={() => handlePause(campaign.id)} data-testid="campaign-pause">
+                                                <Pause className="w-4 h-4 mr-2" /> Pause
+                                            </DropdownMenuItem>
+                                        )}
+                                        {ds === "paused" && (
+                                            <DropdownMenuItem onClick={() => handleResume(campaign.id)} data-testid="campaign-resume">
+                                                <Send className="w-4 h-4 mr-2" /> Resume
+                                            </DropdownMenuItem>
+                                        )}
                                         {ds === "missed" && (
                                             <DropdownMenuItem onClick={() => handleRerunMissed(campaign.id)} data-testid="campaign-rerun-missed">
                                                 <Send className="w-4 h-4 mr-2" /> Re-run now

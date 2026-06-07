@@ -43,8 +43,9 @@ Pull code from `https://github.com/Abhi-mygenie/CRMpreprod.git` (5-june branch),
 - CR-014: Code complete, live test PARKED
 
 ## Current Status
-- **CR-024 Phase 4 Batch A**: IMPLEMENTED + verified (2026-06-07) — Operational safety polish. Test Send (P4.10), `next_run_at` display on scheduled rows (P4.5), Missed status UI + Re-run action (P4.11). Backend `POST /campaigns/{id}/test-send` + `campaign_test_sends` collection. Frontend: amber Test Send panel in wizard Step 2, blue "Next run: 8 Jun, 10:00 IST" line on CampaignsPage rows, red Missed badge with error tooltip + "Re-run now" dropdown. 10/10 unit tests still pass. Regression smoke passed.
-- **CR-024 Phase 3**: IMPLEMENTED + verified (2026-06-07) — Scheduled & Recurring execution via existing APScheduler. New job `process_due_campaigns` registered (1-min tick), gated by `CAMPAIGN_SCHEDULER_ENABLED` env flag (default OFF). Smoke test passed: scheduled campaign fired at 08:46:00 UTC within 2 sec of due time → `status=scheduled → active → completed`, `run_count: 0→1`, `next_run_at` cleared. 10/10 unit tests pass on `compute_next_run_at()`.
+- **CR-024 Phase 4 Batch B**: IMPLEMENTED + verified (2026-06-07) — Editability & UX. Edit-audience-filters dialog with usage warning (P4.1), Pause/Resume backend + dropdown actions (P4.6), Edit-while-scheduled guard rails — backend rejects audience/schedule changes when status∈{scheduled, active} with 409 + descriptive error; frontend wizard shows blue "Scheduled" banner + disables audience selector & entire Step 3 (P4.9). End-to-end curl smoke: PUT schedule_type on scheduled → 409 with `"Pause it first to edit audience or schedule"`; pause → status=paused; PUT audience while paused → 200; resume → status=scheduled + recomputed next_run_at.
+- **CR-024 Phase 4 Batch A**: IMPLEMENTED + verified (2026-06-07) — Operational safety polish. Test Send (P4.10), `next_run_at` display on scheduled rows (P4.5), Missed status UI + Re-run action (P4.11).
+- **CR-024 Phase 3**: IMPLEMENTED + verified (2026-06-07) — Scheduled & Recurring execution via existing APScheduler. 10/10 unit tests pass.
 - **CR-024 Phase 1**: PARKED — owner testing live send. 1 message sent to abhishek jain.
 - **CR-014 Phase 3**: IMPLEMENTED — Hotel Folio (Mode C) with both patterns. Verified with real DB data.
 
@@ -67,11 +68,11 @@ Pull code from `https://github.com/Abhi-mygenie/CRMpreprod.git` (5-june branch),
 **To activate in production**: `echo "CAMPAIGN_SCHEDULER_ENABLED=true" >> backend/.env && sudo supervisorctl restart backend`
 
 ## Prioritized Backlog
-- P1: CR-024 Phase 4 Batch B — Editability (Edit filters, Pause/Resume, edit-while-scheduled guards) ~4.5 hr
 - P1: CR-024 Phase 4 Batch C — Data quality (cached counts + `last_counted_at`, All-Customers token helper) ~3 hr
 - P1: CR-024 — Flip `CAMPAIGN_SCHEDULER_ENABLED=true` in production after owner smoke (use Test Send first!)
 - P1: CR-023 — Owner E2E test + AuthKey button param wiring
 - P2: CR-024 Phase 4 Batch D — Power features (Inline var mapping, Clone, Resend Failed) ~4 hr
+- P2: AudiencesPage — array-typed tier filter shows empty in Select dropdown (pre-existing in Create flow, surfaced by Edit). Trivial fix: coerce to string on load.
 - P2: CR-014 — Unpark when POS/AuthKey webhooks repointed
 - P2: Per-tenant timezone (currently single global Asia/Kolkata)
 - Backlog: CR-016 — Dynamic Event Registry (deferred next sprint)

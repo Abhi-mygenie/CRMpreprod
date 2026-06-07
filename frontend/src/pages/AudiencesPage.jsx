@@ -24,10 +24,12 @@ const AudiencesPageContent = () => {
     const [campaigns, setCampaigns] = useState([]);
     const [filter, setFilter] = useState("all");
 
-    // Create segment state
+    // Create / Edit segment state (CR-024 Phase 4 P4.1)
     const [showCreate, setShowCreate] = useState(false);
+    const [editingSeg, setEditingSeg] = useState(null);
+    const DEFAULT_FILTERS = { tier: "all", last_visit_days: "all", total_spent: "all", total_visits: "all", has_birthday_this_month: false, vip_flag: "all", whatsapp_opt_in: "all" };
     const [newName, setNewName] = useState("");
-    const [newFilters, setNewFilters] = useState({ tier: "all", last_visit_days: "all", total_spent: "all", total_visits: "all", has_birthday_this_month: false, vip_flag: "all", whatsapp_opt_in: "all" });
+    const [newFilters, setNewFilters] = useState(DEFAULT_FILTERS);
     const [previewCount, setPreviewCount] = useState(null);
     const [saving, setSaving] = useState(false);
 
@@ -99,18 +101,37 @@ const AudiencesPageContent = () => {
         if (!newName.trim()) { toast.error("Name is required"); return; }
         setSaving(true);
         try {
-            await api.post("/segments", { name: newName.trim(), filters: newFilters, customer_count: previewCount });
-            toast.success("Audience created");
-            setShowCreate(false);
-            setNewName("");
-            setNewFilters({ tier: "all", last_visit_days: "all", total_spent: "all", total_visits: "all", has_birthday_this_month: false, vip_flag: "all", whatsapp_opt_in: "all" });
-            setPreviewCount(null);
+            if (editingSeg) {
+                // CR-024 Phase 4 P4.1: Edit mode — PUT existing segment
+                await api.put(`/segments/${editingSeg.id}`, { name: newName.trim(), filters: newFilters });
+                toast.success("Audience updated");
+            } else {
+                await api.post("/segments", { name: newName.trim(), filters: newFilters, customer_count: previewCount });
+                toast.success("Audience created");
+            }
+            closeCreateDialog();
             fetchData();
         } catch (err) {
-            toast.error("Failed to create audience");
+            toast.error(err.response?.data?.detail || (editingSeg ? "Failed to update" : "Failed to create"));
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleEdit = (seg) => {
+        setEditingSeg(seg);
+        setNewName(seg.name || "");
+        setNewFilters({ ...DEFAULT_FILTERS, ...(seg.filters || {}) });
+        setPreviewCount(seg.customer_count || null);
+        setShowCreate(true);
+    };
+
+    const closeCreateDialog = () => {
+        setShowCreate(false);
+        setEditingSeg(null);
+        setNewName("");
+        setNewFilters(DEFAULT_FILTERS);
+        setPreviewCount(null);
     };
 
     const handlePreview = async (seg) => {
@@ -214,6 +235,9 @@ const AudiencesPageContent = () => {
                                 </div>
                                 {!seg.isDefault && (
                                     <div className="flex gap-1.5 mt-3">
+                                        <button onClick={() => handleEdit(seg)} className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-full hover:border-[#F26B33] hover:text-[#F26B33] transition-colors" data-testid="audience-edit-btn">
+                                            <Edit2 className="w-3 h-3 inline mr-1" /> Edit
+                                        </button>
                                         <button onClick={() => handlePreview(seg)} className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-200 rounded-full hover:border-[#F26B33] hover:text-[#F26B33] transition-colors" data-testid="audience-preview-btn">
                                             Preview
                                         </button>
@@ -241,12 +265,18 @@ const AudiencesPageContent = () => {
                 </div>
             )}
 
-            {/* Create Dialog */}
-            <Dialog open={showCreate} onOpenChange={setShowCreate}>
-                <DialogContent className="max-w-lg">
+            {/* Create / Edit Dialog */}
+            <Dialog open={showCreate} onOpenChange={(o) => { if (!o) closeCreateDialog(); else setShowCreate(true); }}>
+                <DialogContent className="max-w-lg" data-testid="audience-dialog">
                     <DialogHeader>
-                        <DialogTitle>Create New Audience</DialogTitle>
+                        <DialogTitle>{editingSeg ? `Edit Audience: ${editingSeg.name}` : "Create New Audience"}</DialogTitle>
                     </DialogHeader>
+                    {editingSeg && getCampaignCount(editingSeg.id) > 0 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800" data-testid="audience-in-use-warning">
+                            ⚠ This audience is used in {getCampaignCount(editingSeg.id)} campaign{getCampaignCount(editingSeg.id) > 1 ? "s" : ""}.
+                            Existing scheduled/recurring campaigns will use the updated filter on their next fire.
+                        </div>
+                    )}
                     <div className="space-y-4">
                         <div>
                             <Label className="text-xs font-semibold uppercase">Audience Name</Label>
@@ -317,9 +347,9 @@ const AudiencesPageContent = () => {
                             {previewCount !== null && <span className="text-sm font-semibold text-[#F26B33]">{previewCount.toLocaleString()} customers match</span>}
                         </div>
                         <div className="flex justify-end gap-2 pt-2">
-                            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+                            <Button variant="outline" onClick={closeCreateDialog}>Cancel</Button>
                             <Button onClick={handleCreate} disabled={saving} className="bg-[#F26B33] hover:bg-[#D85A2A] text-white" data-testid="save-audience-btn">
-                                {saving ? "Creating..." : "Create Audience"}
+                                {saving ? (editingSeg ? "Updating..." : "Creating...") : (editingSeg ? "Update Audience" : "Create Audience")}
                             </Button>
                         </div>
                     </div>

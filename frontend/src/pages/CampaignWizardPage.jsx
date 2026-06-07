@@ -65,6 +65,10 @@ const CampaignWizardContent = () => {
     const [testPhone, setTestPhone] = useState("");
     const [testSending, setTestSending] = useState(false);
 
+    // CR-024 Phase 4 P4.9: Edit-while-scheduled guard
+    const [campaignStatus, setCampaignStatus] = useState("draft");
+    const isScheduleLocked = campaignStatus === "scheduled" || campaignStatus === "active";
+
     const [savedCampaignId, setSavedCampaignId] = useState(campaignId || null);
 
     useEffect(() => {
@@ -99,6 +103,7 @@ const CampaignWizardContent = () => {
                     setRecurringEndOption(c.recurring_end_option || "never");
                     setRecurringEndDate(c.recurring_end_date || "");
                     setRecurringOccurrences(c.recurring_occurrences || "");
+                    setCampaignStatus(c.status || "draft");
                     setSavedCampaignId(c.id);
                 }
             } catch (err) { console.error(err); }
@@ -298,8 +303,24 @@ const CampaignWizardContent = () => {
                     <ArrowLeft className="w-4 h-4 mr-1" /> Back
                 </Button>
                 <span className="text-base font-bold">{isEdit ? "Edit Campaign" : "New Campaign"}</span>
-                <Badge className="bg-amber-100 text-amber-700 text-xs">Draft</Badge>
+                <Badge className={isScheduleLocked ? "bg-blue-100 text-blue-700 text-xs" : "bg-amber-100 text-amber-700 text-xs"}>
+                    {isScheduleLocked ? (campaignStatus === "active" ? "Active" : "Scheduled") : "Draft"}
+                </Badge>
             </div>
+
+            {/* CR-024 Phase 4 P4.9: Edit-while-scheduled banner */}
+            {isScheduleLocked && (
+                <div className="mb-5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm flex items-start gap-2" data-testid="schedule-locked-banner">
+                    <AlertTriangle className="w-4 h-4 text-blue-700 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                        <div className="font-semibold text-blue-800">This campaign is {campaignStatus}.</div>
+                        <div className="text-blue-700 text-xs mt-0.5">
+                            Audience and schedule are locked. You can still edit the template, variable mappings, and campaign name.
+                            To change audience or schedule, <strong>Pause</strong> the campaign first from the Campaigns list.
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Wizard Step Indicator (numbered circles, matching mock) */}
             <div className="flex bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
@@ -341,7 +362,7 @@ const CampaignWizardContent = () => {
                     </div>
                     <div className="mb-4">
                         <Label className="text-xs font-semibold uppercase tracking-wider text-gray-500">Select Audience</Label>
-                        <Select value={audienceId} onValueChange={setAudienceId}>
+                        <Select value={audienceId} onValueChange={setAudienceId} disabled={isScheduleLocked}>
                             <SelectTrigger className="mt-1.5" data-testid="audience-select"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all-customers">All Customers ({totalCustomers.toLocaleString()} customers)</SelectItem>
@@ -350,7 +371,9 @@ const CampaignWizardContent = () => {
                                 ))}
                             </SelectContent>
                         </Select>
-                        <p className="text-xs text-gray-500 mt-1.5">or <span className="text-[#F26B33] underline cursor-pointer" onClick={() => navigate("/audiences")}>create a new audience</span></p>
+                        {!isScheduleLocked && (
+                            <p className="text-xs text-gray-500 mt-1.5">or <span className="text-[#F26B33] underline cursor-pointer" onClick={() => navigate("/audiences")}>create a new audience</span></p>
+                        )}
                     </div>
                     <div className="bg-green-50 border border-green-200 rounded-xl p-3.5" data-testid="audience-info">
                         <p className="text-sm font-semibold text-green-700">{audienceCount.toLocaleString()} customers will receive this campaign</p>
@@ -466,7 +489,12 @@ const CampaignWizardContent = () => {
 
             {/* STEP 3: Schedule & Send */}
             {step === 3 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6" data-testid="step3-content">
+                <div className={`bg-white rounded-xl border border-gray-200 p-6 ${isScheduleLocked ? "opacity-60 pointer-events-none" : ""}`} data-testid="step3-content">
+                    {isScheduleLocked && (
+                        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-800">
+                            Schedule is locked. Pause this campaign from the Campaigns list to modify it.
+                        </div>
+                    )}
                     <h3 className="text-lg font-bold mb-4">When to Send</h3>
 
                     {/* Send Now */}

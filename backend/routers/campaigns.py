@@ -140,6 +140,27 @@ async def update_campaign(campaign_id: str, body: dict, user: dict = Depends(get
         "recurring_end_option", "recurring_end_date", "recurring_occurrences",
     }
     updates = {k: v for k, v in body.items() if k in allowed}
+
+    # CR-024 Phase 4 P4.9: Edit-while-scheduled guard.
+    # Locked when campaign is in scheduled/active/paused state — only template
+    # config and name may change; audience and schedule are immutable until pause.
+    LOCKED_WHEN_SCHEDULED = {
+        "audience_id", "audience_name", "audience_count",
+        "schedule_type", "scheduled_date", "scheduled_time",
+        "recurring_frequency", "recurring_days", "recurring_day_of_month",
+        "recurring_end_option", "recurring_end_date", "recurring_occurrences",
+    }
+    if campaign.get("status") in ("scheduled", "active"):
+        blocked = LOCKED_WHEN_SCHEDULED & set(updates.keys())
+        # Only block if the value actually changes (allow no-op PUTs from wizard re-save)
+        actually_changed = {k for k in blocked if updates.get(k) != campaign.get(k)}
+        if actually_changed:
+            raise HTTPException(
+                409,
+                f"Cannot change {sorted(actually_changed)} on a {campaign['status']} campaign. "
+                f"Pause it first to edit audience or schedule."
+            )
+
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.campaigns.update_one({"id": campaign_id}, {"$set": updates})
     updated = await db.campaigns.find_one({"id": campaign_id}, {"_id": 0})
@@ -521,6 +542,91 @@ async def test_send_campaign(
         "message_id": result.get("message_id"),
         "error": result.get("error"),
         "phone": f"+{country_code}{phone}",
+    }
+
+
+# ── CR-024 Phase 4 P4.6: Pause / Resume ──────────────────────────────────
+
+@router.post("/{campaign_id}/pause")
+async def pause_campaign(campaign_id: str, user: dict = Depends(get_current_user)):
+    """Pause a scheduled/active campaign. In-flight asyncio tasks continue
+    (Option A — see CR-024 Phase 4 plan Q4); future fires are skipped.
+    """
+    campaign = await db.campaigns.find_one({"id": campaign_id, "user_id": user["id"]})
+    if not campaign:
+        raise HTTPException(404, "Campaign not found")
+    if campaign.get("status") not in ("scheduled", "active"):
+        raise HTTPException(
+            409,
+            f"Cannot pause — campaign is '{campaign.get('status')}'. "
+            f"Only scheduled or active campaigns can be paused."
+        )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.campaigns.update_one(
+        {"id": campaign_id},
+        {"$set": {
+            "status": "paused",
+            "previous_schedule_type": campaign.get("schedule_type"),
+            "paused_at": now_iso,
+            "updated_at": now_iso,
+        }},
+    )
+    return {
+        "campaign_id": campaign_id,
+        "status": "paused",
+        "message": "Campaign paused. Future fires will be skipped. Any in-flight send will complete.",
+    }
+
+
+@router.post("/{campaign_id}/resume")
+async def resume_campaign(campaign_id: str, user: dict = Depends(get_current_user)):
+    """Resume a paused campaign. Recomputes next_run_at from current time."""
+    campaign = await db.campaigns.find_one({"id": campaign_id, "user_id": user["id"]})
+    if not campaign:
+        raise HTTPException(404, "Campaign not found")
+    if campaign.get("status") != "paused":
+        raise HTTPException(409, f"Cannot resume — campaign is '{campaign.get('status')}', not paused.")
+
+    sch_type = campaign.get("schedule_type", "now")
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if sch_type == "now":
+        # Immediate-send campaign that was paused before firing — re-mark as draft
+        await db.campaigns.update_one(
+            {"id": campaign_id},
+            {"$set": {"status": "draft", "updated_at": now_iso},
+             "$unset": {"paused_at": "", "previous_schedule_type": ""}},
+        )
+        return {"campaign_id": campaign_id, "status": "draft",
+                "message": "Campaign returned to draft. Use Send Now to fire."}
+
+    # Scheduled / recurring — recompute next_run_at
+    from core.campaign_jobs import compute_next_run_at
+    next_at = compute_next_run_at(campaign, datetime.now(timezone.utc))
+    update = {"status": "scheduled", "updated_at": now_iso}
+    if next_at:
+        update["next_run_at"] = next_at
+
+    await db.campaigns.update_one(
+        {"id": campaign_id},
+        {"$set": update, "$unset": {"paused_at": "", "previous_schedule_type": ""}},
+    )
+
+    if not next_at:
+        # End conditions exhausted (e.g., recurring_occurrences already met)
+        await db.campaigns.update_one(
+            {"id": campaign_id},
+            {"$set": {"status": "completed", "next_run_at": None}},
+        )
+        return {"campaign_id": campaign_id, "status": "completed",
+                "message": "Campaign ended — no future occurrences."}
+
+    return {
+        "campaign_id": campaign_id,
+        "status": "scheduled",
+        "next_run_at": next_at,
+        "message": f"Resumed. Next run at {next_at}",
     }
 
 
