@@ -18,6 +18,7 @@ from core.loyalty_jobs import (
     run_coupon_expiry_reminders,
     run_inactive_customer_reminders,
 )
+from core.campaign_jobs import process_due_campaigns
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +126,20 @@ def start_scheduler():
         name="Daily Loyalty Jobs (Birthday, Anniversary, Expiry)",
         replace_existing=True,
     )
+    # CR-024 Phase 3: Process due scheduled + recurring campaigns every 1 minute.
+    # Job is gated internally by CAMPAIGN_SCHEDULER_ENABLED env flag (default false).
+    scheduler.add_job(
+        process_due_campaigns,
+        CronTrigger(minute="*"),
+        id="process_due_campaigns",
+        name="CR-024 Process Due Campaigns (Scheduled + Recurring)",
+        replace_existing=True,
+        coalesce=True,
+        max_instances=1,
+    )
     scheduler.start()
     logger.info("Loyalty cron scheduler started — daily jobs at 00:00 UTC (midnight)")
+    logger.info("Campaign scheduler registered — process_due_campaigns every 1 min")
 
 
 def stop_scheduler():

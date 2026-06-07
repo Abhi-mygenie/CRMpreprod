@@ -156,18 +156,22 @@ async def delete_campaign(campaign_id: str, user: dict = Depends(get_current_use
 
 # ── Execution engine ─────────────────────────────────────────────────────
 
-async def _execute_campaign_send(campaign_id: str, user: dict):
-    """Background task: send campaign messages."""
+async def _execute_campaign_send(campaign_id: str, user_id: str):
+    """Background task: send campaign messages.
+
+    Accepts a user_id string (not a user dict) so it can be invoked from
+    cron jobs that have no authenticated HTTP user context.
+    """
     try:
-        campaign = await db.campaigns.find_one({"id": campaign_id, "user_id": user["id"]})
+        campaign = await db.campaigns.find_one({"id": campaign_id, "user_id": user_id})
         if not campaign:
             logger.error(f"Campaign {campaign_id} not found for execution")
             return
 
         # 1. Get AuthKey API key
-        api_key = await get_user_authkey(db, user["id"])
+        api_key = await get_user_authkey(db, user_id)
         if not api_key:
-            logger.error(f"No AuthKey API key for user {user['id']}")
+            logger.error(f"No AuthKey API key for user {user_id}")
             await db.campaigns.update_one(
                 {"id": campaign_id},
                 {"$set": {"status": "failed", "updated_at": datetime.now(timezone.utc).isoformat()}},
@@ -176,7 +180,7 @@ async def _execute_campaign_send(campaign_id: str, user: dict):
 
         # 2. Get brand data for variable resolution
         user_doc = await db.users.find_one(
-            {"id": user["id"]},
+            {"id": user_id},
             {"_id": 0, "restaurant_name": 1, "einvoice_link": 1,
              "instagram_link": 1, "google_review_link": 1, "feedback_link": 1},
         )
@@ -189,7 +193,7 @@ async def _execute_campaign_send(campaign_id: str, user: dict):
         }
 
         # 3. Load audience customers
-        customers = await _resolve_audience_customers(user["id"], campaign["audience_id"])
+        customers = await _resolve_audience_customers(user_id, campaign["audience_id"])
 
         # 4. Filter opted-out
         eligible = [c for c in customers if c.get("whatsapp_opt_in") is not False]
@@ -202,7 +206,7 @@ async def _execute_campaign_send(campaign_id: str, user: dict):
             "id": run_id,
             "campaign_id": campaign_id,
             "campaign_name": campaign["name"],
-            "user_id": user["id"],
+            "user_id": user_id,
             "audience_id": campaign["audience_id"],
             "audience_name": campaign.get("audience_name", ""),
             "template_name": campaign.get("template_name", ""),
@@ -276,7 +280,7 @@ async def _execute_campaign_send(campaign_id: str, user: dict):
                 cust = customer_map.get(r["phone"], {})
                 await log_message_attempt(
                     db,
-                    user["id"],
+                    user_id,
                     cust.get("id"),
                     r["phone"],
                     "campaign_send",
@@ -355,35 +359,61 @@ async def send_campaign(
     if not campaign:
         raise HTTPException(404, "Campaign not found")
 
-    # Rate limit check
-    used_today = await _get_daily_send_count(user["id"])
+    sch_type = campaign.get("schedule_type", "now")
 
-    # Estimate audience size
+    # Common: load audience to compute target_count
     customers = await _resolve_audience_customers(user["id"], campaign["audience_id"])
     eligible = [c for c in customers if c.get("whatsapp_opt_in") is not False]
     target_count = len(eligible)
+    now_iso = datetime.now(timezone.utc).isoformat()
 
-    if used_today + target_count > DAILY_LIMIT:
-        remaining = max(DAILY_LIMIT - used_today, 0)
+    # ── Send Now: immediate fire ──────────────────────────────────────────
+    if sch_type == "now":
+        used_today = await _get_daily_send_count(user["id"])
+        if used_today + target_count > DAILY_LIMIT:
+            remaining = max(DAILY_LIMIT - used_today, 0)
+            raise HTTPException(
+                429,
+                f"Daily limit exceeded. {remaining} of {DAILY_LIMIT} remaining today, need {target_count}.",
+            )
+
+        await db.campaigns.update_one(
+            {"id": campaign_id},
+            {"$set": {"status": "active", "updated_at": now_iso}},
+        )
+        background_tasks.add_task(_execute_campaign_send, campaign_id, user["id"])
+        return {
+            "campaign_id": campaign_id,
+            "target_count": target_count,
+            "opted_out_skipped": len(customers) - target_count,
+            "schedule_type": "now",
+            "message": f"Sending to {target_count} customers...",
+        }
+
+    # ── Scheduled / Recurring: compute next_run_at and persist ────────────
+    from core.campaign_jobs import compute_next_run_at
+    next_at = compute_next_run_at(campaign, datetime.now(timezone.utc))
+    if not next_at:
         raise HTTPException(
-            429,
-            f"Daily limit exceeded. {remaining} of {DAILY_LIMIT} remaining today, need {target_count}.",
+            400,
+            "Cannot compute next run time — verify schedule_type/date/recurring fields.",
         )
 
-    # Mark campaign as active
     await db.campaigns.update_one(
         {"id": campaign_id},
-        {"$set": {"status": "active", "updated_at": datetime.now(timezone.utc).isoformat()}},
+        {"$set": {
+            "status": "scheduled",
+            "next_run_at": next_at,
+            "updated_at": now_iso,
+        }},
     )
-
-    # Execute in background
-    background_tasks.add_task(_execute_campaign_send, campaign_id, user)
-
     return {
         "campaign_id": campaign_id,
         "target_count": target_count,
         "opted_out_skipped": len(customers) - target_count,
-        "message": f"Sending to {target_count} customers...",
+        "schedule_type": sch_type,
+        "next_run_at": next_at,
+        "message": f"Campaign scheduled — next run at {next_at}",
     }
 
 

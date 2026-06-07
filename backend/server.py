@@ -84,8 +84,21 @@ async def lifespan(app: FastAPI):
         await db.campaigns.create_index([("user_id", 1), ("created_at", -1)], name="idx_campaigns_user_created")
         await db.campaign_runs.create_index([("user_id", 1), ("started_at", -1)], name="idx_runs_user_started")
         await db.campaign_runs.create_index([("campaign_id", 1), ("started_at", -1)], name="idx_runs_campaign_started")
+        # CR-024 Phase 3: compound index for scheduler "find due rows" query
+        await db.campaigns.create_index(
+            [("status", 1), ("next_run_at", 1)],
+            name="idx_campaigns_status_next_run",
+            sparse=True,
+        )
     except Exception:
         pass
+
+    # CR-024 Phase 3: backfill next_run_at for any pre-existing scheduled/recurring rows
+    try:
+        from core.campaign_jobs import backfill_next_run_at
+        await backfill_next_run_at()
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"backfill_next_run_at failed: {e}")
 
     yield
     # Shutdown

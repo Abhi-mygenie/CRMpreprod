@@ -54,6 +54,11 @@ const CampaignWizardContent = () => {
     const [scheduledDate, setScheduledDate] = useState("");
     const [scheduledTime, setScheduledTime] = useState("10:00");
     const [recurringFrequency, setRecurringFrequency] = useState("daily");
+    const [recurringDays, setRecurringDays] = useState(["Mon"]);
+    const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(1);
+    const [recurringEndOption, setRecurringEndOption] = useState("never");
+    const [recurringEndDate, setRecurringEndDate] = useState("");
+    const [recurringOccurrences, setRecurringOccurrences] = useState("");
     const [dailyLimit, setDailyLimit] = useState({ limit: 1000, used: 0, remaining: 1000 });
 
     const [savedCampaignId, setSavedCampaignId] = useState(campaignId || null);
@@ -84,6 +89,12 @@ const CampaignWizardContent = () => {
                     setScheduleType(c.schedule_type || "now");
                     setScheduledDate(c.scheduled_date || "");
                     setScheduledTime(c.scheduled_time || "10:00");
+                    setRecurringFrequency(c.recurring_frequency || "daily");
+                    setRecurringDays(c.recurring_days || ["Mon"]);
+                    setRecurringDayOfMonth(c.recurring_day_of_month || 1);
+                    setRecurringEndOption(c.recurring_end_option || "never");
+                    setRecurringEndDate(c.recurring_end_date || "");
+                    setRecurringOccurrences(c.recurring_occurrences || "");
                     setSavedCampaignId(c.id);
                 }
             } catch (err) { console.error(err); }
@@ -163,18 +174,41 @@ const CampaignWizardContent = () => {
     const targetCount = audienceCount - optedOutCount;
     const canStep1 = name.trim().length > 0;
     const canStep2 = templateId && isFullyMapped(currentTemplate);
-    const needsDoubleConfirm = targetCount > 500;
+    const needsDoubleConfirm = scheduleType === "now" && targetCount > 500;
+    const sendButtonLabel = sending
+        ? (scheduleType === "now" ? "Sending..." : "Scheduling...")
+        : scheduleType === "now"
+            ? `Send to ${targetCount.toLocaleString()} Customers`
+            : scheduleType === "scheduled"
+                ? `Schedule Campaign`
+                : `Start Recurring Campaign`;
+
+    const buildPayload = () => ({
+        name: name.trim(),
+        audience_id: audienceId,
+        audience_name: audienceName,
+        audience_count: audienceCount,
+        template_id: templateId,
+        template_name: templateName,
+        variable_mappings: variableMappings,
+        variable_modes: variableModes,
+        menu_pick_resolved: menuPickResolved,
+        schedule_type: scheduleType,
+        scheduled_date: scheduledDate || null,
+        scheduled_time: scheduledTime || null,
+        recurring_frequency: scheduleType === "recurring" ? recurringFrequency : null,
+        recurring_days: scheduleType === "recurring" ? recurringDays : null,
+        recurring_day_of_month: scheduleType === "recurring" ? recurringDayOfMonth : null,
+        recurring_end_option: scheduleType === "recurring" ? recurringEndOption : null,
+        recurring_end_date: scheduleType === "recurring" && recurringEndOption === "after_date" ? (recurringEndDate || null) : null,
+        recurring_occurrences: scheduleType === "recurring" && recurringEndOption === "after_occurrences" ? (Number(recurringOccurrences) || null) : null,
+    });
 
     const handleSave = async () => {
         if (!name.trim()) { toast.error("Campaign name is required"); return; }
         setSaving(true);
         try {
-            const payload = {
-                name: name.trim(), audience_id: audienceId, audience_name: audienceName, audience_count: audienceCount,
-                template_id: templateId, template_name: templateName, variable_mappings: variableMappings,
-                variable_modes: variableModes, menu_pick_resolved: menuPickResolved,
-                schedule_type: scheduleType, scheduled_date: scheduledDate, scheduled_time: scheduledTime,
-            };
+            const payload = buildPayload();
             if (savedCampaignId) {
                 await api.put(`/campaigns/${savedCampaignId}`, payload);
                 toast.success("Campaign saved");
@@ -191,11 +225,7 @@ const CampaignWizardContent = () => {
         setShowConfirm(false);
         setSending(true);
         try {
-            const payload = {
-                name: name.trim(), audience_id: audienceId, audience_name: audienceName, audience_count: audienceCount,
-                template_id: templateId, template_name: templateName, variable_mappings: variableMappings,
-                variable_modes: variableModes, menu_pick_resolved: menuPickResolved, schedule_type: scheduleType,
-            };
+            const payload = buildPayload();
             let cid = savedCampaignId;
             if (!cid) {
                 const res = await api.post("/campaigns", payload);
@@ -205,7 +235,13 @@ const CampaignWizardContent = () => {
                 await api.put(`/campaigns/${cid}`, payload);
             }
             const res = await api.post(`/campaigns/${cid}/send`);
-            toast.success(`Sending to ${res.data.target_count} customers...`);
+            if (scheduleType === "now") {
+                toast.success(`Sending to ${res.data.target_count} customers...`);
+            } else if (scheduleType === "scheduled") {
+                toast.success(`Scheduled for ${scheduledDate} at ${scheduledTime}`);
+            } else {
+                toast.success(`Recurring ${recurringFrequency} campaign started`);
+            }
             navigate("/campaigns");
         } catch (err) { toast.error(err.response?.data?.detail || "Failed to send"); }
         finally { setSending(false); }
@@ -455,7 +491,7 @@ const CampaignWizardContent = () => {
                                 className="bg-[#25D366] hover:bg-[#1da851] text-white rounded-full px-6"
                                 data-testid="send-campaign-btn"
                             >
-                                {sending ? "Sending..." : `Send to ${targetCount.toLocaleString()} Customers`}
+                                {sendButtonLabel}
                             </Button>
                         </div>
                     </div>
