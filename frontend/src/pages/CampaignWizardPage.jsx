@@ -61,6 +61,10 @@ const CampaignWizardContent = () => {
     const [recurringOccurrences, setRecurringOccurrences] = useState("");
     const [dailyLimit, setDailyLimit] = useState({ limit: 1000, used: 0, remaining: 1000 });
 
+    // CR-024 Phase 4 P4.10: Test Send
+    const [testPhone, setTestPhone] = useState("");
+    const [testSending, setTestSending] = useState(false);
+
     const [savedCampaignId, setSavedCampaignId] = useState(campaignId || null);
 
     useEffect(() => {
@@ -221,6 +225,45 @@ const CampaignWizardContent = () => {
         finally { setSaving(false); }
     };
 
+    // CR-024 Phase 4 P4.10: Test Send — persists campaign first (if needed), then fires 1 test message
+    const handleTestSend = async () => {
+        const phoneRaw = testPhone.trim();
+        if (!phoneRaw) { toast.error("Phone number required"); return; }
+        if (!templateId) { toast.error("Pick a template first"); return; }
+        // Strip + and non-digits except leading country code
+        const cleaned = phoneRaw.replace(/\+/g, "").replace(/[^0-9]/g, "");
+        if (cleaned.length < 8) { toast.error("Invalid phone number"); return; }
+        // Default country code = 91 if 10 digits; otherwise take first 1-3 chars
+        let countryCode = "91";
+        let phone = cleaned;
+        if (cleaned.length > 10) {
+            countryCode = cleaned.slice(0, cleaned.length - 10);
+            phone = cleaned.slice(-10);
+        }
+        setTestSending(true);
+        try {
+            const payload = buildPayload();
+            let cid = savedCampaignId;
+            if (!cid) {
+                const res = await api.post("/campaigns", payload);
+                cid = res.data.id;
+                setSavedCampaignId(cid);
+            } else {
+                await api.put(`/campaigns/${cid}`, payload);
+            }
+            const res = await api.post(`/campaigns/${cid}/test-send`, { phone, country_code: countryCode });
+            if (res.data.success) {
+                toast.success(`Test message sent to +${countryCode}${phone}`);
+            } else {
+                toast.error(`Test failed: ${res.data.error || "Unknown error"}`);
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Test send failed");
+        } finally {
+            setTestSending(false);
+        }
+    };
+
     const handleSend = async () => {
         setShowConfirm(false);
         setSending(true);
@@ -358,6 +401,35 @@ const CampaignWizardContent = () => {
                                             ))}
                                         </div>
                                         <p className="text-[11px] text-green-600 mt-2">All {Object.keys(variableMappings).length} variables mapped</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* CR-024 Phase 4 P4.10: Test Send — single-recipient dry run */}
+                            {templateId && (
+                                <div className="mt-4 border border-amber-200 bg-amber-50 rounded-xl p-3" data-testid="test-send-panel">
+                                    <Label className="text-xs font-semibold uppercase tracking-wider text-amber-700">Send Test Message</Label>
+                                    <p className="text-[11px] text-amber-700 mt-0.5 mb-2">
+                                        Verify the template renders correctly before scheduling. Counts as 1 live WhatsApp message.
+                                    </p>
+                                    <div className="flex gap-2 items-center">
+                                        <Input
+                                            value={testPhone}
+                                            onChange={e => setTestPhone(e.target.value)}
+                                            placeholder="9999999999"
+                                            className="text-sm bg-white"
+                                            data-testid="test-send-phone"
+                                        />
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={handleTestSend}
+                                            disabled={testSending || !testPhone.trim() || !templateId}
+                                            className="rounded-full whitespace-nowrap border-amber-400 text-amber-800 hover:bg-amber-100"
+                                            data-testid="test-send-btn"
+                                        >
+                                            {testSending ? "Sending..." : "Send Test"}
+                                        </Button>
                                     </div>
                                 </div>
                             )}

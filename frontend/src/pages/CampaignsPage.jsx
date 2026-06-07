@@ -17,6 +17,26 @@ const STATUS_CONFIG = {
     failed: { label: "Failed", color: "bg-red-100 text-red-700" },
     paused: { label: "Paused", color: "bg-yellow-100 text-yellow-700" },
     scheduled: { label: "Scheduled", color: "bg-blue-100 text-blue-700" },
+    missed: { label: "Missed", color: "bg-red-100 text-red-700" },
+};
+
+// CR-024 Phase 4: format UTC ISO → "8 Jun 10:00 IST" for scheduled rows
+const formatNextRunIST = (iso) => {
+    if (!iso) return "";
+    try {
+        const d = new Date(iso);
+        const opts = {
+            timeZone: "Asia/Kolkata",
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        };
+        return `${d.toLocaleString("en-IN", opts)} IST`;
+    } catch {
+        return iso;
+    }
 };
 
 const CampaignsPageContent = () => {
@@ -57,10 +77,24 @@ const CampaignsPageContent = () => {
         }
     };
 
-    // Determine effective status for display (draft+scheduled → Scheduled)
+    // Determine effective status for display (draft+scheduled → Scheduled, missed kept as missed)
     const getDisplayStatus = (c) => {
+        if (c.status === "missed") return "missed";
+        if (c.status === "scheduled") return "scheduled";
         if (c.status === "draft" && c.schedule_type === "scheduled") return "scheduled";
         return c.status;
+    };
+
+    // CR-024 Phase 4 P4.11: Re-run a missed campaign — reset to scheduled and re-fire via /send.
+    const handleRerunMissed = async (cid) => {
+        try {
+            await api.put(`/campaigns/${cid}`, { schedule_type: "now" });
+            await api.post(`/campaigns/${cid}/send`);
+            toast.success("Campaign re-queued for immediate send");
+            fetchCampaigns();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to re-run");
+        }
     };
 
     const filtered = filter === "all" ? campaigns : campaigns.filter(c => {
@@ -186,6 +220,20 @@ const CampaignsPageContent = () => {
                                             <> &middot; Sent {new Date(campaign.last_run_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</>
                                         )}
                                     </div>
+                                    {/* CR-024 Phase 4 P4.5: next_run_at line for scheduled campaigns */}
+                                    {ds === "scheduled" && campaign.next_run_at && (
+                                        <div className="text-xs text-blue-600 mt-1 flex items-center gap-1" data-testid="campaign-next-run">
+                                            <Clock className="w-3 h-3" />
+                                            Next run: {formatNextRunIST(campaign.next_run_at)}
+                                        </div>
+                                    )}
+                                    {/* CR-024 Phase 4 P4.11: missed campaign error reason */}
+                                    {ds === "missed" && campaign.error && (
+                                        <div className="text-xs text-red-600 mt-1 flex items-center gap-1" data-testid="campaign-missed-reason" title={campaign.error}>
+                                            <AlertCircle className="w-3 h-3" />
+                                            {campaign.error}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Stat columns (mock style) */}
@@ -243,6 +291,11 @@ const CampaignsPageContent = () => {
                                         <DropdownMenuItem onClick={() => navigate(`/campaigns/${campaign.id}`)}>
                                             <Eye className="w-4 h-4 mr-2" /> View
                                         </DropdownMenuItem>
+                                        {ds === "missed" && (
+                                            <DropdownMenuItem onClick={() => handleRerunMissed(campaign.id)} data-testid="campaign-rerun-missed">
+                                                <Send className="w-4 h-4 mr-2" /> Re-run now
+                                            </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuItem onClick={() => setDeleteId(campaign.id)} className="text-red-600">
                                             <Trash2 className="w-4 h-4 mr-2" /> Delete
                                         </DropdownMenuItem>

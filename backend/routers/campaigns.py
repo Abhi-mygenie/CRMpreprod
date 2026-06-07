@@ -419,6 +419,111 @@ async def send_campaign(
 
 # ── History ──────────────────────────────────────────────────────────────
 
+@router.post("/{campaign_id}/test-send")
+async def test_send_campaign(
+    campaign_id: str,
+    body: dict,
+    user: dict = Depends(get_current_user),
+):
+    """CR-024 Phase 4 P4.10: Send 1 test WhatsApp to a chosen phone before
+    scheduling the full campaign. Uses a synthetic test customer (no DB row).
+    Logged to campaign_test_sends collection (separate from campaign_runs).
+    Does NOT count toward DAILY_LIMIT.
+    """
+    phone = (body.get("phone") or "").replace(" ", "").replace("-", "").lstrip("+")
+    country_code = (body.get("country_code") or "91").replace("+", "")
+    if not phone:
+        raise HTTPException(400, "Phone is required")
+
+    campaign = await db.campaigns.find_one({"id": campaign_id, "user_id": user["id"]})
+    if not campaign:
+        raise HTTPException(404, "Campaign not found")
+    if not campaign.get("template_id"):
+        raise HTTPException(400, "Template not set on campaign")
+
+    api_key = await get_user_authkey(db, user["id"])
+    if not api_key:
+        raise HTTPException(400, "AuthKey API key not configured for this tenant")
+
+    # Brand data for variable resolution
+    user_doc = await db.users.find_one(
+        {"id": user["id"]},
+        {"_id": 0, "restaurant_name": 1, "einvoice_link": 1,
+         "instagram_link": 1, "google_review_link": 1, "feedback_link": 1},
+    ) or {}
+    brand_data = {
+        "restaurant_name": user_doc.get("restaurant_name", ""),
+        "einvoice_link": user_doc.get("einvoice_link", ""),
+        "instagram_link": user_doc.get("instagram_link", ""),
+        "google_review_link": user_doc.get("google_review_link", ""),
+        "feedback_link": user_doc.get("feedback_link", ""),
+    }
+
+    # Synthetic test customer (won't be persisted, only used for variable resolution)
+    test_customer = {
+        "id": "test-recipient",
+        "name": body.get("test_name") or "Test User",
+        "phone": phone,
+        "country_code": country_code,
+        "tier": "Bronze",
+        "total_points": 100,
+        "total_visits": 1,
+        "total_spent": 0,
+        "email": "",
+    }
+
+    template_id = campaign.get("template_id", "")
+    variable_mappings = campaign.get("variable_mappings", {})
+    variable_modes = campaign.get("variable_modes", {})
+    menu_pick_resolved = campaign.get("menu_pick_resolved", {})
+    template_variables = list(variable_mappings.keys()) if variable_mappings else []
+
+    body_values = build_body_values(
+        template_variables,
+        variable_mappings,
+        test_customer,
+        {},
+        variable_modes=variable_modes,
+        brand_data=brand_data,
+        menu_pick_resolved=menu_pick_resolved,
+    )
+
+    msg = WhatsAppMessage(
+        phone=phone,
+        country_code=country_code,
+        template_id=template_id,
+        body_values=body_values,
+        customer_id="test-recipient",
+    )
+    bulk_result = await send_bulk_messages(api_key, [msg])
+    result = (bulk_result.get("results") or [{}])[0]
+
+    # Persist test send for audit (separate collection — no campaign_runs impact)
+    await db.campaign_test_sends.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "campaign_id": campaign_id,
+        "campaign_name": campaign.get("name", ""),
+        "template_id": template_id,
+        "template_name": campaign.get("template_name", ""),
+        "phone": phone,
+        "country_code": country_code,
+        "success": bool(result.get("success")),
+        "message_id": result.get("message_id"),
+        "error": result.get("error"),
+        "http_status": result.get("http_status"),
+        "body_values": body_values,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    return {
+        "success": bool(result.get("success")),
+        "message_id": result.get("message_id"),
+        "error": result.get("error"),
+        "phone": f"+{country_code}{phone}",
+    }
+
+
 @router.get("/{campaign_id}/runs")
 async def get_campaign_runs(campaign_id: str, user: dict = Depends(get_current_user)):
     runs = (
