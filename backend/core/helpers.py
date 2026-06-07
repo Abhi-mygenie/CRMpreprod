@@ -314,3 +314,23 @@ def build_customer_query(user_id: str, filters: dict) -> dict:
         ]
     
     return query
+
+
+
+async def resolve_audience(db, user_id: str, audience_id: str):
+    """CR-024 Phase 4 P4.3: Resolve an audience_id (real segment OR the synthetic
+    'all-customers' token) into a (mongo_query, audience_name, audience_count) tuple.
+
+    Raises HTTPException(404) if audience_id is not 'all-customers' and the
+    segment is not found.
+    """
+    from fastapi import HTTPException
+    if audience_id == "all-customers":
+        count = await db.customers.count_documents({"user_id": user_id})
+        return ({"user_id": user_id}, "All Customers", count)
+
+    segment = await db.segments.find_one({"id": audience_id, "user_id": user_id})
+    if not segment:
+        raise HTTPException(status_code=404, detail="Audience not found")
+    query = build_customer_query(user_id, segment.get("filters", {}))
+    return (query, segment.get("name", ""), segment.get("customer_count", 0))

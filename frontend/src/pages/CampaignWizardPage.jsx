@@ -399,12 +399,27 @@ const CampaignWizardContent = () => {
                                 <Select value={templateId} onValueChange={handleTemplateSelect}>
                                     <SelectTrigger className="mt-1.5" data-testid="template-select"><SelectValue placeholder="Select a template" /></SelectTrigger>
                                     <SelectContent>
-                                        {templates.filter(t => isFullyMapped(t)).map(t => (
-                                            <SelectItem key={t.id} value={t.id}>{t.name} ({(t.variables || []).length} variables, fully mapped)</SelectItem>
-                                        ))}
+                                        {templates.map(t => {
+                                            const mapped = isFullyMapped(t);
+                                            return (
+                                                <SelectItem key={t.id} value={t.id}>
+                                                    {t.name} ({(t.variables || []).length} variables{mapped ? ", fully mapped" : ", needs mapping"})
+                                                </SelectItem>
+                                            );
+                                        })}
                                     </SelectContent>
                                 </Select>
-                                <p className="text-[11px] text-gray-500 mt-1">Only templates with all variables mapped are shown</p>
+                                {/* CR-024 Phase 4 P4.4: Inline guidance when template is not fully mapped */}
+                                {templateId && currentTemplate && !isFullyMapped(currentTemplate) && (
+                                    <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800" data-testid="needs-mapping-banner">
+                                        ⚠ This template has unmapped variables. Click{" "}
+                                        <span className="underline cursor-pointer font-semibold" onClick={() => navigate("/templates")}>
+                                            Templates page
+                                        </span>{" "}
+                                        to set defaults, then return here.
+                                    </div>
+                                )}
+                                <p className="text-[11px] text-gray-500 mt-1">All templates shown — partially mapped ones are flagged</p>
                             </div>
 
                             {/* Variable Mapping Grid (matching mock) */}

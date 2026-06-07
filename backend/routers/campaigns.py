@@ -630,6 +630,196 @@ async def resume_campaign(campaign_id: str, user: dict = Depends(get_current_use
     }
 
 
+# ── CR-024 Phase 4 P4.7: Clone ──────────────────────────────────────────
+
+@router.post("/{campaign_id}/clone")
+async def clone_campaign(campaign_id: str, user: dict = Depends(get_current_user)):
+    src = await db.campaigns.find_one({"id": campaign_id, "user_id": user["id"]}, {"_id": 0})
+    if not src:
+        raise HTTPException(404, "Campaign not found")
+    now = datetime.now(timezone.utc).isoformat()
+    clone = {
+        **src,
+        "id": str(uuid.uuid4()),
+        "name": f"{src['name']} (copy)",
+        "status": "draft",
+        "schedule_type": "now",
+        "scheduled_date": None, "scheduled_time": None,
+        "recurring_frequency": None, "recurring_days": None,
+        "recurring_day_of_month": None, "recurring_end_option": None,
+        "recurring_end_date": None, "recurring_occurrences": None,
+        "next_run_at": None, "claimed_at": None, "paused_at": None,
+        "previous_schedule_type": None,
+        "total_sent": 0, "total_delivered": 0, "total_read": 0, "total_failed": 0,
+        "run_count": 0, "last_run_at": None, "error": None,
+        "created_at": now, "updated_at": now,
+    }
+    await db.campaigns.insert_one(clone)
+    clone.pop("_id", None)
+    return clone
+
+
+# ── CR-024 Phase 4 P4.8: Resend Failed ──────────────────────────────────
+
+@router.post("/{campaign_id}/runs/{run_id}/resend-failed")
+async def resend_failed(
+    campaign_id: str,
+    run_id: str,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user),
+):
+    """Re-fire only the phones that failed in a given campaign_run.
+    Creates a NEW campaign_run with parent_run_id linkage. Hard cap of 5
+    retry chains to prevent infinite loops."""
+    campaign = await db.campaigns.find_one({"id": campaign_id, "user_id": user["id"]})
+    if not campaign:
+        raise HTTPException(404, "Campaign not found")
+
+    # Hard cap on retry depth
+    retry_count = await db.campaign_runs.count_documents({"parent_run_id": run_id})
+    if retry_count >= 5:
+        raise HTTPException(429, "Maximum retry attempts (5) reached for this run")
+
+    failed_logs = await db.whatsapp_message_logs.find({
+        "user_id": user["id"],
+        "campaign_id": run_id,  # campaign_id field in logs == campaign_run.id
+        "status": {"$in": ["failed", "Failed", "FAILED"]},
+    }, {"_id": 0, "phone": 1, "customer_id": 1, "country_code": 1}).to_list(2000)
+
+    if not failed_logs:
+        raise HTTPException(400, "No failed messages found in this run")
+
+    # Dedupe by phone
+    seen = set()
+    targets = []
+    for lg in failed_logs:
+        p = lg.get("phone")
+        if p and p not in seen:
+            seen.add(p)
+            targets.append(lg)
+
+    background_tasks.add_task(_execute_resend_subset, campaign_id, run_id, targets, user["id"])
+    return {"resending_count": len(targets), "parent_run_id": run_id}
+
+
+async def _execute_resend_subset(campaign_id: str, parent_run_id: str, targets: list, user_id: str):
+    """Re-fire campaign send for a phone subset. Mirrors _execute_campaign_send
+    but operates on phones from a previous failed run (not the campaign audience)."""
+    try:
+        campaign = await db.campaigns.find_one({"id": campaign_id, "user_id": user_id})
+        if not campaign:
+            return
+
+        api_key = await get_user_authkey(db, user_id)
+        if not api_key:
+            logger.error(f"No AuthKey for resend on campaign {campaign_id}")
+            return
+
+        user_doc = await db.users.find_one(
+            {"id": user_id},
+            {"_id": 0, "restaurant_name": 1, "einvoice_link": 1,
+             "instagram_link": 1, "google_review_link": 1, "feedback_link": 1},
+        ) or {}
+        brand_data = {k: user_doc.get(k, "") for k in
+            ["restaurant_name", "einvoice_link", "instagram_link", "google_review_link", "feedback_link"]}
+
+        # Load customers for variable resolution
+        phones = [t["phone"] for t in targets]
+        customers = await db.customers.find(
+            {"user_id": user_id, "phone": {"$in": phones}},
+            {"_id": 0},
+        ).to_list(2000)
+        cust_by_phone = {c.get("phone"): c for c in customers}
+
+        now = datetime.now(timezone.utc).isoformat()
+        new_run_id = str(uuid.uuid4())
+        run_doc = {
+            "id": new_run_id,
+            "campaign_id": campaign_id,
+            "parent_run_id": parent_run_id,  # P4.8 linkage
+            "campaign_name": f"{campaign['name']} (resend failed)",
+            "user_id": user_id,
+            "audience_id": campaign["audience_id"],
+            "audience_name": campaign.get("audience_name", ""),
+            "template_name": campaign.get("template_name", ""),
+            "audience_count": len(targets),
+            "opted_out_skipped": 0,
+            "target_count": len(targets),
+            "total_sent": 0, "total_delivered": 0, "total_read": 0, "total_failed": 0,
+            "status": "running",
+            "started_at": now, "completed_at": None, "error": None,
+            "is_resend": True,
+        }
+        await db.campaign_runs.insert_one(run_doc)
+
+        template_id = campaign.get("template_id", "")
+        variable_mappings = campaign.get("variable_mappings", {})
+        variable_modes = campaign.get("variable_modes", {})
+        menu_pick_resolved = campaign.get("menu_pick_resolved", {})
+        template_variables = list(variable_mappings.keys()) if variable_mappings else []
+
+        messages = []
+        customer_map = {}
+        for t in targets:
+            phone = (t.get("phone") or "").replace(" ", "").replace("-", "")
+            country_code = (t.get("country_code") or "91").replace("+", "")
+            if not phone:
+                continue
+            cust = cust_by_phone.get(phone, {"name": "", "phone": phone})
+            body_values = build_body_values(
+                template_variables, variable_mappings, cust, {},
+                variable_modes=variable_modes, brand_data=brand_data,
+                menu_pick_resolved=menu_pick_resolved,
+            )
+            messages.append(WhatsAppMessage(
+                phone=phone, country_code=country_code,
+                template_id=template_id, body_values=body_values,
+                customer_id=cust.get("id"),
+            ))
+            customer_map[phone] = cust
+
+        sent_count = 0
+        failed_count = 0
+        if messages:
+            bulk_result = await send_bulk_messages(api_key, messages)
+            for r in bulk_result.get("results", []):
+                from core.whatsapp import SendResult
+                sr = SendResult(
+                    success=r["success"], phone=r["phone"],
+                    message_id=r.get("message_id"), error=r.get("error"),
+                    http_status=r.get("http_status"), raw_response=r.get("raw_response"),
+                )
+                cust = customer_map.get(r["phone"], {})
+                await log_message_attempt(
+                    db, user_id, cust.get("id"), r["phone"], "campaign_resend",
+                    template_id, sr, template_name=campaign.get("template_name"),
+                    campaign_id=new_run_id,
+                    country_code=cust.get("country_code", "91").replace("+", ""),
+                    body_values=sr.response_data if not sr.success else None,
+                    customer_name=cust.get("name"),
+                    reference_type="campaign_resend", reference_id=campaign_id,
+                )
+                if r["success"]:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+
+        completed_at = datetime.now(timezone.utc).isoformat()
+        await db.campaign_runs.update_one(
+            {"id": new_run_id},
+            {"$set": {"total_sent": sent_count, "total_failed": failed_count,
+                      "status": "completed", "completed_at": completed_at}},
+        )
+        # Update parent campaign totals (resends add to lifetime totals)
+        await db.campaigns.update_one(
+            {"id": campaign_id},
+            {"$inc": {"total_sent": sent_count, "total_failed": failed_count}},
+        )
+        logger.info(f"Resend campaign {campaign_id} run={new_run_id}: sent={sent_count} failed={failed_count}")
+    except Exception as e:
+        logger.exception(f"Resend failed for {campaign_id}/{parent_run_id}: {e}")
+
+
 @router.get("/{campaign_id}/runs")
 async def get_campaign_runs(campaign_id: str, user: dict = Depends(get_current_user)):
     runs = (

@@ -1368,17 +1368,26 @@ async def create_segment(segment_data: SegmentCreate, user: dict = Depends(get_c
 
 @segments_router.get("", response_model=List[Segment])
 async def list_segments(user: dict = Depends(get_current_user)):
+    """CR-024 Phase 4 P4.2: Return cached counts (no per-list recount).
+    Use POST /segments/{id}/refresh-count for an explicit refresh.
+    Daily cron also refreshes counts in the background.
+    """
     segments = await db.segments.find({"user_id": user["id"]}, {"_id": 0}).to_list(100)
-    
-    for segment in segments:
-        count = await count_customers_by_filters(user["id"], segment["filters"])
-        segment["customer_count"] = count
-        await db.segments.update_one(
-            {"id": segment["id"]},
-            {"$set": {"customer_count": count}}
-        )
-    
     return [Segment(**s) for s in segments]
+
+@segments_router.post("/{segment_id}/refresh-count")
+async def refresh_segment_count(segment_id: str, user: dict = Depends(get_current_user)):
+    """CR-024 Phase 4 P4.2: Explicit recount + persist last_counted_at."""
+    segment = await db.segments.find_one({"id": segment_id, "user_id": user["id"]})
+    if not segment:
+        raise HTTPException(status_code=404, detail="Segment not found")
+    count = await count_customers_by_filters(user["id"], segment["filters"])
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.segments.update_one(
+        {"id": segment_id},
+        {"$set": {"customer_count": count, "last_counted_at": now_iso}},
+    )
+    return {"segment_id": segment_id, "customer_count": count, "last_counted_at": now_iso}
 
 @segments_router.post("/preview-count")
 async def preview_segment_count(data: dict, user: dict = Depends(get_current_user)):
@@ -1389,6 +1398,16 @@ async def preview_segment_count(data: dict, user: dict = Depends(get_current_use
 
 @segments_router.get("/{segment_id}", response_model=Segment)
 async def get_segment(segment_id: str, user: dict = Depends(get_current_user)):
+    # CR-024 Phase 4 P4.3: synthetic "all-customers" support
+    if segment_id == "all-customers":
+        count = await db.customers.count_documents({"user_id": user["id"]})
+        now_iso = datetime.now(timezone.utc).isoformat()
+        return Segment(
+            id="all-customers", user_id=user["id"], name="All Customers",
+            filters={}, customer_count=count, last_counted_at=now_iso,
+            created_at=now_iso, updated_at=now_iso,
+        )
+
     segment = await db.segments.find_one({"id": segment_id, "user_id": user["id"]}, {"_id": 0})
     if not segment:
         raise HTTPException(status_code=404, detail="Segment not found")
@@ -1400,6 +1419,11 @@ async def get_segment(segment_id: str, user: dict = Depends(get_current_user)):
 
 @segments_router.get("/{segment_id}/customers", response_model=List[Customer])
 async def get_segment_customers(segment_id: str, user: dict = Depends(get_current_user)):
+    # CR-024 Phase 4 P4.3: synthetic "all-customers" support
+    if segment_id == "all-customers":
+        customers = await db.customers.find({"user_id": user["id"]}, {"_id": 0}).to_list(1000)
+        return [Customer(**c) for c in customers]
+
     segment = await db.segments.find_one({"id": segment_id, "user_id": user["id"]}, {"_id": 0})
     if not segment:
         raise HTTPException(status_code=404, detail="Segment not found")
@@ -1422,6 +1446,7 @@ async def update_segment(segment_id: str, update_data: SegmentUpdate, user: dict
         if "filters" in update_dict:
             count = await count_customers_by_filters(user["id"], update_dict["filters"])
             update_dict["customer_count"] = count
+            update_dict["last_counted_at"] = update_dict["updated_at"]
         
         await db.segments.update_one({"id": segment_id}, {"$set": update_dict})
     

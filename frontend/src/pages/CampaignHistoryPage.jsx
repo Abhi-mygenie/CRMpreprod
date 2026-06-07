@@ -160,9 +160,30 @@ const CampaignHistoryContent = () => {
                                                 {new Date(run.started_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                             </td>
                                             <td className="px-3 py-3.5">
-                                                <Button variant="outline" size="sm" className="text-xs rounded-full" data-testid="history-details-btn">
-                                                    Details
-                                                </Button>
+                                                <div className="flex gap-1.5">
+                                                    <Button variant="outline" size="sm" className="text-xs rounded-full" data-testid="history-details-btn">
+                                                        Details
+                                                    </Button>
+                                                    {run.total_failed > 0 && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-xs rounded-full border-orange-300 text-orange-700 hover:bg-orange-50"
+                                                            data-testid={`history-resend-failed-${run.id}`}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const res = await api.post(`/campaigns/${run.campaign_id}/runs/${run.id}/resend-failed`);
+                                                                    toast.success(`Resending ${res.data.resending_count} failed message(s)`);
+                                                                    setTimeout(() => fetchRuns(), 8000);
+                                                                } catch (err) {
+                                                                    toast.error(err.response?.data?.detail || "Resend failed");
+                                                                }
+                                                            }}
+                                                        >
+                                                            Resend {run.total_failed}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );

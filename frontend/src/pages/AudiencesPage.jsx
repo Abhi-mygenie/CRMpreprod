@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Edit2, Eye, Trash2, Users } from "lucide-react";
+import { Plus, Edit2, Eye, Trash2, Users, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -164,6 +164,35 @@ const AudiencesPageContent = () => {
         }
     };
 
+    // CR-024 Phase 4 P4.2: Refresh customer count for a single segment.
+    const [refreshing, setRefreshing] = useState({});
+    const handleRefreshCount = async (segId) => {
+        if (segId === "all-customers") return;
+        setRefreshing(p => ({ ...p, [segId]: true }));
+        try {
+            const res = await api.post(`/segments/${segId}/refresh-count`);
+            setSegments(segs => segs.map(s => s.id === segId
+                ? { ...s, customer_count: res.data.customer_count, last_counted_at: res.data.last_counted_at }
+                : s));
+            toast.success("Count refreshed");
+        } catch (err) {
+            toast.error("Refresh failed");
+        } finally {
+            setRefreshing(p => ({ ...p, [segId]: false }));
+        }
+    };
+
+    const formatRelativeTime = (iso) => {
+        if (!iso) return "Never counted";
+        const diffMs = Date.now() - new Date(iso).getTime();
+        const m = Math.floor(diffMs / 60000);
+        if (m < 1) return "Just now";
+        if (m < 60) return `${m}m ago`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}h ago`;
+        return `${Math.floor(h / 24)}d ago`;
+    };
+
     const usedCount = allAudiences.filter(a => usedIds.has(a.id)).length;
     const unusedCount = allAudiences.filter(a => !usedIds.has(a.id)).length;
 
@@ -221,6 +250,21 @@ const AudiencesPageContent = () => {
                                 <div className="text-2xl font-extrabold text-[#F26B33] my-2">
                                     {(seg.customer_count || 0).toLocaleString()}
                                 </div>
+                                {/* CR-024 Phase 4 P4.2: last_counted_at + refresh */}
+                                {!seg.isDefault && (
+                                    <div className="text-[10px] text-gray-400 flex items-center gap-1 mb-1" data-testid={`audience-last-counted-${seg.id}`}>
+                                        Counted {formatRelativeTime(seg.last_counted_at)}
+                                        <button
+                                            onClick={() => handleRefreshCount(seg.id)}
+                                            disabled={refreshing[seg.id]}
+                                            className="ml-1 hover:text-[#F26B33] transition-colors disabled:opacity-50"
+                                            title="Refresh count"
+                                            data-testid={`audience-refresh-${seg.id}`}
+                                        >
+                                            <RefreshCw className={`w-3 h-3 ${refreshing[seg.id] ? "animate-spin" : ""}`} />
+                                        </button>
+                                    </div>
+                                )}
                                 {seg.isDefault ? (
                                     <div className="text-xs text-gray-500">Every customer in your database</div>
                                 ) : tags.length > 0 ? (

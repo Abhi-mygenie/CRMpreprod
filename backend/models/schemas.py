@@ -923,6 +923,7 @@ class Segment(BaseModel):
     name: str
     filters: dict
     customer_count: int = 0
+    last_counted_at: Optional[str] = None  # CR-024 Phase 4 P4.2
     created_at: str
     updated_at: str
 

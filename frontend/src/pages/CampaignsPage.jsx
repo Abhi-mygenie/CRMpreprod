@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Send, Clock, CheckCircle2, AlertCircle, MoreVertical, Trash2, Eye, Megaphone, Pause, Edit2, BarChart3 } from "lucide-react";
+import { Plus, Send, Clock, CheckCircle2, AlertCircle, MoreVertical, Trash2, Eye, Megaphone, Pause, Edit2, BarChart3, Copy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -114,6 +114,18 @@ const CampaignsPageContent = () => {
             fetchCampaigns();
         } catch (err) {
             toast.error(err.response?.data?.detail || "Failed to resume");
+        }
+    };
+
+    // CR-024 Phase 4 P4.7: Clone a campaign as a new draft.
+    const handleClone = async (cid) => {
+        try {
+            const res = await api.post(`/campaigns/${cid}/clone`);
+            toast.success(`Cloned as "${res.data.name}"`);
+            fetchCampaigns();
+            navigate(`/campaigns/${res.data.id}`);
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to clone");
         }
     };
 
@@ -310,6 +322,9 @@ const CampaignsPageContent = () => {
                                     <DropdownMenuContent align="end">
                                         <DropdownMenuItem onClick={() => navigate(`/campaigns/${campaign.id}`)}>
                                             <Eye className="w-4 h-4 mr-2" /> View
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleClone(campaign.id)} data-testid="campaign-clone">
+                                            <Copy className="w-4 h-4 mr-2" /> Clone as new draft
                                         </DropdownMenuItem>
                                         {(ds === "scheduled" || ds === "active") && (
                                             <DropdownMenuItem onClick={() => handlePause(campaign.id)} data-testid="campaign-pause">
