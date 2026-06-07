@@ -420,7 +420,7 @@ Per Phase 3's owner lock "no live WhatsApp without explicit approval" — Test S
 | Q1 | All 11 items, top-4 only, or custom subset? | **Top batches** (see §6) |
 | Q2 | Should "Test Send" log to a separate collection or skip logging entirely? | **Separate `campaign_test_sends`** for audit |
 | Q3 | Resend Failed — create NEW campaign_run linked to original, or extend the original? | **NEW with `parent_run_id`** (cleaner audit) |
-| Q4 | Pause behaviour on `active` (currently firing) campaign — wait for current send to finish then pause, or abort mid-send? | **Wait — set status=paused, don't kill in-flight task** |
+| Q4 | Pause behaviour on `active` (currently firing) campaign — wait for current send to finish then pause, or abort mid-send? | **A — Wait — set status=paused, don't kill in-flight task. ✅ LOCKED 2026-06-07.** Tooltip on Pause button: "Pause stops future runs. Messages already in flight will complete (≤2 min for large campaigns)." |
 | Q5 | Edit-while-scheduled — should we allow template change too, or lock everything except `name`? | **Allow template + variables + name; lock audience + schedule** |
 | Q6 | Clone scope — copy seed data exactly or strip `audience_count` (will be stale)? | **Strip audience_count** (recomputed on first preview) |
 | Q7 | Daily auto-refresh of segment counts via existing midnight cron — OK or skip? | **OK — adds ~10 LoC and removes stale data class entirely** |
