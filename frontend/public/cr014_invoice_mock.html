@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kunafa Mahal — Tax Invoice</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+  .invoice-container { max-width: 480px; margin: 0 auto; background: #fff; min-height: 100vh; }
+  
+  /* Header */
+  .header { background: linear-gradient(135deg, #2B2B2B 0%, #3d3d3d 100%); color: #fff; padding: 24px 20px 20px; }
+  .header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .logo-circle { width: 48px; height: 48px; border-radius: 50%; background: #F26B33; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; color: #fff; flex-shrink: 0; }
+  .restaurant-info h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+  .restaurant-info p { font-size: 11px; color: #ccc; margin-top: 2px; line-height: 1.4; }
+  .invoice-badge { display: inline-block; background: #F26B33; color: #fff; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 3px; letter-spacing: 1.5px; margin-top: 12px; }
+  .header-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; font-size: 11px; }
+  .header-meta dt { color: #999; }
+  .header-meta dd { color: #fff; font-weight: 600; }
+  
+  /* GSTIN strip */
+  .gstin-strip { background: #f8f8f8; padding: 8px 20px; font-size: 11px; color: #666; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; }
+  .gstin-strip strong { color: #333; }
+  
+  /* Customer + Order meta */
+  .meta-section { padding: 16px 20px; border-bottom: 1px solid #eee; }
+  .meta-section h3 { font-size: 10px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .meta-grid .label { font-size: 11px; color: #888; }
+  .meta-grid .value { font-size: 12px; font-weight: 600; color: #333; }
+  .meta-full { grid-column: 1 / -1; }
+  
+  /* Delivery address */
+  .delivery-badge { display: inline-flex; align-items: center; gap: 4px; background: #E8F5E9; color: #2E7D32; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; margin-bottom: 8px; }
+  .delivery-address { font-size: 12px; color: #555; line-height: 1.5; padding: 8px 12px; background: #fafafa; border-radius: 6px; border-left: 3px solid #F26B33; }
+  
+  /* Items table */
+  .items-section { padding: 16px 20px; }
+  .items-section h3 { font-size: 10px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .item-row { display: flex; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed #eee; }
+  .item-row:last-child { border-bottom: none; }
+  .veg-dot { width: 14px; height: 14px; border: 1.5px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; margin-right: 8px; margin-top: 2px; flex-shrink: 0; }
+  .veg-dot.veg { border-color: #2E7D32; }
+  .veg-dot.veg::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #2E7D32; }
+  .veg-dot.nonveg { border-color: #C62828; }
+  .veg-dot.nonveg::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #C62828; }
+  .item-details { flex: 1; }
+  .item-name { font-size: 13px; font-weight: 600; color: #333; }
+  .item-variant { font-size: 10px; color: #888; margin-top: 1px; }
+  .item-qty-price { font-size: 11px; color: #666; margin-top: 2px; }
+  .item-total { font-size: 13px; font-weight: 700; color: #333; text-align: right; min-width: 70px; }
+  
+  /* HSN note */
+  .hsn-note { font-size: 9px; color: #aaa; padding: 4px 20px 0; }
+  
+  /* Totals */
+  .totals-section { padding: 12px 20px; border-top: 2px solid #eee; }
+  .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+  .total-row .label { color: #666; }
+  .total-row .value { font-weight: 600; color: #333; }
+  .total-row.discount .label { color: #2E7D32; }
+  .total-row.discount .value { color: #2E7D32; }
+  .total-row.tax { font-size: 11px; }
+  .total-row.tax .label { color: #888; padding-left: 12px; }
+  .total-row.grand { padding: 10px 0 6px; margin-top: 6px; border-top: 2px solid #2B2B2B; font-size: 16px; font-weight: 800; }
+  .total-row.grand .label { color: #2B2B2B; }
+  .total-row.grand .value { color: #F26B33; }
+  .amount-words { font-size: 10px; color: #888; font-style: italic; padding: 2px 0 8px; }
+  
+  /* Payment strip */
+  .payment-strip { background: #f8f8f8; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+  .payment-method { font-size: 12px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 6px; }
+  .payment-badge { font-size: 10px; background: #E8F5E9; color: #2E7D32; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  
+  /* Loyalty footer */
+  .loyalty-section { padding: 14px 20px; background: #FFF8F0; border-top: 1px solid #FFE0CC; }
+  .loyalty-section h3 { font-size: 10px; font-weight: 700; color: #F26B33; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .loyalty-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .loyalty-item { text-align: center; padding: 8px; background: #fff; border-radius: 8px; border: 1px solid #FFE0CC; }
+  .loyalty-item .num { font-size: 18px; font-weight: 800; color: #F26B33; }
+  .loyalty-item .lbl { font-size: 9px; color: #999; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  
+  /* Footer */
+  .footer { padding: 16px 20px; text-align: center; border-top: 1px solid #eee; }
+  .footer p { font-size: 10px; color: #999; line-height: 1.6; }
+  .footer .thank-you { font-size: 14px; font-weight: 700; color: #F26B33; margin-bottom: 4px; }
+  
+  /* PDF button */
+  .pdf-btn { display: block; margin: 16px 20px; padding: 14px; background: #F26B33; color: #fff; text-align: center; border-radius: 10px; font-size: 14px; font-weight: 700; text-decoration: none; letter-spacing: 0.5px; }
+  .pdf-btn:hover { background: #D85A2A; }
+  
+  /* Variant toggle */
+  .variant-toggle { display: flex; gap: 0; margin: 16px 20px 0; border-radius: 8px; overflow: hidden; border: 2px solid #F26B33; }
+  .variant-toggle button { flex: 1; padding: 10px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; transition: all 0.2s; }
+  .variant-toggle button.active { background: #F26B33; color: #fff; }
+  .variant-toggle button:not(.active) { background: #fff; color: #F26B33; }
+  
+  .variant { display: none; }
+  .variant.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Variant Toggle (for mock preview only - not in final product) -->
+<div style="max-width:480px;margin:0 auto;background:#fff;">
+  <div class="variant-toggle">
+    <button class="active" onclick="showVariant('dinein')">Dine-In Invoice</button>
+    <button onclick="showVariant('delivery')">Delivery Invoice</button>
+  </div>
+</div>
+
+<!-- ===================== DINE-IN VARIANT ===================== -->
+<div id="dinein" class="variant active">
+<div class="invoice-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo-circle">KM</div>
+      <div class="restaurant-info">
+        <h1>Kunafa Mahal</h1>
+        <p>Shop No - 4, New Market, Hazratganj<br>Lucknow, Uttar Pradesh — 226001</p>
+        <p>Ph: 7307097771 | kunafamahal@mygenie.online</p>
+      </div>
+    </div>
+    <div class="invoice-badge">TAX INVOICE</div>
+    <div class="header-meta">
+      <dt>Invoice No.</dt><dd>KM/26-27/0571</dd>
+      <dt>Date</dt><dd>25 May 2026, 3:24 PM</dd>
+      <dt>Bill No.</dt><dd>009571</dd>
+      <dt>Order ID</dt><dd>#869311</dd>
+    </div>
+  </div>
+  
+  <!-- GSTIN Strip -->
+  <div class="gstin-strip">
+    <span>GSTIN: <strong>09NTAPK9306R1ZP</strong></span>
+    <span>FSSAI: <strong>12345678901234</strong></span>
+  </div>
+  
+  <!-- Customer Info -->
+  <div class="meta-section">
+    <h3>Customer</h3>
+    <div class="meta-grid">
+      <div><div class="label">Name</div><div class="value">Abhishek Jain</div></div>
+      <div><div class="label">Phone</div><div class="value">+91 7505242126</div></div>
+      <div><div class="label">Table</div><div class="value">Table 4</div></div>
+      <div><div class="label">Type</div><div class="value">Dine-In</div></div>
+    </div>
+  </div>
+  
+  <!-- Items -->
+  <div class="items-section">
+    <h3>Items</h3>
+    
+    <div class="item-row">
+      <div class="veg-dot veg"></div>
+      <div class="item-details">
+        <div class="item-name">Shahi Lucknowi Koshari</div>
+        <div class="item-qty-price">2 x Rs.379.00</div>
+      </div>
+      <div class="item-total">Rs.758.00</div>
+    </div>
+    
+    <div class="item-row">
+      <div class="veg-dot veg"></div>
+      <div class="item-details">
+        <div class="item-name">Biscoff Supreme Salankatia</div>
+        <div class="item-qty-price">1 x Rs.349.00</div>
+      </div>
+      <div class="item-total">Rs.349.00</div>
+    </div>
+    
+    <div class="item-row">
+      <div class="veg-dot nonveg"></div>
+      <div class="item-details">
+        <div class="item-name">Chicken Kunafa Special</div>
+        <div class="item-variant">+ Extra Cheese, Large</div>
+        <div class="item-qty-price">1 x Rs.499.00</div>
+      </div>
+      <div class="item-total">Rs.499.00</div>
+    </div>
+    
+    <div class="item-row">
+      <div class="veg-dot veg"></div>
+      <div class="item-details">
+        <div class="item-name">Blueberry Delight Loua</div>
+        <div class="item-qty-price">2 x Rs.389.00</div>
+      </div>
+      <div class="item-total">Rs.778.00</div>
+    </div>
+    
+    <div class="item-row">
+      <div class="veg-dot veg"></div>
+      <div class="item-details">
+        <div class="item-name">Dates 2 Pcs [Extra]</div>
+        <div class="item-qty-price">3 x Rs.15.00</div>
+      </div>
+      <div class="item-total">Rs.45.00</div>
+    </div>
+  </div>
+  
+  <div class="hsn-note">SAC: 996331 (Restaurant Service) | Place of Supply: Uttar Pradesh (09)</div>
+  
+  <!-- Totals -->
+  <div class="totals-section">
+    <div class="total-row">
+      <span class="label">Subtotal (5 items)</span>
+      <span class="value">Rs.2,429.00</span>
+    </div>
+    <div class="total-row discount">
+      <span class="label">Coupon Discount (WELCOME20)</span>
+      <span class="value">- Rs.200.00</span>
+    </div>
+    <div class="total-row discount">
+      <span class="label">Loyalty Points Redeemed (150 pts)</span>
+      <span class="value">- Rs.150.00</span>
+    </div>
+    <div class="total-row">
+      <span class="label">Taxable Amount</span>
+      <span class="value">Rs.2,079.00</span>
+    </div>
+    <div class="total-row tax">
+      <span class="label">CGST @ 2.5%</span>
+      <span class="value">Rs.51.98</span>
+    </div>
+    <div class="total-row tax">
+      <span class="label">SGST @ 2.5%</span>
+      <span class="value">Rs.51.98</span>
+    </div>
+    <div class="total-row">
+      <span class="label">Round Off</span>
+      <span class="value">Rs.0.04</span>
+    </div>
+    <div class="total-row grand">
+      <span class="label">Total</span>
+      <span class="value">Rs.2,183.00</span>
+    </div>
+    <div class="amount-words">Rupees Two Thousand One Hundred Eighty Three Only</div>
+  </div>
+  
+  <!-- Payment -->
+  <div class="payment-strip">
+    <div class="payment-method">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      UPI
+    </div>
+    <span class="payment-badge">PAID</span>
+  </div>
+  
+  <!-- Loyalty -->
+  <div class="loyalty-section">
+    <h3>Loyalty Rewards</h3>
+    <div class="loyalty-grid">
+      <div class="loyalty-item">
+        <div class="num">+152</div>
+        <div class="lbl">Points Earned</div>
+      </div>
+      <div class="loyalty-item">
+        <div class="num">284</div>
+        <div class="lbl">Points Balance</div>
+      </div>
+      <div class="loyalty-item">
+        <div class="num">Silver</div>
+        <div class="lbl">Your Tier</div>
+      </div>
+      <div class="loyalty-item">
+        <div class="num">Rs.50</div>
+        <div class="lbl">Wallet Balance</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <div class="footer">
+    <p class="thank-you">Thank you for dining with us!</p>
+    <p>This is a computer-generated invoice and does not require a signature.<br>
+    For queries, contact us at 7307097771</p>
+  </div>
+  
+  <!-- PDF Download -->
+  <a href="#" class="pdf-btn" onclick="alert('PDF download — will work in production')">
+    Download PDF
+  </a>
+  <div style="height:20px"></div>
+</div>
+</div>
+
+<!-- ===================== DELIVERY VARIANT ===================== -->
+<div id="delivery" class="variant">
+<div class="invoice-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo-circle">KM</div>
+      <div class="restaurant-info">
+        <h1>Kunafa Mahal</h1>
+        <p>Shop No - 4, New Market, Hazratganj<br>Lucknow, Uttar Pradesh — 226001</p>
+        <p>Ph: 7307097771 | kunafamahal@mygenie.online</p>
+      </div>
+    </div>
+    <div class="invoice-badge">TAX INVOICE</div>
+    <div class="header-meta">
+      <dt>Invoice No.</dt><dd>KM/26-27/0585</dd>
+      <dt>Date</dt><dd>05 Jun 2026, 9:50 AM</dd>
+      <dt>Bill No.</dt><dd>010585</dd>
+      <dt>Order ID</dt><dd>#939327</dd>
+    </div>
+  </div>
+  
+  <!-- GSTIN Strip -->
+  <div class="gstin-strip">
+    <span>GSTIN: <strong>09NTAPK9306R1ZP</strong></span>
+    <span>FSSAI: <strong>12345678901234</strong></span>
+  </div>
+  
+  <!-- Customer + Delivery -->
+  <div class="meta-section">
+    <h3>Customer</h3>
+    <div class="meta-grid">
+      <div><div class="label">Name</div><div class="value">Abhishek Jain</div></div>
+      <div><div class="label">Phone</div><div class="value">+91 7505242126</div></div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="delivery-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 18H3a2 2 0 01-2-2V8a2 2 0 012-2h3.93a2 2 0 011.66.9l.82 1.2a2 2 0 001.66.9H21a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+        DELIVERY
+      </div>
+      <div class="delivery-address">
+        42-B, Sector 18, Gomti Nagar Extension<br>
+        Near Phoenix United Mall, Lucknow — 226010<br>
+        Landmark: Opposite CCD
+      </div>
+    </div>
+  </div>
+  
+  <!-- Items -->
+  <div class="items-section">
+    <h3>Items</h3>
+    
+    <div class="item-row">
+      <div class="veg-dot veg"></div>
+      <div class="item-details">
+        <div class="item-name">Biscoff Supreme Salankatia</div>
+        <div class="item-qty-price">1 x Rs.349.00</div>
+      </div>
+      <div class="item-total">Rs.349.00</div>
+    </div>
+    
+    <div class="item-row">
+      <div class="veg-dot veg"></div>
+      <div class="item-details">
+        <div class="item-name">Gulab Jamun Delight Koshari</div>
+        <div class="item-qty-price">2 x Rs.379.00</div>
+      </div>
+      <div class="item-total">Rs.758.00</div>
+    </div>
+    
+    <div class="item-row">
+      <div class="veg-dot nonveg"></div>
+      <div class="item-details">
+        <div class="item-name">Chicken Shawarma Plate</div>
+        <div class="item-variant">+ Hummus, Extra Garlic Sauce</div>
+        <div class="item-qty-price">1 x Rs.299.00</div>
+      </div>
+      <div class="item-total">Rs.299.00</div>
+    </div>
+  </div>
+  
+  <div class="hsn-note">SAC: 996331 (Restaurant Service) | Place of Supply: Uttar Pradesh (09)</div>
+  
+  <!-- Totals with delivery charge -->
+  <div class="totals-section">
+    <div class="total-row">
+      <span class="label">Subtotal (3 items)</span>
+      <span class="value">Rs.1,406.00</span>
+    </div>
+    <div class="total-row">
+      <span class="label">Delivery Charge</span>
+      <span class="value">Rs.49.00</span>
+    </div>
+    <div class="total-row">
+      <span class="label">Taxable Amount</span>
+      <span class="value">Rs.1,455.00</span>
+    </div>
+    <div class="total-row tax">
+      <span class="label">CGST @ 2.5%</span>
+      <span class="value">Rs.36.38</span>
+    </div>
+    <div class="total-row tax">
+      <span class="label">SGST @ 2.5%</span>
+      <span class="value">Rs.36.38</span>
+    </div>
+    <div class="total-row">
+      <span class="label">Round Off</span>
+      <span class="value">Rs.0.24</span>
+    </div>
+    <div class="total-row grand">
+      <span class="label">Total</span>
+      <span class="value">Rs.1,528.00</span>
+    </div>
+    <div class="amount-words">Rupees One Thousand Five Hundred Twenty Eight Only</div>
+  </div>
+  
+  <!-- Payment -->
+  <div class="payment-strip">
+    <div class="payment-method">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Cash on Delivery
+    </div>
+    <span class="payment-badge">PAID</span>
+  </div>
+  
+  <!-- Loyalty -->
+  <div class="loyalty-section">
+    <h3>Loyalty Rewards</h3>
+    <div class="loyalty-grid">
+      <div class="loyalty-item">
+        <div class="num">+76</div>
+        <div class="lbl">Points Earned</div>
+      </div>
+      <div class="loyalty-item">
+        <div class="num">360</div>
+        <div class="lbl">Points Balance</div>
+      </div>
+      <div class="loyalty-item">
+        <div class="num">Silver</div>
+        <div class="lbl">Your Tier</div>
+      </div>
+      <div class="loyalty-item">
+        <div class="num">Rs.50</div>
+        <div class="lbl">Wallet Balance</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <div class="footer">
+    <p class="thank-you">Thank you for your order!</p>
+    <p>This is a computer-generated invoice and does not require a signature.<br>
+    For queries, contact us at 7307097771</p>
+  </div>
+  
+  <!-- PDF Download -->
+  <a href="#" class="pdf-btn" onclick="alert('PDF download — will work in production')">
+    Download PDF
+  </a>
+  <div style="height:20px"></div>
+</div>
+</div>
+
+<script>
+function showVariant(id) {
+  document.querySelectorAll('.variant').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.variant-toggle button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

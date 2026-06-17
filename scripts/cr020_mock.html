@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CR-020 — Variable Picker Mock</title>
+<style>
+  /* ── Reset + Base ─────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #F5F5F5; color: #2B2B2B; }
+
+  /* ── Palette (locked per L5) ────────────────────── */
+  :root {
+    --orange: #F26B33;
+    --orange-hover: #D85A2A;
+    --dark: #2B2B2B;
+    --sub: #52525B;
+    --green: #25D366;
+    --green-light: #DCF8C6;
+    --wa-bg: #E5DDD5;
+    --white: #FFFFFF;
+    --gray-50: #FAFAFA;
+    --gray-100: #F4F4F5;
+    --gray-200: #E4E4E7;
+    --gray-300: #D4D4D8;
+    --gray-400: #A1A1AA;
+    --gray-500: #71717A;
+    --blue-check: #53BDEB;
+    --badge-green: #22C55E;
+    --badge-amber: #F59E0B;
+    --radius: 12px;
+  }
+
+  /* ── Layout container (simulates the modal) ──────── */
+  .mock-frame {
+    max-width: 480px;
+    margin: 24px auto;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    overflow: hidden;
+  }
+  .mock-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .mock-header h2 { font-size: 16px; font-weight: 700; color: var(--dark); display: flex; align-items: center; gap: 8px; }
+  .mock-header p { font-size: 12px; color: var(--sub); margin-top: 2px; }
+  .mock-body { padding: 16px 20px; }
+  .mock-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--gray-200);
+    display: flex; justify-content: flex-end; gap: 8px;
+  }
+
+  /* ── WhatsApp preview bubble ─────────────────────── */
+  .wa-preview {
+    background: var(--wa-bg);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .wa-bubble {
+    background: var(--green-light);
+    border-radius: 10px;
+    padding: 12px 14px;
+    max-width: 92%;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  }
+  .wa-bubble p { font-size: 13px; line-height: 1.55; color: var(--dark); white-space: pre-wrap; }
+  .wa-bubble .data-val { color: var(--orange); font-weight: 600; }
+  .wa-bubble .na-val { color: #EF4444; font-weight: 600; }
+  .wa-bubble .var-placeholder { background: #FEF3C7; padding: 1px 4px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+  .wa-meta { display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin-top: 4px; }
+  .wa-meta span { font-size: 10px; color: var(--gray-500); }
+
+  /* ── Slot row ────────────────────────────────────── */
+  .slot-row {
+    background: var(--gray-50);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .slot-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .slot-badge {
+    display: inline-flex; align-items: center;
+    font-family: monospace; font-size: 13px; font-weight: 600;
+    background: var(--white); border: 1px solid var(--gray-300); border-radius: 6px;
+    padding: 2px 8px;
+  }
+  .mode-group { display: flex; border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden; background: var(--white); }
+  .mode-btn {
+    padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;
+    border: none; background: var(--white); color: var(--sub);
+    transition: all .15s;
+  }
+  .mode-btn.active { background: var(--orange); color: var(--white); }
+  .mode-btn:hover:not(.active) { background: var(--gray-100); }
+
+  /* ── Picker trigger (the select-looking button) ──── */
+  .picker-trigger {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--sub);
+    transition: border-color .15s;
+  }
+  .picker-trigger:hover { border-color: var(--orange); }
+  .picker-trigger .selected-label { color: var(--dark); font-weight: 500; }
+  .picker-trigger .fills-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+  }
+  .picker-trigger .fills-dot.green { background: var(--badge-green); }
+  .picker-trigger .fills-dot.amber { background: var(--badge-amber); }
+  .picker-trigger svg { width: 16px; height: 16px; color: var(--gray-400); }
+
+  /* ── Popover (the grouped picker) ────────────────── */
+  .popover-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 100;
+  }
+  .popover-overlay.open { display: block; }
+  .popover-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.25);
+  }
+  .popover-panel {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 420px; max-height: 520px;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 40px rgba(0,0,0,.2);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    z-index: 101;
+  }
+
+  /* ── Popover search ──────────────────────────────── */
+  .popover-search {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .popover-search input {
+    width: 100%; padding: 8px 10px 8px 32px;
+    border: 1px solid var(--gray-200); border-radius: 8px;
+    font-size: 13px; outline: none;
+    background: var(--gray-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 10px center;
+  }
+  .popover-search input:focus { border-color: var(--orange); background-color: var(--white); }
+
+  /* ── Suggested chips ─────────────────────────────── */
+  .suggested-row {
+    padding: 8px 14px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .suggested-row .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--gray-400); width: 100%; margin-bottom: 2px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+    color: var(--dark);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .chip:hover { background: #FFF7ED; border-color: var(--orange); color: var(--orange); }
+  .chip .fills-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+  .chip .fills-dot.green { background: var(--badge-green); }
+
+  /* ── Scrollable grouped list ─────────────────────── */
+  .popover-list {
+    flex: 1; overflow-y: auto; padding: 6px 0;
+  }
+  .block-section { }
+  .block-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .1s;
+  }
+  .block-header:hover { background: var(--gray-50); }
+  .block-header .block-icon {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 7px;
+    font-size: 14px;
+  }
+  .block-header .block-icon.order-bill { background: #FFF7ED; color: var(--orange); }
+  .block-header .block-icon.loyalty { background: #FFFBEB; color: #D97706; }
+  .block-header .block-icon.customer { background: #EFF6FF; color: #2563EB; }
+  .block-header .block-icon.coupon { background: #FDF2F8; color: #DB2777; }
+  .block-header .block-icon.brand { background: #F0FDF4; color: #16A34A; }
+  .block-header .block-icon.feedback { background: #FAF5FF; color: #9333EA; }
+  .block-header .block-icon.menu { background: #FEF9C3; color: #A16207; }
+  .block-header .block-name { font-size: 12px; font-weight: 700; color: var(--dark); flex: 1; }
+  .block-header .block-count { font-size: 11px; color: var(--gray-400); }
+  .block-header .chevron { font-size: 14px; color: var(--gray-400); transition: transform .2s; }
+  .block-header .chevron.expanded { transform: rotate(90deg); }
+
+  .block-items { display: none; padding: 0 14px 6px 50px; }
+  .block-items.expanded { display: block; }
+  .var-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .1s;
+    font-size: 12px;
+  }
+  .var-item:hover { background: #FFF7ED; }
+  .var-item .fills-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .var-item .fills-dot.green { background: var(--badge-green); }
+  .var-item .fills-dot.amber { background: var(--badge-amber); }
+  .var-item .var-label { font-weight: 500; color: var(--dark); flex: 1; }
+  .var-item .var-example { color: var(--gray-400); font-size: 11px; white-space: nowrap; }
+
+  /* ── Menu pick sub-flow ──────────────────────────── */
+  .menu-pick-panel {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px; max-height: 440px;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 40px rgba(0,0,0,.2);
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 102;
+  }
+  .menu-pick-panel.open { display: flex; }
+  .menu-pick-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .menu-pick-header .back-btn {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: var(--gray-100); border-radius: 6px;
+    cursor: pointer; font-size: 14px;
+  }
+  .menu-pick-header h3 { font-size: 14px; font-weight: 700; }
+  .menu-pick-search {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .menu-pick-search input {
+    width: 100%; padding: 8px 10px 8px 32px;
+    border: 1px solid var(--gray-200); border-radius: 8px;
+    font-size: 13px; outline: none;
+    background: var(--gray-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 10px center;
+  }
+  .menu-pick-tabs {
+    display: flex; border-bottom: 1px solid var(--gray-200);
+  }
+  .menu-pick-tabs button {
+    flex: 1; padding: 8px 0; font-size: 12px; font-weight: 600;
+    border: none; background: transparent; cursor: pointer;
+    color: var(--sub); border-bottom: 2px solid transparent;
+    transition: all .15s;
+  }
+  .menu-pick-tabs button.active { color: var(--orange); border-bottom-color: var(--orange); }
+  .menu-pick-list {
+    flex: 1; overflow-y: auto; padding: 8px 14px;
+  }
+  .menu-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .menu-item:hover { border-color: var(--orange); background: #FFF7ED; }
+  .menu-item .mi-name { font-size: 13px; font-weight: 500; color: var(--dark); }
+  .menu-item .mi-price { font-size: 12px; color: var(--sub); }
+  .menu-item .mi-cat { font-size: 11px; color: var(--gray-400); }
+  .menu-item .veg-dot { width: 14px; height: 14px; border: 1.5px solid; border-radius: 3px; display: flex; align-items: center; justify-content: center; margin-right: 8px; }
+  .menu-item .veg-dot.veg { border-color: #16A34A; }
+  .menu-item .veg-dot.veg::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #16A34A; }
+  .menu-item .veg-dot.nonveg { border-color: #DC2626; }
+  .menu-item .veg-dot.nonveg::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #DC2626; }
+
+  .field-selector {
+    padding: 12px 14px;
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+  }
+  .field-selector p { font-size: 11px; color: var(--sub); margin-bottom: 6px; font-weight: 600; }
+  .field-selector .fs-row { display: flex; gap: 6px; }
+  .field-selector .fs-btn {
+    padding: 6px 14px; border: 1px solid var(--gray-200); border-radius: 8px;
+    background: var(--white); font-size: 12px; font-weight: 500; cursor: pointer;
+    transition: all .15s;
+  }
+  .field-selector .fs-btn:hover, .field-selector .fs-btn.active { border-color: var(--orange); color: var(--orange); background: #FFF7ED; }
+
+  /* ── Picked binding display ──────────────────────── */
+  .picked-binding {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--white);
+    border: 1px solid #BBF7D0;
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  .picked-binding .lock-icon { color: var(--badge-green); font-size: 16px; }
+  .picked-binding .binding-label { flex: 1; }
+  .picked-binding .binding-label strong { font-size: 13px; color: var(--dark); display: block; }
+  .picked-binding .binding-label small { font-size: 11px; color: var(--gray-500); }
+
+  /* ── Buttons ─────────────────────────────────────── */
+  .btn { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+  .btn-outline { background: var(--white); border: 1px solid var(--gray-200); color: var(--sub); }
+  .btn-outline:hover { border-color: var(--gray-300); }
+  .btn-primary { background: var(--orange); color: var(--white); }
+  .btn-primary:hover { background: var(--orange-hover); }
+
+  /* ── Legend / title ──────────────────────────────── */
+  .mock-title-bar {
+    background: var(--dark);
+    color: var(--white);
+    padding: 12px 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .instructions {
+    max-width: 480px;
+    margin: 12px auto 0;
+    padding: 12px 16px;
+    background: #FFF7ED;
+    border: 1px solid #FDBA74;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--sub);
+    line-height: 1.6;
+  }
+  .instructions strong { color: var(--dark); }
+  .section-divider {
+    max-width: 480px;
+    margin: 28px auto 8px;
+    padding: 0 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gray-400);
+  }
+</style>
+</head>
+<body>
+
+<div class="mock-title-bar">CR-020 HTML Mock — Variable Picker Grouped UX</div>
+
+<div class="instructions">
+  <strong>How to read this mock:</strong><br>
+  Section A = the mapping modal with live preview + slot rows.<br>
+  Section B = the grouped popover picker (opens when you click a slot's trigger).<br>
+  Section C = the Menu Pick sub-flow (opens from Menu block inside the popover).<br>
+  All are shown inline below for review. In the real app, B + C are layered popovers.
+</div>
+
+<!-- ═══════ SECTION A: Mapping Modal ═══════ -->
+<div class="section-divider">A — Mapping Modal (with Live Preview)</div>
+
+<div class="mock-frame">
+  <div class="mock-header">
+    <h2>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      Map Template Variables
+    </h2>
+    <p>Template: <strong>payment_bill</strong> (36320) &middot; Event: send_bill</p>
+  </div>
+  <div class="mock-body">
+    <!-- Live Preview -->
+    <div class="wa-preview">
+      <div class="wa-bubble">
+        <p>Hi <span class="data-val">Abhishek</span>,
+
+Thank you for dining at <span class="data-val">Kunafa Mahal</span>!
+
+Your bill <span class="data-val">KM-1234</span> of <span class="data-val">Rs.1,000</span> has been paid via <span class="data-val">UPI</span>.
+
+Points Earned: <span class="data-val">50</span>
+Points Balance: <span class="data-val">1,250</span></p>
+        <div class="wa-meta">
+          <span>14:30</span>
+          <svg width="16" height="16" viewBox="0 0 16 15" fill="#53BDEB"><path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.88a.32.32 0 0 1-.484.032l-.358-.325a.32.32 0 0 0-.484.032l-.378.48a.418.418 0 0 0 .036.54l1.32 1.267a.32.32 0 0 0 .484-.034l6.272-8.048a.366.366 0 0 0-.064-.51zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.88a.32.32 0 0 1-.484.032L1.89 7.77a.366.366 0 0 0-.516.005l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.32.32 0 0 0 .484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slot {{1}}: customer_name — already mapped -->
+    <div class="slot-row">
+      <div class="slot-top">
+        <span class="slot-badge">{{1}}</span>
+        <div class="mode-group">
+          <button class="mode-btn active">Map to Field</button>
+          <button class="mode-btn">Custom Text</button>
+        </div>
+      </div>
+      <div class="picker-trigger">
+        <span>
+          <span class="fills-dot green"></span>
+          <span class="selected-label">Customer Name</span>
+          <span style="color:var(--gray-400); font-size:11px; margin-left:4px;">e.g. John</span>
+        </span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+
+    <!-- Slot {{2}}: restaurant_name — already mapped -->
+    <div class="slot-row">
+      <div class="slot-top">
+        <span class="slot-badge">{{2}}</span>
+        <div class="mode-group">
+          <button class="mode-btn active">Map to Field</button>
+          <button class="mode-btn">Custom Text</button>
+        </div>
+      </div>
+      <div class="picker-trigger">
+        <span>
+          <span class="fills-dot green"></span>
+          <span class="selected-label">Restaurant Name</span>
+          <span style="color:var(--gray-400); font-size:11px; margin-left:4px;">e.g. Demo Restaurant</span>
+        </span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+
+    <!-- Slot {{3}}: unmapped (shows picker-trigger in empty state) -->
+    <div class="slot-row">
+      <div class="slot-top">
+        <span class="slot-badge">{{3}}</span>
+        <div class="mode-group">
+          <button class="mode-btn active">Map to Field</button>
+          <button class="mode-btn">Custom Text</button>
+          <button class="mode-btn">Menu Pick</button>
+        </div>
+      </div>
+      <div class="picker-trigger" onclick="document.getElementById('popover').classList.add('open')">
+        <span style="color:var(--gray-400);">Select a variable...</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+
+    <!-- Slot {{4}}: menu_pick example (already bound) -->
+    <div class="slot-row">
+      <div class="slot-top">
+        <span class="slot-badge">{{4}}</span>
+        <div class="mode-group">
+          <button class="mode-btn">Map to Field</button>
+          <button class="mode-btn">Custom Text</button>
+          <button class="mode-btn active">Menu Pick</button>
+        </div>
+      </div>
+      <div class="picked-binding">
+        <span class="lock-icon">&#128274;</span>
+        <div class="binding-label">
+          <strong>Veg Biryani &mdash; Price</strong>
+          <small>Menu Item &middot; Rs.299</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slot {{5}}: coupon_pick example -->
+    <div class="slot-row">
+      <div class="slot-top">
+        <span class="slot-badge">{{5}}</span>
+        <div class="mode-group">
+          <button class="mode-btn">Map to Field</button>
+          <button class="mode-btn">Custom Text</button>
+          <button class="mode-btn active">Coupon Pick</button>
+        </div>
+      </div>
+      <div class="picked-binding">
+        <span class="lock-icon">&#128274;</span>
+        <div class="binding-label">
+          <strong>SAVE20 &mdash; Code</strong>
+          <small>Coupon &middot; 20% Off</small>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="mock-footer">
+    <button class="btn btn-outline">Cancel</button>
+    <button class="btn btn-primary">Save Mappings</button>
+  </div>
+</div>
+
+<!-- ═══════ SECTION B: Grouped Popover Picker ═══════ -->
+<div class="section-divider">B — Grouped Variable Picker (popover)</div>
+
+<div class="mock-frame" style="max-height: 560px; display: flex; flex-direction: column;">
+  <!-- Search -->
+  <div class="popover-search">
+    <input type="text" placeholder="Search variables..." />
+  </div>
+
+  <!-- Suggested for this event -->
+  <div class="suggested-row">
+    <span class="section-label">Suggested for send_bill</span>
+    <span class="chip"><span class="fills-dot green"></span> Customer Name</span>
+    <span class="chip"><span class="fills-dot green"></span> Amount</span>
+    <span class="chip"><span class="fills-dot green"></span> Bill Number</span>
+    <span class="chip"><span class="fills-dot green"></span> Points Earned</span>
+    <span class="chip"><span class="fills-dot green"></span> Payment Method</span>
+  </div>
+
+  <!-- Recently Used -->
+  <div class="suggested-row" style="background: var(--gray-50);">
+    <span class="section-label">Recently Used</span>
+    <span class="chip">Customer Name</span>
+    <span class="chip">Restaurant Name</span>
+    <span class="chip">Points Balance</span>
+  </div>
+
+  <!-- Grouped blocks -->
+  <div class="popover-list">
+
+    <!-- 1. Order / Bill -->
+    <div class="block-section">
+      <div class="block-header" onclick="toggleBlock(this)">
+        <div class="block-icon order-bill">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <span class="block-name">Order / Bill</span>
+        <span class="block-count">14</span>
+        <span class="chevron">&#9654;</span>
+      </div>
+      <div class="block-items">
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Amount</span><span class="var-example">Rs.1,000</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Bill Number</span><span class="var-example">KM-1234</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Order ID</span><span class="var-example">ORD-12345</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Payment Method</span><span class="var-example">UPI</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Order Date</span><span class="var-example">25 May 2026</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Order Time</span><span class="var-example">7:45 PM</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Order Type</span><span class="var-example">Dine-In</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Transaction ID</span><span class="var-example">TXN9876543</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Table Number</span><span class="var-example">T5</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Waiter Name</span><span class="var-example">Ramesh</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Tax Amount</span><span class="var-example">Rs.85</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Item Count</span><span class="var-example">3</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Order Notes</span><span class="var-example">No onion</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">E-Invoice Link</span><span class="var-example">https://inv...</span></div>
+      </div>
+    </div>
+
+    <!-- 2. Loyalty -->
+    <div class="block-section">
+      <div class="block-header" onclick="toggleBlock(this)">
+        <div class="block-icon loyalty">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <span class="block-name">Loyalty</span>
+        <span class="block-count">9</span>
+        <span class="chevron">&#9654;</span>
+      </div>
+      <div class="block-items">
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Points Earned</span><span class="var-example">50</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Points Balance</span><span class="var-example">1,250</span></div>
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Points Redeemed</span><span class="var-example">100</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Loyalty Points Used</span><span class="var-example">200</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Loyalty Discount</span><span class="var-example">Rs.50</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Customer Tier</span><span class="var-example">Gold</span></div>
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Previous Tier</span><span class="var-example">Silver</span></div>
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Expiring Points</span><span class="var-example">150</span></div>
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Expiry Date</span><span class="var-example">31 Dec 2026</span></div>
+      </div>
+    </div>
+
+    <!-- 3. Customer -->
+    <div class="block-section">
+      <div class="block-header" onclick="toggleBlock(this)">
+        <div class="block-icon customer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <span class="block-name">Customer</span>
+        <span class="block-count">4</span>
+        <span class="chevron">&#9654;</span>
+      </div>
+      <div class="block-items">
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Customer Name</span><span class="var-example">John</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Total Visits</span><span class="var-example">25</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Total Spent</span><span class="var-example">Rs.50,000</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Wallet Balance</span><span class="var-example">Rs.500</span></div>
+      </div>
+    </div>
+
+    <!-- 4. Coupon -->
+    <div class="block-section">
+      <div class="block-header" onclick="toggleBlock(this)">
+        <div class="block-icon coupon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 01 3-3h14a3 3 0 013 3v0a3 3 0 01-3 3v0a3 3 0 013 3v0a3 3 0 01-3 3H5a3 3 0 01-3-3v0a3 3 0 013-3v0a3 3 0 01-3-3z"/></svg>
+        </div>
+        <span class="block-name">Coupon</span>
+        <span class="block-count">4</span>
+        <span class="chevron">&#9654;</span>
+      </div>
+      <div class="block-items">
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Coupon Code</span><span class="var-example">SAVE20</span></div>
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Coupon Title</span><span class="var-example">Lunch Special</span></div>
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Coupon Discount</span><span class="var-example">Rs.150</span></div>
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Coupon Expiry</span><span class="var-example">31 Dec 2026</span></div>
+      </div>
+    </div>
+
+    <!-- 5. Brand / Links -->
+    <div class="block-section">
+      <div class="block-header" onclick="toggleBlock(this)">
+        <div class="block-icon brand">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <span class="block-name">Brand / Links</span>
+        <span class="block-count">4</span>
+        <span class="chevron">&#9654;</span>
+      </div>
+      <div class="block-items">
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Restaurant Name</span><span class="var-example">Demo Restaurant</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Instagram Link</span><span class="var-example">https://insta...</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Google Review Link</span><span class="var-example">https://g.page...</span></div>
+        <div class="var-item"><span class="fills-dot green"></span><span class="var-label">Feedback Form Link</span><span class="var-example">https://forms...</span></div>
+      </div>
+    </div>
+
+    <!-- 6. Feedback -->
+    <div class="block-section">
+      <div class="block-header" onclick="toggleBlock(this)">
+        <div class="block-icon feedback">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <span class="block-name">Feedback</span>
+        <span class="block-count">1</span>
+        <span class="chevron">&#9654;</span>
+      </div>
+      <div class="block-items">
+        <div class="var-item"><span class="fills-dot amber"></span><span class="var-label">Feedback Rating</span><span class="var-example">5</span></div>
+      </div>
+    </div>
+
+    <!-- 7. Menu (NEW — last per Q6) -->
+    <div class="block-section">
+      <div class="block-header" onclick="toggleBlock(this)" style="background: #FFFDE7;">
+        <div class="block-icon menu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 5h6a4 4 0 010 8H2"/><path d="M18 5v10c0 1.1-.9 2-2 2h-1"/></svg>
+        </div>
+        <span class="block-name">Menu <span style="background:#FDE68A;color:#92400E;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:4px;">NEW</span></span>
+        <span class="block-count">3</span>
+        <span class="chevron">&#9654;</span>
+      </div>
+      <div class="block-items">
+        <div class="var-item" style="background:#FFF7ED; border-radius:6px;"><span class="fills-dot amber"></span><span class="var-label">Menu Item Name</span><span class="var-example">Veg Biryani</span></div>
+        <div class="var-item" style="background:#FFF7ED; border-radius:6px;"><span class="fills-dot amber"></span><span class="var-label">Menu Item Price</span><span class="var-example">Rs.299</span></div>
+        <div class="var-item" style="background:#FFF7ED; border-radius:6px;"><span class="fills-dot amber"></span><span class="var-label">Menu Category Name</span><span class="var-example">Biryani</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════ SECTION C: Menu Pick Sub-Flow ═══════ -->
+<div class="section-divider">C — Menu Pick Sub-Flow (sub-popover)</div>
+
+<div class="mock-frame" style="max-height: 480px; display: flex; flex-direction: column;">
+  <div class="menu-pick-header">
+    <button class="back-btn">&#8592;</button>
+    <h3>Pick Menu Item</h3>
+  </div>
+  <div class="menu-pick-search">
+    <input type="text" placeholder="Search items..." />
+  </div>
+  <div class="menu-pick-tabs">
+    <button class="active">Items</button>
+    <button>Categories</button>
+  </div>
+  <div class="menu-pick-list">
+    <div class="menu-item">
+      <div style="display:flex;align-items:center;">
+        <div class="veg-dot veg"></div>
+        <div>
+          <div class="mi-name">Veg Biryani</div>
+          <div class="mi-cat">Biryani</div>
+        </div>
+      </div>
+      <div class="mi-price">Rs.299</div>
+    </div>
+    <div class="menu-item">
+      <div style="display:flex;align-items:center;">
+        <div class="veg-dot nonveg"></div>
+        <div>
+          <div class="mi-name">Chicken Kunafa</div>
+          <div class="mi-cat">Kunafa Specials</div>
+        </div>
+      </div>
+      <div class="mi-price">Rs.450</div>
+    </div>
+    <div class="menu-item">
+      <div style="display:flex;align-items:center;">
+        <div class="veg-dot veg"></div>
+        <div>
+          <div class="mi-name">Paneer Tikka</div>
+          <div class="mi-cat">Starters</div>
+        </div>
+      </div>
+      <div class="mi-price">Rs.249</div>
+    </div>
+    <div class="menu-item">
+      <div style="display:flex;align-items:center;">
+        <div class="veg-dot nonveg"></div>
+        <div>
+          <div class="mi-name">Mutton Biryani</div>
+          <div class="mi-cat">Biryani</div>
+        </div>
+      </div>
+      <div class="mi-price">Rs.399</div>
+    </div>
+    <div class="menu-item">
+      <div style="display:flex;align-items:center;">
+        <div class="veg-dot veg"></div>
+        <div>
+          <div class="mi-name">Gulab Jamun</div>
+          <div class="mi-cat">Desserts</div>
+        </div>
+      </div>
+      <div class="mi-price">Rs.89</div>
+    </div>
+  </div>
+  <div class="field-selector">
+    <p>After selecting an item, choose what to insert:</p>
+    <div class="fs-row">
+      <button class="fs-btn active">Name</button>
+      <button class="fs-btn">Price</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SECTION D: Legend ═══════ -->
+<div class="section-divider">D — Badge Legend</div>
+<div class="mock-frame" style="padding: 16px 20px;">
+  <div style="display:flex; gap:20px; font-size:12px; color:var(--sub);">
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span class="fills-dot green" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--badge-green);"></span>
+      <span><strong>Green</strong> = reliably fills on this event (send_bill)</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span class="fills-dot amber" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--badge-amber);"></span>
+      <span><strong>Amber</strong> = may not fill on this event (available but not guaranteed)</span>
+    </div>
+  </div>
+</div>
+
+<div style="height: 40px;"></div>
+
+<!-- Hidden popover for interactive demo (clicking {{3}} trigger opens it) -->
+<div id="popover" class="popover-overlay">
+  <div class="popover-backdrop" onclick="document.getElementById('popover').classList.remove('open')"></div>
+  <div class="popover-panel">
+    <div class="popover-search"><input type="text" placeholder="Search variables..." /></div>
+    <div class="suggested-row">
+      <span class="section-label">Suggested for send_bill</span>
+      <span class="chip" onclick="document.getElementById('popover').classList.remove('open')"><span class="fills-dot green"></span> Amount</span>
+      <span class="chip" onclick="document.getElementById('popover').classList.remove('open')"><span class="fills-dot green"></span> Bill Number</span>
+      <span class="chip" onclick="document.getElementById('popover').classList.remove('open')"><span class="fills-dot green"></span> Points Earned</span>
+    </div>
+    <div class="popover-list">
+      <div class="block-section">
+        <div class="block-header" onclick="toggleBlock(this)">
+          <div class="block-icon order-bill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <span class="block-name">Order / Bill</span>
+          <span class="block-count">14</span>
+          <span class="chevron">&#9654;</span>
+        </div>
+        <div class="block-items">
+          <div class="var-item" onclick="document.getElementById('popover').classList.remove('open')"><span class="fills-dot green"></span><span class="var-label">Amount</span><span class="var-example">Rs.1,000</span></div>
+          <div class="var-item" onclick="document.getElementById('popover').classList.remove('open')"><span class="fills-dot green"></span><span class="var-label">Bill Number</span><span class="var-example">KM-1234</span></div>
+        </div>
+      </div>
+      <div class="block-section">
+        <div class="block-header" onclick="toggleBlock(this)">
+          <div class="block-icon loyalty"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <span class="block-name">Loyalty</span>
+          <span class="block-count">9</span>
+          <span class="chevron">&#9654;</span>
+        </div>
+        <div class="block-items">
+          <div class="var-item" onclick="document.getElementById('popover').classList.remove('open')"><span class="fills-dot green"></span><span class="var-label">Points Earned</span><span class="var-example">50</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleBlock(header) {
+  const items = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  items.classList.toggle('expanded');
+  chevron.classList.toggle('expanded');
+}
+</script>
+
+</body>
+</html>
