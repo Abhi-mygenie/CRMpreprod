@@ -128,7 +128,7 @@ const CampaignWizardContent = () => {
                 .map(t => ({
                 id: t.wid?.toString() || t.id,
                 name: t.temp_name || t.name,
-                message: t.temp_body || t.message || "",
+                message: (t.temp_body || t.message || "").replace(/\\n/g, "\n").replace(/\\'/g, "'"),
                 variables: (t.temp_body?.match(/\{\{\d+\}\}/g) || []).filter((v, i, a) => a.indexOf(v) === i),
             }));
             setTemplates(formatted);

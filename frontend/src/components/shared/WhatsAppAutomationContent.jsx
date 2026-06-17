@@ -439,7 +439,9 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                         api.get("/whatsapp/template-variable-map"),
                         api.get("/customers/sample-data")
                     ]);
-                    setAuthkeyTemplates(tplRes.data.templates || []);
+                    const _rawTpls = tplRes.data.templates || [];
+                    _rawTpls.forEach(t => { if (t.temp_body) t.temp_body = t.temp_body.replace(/\\n/g, "\n").replace(/\\'/g, "'"); });
+                    setAuthkeyTemplates(_rawTpls);
                     const mapObj = {};
                     (mapRes.data.mappings || []).forEach(m => {
                         mapObj[m.event_key] = { template_id: m.template_id, template_name: m.template_name, is_enabled: m.is_enabled !== false, saved: true };
@@ -492,7 +494,9 @@ export function WhatsAppAutomationContent({ embedded = false }) {
                 api.get("/whatsapp/authkey-templates"),
                 api.get("/whatsapp/event-template-map")
             ]);
-            setAuthkeyTemplates(tplRes.data.templates || []);
+            const _rawTpls2 = tplRes.data.templates || [];
+            _rawTpls2.forEach(t => { if (t.temp_body) t.temp_body = t.temp_body.replace(/\\n/g, "\n").replace(/\\'/g, "'"); });
+            setAuthkeyTemplates(_rawTpls2);
             const mapObj = {};
             (mapRes.data.mappings || []).forEach(m => {
                 mapObj[m.event_key] = { template_id: m.template_id, template_name: m.template_name, saved: true };

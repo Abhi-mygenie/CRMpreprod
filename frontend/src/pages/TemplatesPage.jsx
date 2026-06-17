@@ -181,7 +181,9 @@ export default function TemplatesPage() {
                     api.get("/whatsapp/variables"),
                     api.get("/whatsapp/templates-in-use"),
                 ]);
-                setAuthkeyTemplates(tplRes.data.templates || []);
+                const _rawTpls = tplRes.data.templates || [];
+                _rawTpls.forEach(t => { if (t.temp_body) t.temp_body = t.temp_body.replace(/\\n/g, "\n").replace(/\\'/g, "'"); });
+                setAuthkeyTemplates(_rawTpls);
                 setAvailableVariables(varsRes.data.variables || []);
                 setInUseTemplateIds(new Set(inUseRes.data.in_use_template_ids || []));
                 const varMapObj = {};

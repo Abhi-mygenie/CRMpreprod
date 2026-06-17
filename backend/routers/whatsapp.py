@@ -1083,17 +1083,26 @@ async def get_message_logs(
     if event_type and event_type != "all":
         query["event_type"] = event_type
     if campaign_id and campaign_id != "all":
-        query["campaign_id"] = campaign_id
+        # BUG-006 fix: match campaign_id OR reference_id for backward compat
+        # (old logs stored run_id in campaign_id, campaign_id in reference_id)
+        if "$and" not in query:
+            query["$and"] = []
+        query["$and"].append({"$or": [
+            {"campaign_id": campaign_id},
+            {"reference_id": campaign_id},
+        ]})
     if template_name and template_name != "all":
         query["template_name"] = template_name
     if search:
         # CR-004 P3.5 Commit 6: regex-escape + match across name AND phone
         safe = re.escape(search.strip())
         if safe:
-            query["$or"] = [
+            if "$and" not in query:
+                query["$and"] = []
+            query["$and"].append({"$or": [
                 {"customer_phone": {"$regex": safe, "$options": "i"}},
                 {"customer_name": {"$regex": safe, "$options": "i"}},
-            ]
+            ]})
     if date_from:
         query["created_at"] = {"$gte": date_from}
     if date_to:
@@ -1170,8 +1179,8 @@ async def get_message_filters(user: dict = Depends(get_current_user)):
     for m in mappings:
         _add_template(m.get("template_name"))
 
-    # Get campaigns (segments)
-    campaigns = await db.segments.find(
+    # Get campaigns
+    campaigns = await db.campaigns.find(
         {"user_id": user["id"]}, {"_id": 0, "id": 1, "name": 1}
     ).to_list(100)
 

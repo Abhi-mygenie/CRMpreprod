@@ -61,9 +61,10 @@
 ## BUG-005: Campaign filter in Message Status queries wrong DB collection
 
 **Severity**: HIGH  
-**Status**: 🔴 OPEN  
+**Status**: ✅ FIXED  
 **Component**: Backend — `routers/whatsapp.py` line 1173-1176  
 **Date Registered**: 2026-06-17  
+**Date Fixed**: 2026-06-17
 
 **Description**: The `/api/whatsapp/message-filters` endpoint populates the "Campaign" filter dropdown from `db.segments` instead of `db.campaigns`. The filter dropdown shows segment names/IDs instead of campaign names/IDs, so selecting a "campaign" in the filter sends a segment ID that never matches any `campaign_id` in `whatsapp_message_logs`.
 
@@ -92,9 +93,10 @@ campaigns = await db.campaigns.find(
 ## BUG-006: Campaign messages logged with run_id instead of campaign_id
 
 **Severity**: HIGH  
-**Status**: 🔴 OPEN  
+**Status**: ✅ FIXED  
 **Component**: Backend — `routers/campaigns.py` lines 311, 818  
 **Date Registered**: 2026-06-17  
+**Date Fixed**: 2026-06-17
 
 **Description**: When `_execute_campaign_send()` logs messages to `whatsapp_message_logs` via `log_message_attempt()`, it passes `campaign_id=run_id` instead of `campaign_id=campaign_id`. This means the `campaign_id` field in the message log contains the **run UUID**, not the actual **campaign UUID**. The Message Status filter compares against the campaign's `id` field, so it can never match.
 
@@ -127,9 +129,10 @@ reference_id=campaign_id,    # ← Correct campaign_id here
 ## BUG-007: Template preview shows literal `\n` instead of newlines
 
 **Severity**: MEDIUM  
-**Status**: 🔴 OPEN  
+**Status**: ✅ FIXED  
 **Component**: Frontend — TemplatesPage.jsx, CampaignWizardPage.jsx, WhatsAppAutomationContent.jsx  
 **Date Registered**: 2026-06-17  
+**Date Fixed**: 2026-06-17
 
 **Description**: Template body preview displays literal `\n` characters instead of actual line breaks. The AuthKey API returns `temp_body` with escaped newline strings (e.g., `"Hi Unknown,\nGood Morning!"` as a JS string where `\n` is a two-character literal, not an escape). CSS `whitespace-pre-wrap` only renders actual newline characters, not the literal text `\n`.
 
@@ -167,9 +170,9 @@ Good Morning! Today's menu at Mygenie Dev are:
 | BUG-002 | ✅ Messages fail | — | — | ✅ | ✅ | ✅ FIXED |
 | BUG-003 | Risk of using rejected template | ✅ Wrong templates shown | ✅ | — | — | ✅ FIXED |
 | BUG-004 | — | ✅ Test sends invisible | ✅ | — | — | ✅ FIXED |
-| **BUG-005** | — | **✅ Campaign filter broken** | **✅** | — | — | **🔴 OPEN** |
-| **BUG-006** | — | **✅ Campaign msgs invisible** | **✅** | — | — | **🔴 OPEN** |
-| **BUG-007** | — | **✅ Preview unreadable** | **✅** | — | — | **🔴 OPEN** |
+| **BUG-005** | — | **✅ Campaign filter broken** | **✅** | — | — | **✅ FIXED** |
+| **BUG-006** | — | **✅ Campaign msgs invisible** | **✅** | — | — | **✅ FIXED** |
+| **BUG-007** | — | **✅ Preview unreadable** | **✅** | — | — | **✅ FIXED** |
 
 ## Dependency Graph
 

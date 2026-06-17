@@ -308,12 +308,12 @@ async def _execute_campaign_send(campaign_id: str, user_id: str):
                     template_id,
                     sr,
                     template_name=campaign.get("template_name"),
-                    campaign_id=run_id,
+                    campaign_id=campaign_id,
                     country_code=cust.get("country_code", "91").replace("+", ""),
                     body_values=sr.response_data if not sr.success else None,
                     customer_name=cust.get("name"),
                     reference_type="campaign",
-                    reference_id=campaign_id,
+                    reference_id=run_id,
                 )
                 if r["success"]:
                     sent_count += 1
@@ -815,11 +815,11 @@ async def _execute_resend_subset(campaign_id: str, parent_run_id: str, targets: 
                 await log_message_attempt(
                     db, user_id, cust.get("id"), r["phone"], "campaign_resend",
                     template_id, sr, template_name=campaign.get("template_name"),
-                    campaign_id=new_run_id,
+                    campaign_id=campaign_id,
                     country_code=cust.get("country_code", "91").replace("+", ""),
                     body_values=sr.response_data if not sr.success else None,
                     customer_name=cust.get("name"),
-                    reference_type="campaign_resend", reference_id=campaign_id,
+                    reference_type="campaign_resend", reference_id=new_run_id,
                 )
                 if r["success"]:
                     sent_count += 1
