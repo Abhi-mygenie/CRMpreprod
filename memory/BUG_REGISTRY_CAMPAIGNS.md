@@ -9,7 +9,7 @@
 ## BUG-001: Campaign menu_pick_resolved not copied from template mappings
 
 **Severity**: CRITICAL  
-**Status**: Open  
+**Status**: ✅ FIXED (verified in 17-june branch)  
 **Component**: Frontend — CampaignWizardPage.jsx  
 
 **Description**: When creating a campaign and selecting a template, the `menu_pick_resolved` data (static menu item names like "Rpay Test", "Idli Sambar") is never loaded from the template variable map API or set when user selects a template. Campaign always saves `menu_pick_resolved: {}`.
@@ -18,96 +18,162 @@
 1. Line 132-135: `menu_pick_resolved` not extracted from `/whatsapp/template-variable-map` response
 2. Line 158-164: `handleTemplateSelect()` doesn't call `setMenuPickResolved()` when template is picked
 
-**Reproduction**:
-1. Templates page: map variables {{3}}→Rpay Test (menu_pick), {{4}}→Idli Sambar (menu_pick) — saves correctly
-2. Campaign wizard: select same template → variable_mappings ✅, variable_modes ✅, menu_pick_resolved ❌ empty
-3. Send campaign → body_values {{3}}="", {{4}}="" → Meta rejects "Not Sent"
-
-**Evidence**:
-```
-Templates page (whatsapp_template_variable_map):
-  menu_pick_resolved: {"menu_item:181897:name": "Rpay Test", "menu_item:70680:name": "Idli Sambar", ...}
-
-Campaign (campaigns collection):
-  menu_pick_resolved: {}   ← EMPTY — never copied
-```
-
-**Affected Users**: Any user creating campaigns with templates that use menu_pick variables  
-**Current Impact**: 1 campaign (Menu, mygeniedev) — failed to deliver due to empty variables  
+**Fix Applied**: `allMenuPickResolved` now extracted from map API (line 136) and `handleTemplateSelect` calls `setMenuPickResolved(allMenuPickResolved[tplId])` (line 168).
 
 ---
 
 ## BUG-002: Event-scoped variables resolve to empty in campaign sends
 
 **Severity**: HIGH  
-**Status**: Open  
-**Component**: Backend design + Frontend UX  
+**Status**: ✅ FIXED (verified in 17-june branch)  
+**Component**: Frontend — CampaignWizardPage.jsx  
 
-**Description**: Templates designed for order events (e.g., `payment_bill`) use variables like `payment_method`, `order_date`, `restaurant_order_id` etc. that only populate from `event_data` during POS order triggers. When the same template is used in a campaign (broadcast), `event_data` is always `{}`, causing these variables to resolve to `""`. Meta/WhatsApp rejects messages with empty variable values.
+**Description**: Templates designed for order events use variables like `payment_method`, `order_date`, `restaurant_order_id` etc. that only populate from `event_data` during POS order triggers. When the same template is used in a campaign (broadcast), `event_data` is always `{}`, causing these variables to resolve to `""`.
 
-**Root Cause**: 
-- Backend: `_execute_campaign_send()` passes `event_data={}` to `build_body_values()` — this is correct by design (campaigns don't have order context)
-- Frontend: Campaign wizard does NOT warn user that event-scoped variables will be empty
-- 23 of 40 registered variables are event-only and will always be empty in campaigns
-
-**Reproduction**:
-1. Campaign wizard: select `payment_bill` template (7 variables)
-2. Variables mapped: customer_name ✅, restaurant_name ✅, order_time ❌, transaction_id ❌, points_earned ❌, points_redeemed ❌, points_earned ❌
-3. Send campaign → 5 of 7 variables resolve to "" → Meta rejects
-
-**Safe variables for campaigns** (always resolve from customer/brand data):
-- customer_name, restaurant_name, points_balance, tier, total_visits, total_spent, wallet_balance
-- instagram_link, google_review_link, feedback_link
-- All text-mode variables (literal strings)
-- All menu_pick variables (static values — IF BUG-001 is fixed)
-
-**Event-only variables** (always empty in campaigns):
-- payment_method, order_date, order_time, restaurant_order_id, order_id, transaction_id
-- table_id, waiter_name, order_type, order_notes, item_count, tax_amount
-- loyalty_points_used, loyalty_discount, wallet_used, einvoice_token
-- points_earned, coupon_code/title/discount/expiry, rating, old_tier, expiring_points, expiry_date
-
-**Affected Users**: Any user who selects an order-event template for campaign broadcast  
+**Fix Applied**: Red warning box (`data-testid="event-vars-warning"`) at line 428-443, listing unsafe variables and suggesting "Text" mode or a different template.
 
 ---
 
 ## BUG-003: Campaign template dropdown shows rejected/pending templates
 
 **Severity**: MEDIUM  
-**Status**: Open  
+**Status**: ✅ FIXED (verified in 17-june branch)  
 **Component**: Frontend — CampaignWizardPage.jsx  
 
-**Description**: Campaign wizard template dropdown shows ALL AuthKey templates including rejected (temp_status=3) and pending (temp_status=4). Violates Rule 1: "Only Meta-approved templates can be mapped."
+**Description**: Campaign wizard template dropdown shows ALL AuthKey templates including rejected (temp_status=3) and pending (temp_status=4).
 
-**Root Cause**: `CampaignWizardPage.jsx` line 125-131 loads all templates from `/whatsapp/authkey-templates` without filtering by `temp_status`.
-
-**Evidence**: Screenshot shows `test_17june` (0 variables, rejected), `bill_sample` (0 variables, rejected), `test_17_june` (0 variables, rejected) in the dropdown alongside approved templates.
-
-**Affected Users**: All campaign wizard users  
+**Fix Applied**: `.filter(t => t.temp_status === 1)` at line 127.
 
 ---
 
 ## BUG-004: Campaign test-send not visible in Message Status dashboard
 
 **Severity**: LOW  
-**Status**: Open  
+**Status**: ✅ FIXED (verified in 17-june branch)  
 **Component**: Backend — campaigns.py  
 
-**Description**: Campaign test sends (from "Send Test" button in wizard) log to `campaign_test_sends` collection but NOT to `whatsapp_message_logs`. Message Status dashboard only reads from `whatsapp_message_logs`, so test sends are invisible.
+**Description**: Campaign test sends log to `campaign_test_sends` collection but NOT to `whatsapp_message_logs`. 
 
-**Root Cause**: `test_send_campaign()` endpoint (line 443-545) writes to `campaign_test_sends` and does NOT call `log_message_attempt()`.
+**Fix Applied**: `log_message_attempt()` call added at line 532-542 with `is_test=True`.
 
-**Note**: Real campaign sends (via `_execute_campaign_send`) DO log to `whatsapp_message_logs` correctly.
+---
 
-**Affected Users**: Users testing campaigns before scheduling  
+## BUG-005: Campaign filter in Message Status queries wrong DB collection
+
+**Severity**: HIGH  
+**Status**: 🔴 OPEN  
+**Component**: Backend — `routers/whatsapp.py` line 1173-1176  
+**Date Registered**: 2026-06-17  
+
+**Description**: The `/api/whatsapp/message-filters` endpoint populates the "Campaign" filter dropdown from `db.segments` instead of `db.campaigns`. The filter dropdown shows segment names/IDs instead of campaign names/IDs, so selecting a "campaign" in the filter sends a segment ID that never matches any `campaign_id` in `whatsapp_message_logs`.
+
+**Root Cause**: Wrong collection name in query:
+```python
+# CURRENT (WRONG)
+campaigns = await db.segments.find(
+    {"user_id": user["id"]}, {"_id": 0, "id": 1, "name": 1}
+).to_list(100)
+
+# SHOULD BE
+campaigns = await db.campaigns.find(
+    {"user_id": user["id"]}, {"_id": 0, "id": 1, "name": 1}
+).to_list(100)
+```
+
+**Reproduction**:
+1. Open Message Status dashboard
+2. Click Campaign filter dropdown → shows segment names (e.g., "Gold Customers", "Inactive 30d")
+3. Select any → 0 results returned
+
+**Affected Users**: All users trying to filter messages by campaign  
+
+---
+
+## BUG-006: Campaign messages logged with run_id instead of campaign_id
+
+**Severity**: HIGH  
+**Status**: 🔴 OPEN  
+**Component**: Backend — `routers/campaigns.py` lines 311, 818  
+**Date Registered**: 2026-06-17  
+
+**Description**: When `_execute_campaign_send()` logs messages to `whatsapp_message_logs` via `log_message_attempt()`, it passes `campaign_id=run_id` instead of `campaign_id=campaign_id`. This means the `campaign_id` field in the message log contains the **run UUID**, not the actual **campaign UUID**. The Message Status filter compares against the campaign's `id` field, so it can never match.
+
+Same issue exists in the resend-failed path (line 818: `campaign_id=new_run_id`).
+
+**Root Cause**: Parameter value mismatch in two callsites:
+```python
+# _execute_campaign_send() — line 311
+campaign_id=run_id,          # ← WRONG: stores run_id
+reference_id=campaign_id,    # ← The actual campaign_id is here
+
+# resend_failed_campaign_run() — line 818
+campaign_id=new_run_id,      # ← WRONG: stores new run_id
+reference_id=campaign_id,    # ← Correct campaign_id here
+```
+
+**Note**: The test-send path (line 536) does it correctly: `campaign_id=campaign_id`.
+
+**Reproduction**:
+1. Send a campaign → messages logged with `campaign_id = <run_uuid>`
+2. Fix BUG-005 so campaigns show in filter dropdown
+3. Select the campaign → 0 results because filter matches campaign.id against run_uuid
+
+**Impact**: Even after BUG-005 is fixed, campaign filtering still won't work. Both bugs must be fixed together.
+
+**Data Migration**: Existing `whatsapp_message_logs` rows have `campaign_id = run_id` and `reference_id = campaign_id`. A one-time migration could swap these for historical data, OR the filter can be changed to match on `reference_id` instead for backward compatibility.
+
+---
+
+## BUG-007: Template preview shows literal `\n` instead of newlines
+
+**Severity**: MEDIUM  
+**Status**: 🔴 OPEN  
+**Component**: Frontend — TemplatesPage.jsx, CampaignWizardPage.jsx, WhatsAppAutomationContent.jsx  
+**Date Registered**: 2026-06-17  
+
+**Description**: Template body preview displays literal `\n` characters instead of actual line breaks. The AuthKey API returns `temp_body` with escaped newline strings (e.g., `"Hi Unknown,\nGood Morning!"` as a JS string where `\n` is a two-character literal, not an escape). CSS `whitespace-pre-wrap` only renders actual newline characters, not the literal text `\n`.
+
+**Example**:
+```
+Displayed: Hi Unknown,\n\nGood Morning! Today\'s menu at Mygenie Dev are:\n\n1. Rpay Test\n2. Idli Sambar...
+Expected:  
+Hi Unknown,
+
+Good Morning! Today's menu at Mygenie Dev are:
+
+1. Rpay Test
+2. Idli Sambar...
+```
+
+**Root Cause**: AuthKey API `temp_body` field contains JSON-escaped `\n` (literal backslash-n) which the JSON parser may or may not unescape depending on how the response is structured. The frontend renders the raw string without any `\n` → newline conversion.
+
+**Affected Locations** (all preview renders):
+1. `TemplatesPage.jsx:574` — Template list preview
+2. `TemplatesPage.jsx:697` — Variable mapping modal preview
+3. `CampaignWizardPage.jsx:512` — Campaign wizard WhatsApp preview
+4. `WhatsAppAutomationContent.jsx:1095` — Automation modal preview
+5. `WhatsAppAutomationContent.jsx:180` — Test send preview
+6. `WhatsAppAutomationContent.jsx:1276` — New template preview
+
+**Affected Users**: All users viewing template previews across all pages
 
 ---
 
 ## Cross-Reference Matrix
 
-| Bug | Affects Send | Affects Display | Code Bug | Design Gap | UX Gap |
-|---|---|---|---|---|---|
-| BUG-001 | ✅ Messages fail | — | ✅ | — | — |
-| BUG-002 | ✅ Messages fail | — | — | ✅ | ✅ |
-| BUG-003 | Risk of using rejected template | ✅ Wrong templates shown | ✅ | — | — |
-| BUG-004 | — | ✅ Test sends invisible | ✅ | — | — |
+| Bug | Affects Send | Affects Display | Code Bug | Design Gap | UX Gap | Status |
+|---|---|---|---|---|---|---|
+| BUG-001 | ✅ Messages fail | — | ✅ | — | — | ✅ FIXED |
+| BUG-002 | ✅ Messages fail | — | — | ✅ | ✅ | ✅ FIXED |
+| BUG-003 | Risk of using rejected template | ✅ Wrong templates shown | ✅ | — | — | ✅ FIXED |
+| BUG-004 | — | ✅ Test sends invisible | ✅ | — | — | ✅ FIXED |
+| **BUG-005** | — | **✅ Campaign filter broken** | **✅** | — | — | **🔴 OPEN** |
+| **BUG-006** | — | **✅ Campaign msgs invisible** | **✅** | — | — | **🔴 OPEN** |
+| **BUG-007** | — | **✅ Preview unreadable** | **✅** | — | — | **🔴 OPEN** |
+
+## Dependency Graph
+
+```
+BUG-005 + BUG-006 → Must both be fixed for campaign filter to work end-to-end
+BUG-007          → Independent, can be fixed in parallel
+```
