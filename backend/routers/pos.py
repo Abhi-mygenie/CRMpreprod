@@ -2974,25 +2974,19 @@ class FreshmarketerData(BaseModel):
     custom_data: Optional[FreshmarketerCustomData] = None
 
 
-class FreshmarketerBody(BaseModel):
+class FreshmarketerWebhookPayload(BaseModel):
+    """Top-level Freshmarketer webhook — the raw HTTP body.
+    Freshmarketer sends the event fields directly (no Body wrapper).
+    The X-API-Key arrives as an actual HTTP header (handled by verify_pos_auth).
+    """
     model_config = ConfigDict(extra='ignore')
 
     event_type: Optional[str] = None
     event: Optional[str] = None
     event_category: Optional[str] = None
     event_time: Optional[Union[int, str]] = None
-    id: Optional[str] = None   # Freshmarketer's unique webhook ID (idempotency key)
+    id: Optional[str] = None   # Freshmarketer unique webhook ID (idempotency key)
     data: Optional[FreshmarketerData] = None
-
-
-class FreshmarketerWebhookPayload(BaseModel):
-    """Top-level Freshmarketer webhook envelope.
-    Headers block is informational — auth via X-API-Key dependency.
-    """
-    model_config = ConfigDict(extra='ignore')
-
-    Headers: Optional[Dict[str, str]] = None
-    Body: FreshmarketerBody
 
 
 @router.get("/templates", response_model=POSResponse)
@@ -3181,7 +3175,7 @@ async def pos_freshmarketer_webhook(
     """
     from core.whatsapp import send_single_message, WhatsAppMessage, log_message_attempt
 
-    body = payload.Body
+    body = payload
     data = body.data or FreshmarketerData()
     custom = data.custom_data or FreshmarketerCustomData()
     contact = data.contact

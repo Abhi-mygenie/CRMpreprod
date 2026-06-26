@@ -1,0 +1,40 @@
+{
+  "summary": "CR-030 v2 — tested POST /api/pos/webhook after the Body-wrapper removal fix. All 12 tests pass (100%). The endpoint now accepts raw Freshmarketer format directly (no FreshmarketerBody wrapper). The exact user-reported payload returns 200 (was 422 before fix). TEMPLATE_NOT_FOUND for the user's template is confirmed as correct behavior. Idempotency, event-filtering, mobile/template_id validation, and regression endpoints all verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/pos/webhook",
+        "issue": "Idempotency (status:replayed) only works on unsupported/ignored events that get logged. For list.add_contact events that fail TEMPLATE_NOT_FOUND, no webhook_log entry is written — so a duplicate call with same id will process again (not replayed). This is a design gap, not a regression of this fix.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr030_freshmarketer_webhook_v2.py",
+    "/app/test_reports/pytest/pytest_cr030_v2.xml"
+  ],
+  "action_items": [
+    "Optional: Consider logging failed webhook attempts (TEMPLATE_NOT_FOUND, MOBILE_REQUIRED etc.) to webhook_logs so idempotency also protects against duplicate failed calls."
+  ],
+  "critical_code_review_comments": [
+    "Fix is correct — FreshmarketerWebhookPayload is now the top-level model, no Body wrapper. Endpoint reads payload directly.",
+    "The 422 bug is fully resolved: all raw Freshmarketer formats (integer event_time, integer list_id/contact_id, integer mobile in custom_data) are accepted.",
+    "TEMPLATE_NOT_FOUND for template 64da2a07-7a73-49a9-8e0c-7b7545623215 is expected and correct — template doesn't exist for pos_0001_restaurant_689 user."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (12/12)",
+    "frontend": "N/A — backend only"
+  },
+  "seed_data_creation": "Idempotency test creates a webhook_log entry with event=contact.updated (ignored) for each test run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "CR-030 v2: POST /api/pos/webhook fully tested with raw Freshmarketer format (no Body wrapper). All 12 tests pass. The exact user payload now returns 200 (TEMPLATE_NOT_FOUND is expected). GET /api/pos/templates and POST /api/pos/send regressions pass.",
+  "rca_of_the_issue": "Root cause: The previous implementation had a FreshmarketerBody wrapper class that expected {Headers, Body} nested format. Freshmarketer actually sends event fields directly as the HTTP body. Fix: Removed FreshmarketerBody, made FreshmarketerWebhookPayload the top-level model. Endpoint now reads `payload` directly instead of `payload.Body`. Result: 422 Unprocessable Entity (field_required: body.Body) is fully resolved."
+}
