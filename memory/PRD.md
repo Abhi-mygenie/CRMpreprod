@@ -55,6 +55,9 @@ Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git (main branch), wip
 - [ ] User to supply any additional API keys needed (AUTHKEY per-tenant, Meta tokens)
 - [ ] JWT_SECRET rotation for production security
 
+### P1 — Registered CRs
+- [ ] **CR-DIRECT-SEND**: New `POST /api/pos/send` endpoint — accepts `crm_template_id` + `body_values` + `customer_phone` via `X-API-Key`, bypasses event mapping system. Requires: (a) store `authkey_wid` back into `custom_templates` during sync, (b) `GET /api/pos/templates` to list available templates. Logged: 2026-06-26.
+
 ### P1 — Known issues from previous sessions
 - [ ] AUTHKEY_WEBHOOK_SECRET not set (webhook unauthenticated)
 - [ ] POS_REQUEST_LOGGING can be enabled when needed
