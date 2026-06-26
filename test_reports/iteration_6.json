@@ -1,0 +1,53 @@
+{
+  "summary": "CR-030 Freshmarketer Webhook endpoint testing. Found and fixed 2 critical Pydantic model bugs that caused 422 on all real Freshmarketer payloads. After fixes all 15 tests pass (100%).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/pos/webhook",
+        "issue": "FreshmarketerBody.event_time was typed as Optional[int] — Freshmarketer sends ISO datetime string like '2025-01-01T00:00:00Z', causing 422. Fixed to Optional[Union[int, str]].",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/pos/webhook",
+        "issue": "FreshmarketerEventDetails.list_id and contact_id were Optional[str] without coerce_numbers_to_str — Freshmarketer sends ints (e.g. 123), causing 422. Fixed by adding coerce_numbers_to_str=True to model_config.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/pos/webhook",
+        "issue": "FreshmarketerContact.mobile was Optional[str] without coerce — Freshmarketer may send int mobile in contact block. Fixed by adding coerce_numbers_to_str=True."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr030_freshmarketer_webhook.py",
+    "/app/test_reports/pytest/pytest_cr030.xml"
+  ],
+  "action_items": [
+    "No further action required — all CR-030 issues were fixed in this iteration.",
+    "FYI: event_time, list_id, contact_id type fixes were applied to /app/backend/routers/pos.py (Freshmarketer model classes)."
+  ],
+  "critical_code_review_comments": [
+    "FreshmarketerBody.event_time typed as int will always reject real Freshmarketer payloads (they send ISO strings). Fixed.",
+    "FreshmarketerEventDetails list_id/contact_id typed as str without coerce rejected integer inputs from Freshmarketer. Fixed.",
+    "FreshmarketerContact mobile typed as str without coerce could reject integer mobile from contact block. Fixed."
+  ],
+  "updated_files": [
+    "/app/backend/routers/pos.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15)",
+    "frontend": "N/A — backend only"
+  },
+  "seed_data_creation": "Test webhook_logs entries created with TEST_ prefixed Body.id values during idempotency and event-filtering tests.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "CR-030 POST /api/pos/webhook fully tested and working. 3 Pydantic model fixes applied in pos.py for Freshmarketer model classes. All 15 tests pass. Regression: /api/pos/send and /api/pos/templates still pass. AUTHKEY_WID_MISSING confirmed as expected response for pos_0001_restaurant_689 user (no synced templates). Idempotency (status:replayed) works correctly.",
+  "rca_of_the_issue": "Root cause: Freshmarketer sends event_time as ISO datetime string and event_details.list_id/contact_id as integers, but the Pydantic models declared these as Optional[int] and Optional[str] respectively without type coercion. This caused a 422 Unprocessable Entity on every real Freshmarketer webhook call, making the entire CR-030 feature non-functional in production. Fix: widened event_time to Union[int, str] and added coerce_numbers_to_str=True to FreshmarketerEventDetails and FreshmarketerContact model configs."
+}

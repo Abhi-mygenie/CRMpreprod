@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.aliases import AliasChoices
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, timezone
 import uuid
 import asyncio
@@ -2934,6 +2934,67 @@ class DirectSendRequest(BaseModel):
     template_id: str  # CRM UUID of the custom_templates document
 
 
+# ============================================================
+# CR-030: Freshmarketer Webhook Pydantic Models
+# ============================================================
+
+class FreshmarketerCustomData(BaseModel):
+    """custom_data block — carries our WhatsApp parameters.
+    mobile/country_code may arrive as int from Freshmarketer.
+    Dynamic variable label fields captured via extra='allow'.
+    """
+    model_config = ConfigDict(extra='allow')
+
+    mobile: Optional[Union[int, str]] = None
+    country_code: Optional[Union[int, str]] = None
+    template_id: Optional[str] = None
+
+
+class FreshmarketerContact(BaseModel):
+    """Standard Freshmarketer contact record. Unused fields ignored."""
+    model_config = ConfigDict(extra='ignore', coerce_numbers_to_str=True)
+
+    mobile: Optional[str] = None
+    phone: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+
+
+class FreshmarketerEventDetails(BaseModel):
+    model_config = ConfigDict(extra='ignore', coerce_numbers_to_str=True)
+
+    list_id: Optional[str] = None
+    contact_id: Optional[str] = None
+
+
+class FreshmarketerData(BaseModel):
+    contact: Optional[FreshmarketerContact] = None
+    event_details: Optional[FreshmarketerEventDetails] = None
+    custom_data: Optional[FreshmarketerCustomData] = None
+
+
+class FreshmarketerBody(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+
+    event_type: Optional[str] = None
+    event: Optional[str] = None
+    event_category: Optional[str] = None
+    event_time: Optional[Union[int, str]] = None
+    id: Optional[str] = None   # Freshmarketer's unique webhook ID (idempotency key)
+    data: Optional[FreshmarketerData] = None
+
+
+class FreshmarketerWebhookPayload(BaseModel):
+    """Top-level Freshmarketer webhook envelope.
+    Headers block is informational — auth via X-API-Key dependency.
+    """
+    model_config = ConfigDict(extra='ignore')
+
+    Headers: Optional[Dict[str, str]] = None
+    Body: FreshmarketerBody
+
+
 @router.get("/templates", response_model=POSResponse)
 async def list_direct_send_templates(user: dict = Depends(verify_pos_auth)):
     """
@@ -3096,6 +3157,245 @@ async def pos_direct_send(
             success=False,
             message=f"Failed to send: {result.error}",
             data={"error": result.error, "phone": phone, "country_code": cc}
+        )
+
+
+# ============================================================
+# CR-030: Freshmarketer Webhook Endpoint
+# ============================================================
+
+@router.post("/webhook", response_model=POSResponse)
+async def pos_freshmarketer_webhook(
+    payload: FreshmarketerWebhookPayload,
+    user: dict = Depends(verify_pos_auth)
+):
+    """
+    CR-030: Accept Freshmarketer webhook envelope and send WhatsApp via CRM template.
+
+    Freshmarketer sends a nested JSON:
+      Body.data.custom_data  → our parameters (mobile, country_code, template_id, named vars)
+      Body.data.contact      → fallback for mobile and name
+      Body.id                → idempotency key (duplicate webhooks safely replayed)
+
+    Auth: X-API-Key header.
+    """
+    from core.whatsapp import send_single_message, WhatsAppMessage, log_message_attempt
+
+    body = payload.Body
+    data = body.data or FreshmarketerData()
+    custom = data.custom_data or FreshmarketerCustomData()
+    contact = data.contact
+
+    # ----------------------------------------------------------
+    # 1. Idempotency check — deduplicate on Body.id
+    # ----------------------------------------------------------
+    webhook_id = body.id
+    if webhook_id:
+        existing = await db.webhook_logs.find_one(
+            {"user_id": user["id"], "webhook_id": webhook_id}, {"_id": 0}
+        )
+        if existing:
+            return POSResponse(
+                success=True,
+                message="Webhook already processed (idempotent replay)",
+                data={
+                    "webhook_id": webhook_id,
+                    "status": "replayed",
+                    "original_processed_at": existing.get("created_at"),
+                    "whatsapp_sent": existing.get("whatsapp_sent", False),
+                    "message_id": existing.get("message_id"),
+                }
+            )
+
+    # ----------------------------------------------------------
+    # 2. Event type filter — Phase 1: only list.add_contact
+    # ----------------------------------------------------------
+    event = body.event or ""
+    if event and event != "list.add_contact":
+        await db.webhook_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "webhook_id": webhook_id,
+            "event_type": event,
+            "source": "freshmarketer",
+            "status": "ignored",
+            "reason": f"Unsupported event: {event}",
+            "raw_payload": payload.model_dump(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        return POSResponse(
+            success=True,
+            message=f"Event '{event}' logged but not processed",
+            data={"webhook_id": webhook_id, "status": "ignored"}
+        )
+
+    # ----------------------------------------------------------
+    # 3. Extract mobile (custom_data → contact fallback)
+    # ----------------------------------------------------------
+    mobile_raw = custom.mobile
+    if not mobile_raw and contact:
+        mobile_raw = contact.mobile or contact.phone
+    if not mobile_raw:
+        return POSResponse(
+            success=False,
+            message="Missing mobile number — provide in custom_data.mobile or contact.mobile",
+            data={"error": "MOBILE_REQUIRED"}
+        )
+    mobile = str(mobile_raw).strip().replace(" ", "").replace("-", "")
+
+    # ----------------------------------------------------------
+    # 4. Extract country_code (default 91)
+    # ----------------------------------------------------------
+    cc_raw = custom.country_code if custom.country_code is not None else 91
+    cc = str(cc_raw).strip().replace("+", "")
+
+    # ----------------------------------------------------------
+    # 5. Extract template_id (required, custom_data only)
+    # ----------------------------------------------------------
+    template_id = custom.template_id
+    if not template_id:
+        return POSResponse(
+            success=False,
+            message="Missing template_id in custom_data",
+            data={"error": "TEMPLATE_ID_REQUIRED"}
+        )
+
+    # ----------------------------------------------------------
+    # 6. Look up CRM template
+    # ----------------------------------------------------------
+    template = await db.custom_templates.find_one(
+        {"id": template_id, "user_id": user["id"]}, {"_id": 0}
+    )
+    if not template:
+        return POSResponse(
+            success=False,
+            message="Template not found",
+            data={"error": "TEMPLATE_NOT_FOUND", "template_id": template_id}
+        )
+
+    authkey_wid = template.get("authkey_wid")
+    if not authkey_wid:
+        return POSResponse(
+            success=False,
+            message=(
+                f"Template '{template.get('template_name')}' has not been synced to AuthKey. "
+                "Please run AuthKey sync from the Templates page first."
+            ),
+            data={"error": "AUTHKEY_WID_MISSING", "template_id": template_id}
+        )
+
+    # ----------------------------------------------------------
+    # 7. Get user's AuthKey API key
+    # ----------------------------------------------------------
+    user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "authkey_api_key": 1})
+    api_key = user_doc.get("authkey_api_key") if user_doc else None
+    if not api_key:
+        return POSResponse(
+            success=False,
+            message="WhatsApp API key not configured for this account",
+            data={"error": "API_KEY_MISSING"}
+        )
+
+    # ----------------------------------------------------------
+    # 8. Build variable label fields from custom_data + contact fallback
+    # ----------------------------------------------------------
+    variable_labels = template.get("variable_labels") or {}
+    extra_fields: Dict[str, Any] = custom.model_extra or {}
+
+    # Name fallback: custom_data.name → contact.first_name + last_name
+    if "name" not in extra_fields and contact:
+        fname = contact.first_name or ""
+        lname = contact.last_name or ""
+        full_name = f"{fname} {lname}".strip()
+        if full_name:
+            extra_fields["name"] = full_name
+
+    body_values: Dict[str, str] = {}
+    missing_labels: List[str] = []
+    if variable_labels:
+        for idx, label in variable_labels.items():
+            val = extra_fields.get(label)
+            if val is not None:
+                body_values[str(idx)] = str(val)
+            else:
+                missing_labels.append(label)
+                body_values[str(idx)] = ""
+
+    # ----------------------------------------------------------
+    # 9. Send via AuthKey
+    # ----------------------------------------------------------
+    message = WhatsAppMessage(
+        phone=mobile,
+        country_code=cc,
+        template_id=authkey_wid,
+        body_values=body_values,
+        customer_id=None,
+    )
+    result = await send_single_message(api_key, message)
+
+    # ----------------------------------------------------------
+    # 10. Log to whatsapp_message_logs
+    # ----------------------------------------------------------
+    await log_message_attempt(
+        db, user["id"], None, mobile,
+        "webhook_send", authkey_wid, result,
+        template_name=template.get("template_name"),
+        country_code=cc,
+        body_values=body_values,
+        reference_type="freshmarketer_webhook",
+        reference_id=template_id,
+        idempotency_key=webhook_id,
+        is_test=False,
+        channel="wp",
+    )
+
+    # ----------------------------------------------------------
+    # 11. Audit log to webhook_logs
+    # ----------------------------------------------------------
+    await db.webhook_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "webhook_id": webhook_id,
+        "event_type": event,
+        "source": "freshmarketer",
+        "status": "processed",
+        "mobile": mobile,
+        "country_code": cc,
+        "template_id": template_id,
+        "template_name": template.get("template_name"),
+        "variable_data": extra_fields,
+        "body_values": body_values,
+        "whatsapp_sent": result.success,
+        "whatsapp_error": result.error if not result.success else None,
+        "message_id": result.message_id if result.success else None,
+        "raw_payload": payload.model_dump(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # ----------------------------------------------------------
+    # 12. Return result
+    # ----------------------------------------------------------
+    if result.success:
+        response_data: Dict[str, Any] = {
+            "webhook_id": webhook_id,
+            "message_id": result.message_id,
+            "phone": mobile,
+            "country_code": cc,
+            "template_name": template.get("template_name"),
+            "body_values_used": body_values,
+        }
+        if missing_labels:
+            response_data["warning"] = f"Some labels not provided, sent as empty: {missing_labels}"
+        return POSResponse(
+            success=True,
+            message=f"Message sent to +{cc}{mobile}",
+            data=response_data
+        )
+    else:
+        return POSResponse(
+            success=False,
+            message=f"Failed to send: {result.error}",
+            data={"error": result.error, "phone": mobile, "country_code": cc, "webhook_id": webhook_id}
         )
 
 

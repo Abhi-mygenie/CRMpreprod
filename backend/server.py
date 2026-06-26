@@ -93,6 +93,20 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # CR-030: webhook_logs indexes for idempotency and audit queries
+    try:
+        await db.webhook_logs.create_index(
+            [("user_id", 1), ("webhook_id", 1)],
+            unique=True,
+            name="idx_webhook_logs_user_webhook_id",
+        )
+        await db.webhook_logs.create_index(
+            [("user_id", 1), ("created_at", -1)],
+            name="idx_webhook_logs_user_created",
+        )
+    except Exception:
+        pass
+
     # CR-024 Phase 3: backfill next_run_at for any pre-existing scheduled/recurring rows
     try:
         from core.campaign_jobs import backfill_next_run_at
