@@ -1,0 +1,59 @@
+{
+  "summary": "CR-DIRECT-SEND QA run. Backend: 17/18 tests passed (1 skipped - no synced templates in test env). Frontend: Templates page loads correctly. Set Labels button code is present but cannot be visually verified as there are no approved CRM custom templates in the test environment.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/pos/send",
+        "issue": "test_send_with_synced_template SKIPPED - no synced templates (authkey_wid set) in DB for test user pos_0001_restaurant_689. Need at least one synced template to verify send flow beyond AUTHKEY_WID_MISSING error."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Set Labels button visibility",
+        "issue": "Set Labels/Edit Labels button is implemented correctly (line 534-545 TemplatesPage.jsx) BUT is only visible for CRM custom templates with status='approved'. In the test environment, no approved CRM custom templates exist (only draft: e_bill2, rejected: order_bill_test). The button cannot be visually tested.",
+        "affected_selectors": ["[data-testid^='set-labels-']"]
+      },
+      {
+        "flow": "Approved CRM templates visibility",
+        "issue": "CRM custom templates are NOT shown when the 'Approved' status filter is selected (only AuthKey templates show). CRM templates only appear under 'All' or 'Draft' filters. The section is labeled 'DRAFT TEMPLATES' even when showing approved/rejected CRM templates, which may confuse users.",
+        "affected_selectors": ["[data-testid='status-filter']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr_direct_send.py",
+    "/app/test_reports/pytest/pytest_cr_direct_send.xml"
+  ],
+  "action_items": [
+    "Create an approved CRM custom template in test environment to verify Set Labels button appears and Labels modal works end-to-end",
+    "Consider renaming 'DRAFT TEMPLATES' section header to 'CRM TEMPLATES' since it shows all CRM templates (approved/rejected/draft/pending), not just drafts (line 487 TemplatesPage.jsx)",
+    "Consider showing CRM approved templates under the 'Approved' filter alongside AuthKey templates, or add a separate 'CRM Templates' tab/filter to avoid user confusion about where to find approved CRM templates to set labels"
+  ],
+  "critical_code_review_comments": [
+    "TemplatesPage.jsx: 'Draft Templates' section label at line 487 is misleading - it renders ALL CRM custom templates regardless of status (approved/rejected/pending/draft). Should be 'CRM Templates'.",
+    "TemplatesPage.jsx: When templateFilter==='approved', displayDrafts is empty so approved CRM custom templates are hidden. Users cannot find their approved CRM templates under the Approved filter to set labels.",
+    "pos.py DirectSendRequest: test_send_with_synced_template flow could not be tested - the POS test account has no templates synced to AuthKey (no authkey_wid in any custom_template). Feature is code-complete but live end-to-end send flow unverified."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr_direct_send.py"
+  ],
+  "success_rate": {
+    "backend": "94% (17/18 passed, 1 skipped)",
+    "frontend": "70% (Templates page loads OK, Set Labels button code present but unverifiable without approved CRM template)"
+  },
+  "test_credentials": {
+    "email": "owner@kunafamahal.com",
+    "password": "Qplazm@10",
+    "pos_api_key": "dp_live_8ZfL5L5earF4lX8fMWZ_THMDRHxNHzERaHb7Q_zfGks"
+  },
+  "seed_data_creation": "None - no seed data created",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "CR-DIRECT-SEND feature adds GET /api/pos/templates and POST /api/pos/send (X-API-Key auth). PATCH /api/whatsapp/custom-templates/{id}/labels saves variable labels (JWT auth). Backend tests all pass. Frontend: Set Labels button only shows on CRM custom templates with status=approved. Test account (pos_0001_restaurant_689) has no approved CRM custom templates - need to create one via /template-builder, submit, and manually approve in DB (set status to 'approved') to test the full Labels flow. POS API key: dp_live_8ZfL5L5earF4lX8fMWZ_THMDRHxNHzERaHb7Q_zfGks",
+  "rca_of_issue": "No critical bugs found. Two UX concerns: (1) CRM templates section labeled 'DRAFT TEMPLATES' regardless of status - minor but confusing. (2) Approved CRM templates not shown under 'Approved' filter, only under 'All'/'Draft' - means users cannot easily discover the Set Labels button for approved CRM templates."
+}

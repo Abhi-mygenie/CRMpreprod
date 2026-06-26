@@ -2917,6 +2917,188 @@ async def pos_customer_order_notes(customer_id: str, user: dict = Depends(verify
     })
 
 
+# ============================================
+# CR-DIRECT-SEND: Direct WhatsApp Template Trigger (2026-06-26)
+# ============================================
+
+class DirectSendRequest(BaseModel):
+    """Flat JSON payload for direct WhatsApp send from external servers.
+    Required: mobile, country_code, template_id.
+    All other fields are the variable labels defined on the template
+    (e.g. name, meeting_link, video_link, schedule_time, etc.)
+    """
+    model_config = ConfigDict(extra='allow')
+
+    mobile: str
+    country_code: str = "91"
+    template_id: str  # CRM UUID of the custom_templates document
+
+
+@router.get("/templates", response_model=POSResponse)
+async def list_direct_send_templates(user: dict = Depends(verify_pos_auth)):
+    """
+    CR-DIRECT-SEND: List CRM templates available for direct send.
+    Returns template UUID, variable labels, and readiness status.
+    Auth: X-API-Key header.
+    """
+    templates = await db.custom_templates.find(
+        {"user_id": user["id"]},
+        {"_id": 0, "id": 1, "template_name": 1, "status": 1,
+         "variables": 1, "variable_labels": 1, "authkey_wid": 1}
+    ).sort("template_name", 1).to_list(None)
+
+    result = []
+    for t in templates:
+        labels = t.get("variable_labels") or {}
+        has_wid = bool(t.get("authkey_wid"))
+        result.append({
+            "template_id": t["id"],
+            "template_name": t.get("template_name", ""),
+            "status": t.get("status", "draft"),
+            "variables": t.get("variables", []),
+            "variable_labels": labels,
+            "authkey_synced": has_wid,
+            "ready_for_direct_send": has_wid and bool(labels),
+            "required_fields": list(labels.values()) if labels else [],
+        })
+
+    return POSResponse(
+        success=True,
+        message=f"{len(result)} template(s) found",
+        data={"templates": result}
+    )
+
+
+@router.post("/send", response_model=POSResponse)
+async def pos_direct_send(
+    request: DirectSendRequest,
+    user: dict = Depends(verify_pos_auth)
+):
+    """
+    CR-DIRECT-SEND: Send a WhatsApp message directly via a CRM template.
+    Accepts a flat JSON payload — no nested AuthKey format required.
+
+    Required fields: mobile, country_code, template_id
+    Variable fields: named keys matching the template's variable_labels
+    (e.g. {"name": "Rahul", "meeting_link": "https://..."})
+
+    Auth: X-API-Key header.
+    """
+    from core.whatsapp import send_single_message, WhatsAppMessage, log_message_attempt, SendResult
+
+    # 1. Look up CRM template
+    template = await db.custom_templates.find_one(
+        {"id": request.template_id, "user_id": user["id"]}, {"_id": 0}
+    )
+    if not template:
+        return POSResponse(
+            success=False,
+            message="Template not found",
+            data={"error": "TEMPLATE_NOT_FOUND", "template_id": request.template_id}
+        )
+
+    # 2. Check authkey_wid — fail fast if not synced (user chose Option A)
+    authkey_wid = template.get("authkey_wid")
+    if not authkey_wid:
+        return POSResponse(
+            success=False,
+            message=(
+                f"Template '{template.get('template_name')}' has not been synced to AuthKey yet. "
+                "Please go to Templates page and run AuthKey sync first."
+            ),
+            data={"error": "AUTHKEY_WID_MISSING", "template_id": request.template_id}
+        )
+
+    # 3. Get variable labels
+    variable_labels = template.get("variable_labels") or {}
+    # variable_labels = {"1": "name", "2": "meeting_link"}
+
+    # 4. Get user's AuthKey API key
+    user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "authkey_api_key": 1})
+    api_key = user_doc.get("authkey_api_key") if user_doc else None
+    if not api_key:
+        return POSResponse(
+            success=False,
+            message="WhatsApp API key not configured for this account",
+            data={"error": "API_KEY_MISSING"}
+        )
+
+    # 5. Map flat payload to positional bodyValues using variable_labels
+    extra_fields = request.model_extra or {}
+    body_values: Dict[str, str] = {}
+    missing_labels: List[str] = []
+
+    if variable_labels:
+        for idx, label in variable_labels.items():
+            val = extra_fields.get(label)
+            if val is not None:
+                body_values[str(idx)] = str(val)
+            else:
+                missing_labels.append(label)
+                body_values[str(idx)] = ""  # send empty rather than blocking
+    # If no labels configured but template has variables, pass extra fields as positional
+    elif template.get("variables"):
+        for i, var in enumerate(template["variables"], start=1):
+            idx_str = str(i)
+            body_values[idx_str] = ""
+
+    # 6. Build and send message
+    phone = request.mobile.replace(" ", "").replace("-", "")
+    cc = request.country_code.replace("+", "")
+
+    message = WhatsAppMessage(
+        phone=phone,
+        country_code=cc,
+        template_id=authkey_wid,
+        body_values=body_values,
+        customer_id=None,
+    )
+
+    result = await send_single_message(api_key, message)
+
+    # 7. Log to whatsapp_message_logs
+    now = datetime.now(timezone.utc).isoformat()
+    await log_message_attempt(
+        db,
+        user["id"],
+        None,
+        phone,
+        "direct_send",
+        authkey_wid,
+        result,
+        template_name=template.get("template_name"),
+        country_code=cc,
+        body_values=body_values,
+        reference_type="direct_send",
+        reference_id=request.template_id,
+        idempotency_key=None,
+        is_test=False,
+        channel="wp",
+    )
+
+    if result.success:
+        response_data: Dict[str, Any] = {
+            "message_id": result.message_id,
+            "phone": phone,
+            "country_code": cc,
+            "template_name": template.get("template_name"),
+            "body_values_used": body_values,
+        }
+        if missing_labels:
+            response_data["warning"] = f"Some variable labels were not provided and sent as empty: {missing_labels}"
+        return POSResponse(
+            success=True,
+            message=f"Message sent to +{cc}{phone}",
+            data=response_data
+        )
+    else:
+        return POSResponse(
+            success=False,
+            message=f"Failed to send: {result.error}",
+            data={"error": result.error, "phone": phone, "country_code": cc}
+        )
+
+
 # Messaging routes
 @messaging_router.post("/send")
 async def send_message(msg_data: MessageRequest, user: dict = Depends(get_current_user)):

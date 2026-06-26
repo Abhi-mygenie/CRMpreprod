@@ -68,6 +68,12 @@ export default function TemplatesPage() {
     // Detect event key for the current template (for suggested chips)
     const [currentEventKey, setCurrentEventKey] = useState("");
 
+    // CR-DIRECT-SEND: Variable labels modal state
+    const [showLabelsModal, setShowLabelsModal] = useState(false);
+    const [labelsTemplate, setLabelsTemplate] = useState(null);
+    const [labelsData, setLabelsData] = useState({});   // {"1": "name", "2": "meeting_link"}
+    const [savingLabels, setSavingLabels] = useState(false);
+
     // CR-004 P2.5-B: Coupon picker state (shared with Automation page)
     const [couponSummary, setCouponSummary] = useState([]);
     const [couponSummaryLoading, setCouponSummaryLoading] = useState(false);
@@ -331,6 +337,45 @@ export default function TemplatesPage() {
         catch (err) { toast.error("Failed to submit template"); }
     };
 
+    // CR-DIRECT-SEND: Open labels modal for a CRM template
+    const openLabelsModal = (template) => {
+        const vars = (template.body || "").match(/\{\{\d+\}\}/g) || [];
+        const uniqueVars = [...new Set(vars)].sort((a, b) => {
+            const na = parseInt(a.replace(/[{}]/g, ""));
+            const nb = parseInt(b.replace(/[{}]/g, ""));
+            return na - nb;
+        });
+        setLabelsTemplate({ ...template, parsedVars: uniqueVars });
+        // Pre-populate from existing variable_labels
+        const existing = template.variable_labels || {};
+        const initialLabels = {};
+        uniqueVars.forEach(v => {
+            const idx = v.replace(/[{}]/g, "");
+            initialLabels[idx] = existing[idx] || "";
+        });
+        setLabelsData(initialLabels);
+        setShowLabelsModal(true);
+    };
+
+    const handleSaveLabels = async () => {
+        if (!labelsTemplate) return;
+        setSavingLabels(true);
+        try {
+            await api.patch(`/whatsapp/custom-templates/${labelsTemplate.id}/labels`, {
+                variable_labels: labelsData
+            });
+            toast.success("Direct-send labels saved!");
+            setShowLabelsModal(false);
+            setLabelsTemplate(null);
+            setLabelsData({});
+            fetchCustomTemplates();
+        } catch (err) {
+            toast.error("Failed to save labels");
+        } finally {
+            setSavingLabels(false);
+        }
+    };
+
     const openEditCustomTemplate = (template) => {
         setEditingCustomTemplate(template);
         setNewTemplate({
@@ -471,7 +516,7 @@ export default function TemplatesPage() {
                                                                     {ct.footer && <p className="text-xs text-gray-500 mt-2 border-t border-gray-200 pt-1">{ct.footer}</p>}
                                                                 </div>
                                                             </div>
-                                                            <div className="flex gap-2 mt-3">
+                                                            <div className="flex gap-2 mt-3 flex-wrap">
                                                                 {ct.status === "draft" && (
                                                                     <>
                                                                         <Button size="sm" variant="outline" onClick={() => navigate(`/template-builder/${ct.id}`)}><Edit2 className="w-3 h-3 mr-1" /> Edit</Button>
@@ -484,6 +529,19 @@ export default function TemplatesPage() {
                                                                         onClick={() => navigate(`/template-builder/${ct.id}`)}
                                                                         data-testid={`edit-resubmit-${ct.id}`}>
                                                                         <Edit2 className="w-3 h-3 mr-1" /> Edit & Resubmit
+                                                                    </Button>
+                                                                )}
+                                                                {/* CR-DIRECT-SEND: Labels button — shown for approved templates */}
+                                                                {ct.status === "approved" && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className={`border-blue-300 text-blue-600 hover:bg-blue-50 ${ct.variable_labels && Object.keys(ct.variable_labels).length > 0 ? "border-green-400 text-green-600 hover:bg-green-50" : ""}`}
+                                                                        onClick={() => openLabelsModal(ct)}
+                                                                        data-testid={`set-labels-${ct.id}`}
+                                                                    >
+                                                                        <Tag className="w-3 h-3 mr-1" />
+                                                                        {ct.variable_labels && Object.keys(ct.variable_labels).length > 0 ? "Edit Labels" : "Set Labels"}
                                                                     </Button>
                                                                 )}
                                                                 {isTemplateInUse(ct.id) ? (
@@ -878,6 +936,90 @@ export default function TemplatesPage() {
                                 />
                             </div>
                         )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* CR-DIRECT-SEND: Variable Labels Modal */}
+                <Dialog open={showLabelsModal} onOpenChange={(open) => { if (!open) { setShowLabelsModal(false); setLabelsTemplate(null); setLabelsData({}); } }}>
+                    <DialogContent className="max-w-md" data-testid="labels-modal">
+                        <DialogHeader>
+                            <DialogTitle className="text-lg font-semibold">Set Direct-Send Labels</DialogTitle>
+                            <DialogDescription className="text-sm text-gray-500">
+                                Map each variable to a label. External servers send these named fields in the flat JSON payload.
+                            </DialogDescription>
+                        </DialogHeader>
+                        {labelsTemplate && (
+                            <div className="space-y-4 py-1">
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p className="text-xs font-medium text-blue-700 mb-1">Template: {labelsTemplate.template_name}</p>
+                                    {labelsTemplate.authkey_wid ? (
+                                        <p className="text-xs text-green-600 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                                            AuthKey synced (wid: {labelsTemplate.authkey_wid})
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-amber-600 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                                            Not synced to AuthKey yet — run sync before using direct-send
+                                        </p>
+                                    )}
+                                </div>
+
+                                {labelsTemplate.parsedVars?.length === 0 && (
+                                    <p className="text-sm text-gray-500 text-center py-2">
+                                        This template has no variables (no <code className="bg-gray-100 px-1 rounded">{`{{1}}`}</code> placeholders).
+                                    </p>
+                                )}
+
+                                {labelsTemplate.parsedVars?.map(variable => {
+                                    const idx = variable.replace(/[{}]/g, "");
+                                    return (
+                                        <div key={variable} className="flex items-center gap-3" data-testid={`label-row-${idx}`}>
+                                            <div className="shrink-0">
+                                                <span className="inline-block px-2.5 py-1 bg-gray-100 rounded-lg font-mono text-sm text-gray-700 border">{variable}</span>
+                                            </div>
+                                            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                            <input
+                                                type="text"
+                                                value={labelsData[idx] || ""}
+                                                onChange={(e) => setLabelsData(prev => ({ ...prev, [idx]: e.target.value.trim().replace(/\s+/g, "_") }))}
+                                                placeholder={`e.g. name, meeting_link…`}
+                                                className="flex-1 h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#F26B33]/30 focus:border-[#F26B33]"
+                                                data-testid={`label-input-${idx}`}
+                                            />
+                                        </div>
+                                    );
+                                })}
+
+                                {labelsTemplate.parsedVars?.length > 0 && (
+                                    <div className="bg-gray-50 rounded-lg p-3 border">
+                                        <p className="text-xs font-medium text-gray-600 mb-1.5">Example payload your server should send:</p>
+                                        <pre className="text-xs text-gray-700 font-mono leading-relaxed whitespace-pre-wrap break-all">
+{`{
+  "mobile": "9876543210",
+  "country_code": "91",
+  "template_id": "${labelsTemplate.id}",${
+  Object.entries(labelsData).filter(([, v]) => v).map(([, label]) => `\n  "${label}": "value"`).join(",")
+}
+}`}
+                                        </pre>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        <div className="flex gap-2 justify-end pt-2 border-t">
+                            <Button variant="outline" size="sm" onClick={() => { setShowLabelsModal(false); setLabelsTemplate(null); setLabelsData({}); }}>Cancel</Button>
+                            <Button
+                                size="sm"
+                                className="bg-[#F26B33] hover:bg-[#D85A2A] text-white"
+                                onClick={handleSaveLabels}
+                                disabled={savingLabels}
+                                data-testid="save-labels-btn"
+                            >
+                                {savingLabels ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
+                                {savingLabels ? "Saving…" : "Save Labels"}
+                            </Button>
+                        </div>
                     </DialogContent>
                 </Dialog>
 

@@ -277,6 +277,26 @@ async def delete_custom_template(template_id: str, user: dict = Depends(get_curr
     return {"message": "Template deleted"}
 
 
+@router.patch("/custom-templates/{template_id}/labels")
+async def save_template_labels(template_id: str, payload: dict, user: dict = Depends(get_current_user)):
+    """
+    CR-DIRECT-SEND: Save variable labels for a template so external servers can
+    send flat JSON payloads (e.g. {"name": "Rahul", "meeting_link": "..."}).
+    Payload: {"variable_labels": {"1": "name", "2": "meeting_link"}}
+    """
+    labels = payload.get("variable_labels", {})
+    # Normalize: keys to strings
+    normalized = {str(k): str(v).strip() for k, v in labels.items() if str(v).strip()}
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.custom_templates.update_one(
+        {"id": template_id, "user_id": user["id"]},
+        {"$set": {"variable_labels": normalized, "updated_at": now}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"message": "Labels saved", "template_id": template_id, "variable_labels": normalized}
+
+
 @router.put("/custom-templates/{template_id}/submit")
 async def submit_custom_template(template_id: str, user: dict = Depends(get_current_user)):
     """Submit a draft template for approval (changes status to pending)."""
@@ -612,6 +632,8 @@ async def sync_authkey_templates(user: dict = Depends(get_current_user)):
     """
     Stage 2: Sync/migrate templates from Meta to AuthKey.
     Should be called after creating template on Meta.
+    CR-DIRECT-SEND: After sync, fetches AuthKey templates and saves authkey_wid
+    back into matching custom_templates documents.
     """
     # Get user's AuthKey credentials
     user_doc = await db.users.find_one(
@@ -665,10 +687,47 @@ async def sync_authkey_templates(user: dict = Depends(get_current_user)):
         if status in [False, "false", "0", 0]:
             error_msg = response_data.get("message") or response_data.get("Message") or "Sync failed"
             raise HTTPException(status_code=400, detail=f"AuthKey sync error: {error_msg}")
-        
+
+        # CR-DIRECT-SEND: After successful sync, fetch all AuthKey templates and
+        # back-fill authkey_wid on matching custom_templates docs (match by name).
+        wid_updates = 0
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                tpl_resp = await client.post(
+                    os.environ['AUTHKEY_TEMPLATES_URL'],
+                    headers={"Authorization": f"Basic {api_key}", "Content-Type": "application/json"},
+                    json={"channel": "whatsapp"},
+                )
+            tpl_data = tpl_resp.json()
+            authkey_templates = tpl_data.get("data", [])
+
+            # Build lookup: normalized_name -> wid
+            authkey_by_name = {}
+            for at in authkey_templates:
+                norm = (at.get("temp_name") or "").strip().lower().replace(" ", "_")
+                if norm and at.get("wid"):
+                    authkey_by_name[norm] = str(at["wid"])
+
+            # Match against local custom_templates
+            local_templates = await db.custom_templates.find(
+                {"user_id": user["id"]}, {"_id": 0, "id": 1, "template_name": 1}
+            ).to_list(None)
+            for ct in local_templates:
+                norm_ct = (ct.get("template_name") or "").strip().lower().replace(" ", "_")
+                wid = authkey_by_name.get(norm_ct)
+                if wid:
+                    await db.custom_templates.update_one(
+                        {"id": ct["id"]},
+                        {"$set": {"authkey_wid": wid}}
+                    )
+                    wid_updates += 1
+        except Exception as wid_err:
+            logging.warning(f"CR-DIRECT-SEND: could not back-fill authkey_wid after sync: {wid_err}")
+
         return {
             "message": "Templates synced to AuthKey successfully",
-            "response": response_data
+            "response": response_data,
+            "wid_updates": wid_updates,
         }
         
     except httpx.RequestError as e:
