@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only bug fix test: 'Set Labels' button now visible for all template statuses (draft, pending, rejected, approved). Verified end-to-end flow on live app.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix verified at TemplatesPage.jsx line 537 — Set Labels button no longer conditioned on ct.status === 'approved'; now renders for all statuses"
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "test_credentials": "owner@kunafamahal.com / Qplazm@10",
+  "seed_data_creation": "None — used existing draft template 'e_bill2'",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fix for Set Labels button visibility confirmed working. Template page at /templates. Switch status filter dropdown to 'Draft' to see draft CRM custom templates with Set Labels button.",
+  "tests_passed": [
+    "Draft template shows 'Set Labels' button",
+    "Clicking 'Set Labels' opens labels modal (data-testid=labels-modal)",
+    "Modal shows 5 variable inputs for {{1}}–{{5}} in template body",
+    "Save Labels button works and closes modal",
+    "After saving, button changes to 'Edit Labels' with green styling"
+  ]
+}

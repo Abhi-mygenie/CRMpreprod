@@ -533,19 +533,17 @@ export default function TemplatesPage() {
                                                                         <Edit2 className="w-3 h-3 mr-1" /> Edit & Resubmit
                                                                     </Button>
                                                                 )}
-                                                                {/* CR-DIRECT-SEND: Labels button — shown for approved templates */}
-                                                                {ct.status === "approved" && (
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        className={`border-blue-300 text-blue-600 hover:bg-blue-50 ${ct.variable_labels && Object.keys(ct.variable_labels).length > 0 ? "border-green-400 text-green-600 hover:bg-green-50" : ""}`}
-                                                                        onClick={() => openLabelsModal(ct)}
-                                                                        data-testid={`set-labels-${ct.id}`}
-                                                                    >
-                                                                        <Tag className="w-3 h-3 mr-1" />
-                                                                        {ct.variable_labels && Object.keys(ct.variable_labels).length > 0 ? "Edit Labels" : "Set Labels"}
-                                                                    </Button>
-                                                                )}
+                                                                {/* CR-DIRECT-SEND: Labels button — shown for all statuses so users can configure before Meta approval */}
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className={`border-blue-300 text-blue-600 hover:bg-blue-50 ${ct.variable_labels && Object.keys(ct.variable_labels).length > 0 ? "border-green-400 text-green-600 hover:bg-green-50" : ""}`}
+                                                                    onClick={() => openLabelsModal(ct)}
+                                                                    data-testid={`set-labels-${ct.id}`}
+                                                                >
+                                                                    <Tag className="w-3 h-3 mr-1" />
+                                                                    {ct.variable_labels && Object.keys(ct.variable_labels).length > 0 ? "Edit Labels" : "Set Labels"}
+                                                                </Button>
                                                                 {isTemplateInUse(ct.id) ? (
                                                                     <span className="text-[10px] text-gray-400 ml-auto flex items-center gap-1" title="Template is in use by events or campaigns">
                                                                         <Lock className="w-3 h-3" /> In Use
