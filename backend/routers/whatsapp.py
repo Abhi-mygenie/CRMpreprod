@@ -718,7 +718,7 @@ async def sync_authkey_templates(user: dict = Depends(get_current_user)):
                 if wid:
                     await db.custom_templates.update_one(
                         {"id": ct["id"]},
-                        {"$set": {"authkey_wid": wid}}
+                        {"$set": {"authkey_wid": wid, "status": "approved"}}
                     )
                     wid_updates += 1
         except Exception as wid_err:
