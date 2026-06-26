@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CR-023 Mock — WhatsApp Template Builder</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+  /* Top bar */
+  .topbar { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .back { background: none; border: none; cursor: pointer; font-size: 20px; color: #666; }
+  .topbar h1 { font-size: 18px; font-weight: 600; }
+  .topbar .status-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .status-draft { background: #f3f4f6; color: #6b7280; }
+  .status-pending { background: #fef3c7; color: #d97706; }
+  .status-approved { background: #d1fae5; color: #059669; }
+  .status-rejected { background: #fee2e2; color: #dc2626; }
+  .topbar .actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn { padding: 8px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-outline { background: #fff; border: 1.5px solid #d1d5db; color: #374151; }
+  .btn-outline:hover { border-color: #9ca3af; }
+  .btn-primary { background: #25D366; color: #fff; }
+  .btn-primary:hover { background: #1da851; }
+  .btn-secondary { background: #F26B33; color: #fff; }
+  .btn-secondary:hover { background: #d85a2a; }
+
+  /* Main layout */
+  .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 57px); }
+
+  /* Left: Form */
+  .form-panel { padding: 24px 32px; overflow-y: auto; }
+  .section { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; padding: 20px; margin-bottom: 16px; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin-bottom: 14px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+  .field .hint { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+  .field .char-count { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 2px; }
+  .field .char-count.warn { color: #d97706; }
+  .field .char-count.over { color: #dc2626; font-weight: 600; }
+  input[type="text"], input[type="url"], input[type="number"], select, textarea {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+    font-size: 14px; font-family: inherit; transition: border-color 0.15s; background: #fafafa;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #F26B33; background: #fff; }
+  textarea { resize: vertical; min-height: 100px; }
+  .inline-error { font-size: 11px; color: #dc2626; margin-top: 3px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* Toggle pills */
+  .pill-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
+    border: 1.5px solid #e5e7eb; background: #fff; color: #6b7280; transition: all 0.15s; }
+  .pill.active { background: #F26B33; color: #fff; border-color: #F26B33; }
+  .pill:hover:not(.active) { border-color: #F26B33; color: #F26B33; }
+
+  /* Example values box */
+  .example-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px; margin-top: 10px; }
+  .example-box label { color: #1e40af; font-size: 12px; font-weight: 600; }
+  .example-box input { background: #fff; border-color: #93c5fd; }
+  .example-box .example-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+
+  /* Buttons section */
+  .button-row { display: flex; gap: 8px; align-items: center; padding: 10px; background: #fafafa; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 8px; }
+  .button-row select { width: 130px; flex-shrink: 0; }
+  .button-row input { flex: 1; }
+  .button-row .remove-btn { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 18px; padding: 4px; }
+  .add-button-link { font-size: 13px; color: #F26B33; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+  .add-button-link:hover { text-decoration: underline; }
+
+  /* Right: Preview */
+  .preview-panel { background: #075e54; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+  .preview-header { padding: 16px 20px; color: #fff; font-size: 14px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .preview-body { flex: 1; padding: 20px; background: #e5ddd5 url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect fill="%23e5ddd5" width="300" height="300"/><rect fill="%23ddd4c8" x="0" y="0" width="1" height="1" opacity="0.1"/></svg>'); overflow-y: auto; }
+  .wa-bubble { background: #dcf8c6; border-radius: 12px; padding: 10px 14px; max-width: 320px; margin: 0 auto; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px; line-height: 1.5; }
+  .wa-bubble .wa-header-text { font-weight: 700; margin-bottom: 6px; color: #1a1a1a; }
+  .wa-bubble .wa-header-img { width: 100%; border-radius: 8px; margin-bottom: 8px; background: #c8e6c9; height: 140px; display: flex; align-items: center; justify-content: center; color: #2e7d32; font-size: 12px; font-weight: 600; }
+  .wa-bubble .wa-body { color: #1a1a1a; white-space: pre-wrap; word-break: break-word; }
+  .wa-bubble .wa-footer { font-size: 12px; color: #8a8a8a; margin-top: 8px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 6px; }
+  .wa-bubble .wa-time { font-size: 10px; color: #8a8a8a; text-align: right; margin-top: 4px; }
+  .wa-buttons { margin-top: 6px; }
+  .wa-btn { display: block; width: 100%; text-align: center; padding: 8px; border: none; background: transparent; color: #00a5f4; font-size: 14px; font-weight: 500; cursor: default; border-top: 1px solid rgba(0,0,0,0.08); }
+  .wa-btn:first-child { border-top: none; }
+
+  /* Status tracker */
+  .status-tracker { display: flex; gap: 0; margin-top: 16px; }
+  .status-step { flex: 1; text-align: center; padding: 10px 4px; font-size: 11px; font-weight: 600; color: #9ca3af; position: relative; }
+  .status-step .dot { width: 24px; height: 24px; border-radius: 50%; background: #e5e7eb; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #9ca3af; }
+  .status-step.active .dot { background: #F26B33; color: #fff; }
+  .status-step.done .dot { background: #25D366; color: #fff; }
+  .status-step.rejected .dot { background: #dc2626; color: #fff; }
+  .status-step::after { content: ''; position: absolute; top: 22px; left: 55%; right: -45%; height: 2px; background: #e5e7eb; z-index: 0; }
+  .status-step:last-child::after { display: none; }
+  .status-step.done::after { background: #25D366; }
+  .status-step.active::after { background: #e5e7eb; }
+
+  /* Template list cards */
+  .template-list { padding: 16px 20px; }
+  .tpl-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+  .tpl-card .tpl-info { flex: 1; }
+  .tpl-card .tpl-name { font-size: 14px; font-weight: 600; }
+  .tpl-card .tpl-meta { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+  .tpl-card .tpl-actions { display: flex; gap: 6px; }
+
+  /* Annotations */
+  .annotation { position: relative; }
+  .annotation::before { 
+    content: attr(data-note); position: absolute; top: -8px; right: -4px; 
+    background: #dc2626; color: #fff; font-size: 9px; padding: 2px 6px; 
+    border-radius: 4px; font-weight: 700; z-index: 10; white-space: nowrap;
+  }
+  .annotation-new::before { background: #059669; content: "NEW"; }
+  .annotation-fix::before { background: #dc2626; content: "FIX"; }
+  .annotation-p0::before { background: #dc2626; content: "P0 FIX"; }
+  .annotation-p1::before { background: #d97706; content: "P1 NEW"; }
+
+  .mock-banner { background: #1e293b; color: #f1f5f9; padding: 10px 24px; font-size: 12px; display: flex; justify-content: space-between; }
+  .mock-banner strong { color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<div class="mock-banner">
+  <span><strong>CR-023 MOCK</strong> — WhatsApp Template Builder (Full-Page). For owner review only — not functional.</span>
+  <span>Gaps addressed: G1-G9 (P0+P1) | Deferred: G10-G14 (P2+P3)</span>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <button class="back">&#8592;</button>
+  <h1>Template Builder</h1>
+  <span class="status-pill status-draft">Draft</span>
+  <div class="actions">
+    <button class="btn btn-outline">Cancel</button>
+    <button class="btn btn-outline">Save as Draft</button>
+    <button class="btn btn-primary">Submit to Meta</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: FORM -->
+  <div class="form-panel">
+
+    <!-- BASICS -->
+    <div class="section">
+      <div class="section-title">Basic Info</div>
+      <div class="field annotation annotation-fix" data-note="G7 FIX — name validation">
+        <label>Template Name</label>
+        <input type="text" value="order_confirmation" placeholder="lowercase_with_underscores" />
+        <div class="hint">Only lowercase letters (a-z), numbers (0-9), and underscores. Max 512 characters.</div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Category</label>
+          <select>
+            <option value="utility" selected>Utility</option>
+            <option value="marketing">Marketing</option>
+            <option value="authentication">Authentication</option>
+          </select>
+        </div>
+        <div class="field annotation annotation-p0" data-note="G2 FIX — locale code">
+          <label>Language</label>
+          <select>
+            <option value="en_US" selected>English (en_US)</option>
+            <option value="hi">Hindi (hi)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <div class="section">
+      <div class="section-title">Header (optional)</div>
+      <div class="field">
+        <label>Header Type</label>
+        <div class="pill-group">
+          <span class="pill">None</span>
+          <span class="pill">Text</span>
+          <span class="pill active">Image</span>
+          <span class="pill">Video</span>
+          <span class="pill">Document</span>
+        </div>
+      </div>
+      <div class="field annotation annotation-new" data-note="G4+G11 — media header">
+        <label>Header Image</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="url" value="https://example.com/food-photo.jpg" placeholder="Image URL or upload..." style="flex:1" />
+          <button class="btn btn-outline" style="white-space: nowrap;">Upload</button>
+        </div>
+        <div class="hint">JPG or PNG. Publicly accessible URL. Max 5MB. Required for Meta approval.</div>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="section">
+      <div class="section-title">Body (required)</div>
+      <div class="field annotation annotation-fix" data-note="G6 FIX — char limit">
+        <label>Message Body</label>
+        <textarea>Hi {{1}},
+Your order #{{2}} is confirmed!
+Total: ₹{{3}}
+Estimated time: {{4}} mins
+
+Thank you for dining with us!</textarea>
+        <div class="char-count">108 / 1024</div>
+      </div>
+      <div class="example-box annotation annotation-p0" data-note="G3 FIX — example format">
+        <label>Example Values for Variables (Required by Meta)</label>
+        <div class="example-grid">
+          <div>
+            <label style="font-size:11px; color: #3b82f6;">{{1}}</label>
+            <input type="text" value="Raj Kumar" placeholder="Customer name" />
+          </div>
+          <div>
+            <label style="font-size:11px; color: #3b82f6;">{{2}}</label>
+            <input type="text" value="ORD-4521" placeholder="Order ID" />
+          </div>
+          <div>
+            <label style="font-size:11px; color: #3b82f6;">{{3}}</label>
+            <input type="text" value="850" placeholder="Amount" />
+          </div>
+          <div>
+            <label style="font-size:11px; color: #3b82f6;">{{4}}</label>
+            <input type="text" value="25" placeholder="Minutes" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="section">
+      <div class="section-title">Footer (optional)</div>
+      <div class="field annotation annotation-fix" data-note="G6 — 60 char limit">
+        <label>Footer Text</label>
+        <input type="text" value="Reply STOP to unsubscribe" placeholder="e.g., Reply STOP to unsubscribe" />
+        <div class="char-count">25 / 60</div>
+      </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="section annotation annotation-p1" data-note="G5 NEW — buttons UI">
+      <div class="section-title">Buttons (optional, max 3)</div>
+      <div class="button-row">
+        <select>
+          <option value="QUICK_REPLY" selected>Quick Reply</option>
+          <option value="URL">URL</option>
+          <option value="PHONE_NUMBER">Call</option>
+        </select>
+        <input type="text" value="Track Order" placeholder="Button text (max 25 chars)" />
+        <button class="remove-btn">&times;</button>
+      </div>
+      <div class="button-row">
+        <select>
+          <option value="QUICK_REPLY">Quick Reply</option>
+          <option value="URL" selected>URL</option>
+          <option value="PHONE_NUMBER">Call</option>
+        </select>
+        <input type="text" value="View Menu" placeholder="Button text" style="width: 120px; flex: none;" />
+        <input type="url" value="https://menu.restaurant.com" placeholder="https://..." style="flex: 1;" />
+        <button class="remove-btn">&times;</button>
+      </div>
+      <div style="margin-top: 8px;">
+        <span class="add-button-link">+ Add Button</span>
+        <span style="font-size: 11px; color: #9ca3af; margin-left: 8px;">1 more allowed</span>
+      </div>
+    </div>
+
+    <!-- DUPLICATE CHECK -->
+    <div class="section" style="background: #fef3c7; border-color: #fde68a;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">&#9888;</span>
+        <div>
+          <div style="font-size: 13px; font-weight: 600; color: #92400e;" class="annotation annotation-p1" data-note="G9 — duplicate check">Duplicate Check</div>
+          <div style="font-size: 12px; color: #a16207; margin-top: 2px;">A template named "order_confirmation" already exists in your WABA. Choose a different name.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: PREVIEW + STATUS -->
+  <div class="preview-panel">
+    <div class="preview-header">
+      WhatsApp Preview
+    </div>
+    <div class="preview-body">
+      <div class="wa-bubble">
+        <div class="wa-header-img">[ food-photo.jpg ]</div>
+        <div class="wa-body">Hi <strong>Raj Kumar</strong>,
+Your order #<strong>ORD-4521</strong> is confirmed!
+Total: ₹<strong>850</strong>
+Estimated time: <strong>25</strong> mins
+
+Thank you for dining with us!</div>
+        <div class="wa-footer">Reply STOP to unsubscribe</div>
+        <div class="wa-time">11:42 AM ✓✓</div>
+        <div class="wa-buttons">
+          <div class="wa-btn">Track Order</div>
+          <div class="wa-btn">View Menu ↗</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUS TRACKER -->
+    <div style="background: #fff; padding: 16px 20px; border-top: 1px solid #e5e7eb;">
+      <div class="section-title annotation annotation-p1" data-note="G8 NEW — status tracking" style="margin-bottom: 8px;">Template Status</div>
+      <div class="status-tracker">
+        <div class="status-step done">
+          <div class="dot">&#10003;</div>
+          Draft
+        </div>
+        <div class="status-step active">
+          <div class="dot">2</div>
+          Submitted
+        </div>
+        <div class="status-step">
+          <div class="dot">3</div>
+          Meta Review
+        </div>
+        <div class="status-step">
+          <div class="dot">4</div>
+          Approved
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #d97706; font-weight: 500;">
+        Pending Meta review... (submitted 2 hours ago)
+      </div>
+    </div>
+
+    <!-- EXISTING TEMPLATES -->
+    <div class="template-list" style="border-top: 1px solid #e5e7eb; background: #fafafa; flex: 0;">
+      <div class="section-title">Your Templates</div>
+      <div class="tpl-card">
+        <div class="tpl-info">
+          <div class="tpl-name">payment_bill</div>
+          <div class="tpl-meta">Utility &middot; English &middot; 7 vars</div>
+        </div>
+        <span class="status-pill status-approved">Approved</span>
+      </div>
+      <div class="tpl-card">
+        <div class="tpl-info">
+          <div class="tpl-name">welcome_new_customer</div>
+          <div class="tpl-meta">Marketing &middot; English &middot; 3 vars</div>
+        </div>
+        <span class="status-pill status-pending">Pending</span>
+      </div>
+      <div class="tpl-card">
+        <div class="tpl-info">
+          <div class="tpl-name">birthday_wish</div>
+          <div class="tpl-meta">Marketing &middot; Hindi &middot; 2 vars</div>
+        </div>
+        <span class="status-pill status-rejected">Rejected</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ANNOTATION KEY -->
+<div style="background: #1e293b; color: #f1f5f9; padding: 16px 24px; font-size: 12px;">
+  <strong style="color: #fbbf24;">Gap Key:</strong>
+  <span style="background: #dc2626; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin: 0 4px;">P0 FIX</span> = Submission blocker fix &nbsp;
+  <span style="background: #dc2626; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin: 0 4px;">FIX</span> = Validation/format fix &nbsp;
+  <span style="background: #059669; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin: 0 4px;">NEW</span> = New feature &nbsp;
+  <span style="background: #d97706; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin: 0 4px;">P1 NEW</span> = P1 new feature
+  <br><br>
+  <strong>Gaps addressed in this mock:</strong> G1 (API v21), G2 (en_US locale), G3 (example format), G4 (media header examples), G5 (buttons UI), G6 (char limits), G7 (name validation), G8 (status tracking), G9 (duplicate check), G11 (media upload), G12 (error display)
+  <br>
+  <strong>Deferred:</strong> G10 (more languages — owner chose EN+HI only), G13 (per-template AuthKey sync), G14 (allow_category_change)
+</div>
+
+</body>
+</html>

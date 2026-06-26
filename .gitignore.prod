@@ -1,0 +1,91 @@
+# ============================================================
+# .gitignore.prod — MyGenie CRM Production Deployment Exclusions
+# ============================================================
+# This file lists everything that MUST be excluded from
+# production deployments. Merge with base .gitignore or use
+# as a deployment filter checklist.
+#
+# Created: 2026-06-17
+# Author: Security audit — E1
+# ============================================================
+
+# ── SECRETS & CREDENTIALS ────────────────────────────────────
+.env
+.env.*
+*.env
+backend/.env
+frontend/.env
+credentials.json
+*.key
+*.pem
+token.json
+.credentials
+
+# ── CUSTOMER DATA / PII ─────────────────────────────────────
+# Generated invoices contain real customer names, phones, amounts
+data/
+data/invoices/
+
+# Debug artifacts with real POS order data
+order_*.json
+
+# ── INTERNAL DOCUMENTATION ───────────────────────────────────
+# Contains plaintext passwords, API strategies, internal decisions,
+# bug details, CR plans, owner communications
+memory/
+memory/**
+
+# ── TEST ARTIFACTS ───────────────────────────────────────────
+# Test suites, fixtures, seed data, QA reports
+backend/tests/
+test_reports/
+test_result.md
+tests/
+
+# ── AD-HOC SCRIPTS ───────────────────────────────────────────
+# Fix/audit scripts with hardcoded tenant IDs and template IDs
+backend/scripts/
+scripts/
+
+# ── INTERNAL MOCK / CONTRACT HTML ────────────────────────────
+# These are publicly accessible in /public — must not ship to prod
+frontend/public/cr*.html
+
+# ── DESIGN & BUILD ARTIFACTS ────────────────────────────────
+design_guidelines.json
+
+# ── PLATFORM METADATA ───────────────────────────────────────
+.emergent/
+.emergent/**
+
+# ── COMPILED / CACHE / BUILD ────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+frontend/node_modules/
+node_modules/
+frontend/build/
+.cache/
+*.pack
+
+# ── MIGRATION SCRIPTS (one-time, already applied) ───────────
+backend/migrations/
+
+# ── IDE / EDITOR ────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ── LOGS ────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── ARCHIVES ────────────────────────────────────────────────
+*.zip
+*.tar.gz
+*.tar
+*.tgz

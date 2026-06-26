@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS → CRM: Hotel Folio Data Contract</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f8f9fa; color: #1a1a2e; line-height: 1.6; }
+  
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; padding: 40px 0; }
+  .header-inner { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+  .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .header .subtitle { font-size: 15px; color: #a8b2d1; }
+  .meta-bar { display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+  .meta-item { font-size: 13px; color: #ccd6f6; }
+  .meta-item strong { color: #64ffda; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+  .section { background: #fff; border-radius: 12px; padding: 28px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e8ecf1; }
+  .section h2 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #f26b33; display: inline-block; }
+  .section h3 { font-size: 15px; font-weight: 600; color: #334155; margin: 16px 0 8px; }
+  .section p { font-size: 14px; color: #475569; margin-bottom: 12px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 13px; }
+  th { background: #f1f5f9; color: #334155; font-weight: 600; text-align: left; padding: 10px 12px; border: 1px solid #e2e8f0; }
+  td { padding: 10px 12px; border: 1px solid #e2e8f0; color: #475569; vertical-align: top; }
+  tr:hover td { background: #fefce8; }
+
+  .priority-tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .p0 { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+  .p1 { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+  .p2 { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+
+  .code-block { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 16px 20px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12.5px; overflow-x: auto; margin: 12px 0 16px; line-height: 1.7; }
+  .code-block .key { color: #7dd3fc; }
+  .code-block .string { color: #86efac; }
+  .code-block .number { color: #fcd34d; }
+  .code-block .comment { color: #64748b; font-style: italic; }
+  .code-block .new-field { background: rgba(249,115,22,0.15); display: inline; padding: 1px 0; border-left: 3px solid #f97316; margin-left: -20px; padding-left: 17px; }
+
+  .callout { border-radius: 8px; padding: 14px 18px; margin: 12px 0; font-size: 13px; }
+  .callout-info { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .callout-warn { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e; }
+  .callout-success { background: #f0fdf4; border-left: 4px solid #22c55e; color: #166534; }
+
+  .status-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-green { background: #22c55e; }
+  .dot-red { background: #ef4444; }
+  .dot-yellow { background: #f59e0b; }
+
+  .timeline { margin: 16px 0; }
+  .timeline-row { display: flex; gap: 16px; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+  .timeline-row:last-child { border-bottom: none; }
+
+  .footer { text-align: center; padding: 24px; color: #94a3b8; font-size: 12px; }
+
+  @media (max-width: 640px) {
+    .header-inner { padding: 0 16px; }
+    .header h1 { font-size: 22px; }
+    .container { padding: 12px; }
+    .section { padding: 18px; }
+    .meta-bar { gap: 12px; }
+    table { font-size: 12px; }
+    th, td { padding: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>POS → CRM: Hotel Folio Data Contract</h1>
+    <div class="subtitle">Request for POS payload expansion — Room Order Fields</div>
+    <div class="meta-bar">
+      <div class="meta-item"><strong>CR</strong> CR-014 (E-Invoice — Mode C: Hotel Folio)</div>
+      <div class="meta-item"><strong>Date</strong> 2026-06-06</div>
+      <div class="meta-item"><strong>From</strong> CRM Team</div>
+      <div class="meta-item"><strong>To</strong> POS Team</div>
+      <div class="meta-item"><strong>Status</strong> Awaiting POS Implementation</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Context -->
+  <div class="section">
+    <h2>1. Context</h2>
+    <p>CRM is building <strong>Hotel Folio / Room Invoice</strong> generation (Mode C of CR-014). When a hotel guest checks out, CRM generates a mobile-friendly invoice (HTML + PDF) covering:</p>
+    <ul style="margin: 8px 0 12px 20px; font-size: 14px; color: #475569;">
+      <li>Room charges (nights × rate)</li>
+      <li>F&B charges (food ordered during stay, grouped by day)</li>
+      <li>Taxes, discounts, grand total</li>
+    </ul>
+    <p>This invoice is sent to the guest via WhatsApp (<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px;">einvoice_link</code> variable in <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px;">send_bill</code> template) and also accessible via a public URL.</p>
+    
+    <div class="callout callout-warn">
+      <strong>Current state:</strong> POS sends food items, customer data, and a <code>room_info</code> struct — but it only has 3 fields (<code>room_price</code>, <code>advance_payment</code>, <code>balance_payment</code>). We need 4–7 more fields to generate a proper hotel folio.
+    </div>
+  </div>
+
+  <!-- Current Struct -->
+  <div class="section">
+    <h2>2. Current <code>room_info</code> (what POS sends today)</h2>
+    <div class="code-block">{
+  <span class="key">"room_info"</span>: {
+    <span class="key">"room_price"</span>: <span class="number">1000.0</span>,
+    <span class="key">"advance_payment"</span>: <span class="number">500.0</span>,
+    <span class="key">"balance_payment"</span>: <span class="number">500.0</span>
+  }
+}</div>
+    <p>Sent inside <code>POST /api/pos/orders</code> payload. Only 1 tenant (sunildev/R558) currently populates it. Palm House (R541) uses a "Check In" item at ₹0 as a workaround.</p>
+  </div>
+
+  <!-- Requested Fields -->
+  <div class="section">
+    <h2>3. Requested Fields</h2>
+
+    <h3><span class="priority-tag p0">P0 — Critical</span> &nbsp;Blocks folio generation</h3>
+    <table>
+      <tr><th>#</th><th>Field</th><th>Type</th><th>Example</th><th>Why Needed</th></tr>
+      <tr>
+        <td>1</td>
+        <td><code>room_number</code></td>
+        <td>string</td>
+        <td><code>"305"</code>, <code>"Deluxe 12"</code>, <code>"Villa A"</code></td>
+        <td>Human-readable room ID on folio header. Currently CRM only gets <code>table_id</code> (POS internal numeric ID like 4708) — meaningless to guests.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>check_in</code></td>
+        <td>string (ISO date)</td>
+        <td><code>"2026-01-14"</code></td>
+        <td>Folio header: "Check-in: 14 Jan 2026". Currently CRM derives from first item's <code>serve_at</code> — unreliable.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>check_out</code></td>
+        <td>string (ISO date)</td>
+        <td><code>"2026-04-01"</code></td>
+        <td>Folio header: "Check-out: 01 Apr 2026". Currently CRM derives from <code>order_updated_at</code> — unreliable.</td>
+      </tr>
+    </table>
+
+    <h3><span class="priority-tag p1">P1 — Important</span> &nbsp;Improves folio quality</h3>
+    <table>
+      <tr><th>#</th><th>Field</th><th>Type</th><th>Example</th><th>Why Needed</th></tr>
+      <tr>
+        <td>4</td>
+        <td><code>nights</code></td>
+        <td>integer</td>
+        <td><code>3</code></td>
+        <td>"3 Nights" on folio. CRM can derive from check_in/check_out if missing, but POS may have actual booked value.</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>room_type</code></td>
+        <td>string</td>
+        <td><code>"Deluxe Room"</code></td>
+        <td>Shown on folio: "Room Type: Deluxe Room". Helps guest identify their booking.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>rate_per_night</code></td>
+        <td>float</td>
+        <td><code>3000.0</code></td>
+        <td>Enables itemized room charge: "3 nights × ₹3,000 = ₹9,000". Currently only lump-sum <code>room_price</code>.</td>
+      </tr>
+    </table>
+
+    <h3><span class="priority-tag p2">P2 — Nice to Have</span></h3>
+    <table>
+      <tr><th>#</th><th>Field</th><th>Type</th><th>Example</th><th>Why Needed</th></tr>
+      <tr>
+        <td>7</td>
+        <td><code>guest_count</code></td>
+        <td>integer</td>
+        <td><code>2</code></td>
+        <td>"Guests: 2" on folio header. Minor cosmetic detail.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Proposed Struct -->
+  <div class="section">
+    <h2>4. Proposed Expanded <code>room_info</code></h2>
+    <div class="code-block">{
+  <span class="key">"room_info"</span>: {
+    <span class="key">"room_price"</span>: <span class="number">9000.0</span>,
+    <span class="key">"advance_payment"</span>: <span class="number">5000.0</span>,
+    <span class="key">"balance_payment"</span>: <span class="number">4000.0</span>,
+    <span class="new-field"><span class="key">"room_number"</span>: <span class="string">"305"</span>,</span>                  <span class="comment">← NEW (P0)</span>
+    <span class="new-field"><span class="key">"check_in"</span>: <span class="string">"2026-01-14"</span>,</span>             <span class="comment">← NEW (P0)</span>
+    <span class="new-field"><span class="key">"check_out"</span>: <span class="string">"2026-01-17"</span>,</span>            <span class="comment">← NEW (P0)</span>
+    <span class="new-field"><span class="key">"nights"</span>: <span class="number">3</span>,</span>                           <span class="comment">← NEW (P1)</span>
+    <span class="new-field"><span class="key">"room_type"</span>: <span class="string">"Deluxe Room"</span>,</span>           <span class="comment">← NEW (P1)</span>
+    <span class="new-field"><span class="key">"rate_per_night"</span>: <span class="number">3000.0</span>,</span>             <span class="comment">← NEW (P1)</span>
+    <span class="new-field"><span class="key">"guest_count"</span>: <span class="number">2</span></span>                       <span class="comment">← NEW (P2)</span>
+  }
+}</div>
+    <div class="callout callout-success">
+      <strong>Backward Compatible:</strong> All new fields are <strong>optional</strong>. CRM handles null/missing gracefully. Existing fields unchanged. No new endpoint, no new header — just additional keys inside the existing <code>room_info</code> object.
+    </div>
+  </div>
+
+  <!-- Full Payload Example -->
+  <div class="section">
+    <h2>5. Full Payload Example</h2>
+    <p>The <code>room_info</code> struct is sent inside the existing order webhook:</p>
+    <div class="code-block"><span class="comment">POST /api/pos/orders</span>
+{
+  <span class="key">"pos_order_id"</span>: <span class="string">"869143"</span>,
+  <span class="key">"restaurant_order_id"</span>: <span class="string">"010585"</span>,
+  <span class="key">"order_type"</span>: <span class="string">"pos"</span>,
+  <span class="key">"order_amount"</span>: <span class="number">15000.0</span>,
+  <span class="key">"cust_name"</span>: <span class="string">"Ms. Jamie Finlayson"</span>,
+  <span class="key">"cust_mobile"</span>: <span class="string">"+351927605555"</span>,
+  <span class="key">"payment_method"</span>: <span class="string">"card"</span>,
+  <span class="key">"items"</span>: [
+    {<span class="key">"item_name"</span>: <span class="string">"Cappuccino"</span>, <span class="key">"item_qty"</span>: <span class="number">1</span>, <span class="key">"item_price"</span>: <span class="number">160.0</span>},
+    {<span class="key">"item_name"</span>: <span class="string">"Eggs Benny"</span>, <span class="key">"item_qty"</span>: <span class="number">1</span>, <span class="key">"item_price"</span>: <span class="number">350.0</span>}
+  ],
+  <span class="key">"room_info"</span>: {
+    <span class="key">"room_price"</span>: <span class="number">9000.0</span>,
+    <span class="key">"advance_payment"</span>: <span class="number">5000.0</span>,
+    <span class="key">"balance_payment"</span>: <span class="number">4000.0</span>,
+    <span class="key">"room_number"</span>: <span class="string">"305"</span>,
+    <span class="key">"check_in"</span>: <span class="string">"2026-01-14"</span>,
+    <span class="key">"check_out"</span>: <span class="string">"2026-01-17"</span>,
+    <span class="key">"nights"</span>: <span class="number">3</span>,
+    <span class="key">"room_type"</span>: <span class="string">"Deluxe Room"</span>,
+    <span class="key">"rate_per_night"</span>: <span class="number">3000.0</span>,
+    <span class="key">"guest_count"</span>: <span class="number">2</span>
+  }
+}</div>
+  </div>
+
+  <!-- CRM Behavior -->
+  <div class="section">
+    <h2>6. CRM Behavior Based on What POS Sends</h2>
+    <table>
+      <tr><th>Scenario</th><th>CRM Action</th></tr>
+      <tr><td><code>room_info</code> not present or null</td><td>Normal food invoice (Mode A/B)</td></tr>
+      <tr><td><code>room_info.room_price &gt; 0</code></td><td>Hotel Folio (Mode C) — room charges + F&B</td></tr>
+      <tr><td><code>room_info</code> present but <code>room_price = 0</code></td><td>F&B-only folio with hotel guest header (if <code>check_in</code> present)</td></tr>
+      <tr><td><code>room_number</code> missing</td><td>Folio shows "Room: —" (falls back to <code>table_id</code> if available)</td></tr>
+      <tr><td><code>check_in</code> / <code>check_out</code> missing</td><td>CRM derives from item <code>serve_at</code> dates (less reliable)</td></tr>
+      <tr><td><code>nights</code> missing</td><td>CRM derives: <code>check_out - check_in</code> in days</td></tr>
+      <tr><td><code>rate_per_night</code> missing</td><td>CRM shows lump-sum <code>room_price</code> without per-night breakdown</td></tr>
+      <tr><td><code>room_type</code> missing</td><td>Omitted from folio</td></tr>
+      <tr><td><code>guest_count</code> missing</td><td>Omitted from folio</td></tr>
+    </table>
+  </div>
+
+  <!-- Palm House Pattern -->
+  <div class="section">
+    <h2>7. Palm House "Check In" Item Pattern</h2>
+    <p>Palm House (R541) currently uses a menu item called <strong>"Check In"</strong> at ₹0 to mark hotel guests instead of <code>room_info</code>. This works for guest identification but lacks room charge data.</p>
+    <div class="callout callout-info">
+      <strong>Recommendation:</strong> Palm House should also adopt <code>room_info</code>. CRM supports both patterns during transition:<br>
+      • <strong>Pattern A</strong> (<code>room_info</code> struct): Full hotel folio with room charges<br>
+      • <strong>Pattern B</strong> ("Check In" item): F&B-only guest folio (no room charges)<br>
+      Once Palm House switches, Pattern B becomes legacy.
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="section">
+    <h2>8. Timeline</h2>
+    <table>
+      <tr><th>Priority</th><th>Fields</th><th>CRM Ready?</th><th>POS Needed By</th></tr>
+      <tr>
+        <td><span class="priority-tag p0">P0</span></td>
+        <td><code>room_number</code>, <code>check_in</code>, <code>check_out</code></td>
+        <td><span class="dot dot-green"></span> Now</td>
+        <td><strong>ASAP</strong> — blocks hotel folio feature</td>
+      </tr>
+      <tr>
+        <td><span class="priority-tag p1">P1</span></td>
+        <td><code>nights</code>, <code>room_type</code>, <code>rate_per_night</code></td>
+        <td><span class="dot dot-green"></span> Now</td>
+        <td>Next sprint</td>
+      </tr>
+      <tr>
+        <td><span class="priority-tag p2">P2</span></td>
+        <td><code>guest_count</code></td>
+        <td><span class="dot dot-green"></span> Now</td>
+        <td>Whenever convenient</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Questions -->
+  <div class="section">
+    <h2>9. Questions for POS Team</h2>
+    <ol style="margin-left: 20px; font-size: 14px; color: #475569; line-height: 2;">
+      <li><strong>Which tenants currently use hotel/room features?</strong> We found: sunildev (R558), Palm House (R541), Welcome Resort (R474). Any others?</li>
+      <li><strong>Can Palm House switch from "Check In" item to <code>room_info</code> struct?</strong> Or should CRM support both patterns permanently?</li>
+      <li><strong>Is <code>room_number</code> available in POS DB?</strong> If yes, easy to add to webhook payload.</li>
+      <li><strong>Are check-in / check-out dates tracked in POS?</strong> If yes, which table/field?</li>
+      <li><strong>Any concern about adding these fields to the existing <code>room_info</code> object?</strong></li>
+    </ol>
+  </div>
+
+  <!-- Contact -->
+  <div class="section" style="text-align: center; padding: 20px;">
+    <p style="font-size: 13px; color: #94a3b8;">For questions about CRM-side handling: reach out to CRM team.<br>
+    For webhook endpoint details: see existing POS API contract at <code>POST /api/pos/orders</code>.</p>
+  </div>
+
+</div>
+
+<div class="footer">
+  MyGenie CRM — CR-014 Hotel Folio Data Contract — v1.0 — 2026-06-06
+</div>
+
+</body>
+</html>
