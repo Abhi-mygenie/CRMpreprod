@@ -31,6 +31,21 @@ Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git (main branch), wip
 - Remote MongoDB connected: 27 collections confirmed
 - App loads at https://crm-preprod-6.preview.emergentagent.com
 
+### Session: 2026-06-26 — CR-DIRECT-SEND Feature
+**Goal**: Allow external servers (e.g. POS/MyGenie) to trigger WhatsApp template messages using a flat JSON payload without dealing with nested AuthKey format.
+
+**Backend changes:**
+- `PATCH /api/whatsapp/custom-templates/{id}/labels` — saves `variable_labels` dict (e.g. `{"1": "name", "2": "meeting_link"}`) on a CRM template document
+- `GET /api/pos/templates` — lists CRM custom templates with their UUID, variable_labels, authkey_sync status, and required_fields for external callers (X-API-Key auth)
+- `POST /api/pos/send` — accepts flat JSON payload (`mobile`, `country_code`, `template_id`, + named fields), maps them to AuthKey bodyValues via `variable_labels`, sends WhatsApp, logs to `whatsapp_message_logs` (X-API-Key auth)
+- Updated `POST /api/whatsapp/authkey/sync-templates` — after sync, auto-fetches all AuthKey templates and back-fills `authkey_wid` field on matching `custom_templates` documents
+
+**Frontend changes (TemplatesPage.jsx):**
+- Added "Set Labels" / "Edit Labels" button on CRM approved template cards
+- New Direct-Send Labels modal: per-variable label name inputs + live payload JSON preview
+- Fixed filter logic: approved/pending/rejected CRM templates now appear under their matching status filter (not just "All")
+- Renamed "Draft Templates" section header to "CRM Templates"
+
 ## Environment Variables Set
 
 ### Backend (/app/backend/.env)
@@ -56,7 +71,7 @@ Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git (main branch), wip
 - [ ] JWT_SECRET rotation for production security
 
 ### P1 — Registered CRs
-- [ ] **CR-DIRECT-SEND**: New `POST /api/pos/send` endpoint — accepts `crm_template_id` + `body_values` + `customer_phone` via `X-API-Key`, bypasses event mapping system. Requires: (a) store `authkey_wid` back into `custom_templates` during sync, (b) `GET /api/pos/templates` to list available templates. Logged: 2026-06-26.
+- [x] **CR-DIRECT-SEND**: COMPLETE (2026-06-26). New `POST /api/pos/send` endpoint — accepts flat JSON, maps via `variable_labels`, fires via AuthKey, logs to `whatsapp_message_logs`. Also: `GET /api/pos/templates` listing, `PATCH /api/whatsapp/custom-templates/{id}/labels` for label config, sync endpoint back-fills `authkey_wid`.
 
 ### P1 — Known issues from previous sessions
 - [ ] AUTHKEY_WEBHOOK_SECRET not set (webhook unauthenticated)
