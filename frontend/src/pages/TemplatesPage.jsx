@@ -434,14 +434,16 @@ export default function TemplatesPage() {
                             if (templateFilter === "all") { displayTemplates = authkeyTemplates; displayDrafts = customTemplates; }
                             else if (templateFilter === "approved") {
                                 displayTemplates = approvedAuthkey;
+                                // CR-DIRECT-SEND: Also show approved CRM templates so users can set labels
+                                displayDrafts = customTemplates.filter(ct => ct.status === "approved");
                                 if (mappingToggle === "mapped") {
                                     displayTemplates = displayTemplates.filter(tpl => { const vars = (tpl.temp_body.match(/\{\{\d+\}\}/g) || []).filter((v, i, a) => a.indexOf(v) === i); return vars.length === 0 || isTemplateFullyMapped(tpl); });
                                 } else {
                                     displayTemplates = displayTemplates.filter(tpl => { const vars = (tpl.temp_body.match(/\{\{\d+\}\}/g) || []).filter((v, i, a) => a.indexOf(v) === i); return vars.length > 0 && !isTemplateFullyMapped(tpl); });
                                 }
-                            } else if (templateFilter === "pending") { displayTemplates = pendingAuthkey; }
-                            else if (templateFilter === "rejected") { displayTemplates = rejectedAuthkey; }
-                            else if (templateFilter === "draft") { displayDrafts = customTemplates; }
+                            } else if (templateFilter === "pending") { displayTemplates = pendingAuthkey; displayDrafts = customTemplates.filter(ct => ct.status === "pending"); }
+                            else if (templateFilter === "rejected") { displayTemplates = rejectedAuthkey; displayDrafts = customTemplates.filter(ct => ct.status === "rejected"); }
+                            else if (templateFilter === "draft") { displayDrafts = customTemplates.filter(ct => ct.status === "draft"); }
                             
                             if (categoryFilter !== "all") { displayDrafts = displayDrafts.filter(ct => ct.category === categoryFilter); displayTemplates = []; }
                             
@@ -484,7 +486,7 @@ export default function TemplatesPage() {
                                     {/* Draft Templates */}
                                     {displayDrafts.length > 0 && (
                                         <div className="mb-4">
-                                            {displayTemplates.length > 0 && <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Draft Templates</p>}
+                                            {displayTemplates.length > 0 && <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">CRM Templates</p>}
                                             <div className="space-y-3">
                                                 {displayDrafts.map(ct => (
                                                     <Card key={ct.id} className="rounded-xl border-0 shadow-sm overflow-hidden">
