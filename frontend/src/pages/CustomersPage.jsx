@@ -1251,11 +1251,15 @@ export default function CustomersPage() {
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-wrap gap-1 items-center">
                                                         {(customer.tags || []).map(tag => (
-                                                            <TagChip key={tag} tag={tag} onRemove={() => handleRemoveTag(customer.id, tag)} />
+                                                            <span key={tag} onClick={e => e.stopPropagation()}>
+                                                                <TagChip tag={tag} onRemove={() => handleRemoveTag(customer.id, tag)} />
+                                                            </span>
                                                         ))}
                                                         <Popover open={!!tagPopoverOpen[customer.id]} onOpenChange={v => setTagPopoverOpen(p => ({ ...p, [customer.id]: v }))}>
                                                             <PopoverTrigger asChild>
-                                                                <button className="px-2 py-0.5 border border-dashed border-gray-300 rounded-full text-[10px] text-gray-400 hover:border-[#F26B33] hover:text-[#F26B33] transition-colors whitespace-nowrap">
+                                                                <button
+                                                                    onClick={e => e.stopPropagation()}
+                                                                    className="px-2 py-0.5 border border-dashed border-gray-300 rounded-full text-[10px] text-gray-400 hover:border-[#F26B33] hover:text-[#F26B33] transition-colors whitespace-nowrap">
                                                                     + tag
                                                                 </button>
                                                             </PopoverTrigger>
