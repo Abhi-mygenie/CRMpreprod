@@ -25,12 +25,13 @@
 |---|---|---|---|
 | BE-1 | `backend/core/helpers.py` | EDIT | Make `build_customer_query` async; add 20 filter blocks (P0+P1+P2+tags) |
 | BE-2 | `backend/models/schemas.py` | EDIT | Add `tags: List[str] = []` to CustomerBase (line 319), CustomerUpdate (line 424), Customer (line 547) |
-| BE-3 | `backend/routers/customers.py` | EDIT | Await `build_customer_query` (2 call sites); add 5 tag endpoints before line 1060; add BulkTagRequest model |
+| BE-3 | `backend/routers/customers.py` | EDIT | Await `build_customer_query` (2 call sites); add 5 tag endpoints before line 1060 |
 | BE-4 | `backend/routers/campaigns.py` | EDIT | Await `build_customer_query` (1 call site at line 54) |
 | BE-5 | `backend/migrations/cr034_vip_flag_to_tag.py` | NEW | One-time backfill: 46 vip_flag=True customers → tags=["VIP"] |
-| FE-1 | `frontend/src/pages/AudiencesPage.jsx` | EDIT | Expand DEFAULT_FILTERS; rebuild filter dialog with accordion + active chips |
+| FE-1 | `frontend/src/pages/AudiencesPage.jsx` | EDIT | Expand DEFAULT_FILTERS; rebuild filter dialog with accordion + dismissible active chips |
 | FE-2 | `frontend/src/pages/CustomersPage.jsx` | EDIT | Add tag chips per row + bulk-tag action toolbar |
 | FE-3 | `frontend/src/components/TagChip.jsx` | NEW | Reusable tag pill component |
+| FE-4 | `frontend/src/pages/CustomerDetailPage.jsx` | EDIT | **Gap filled** — tag section in customer detail (Q1 decision: "row + detail modal") |
 
 **Files NOT touched:** `core/coupon.py`, `routers/pos.py`, `core/whatsapp.py`, `core/loyalty.py`,
 `core/campaign_jobs.py`, `services/invoice_generator.py`, `services/analytics_service.py`, `routers/auth.py`
@@ -612,6 +613,38 @@ export default TagChip;
 
 ## 8. FE-1 — `frontend/src/pages/AudiencesPage.jsx` (FULL EDIT SPEC)
 
+### 8.0 Note on dismissible chips helper
+
+Add this helper function alongside `getFilterTags`:
+
+```jsx
+// Maps a chip display label back to its filter key for removal
+const chipLabelToFilterKey = (label) => {
+    if (label.startsWith("Tier:")) return "tier";
+    if (label.startsWith("Inactive:")) return "last_visit_days";
+    if (label.startsWith("Spent:")) return "total_spent";
+    if (label.startsWith("Visits:")) return "total_visits";
+    if (label === "Birthday: This Month") return "has_birthday_this_month";
+    if (label === "Anniversary: This Month") return "has_anniversary_this_month";
+    if (label.startsWith("Birthday: Month")) return "birthday_month";
+    if (label === "VIP: Yes") return "vip_flag";
+    if (label === "WA Opted-In") return "whatsapp_opt_in";
+    if (label === "Blocked") return "is_blocked";
+    if (label === "Blacklisted") return "blacklist_flag";
+    if (label === "Has Complaint") return "complaint_flag";
+    if (label.startsWith("Gender:")) return "gender";
+    if (label.startsWith("Source:")) return "lead_source";
+    if (label === "Has GST") return "has_gst";
+    if (label === "WA Failed") return "whatsapp_status_failed";
+    if (label === "Never WA'd") return "never_messaged";
+    if (label.startsWith("Wallet:")) return "wallet_balance";
+    if (label.startsWith("Coupons:")) return "total_coupon_used";
+    if (label.startsWith("Points:")) return "total_points_earned";
+    if (label.startsWith("Tags:")) return "tags";
+    return null;
+};
+```
+
 ### 8.1 New imports to add at top
 ```jsx
 import { ChevronDown, ChevronUp, X as XIcon } from "lucide-react";
@@ -708,12 +741,23 @@ Replace the entire `<Dialog open={showCreate} ...>` inner content with:
             <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g., Gold Regulars — Birthday This Month" className="mt-1" data-testid="new-audience-name" />
         </div>
 
-        {/* Active filter chips */}
+        {/* Active filter chips — dismissible (matches mockup design) */}
         {getFilterTags(newFilters).length > 0 && (
             <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50 rounded-lg">
                 {getFilterTags(newFilters).map((t, i) => (
-                    <span key={i} className="px-2 py-0.5 bg-white border border-gray-200 rounded-full text-[11px] text-gray-600">{t}</span>
+                    <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-[11px] text-gray-600">
+                        {t}
+                        <button
+                            onClick={() => {
+                                // Map chip label back to filter key and reset it
+                                const key = chipLabelToFilterKey(t);
+                                if (key) setNewFilters(p => ({ ...p, [key]: Array.isArray(DEFAULT_FILTERS[key]) ? [] : (typeof DEFAULT_FILTERS[key] === "boolean" ? false : "all") }));
+                            }}
+                            className="ml-0.5 text-gray-400 hover:text-gray-700"
+                        >×</button>
+                    </span>
                 ))}
+                <button onClick={() => setNewFilters(DEFAULT_FILTERS)} className="text-[10px] text-gray-400 hover:text-red-500 px-1">Clear all</button>
             </div>
         )}
 
@@ -1237,7 +1281,93 @@ Find the existing bulk-action toolbar (where "Delete Selected" or similar bulk a
 
 ---
 
-## 10. VERIFICATION MATRIX (run after implementation)
+## 10. FE-4 — `frontend/src/pages/CustomerDetailPage.jsx` (MISSING FROM ORIGINAL PLAN — GAP FILLED)
+
+**Why needed:** Q1 of CR-034 was locked as "CustomersPage row + **Customer Detail modal**". This file was omitted from the original plan. It has 1,072 lines with its own edit modal (`showEditModal` / `handleUpdateCustomer` / `api.put`). Tags use dedicated endpoints (POST/DELETE), so tag editing is a separate inline section — **not** inside the existing edit modal (which uses PUT for basic fields).
+
+### 10.1 New imports (add to existing)
+```jsx
+import TagChip from "@/components/TagChip";
+import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+```
+
+### 10.2 New state variables (add near top of component)
+```jsx
+const [availableTags, setAvailableTags] = useState([]);
+const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+
+// Fetch tag catalog when page loads
+useEffect(() => {
+    if (customer) {
+        api.get("/customers/tags").then(r => setAvailableTags(r.data?.tags || [])).catch(() => {});
+    }
+}, [customer]);
+```
+
+### 10.3 Tag action helpers (add near `handleUpdateCustomer`)
+```jsx
+const handleAddTagDetail = async (tag) => {
+    try {
+        await api.post(`/customers/${id}/tags`, { tags: [tag] });
+        setCustomer(prev => ({ ...prev, tags: [...(prev.tags || []), tag].filter((v, i, a) => a.indexOf(v) === i) }));
+        if (!availableTags.includes(tag)) setAvailableTags(prev => [...prev, tag].sort());
+        setTagPopoverOpen(false);
+    } catch { toast.error("Failed to add tag"); }
+};
+
+const handleRemoveTagDetail = async (tag) => {
+    try {
+        await api.delete(`/customers/${id}/tags/${encodeURIComponent(tag)}`);
+        setCustomer(prev => ({ ...prev, tags: (prev.tags || []).filter(t => t !== tag) }));
+    } catch { toast.error("Failed to remove tag"); }
+};
+```
+
+### 10.4 Tag section in customer detail (add after the VIP/tier badge row, before the tab section)
+
+Find the location in the JSX where the customer's VIP/tier badges are displayed (around line ~265) and add the tags section **immediately after it**:
+
+```jsx
+{/* CR-034: Tags section on Customer Detail */}
+<div className="px-4 py-2 border-t border-white/10">
+    <div className="flex flex-wrap gap-1.5 items-center">
+        {(customer.tags || []).map(tag => (
+            <TagChip
+                key={tag}
+                tag={tag}
+                onRemove={() => handleRemoveTagDetail(tag)}
+            />
+        ))}
+        <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+            <PopoverTrigger asChild>
+                <button className="px-2 py-0.5 border border-dashed border-white/30 rounded-full text-[10px] text-white/60 hover:border-white/60 hover:text-white/80 transition-colors">
+                    + add tag
+                </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-1" align="start">
+                <Command>
+                    <CommandInput placeholder="Search or type tag..." className="text-xs h-7" />
+                    <CommandList>
+                        <CommandEmpty>
+                            <div className="px-2 py-1.5 text-xs text-[#F26B33] font-semibold">
+                                Press Enter to create new tag
+                            </div>
+                        </CommandEmpty>
+                        {availableTags.filter(t => !(customer.tags || []).includes(t)).map(t => (
+                            <CommandItem key={t} onSelect={() => handleAddTagDetail(t)} className="text-xs cursor-pointer">
+                                <TagChip tag={t} className="pointer-events-none" />
+                            </CommandItem>
+                        ))}
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    </div>
+</div>
+```
+
+---
 
 | # | Check | How to verify | AC from CR-034 |
 |---|---|---|---|
@@ -1261,10 +1391,12 @@ Find the existing bulk-action toolbar (where "Delete Selected" or similar bulk a
 | V18 | Backfill: 46 vip_flag=True customers have tags=["VIP"] | After running migration script, check count | V2 above |
 | V19 | Accordion sections open/close correctly | Open dialog → click section headers | - |
 | V20 | Active filter chips display above accordion | Set 2+ filters → see chips row | - |
+| V21 | Active filter chips are dismissible (×) | Set Tier=Gold → click × on chip → tier resets to "all" | Mockup gap fix |
+| V22 | Tag section visible on CustomerDetailPage | Open any customer detail → see tags + "+ add tag" | Q1 CR-034 gap fix |
 
 ---
 
-## 11. IMPLEMENTATION ORDER (single session recommended)
+## 12. IMPLEMENTATION ORDER (single session recommended)
 
 ```
 Step 1  BE-2  schemas.py — add tags field to 3 models              (3 edits, 5 min)
@@ -1277,12 +1409,13 @@ Step 5  BE-5  migration script — new file                           (new file,
 Step 6  FE-3  TagChip.jsx — new component                           (new file, 10 min)
 Step 7  FE-1  AudiencesPage.jsx — new dialog + accordion            (1 large edit, 30 min)
 Step 8  FE-2  CustomersPage.jsx — tag chips + bulk action           (3 targeted edits, 25 min)
+Step 9  FE-4  CustomerDetailPage.jsx — tag section in detail view   (3 targeted edits, 15 min)
               → verify frontend compiles
-Step 9        Run V1-V20 verification matrix
-Step 10       Update CR_STATUS_DASHBOARD.md → CR-033 + CR-034 → 🟡 In flight
+Step 10       Run V1-V22 verification matrix
+Step 11       Update CR_STATUS_DASHBOARD.md → CR-033 + CR-034 → 🟡 In flight
 ```
 
-**Estimated total: ~2 hours**
+**Estimated total: ~2.5 hours**
 
 ---
 
