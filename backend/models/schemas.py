@@ -318,6 +318,9 @@ class CustomerBase(BaseModel):
     # Notes
     notes: Optional[str] = None
 
+    # CR-034: user-defined free-form tags
+    tags: List[str] = []
+
 class CustomerCreate(CustomerBase):
     pass
 
@@ -422,6 +425,9 @@ class CustomerUpdate(BaseModel):
     
     # Notes
     notes: Optional[str] = None
+
+    # CR-034: user-defined free-form tags
+    tags: Optional[List[str]] = None
 
 class Customer(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -552,6 +558,9 @@ class Customer(BaseModel):
 
     # Addresses
     addresses: Optional[List[CustomerAddress]] = None
+
+    # CR-034: user-defined free-form tags
+    tags: List[str] = []
 
 # Wallet Transaction Models
 class WalletTransactionCreate(BaseModel):

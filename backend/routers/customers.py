@@ -1057,6 +1057,95 @@ async def get_customer_segments(user: dict = Depends(get_current_user)):
         "top_favorites": [{"item": f["_id"], "count": f["count"]} for f in top_favorites]
     }
 
+@router.get("/tags")
+async def list_available_tags(user: dict = Depends(get_current_user)):
+    """CR-034: Return the tenant's tag catalog (available_tags) sorted alphabetically."""
+    user_doc = await db.users.find_one({"id": user["id"]}, {"available_tags": 1, "_id": 0})
+    tags = sorted(user_doc.get("available_tags", []) if user_doc else [])
+    return {"tags": tags}
+
+
+@router.post("/{customer_id}/tags")
+async def add_tags_to_customer(customer_id: str, data: dict, user: dict = Depends(get_current_user)):
+    """CR-034: Add one or more tags to a customer. Idempotent. Updates tenant catalog."""
+    import re
+    new_tags = data.get("tags", [])
+    if not new_tags or not isinstance(new_tags, list):
+        raise HTTPException(status_code=400, detail="tags must be a non-empty list of strings")
+    for t in new_tags:
+        if not isinstance(t, str) or not t.strip():
+            raise HTTPException(status_code=400, detail=f"Invalid tag: {t!r}")
+        if len(t) > 30:
+            raise HTTPException(status_code=400, detail=f"Tag '{t}' exceeds 30 characters")
+        if not re.match(r'^[\w\s\-]+$', t):
+            raise HTTPException(status_code=400, detail=f"Tag '{t}' contains invalid characters")
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    await db.customers.update_one(
+        {"id": customer_id, "user_id": user["id"]},
+        {"$addToSet": {"tags": {"$each": new_tags}}}
+    )
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$addToSet": {"available_tags": {"$each": new_tags}}}
+    )
+    updated = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"tags": 1, "_id": 0})
+    return {"customer_id": customer_id, "tags": updated.get("tags", [])}
+
+
+@router.delete("/{customer_id}/tags/{tag}")
+async def remove_tag_from_customer(customer_id: str, tag: str, user: dict = Depends(get_current_user)):
+    """CR-034: Remove one tag from a customer. Catalog entry kept per Q3 decision."""
+    customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    await db.customers.update_one(
+        {"id": customer_id, "user_id": user["id"]},
+        {"$pull": {"tags": tag}}
+    )
+    updated = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"tags": 1, "_id": 0})
+    return {"customer_id": customer_id, "tags": updated.get("tags", [])}
+
+
+@router.post("/bulk-tag")
+async def bulk_tag_customers(data: dict, user: dict = Depends(get_current_user)):
+    """CR-034: Apply a tag to multiple customers in one call."""
+    customer_ids = data.get("customer_ids", [])
+    tag = (data.get("tag") or "").strip()
+    if not customer_ids or not isinstance(customer_ids, list):
+        raise HTTPException(status_code=400, detail="customer_ids must be a non-empty list")
+    if not tag:
+        raise HTTPException(status_code=400, detail="tag must be a non-empty string")
+    if len(tag) > 30:
+        raise HTTPException(status_code=400, detail="Tag exceeds 30 characters")
+    result = await db.customers.update_many(
+        {"id": {"$in": customer_ids}, "user_id": user["id"]},
+        {"$addToSet": {"tags": tag}}
+    )
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$addToSet": {"available_tags": tag}}
+    )
+    return {"matched": result.matched_count, "modified": result.modified_count, "tag": tag}
+
+
+@router.post("/bulk-untag")
+async def bulk_untag_customers(data: dict, user: dict = Depends(get_current_user)):
+    """CR-034: Remove a tag from multiple customers in one call."""
+    customer_ids = data.get("customer_ids", [])
+    tag = (data.get("tag") or "").strip()
+    if not customer_ids or not isinstance(customer_ids, list):
+        raise HTTPException(status_code=400, detail="customer_ids must be a non-empty list")
+    if not tag:
+        raise HTTPException(status_code=400, detail="tag must be a non-empty string")
+    result = await db.customers.update_many(
+        {"id": {"$in": customer_ids}, "user_id": user["id"]},
+        {"$pull": {"tags": tag}}
+    )
+    return {"matched": result.matched_count, "modified": result.modified_count, "tag": tag}
+
+
 @router.get("/{customer_id}", response_model=Customer)
 async def get_customer(customer_id: str, user: dict = Depends(get_current_user)):
     customer = await db.customers.find_one({"id": customer_id, "user_id": user["id"]}, {"_id": 0})

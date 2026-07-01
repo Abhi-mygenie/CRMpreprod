@@ -13,6 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+import TagChip from "@/components/TagChip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command";
 
 export default function CustomerDetailPage() {
     const { id } = useParams();
@@ -38,6 +41,31 @@ export default function CustomerDetailPage() {
     const [editData, setEditData] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [loyaltySettings, setLoyaltySettings] = useState(null);
+
+    // CR-034: tag state
+    const [availableTags, setAvailableTags] = useState([]);
+    const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+    const [tagSearch, setTagSearch] = useState("");
+
+    // CR-034: tag handlers for detail page
+    const handleAddTagDetail = async (tag) => {
+        const t = tag.trim();
+        if (!t) return;
+        try {
+            await api.post(`/customers/${id}/tags`, { tags: [t] });
+            setCustomer(prev => ({ ...prev, tags: [...new Set([...(prev.tags || []), t])] }));
+            if (!availableTags.includes(t)) setAvailableTags(prev => [...prev, t].sort());
+            setTagPopoverOpen(false);
+            setTagSearch("");
+        } catch { toast.error("Failed to add tag"); }
+    };
+
+    const handleRemoveTagDetail = async (tag) => {
+        try {
+            await api.delete(`/customers/${id}/tags/${encodeURIComponent(tag)}`);
+            setCustomer(prev => ({ ...prev, tags: (prev.tags || []).filter(t => t !== tag) }));
+        } catch { toast.error("Failed to remove tag"); }
+    };
 
     const fetchData = async () => {
         try {
@@ -88,6 +116,8 @@ export default function CustomerDetailPage() {
         fetchLoyaltyDetails();
         // CR-001C-L-FIX Phase 5: fetch loyalty settings for disabled guard on buttons
         api.get("/loyalty/settings").then(res => setLoyaltySettings(res.data)).catch(() => {});
+        // CR-034: fetch tag catalog
+        api.get("/customers/tags").then(r => setAvailableTags(r.data?.tags || [])).catch(() => {});
     }, [id]);
 
     const handlePointsTransaction = async (e) => {
@@ -268,6 +298,44 @@ export default function CustomerDetailPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* CR-034: Tags row below header card */}
+                    {(customer.tags?.length > 0 || true) && (
+                        <div className="px-4 py-2 bg-white/5 flex flex-wrap gap-1.5 items-center border-t border-white/10">
+                            {(customer.tags || []).map(tag => (
+                                <TagChip key={tag} tag={tag} onRemove={() => handleRemoveTagDetail(tag)} />
+                            ))}
+                            <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+                                <PopoverTrigger asChild>
+                                    <button className="px-2 py-0.5 border border-dashed border-white/30 rounded-full text-[10px] text-white/60 hover:border-white/60 hover:text-white/80 transition-colors">
+                                        + add tag
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-52 p-1" align="start">
+                                    <Command>
+                                        <CommandInput
+                                            placeholder="Search or type tag..."
+                                            className="text-xs h-7"
+                                            value={tagSearch}
+                                            onValueChange={setTagSearch}
+                                        />
+                                        <CommandList>
+                                            {availableTags.filter(t => !(customer.tags || []).includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())).map(t => (
+                                                <CommandItem key={t} onSelect={() => handleAddTagDetail(t)} className="text-xs cursor-pointer">
+                                                    <TagChip tag={t} className="pointer-events-none" />
+                                                </CommandItem>
+                                            ))}
+                                            {tagSearch.trim() && !availableTags.includes(tagSearch.trim()) && (
+                                                <CommandItem onSelect={() => handleAddTagDetail(tagSearch)} className="text-xs cursor-pointer text-[#F26B33] font-semibold">
+                                                    + Create "{tagSearch.trim()}"
+                                                </CommandItem>
+                                            )}
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    )}
                     
                     {/* Points, Wallet & Coupons Summary */}
                     <CardContent className="p-4 bg-white">

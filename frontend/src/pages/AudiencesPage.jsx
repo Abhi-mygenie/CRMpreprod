@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import TagChip from "@/components/TagChip";
 
 const AudiencesPageContent = () => {
     const { api } = useAuth();
@@ -43,6 +44,8 @@ const AudiencesPageContent = () => {
         // Section 4: Customer Flags & Profile
         vip_flag: "all", is_blocked: "all", blacklist_flag: "all",
         complaint_flag: "all", lead_source: "all", has_gst: "all", gender: "all",
+        // Section 5: Tags (CR-034)
+        tags: [], tags_mode: "any",
     };
     const [newName, setNewName] = useState("");
     const [newFilters, setNewFilters] = useState(DEFAULT_FILTERS);
@@ -50,7 +53,9 @@ const AudiencesPageContent = () => {
     const [saving, setSaving] = useState(false);
 
     // CR-033: accordion section open/close state
-    const [openSections, setOpenSections] = useState({ loyalty: true, dates: true, engagement: false, flags: false });
+    const [openSections, setOpenSections] = useState({ loyalty: true, dates: true, engagement: false, flags: false, tags: false });
+    // CR-034: tag catalog for the filter section
+    const [availableTags, setAvailableTags] = useState([]);
 
     // Preview customers
     const [previewSeg, setPreviewSeg] = useState(null);
@@ -78,6 +83,13 @@ const AudiencesPageContent = () => {
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    // CR-034: fetch tag catalog when audience dialog opens
+    useEffect(() => {
+        if (showCreate) {
+            api.get("/customers/tags").then(r => setAvailableTags(r.data?.tags || [])).catch(() => {});
+        }
+    }, [showCreate]);
 
     const getCampaignCount = (segId) => {
         if (segId === "all-customers") return campaigns.filter(c => c.audience_id === "all-customers").length;
@@ -119,6 +131,7 @@ const AudiencesPageContent = () => {
         if (label.startsWith("Coupons:")) return "total_coupon_used";
         if (label.startsWith("Points:")) return "total_points_earned";
         if (label.startsWith("Campaign:")) return "received_campaign_id";
+        if (label.startsWith("Tags:")) return "tags";
         return null;
     };
 
@@ -148,6 +161,7 @@ const AudiencesPageContent = () => {
         if (filters.whatsapp_status_failed) tags.push("WA Failed");
         if (filters.never_messaged) tags.push("Never WA'd");
         if (filters.received_campaign_id && filters.received_campaign_id !== "all") tags.push(`Campaign: ${filters.received_campaign_id}`);
+        if (filters.tags && filters.tags.length > 0) tags.push(`Tags: ${filters.tags.join(", ")}`);
         return tags;
     };
 
@@ -708,6 +722,60 @@ const AudiencesPageContent = () => {
                                         <Checkbox id="chk-complaint" checked={newFilters.complaint_flag === "true" || newFilters.complaint_flag === true} onCheckedChange={v => setNewFilters(p => ({...p, complaint_flag: v ? "true" : "all"}))} />
                                         <Label htmlFor="chk-complaint" className="text-xs cursor-pointer">Has Complaint</Label>
                                     </div>
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* ── Section 5: Tags (CR-034) ── */}
+                        <Collapsible open={openSections.tags} onOpenChange={v => setOpenSections(p => ({...p, tags: v}))}>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 bg-orange-50 border border-orange-200 rounded-lg text-xs font-bold uppercase tracking-wide text-[#F26B33] hover:bg-orange-100 transition-colors">
+                                <span>Tags</span>
+                                <div className="flex items-center gap-2">
+                                    {newFilters.tags.length > 0 && (
+                                        <span className="bg-[#F26B33] text-white rounded-full text-[10px] px-1.5 py-0.5 font-bold">{newFilters.tags.length}</span>
+                                    )}
+                                    {openSections.tags ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div className="border border-t-0 border-orange-200 rounded-b-lg p-3 space-y-2 bg-white">
+                                    <Label className="text-xs text-gray-500">Include customers with these tags:</Label>
+                                    {/* Selected tags */}
+                                    {newFilters.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {newFilters.tags.map(t => (
+                                                <TagChip key={t} tag={t} onRemove={tag => setNewFilters(p => ({...p, tags: p.tags.filter(x => x !== tag)}))} />
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* Available tags to add */}
+                                    {availableTags.filter(t => !newFilters.tags.includes(t)).length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 pt-1">
+                                            <span className="text-[10px] text-gray-400 self-center">Add:</span>
+                                            {availableTags.filter(t => !newFilters.tags.includes(t)).map(t => (
+                                                <TagChip key={t} tag={t} onClick={tag => setNewFilters(p => ({...p, tags: [...p.tags, tag]}))} className="opacity-60 hover:opacity-100" />
+                                            ))}
+                                        </div>
+                                    )}
+                                    {availableTags.length === 0 && (
+                                        <p className="text-[11px] text-gray-400 italic">No tags created yet. Add tags to customers first.</p>
+                                    )}
+                                    {/* AND/OR toggle — only shown when 2+ tags selected */}
+                                    {newFilters.tags.length > 1 && (
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <span className="text-xs text-gray-500">Match:</span>
+                                            <div className="flex border border-gray-200 rounded-md overflow-hidden text-[11px]">
+                                                <button
+                                                    onClick={() => setNewFilters(p => ({...p, tags_mode: "any"}))}
+                                                    className={`px-3 py-1 font-semibold transition-colors ${newFilters.tags_mode === "any" ? "bg-[#F26B33] text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                                                >ANY (OR)</button>
+                                                <button
+                                                    onClick={() => setNewFilters(p => ({...p, tags_mode: "all"}))}
+                                                    className={`px-3 py-1 font-semibold transition-colors ${newFilters.tags_mode === "all" ? "bg-[#F26B33] text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                                                >ALL (AND)</button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </CollapsibleContent>
                         </Collapsible>

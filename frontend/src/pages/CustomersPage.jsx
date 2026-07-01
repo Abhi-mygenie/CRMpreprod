@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
+import TagChip from "@/components/TagChip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from "@/components/ui/command";
 import { 
     Users, Plus, Search, ChevronRight, Star, TrendingUp, Gift, Phone, User, Check,
     Edit2, Trash2, Building2, Calendar, MapPin, Filter, Clock, ChevronDown, Tag,
@@ -201,6 +204,11 @@ export default function CustomersPage() {
     const [editData, setEditData] = useState({});
     const [submitting, setSubmitting] = useState(false);
 
+    // CR-034: tag state
+    const [availableTags, setAvailableTags] = useState([]);
+    const [tagPopoverOpen, setTagPopoverOpen] = useState({});
+    const [tagSearchInput, setTagSearchInput] = useState({});
+
     const buildQueryString = () => {
         const params = new URLSearchParams();
         if (search) params.append("search", search);
@@ -228,6 +236,32 @@ export default function CustomersPage() {
         if (filters.is_blocked && filters.is_blocked !== "all") params.append("is_blocked", filters.is_blocked);
         if (filters.has_feedback && filters.has_feedback !== "all") params.append("has_feedback", filters.has_feedback);
         return params.toString();
+    };
+
+    // CR-034: tag handlers
+    const handleAddTag = async (customerId, tag) => {
+        const t = tag.trim();
+        if (!t) return;
+        try {
+            await api.post(`/customers/${customerId}/tags`, { tags: [t] });
+            setCustomers(prev => prev.map(c => c.id === customerId
+                ? { ...c, tags: [...new Set([...(c.tags || []), t])] }
+                : c
+            ));
+            if (!availableTags.includes(t)) setAvailableTags(prev => [...prev, t].sort());
+            setTagPopoverOpen(p => ({ ...p, [customerId]: false }));
+            setTagSearchInput(p => ({ ...p, [customerId]: "" }));
+        } catch { toast.error("Failed to add tag"); }
+    };
+
+    const handleRemoveTag = async (customerId, tag) => {
+        try {
+            await api.delete(`/customers/${customerId}/tags/${encodeURIComponent(tag)}`);
+            setCustomers(prev => prev.map(c => c.id === customerId
+                ? { ...c, tags: (c.tags || []).filter(t => t !== tag) }
+                : c
+            ));
+        } catch { toast.error("Failed to remove tag"); }
     };
 
     const fetchCustomers = async () => {
@@ -286,6 +320,11 @@ export default function CustomersPage() {
         fetchCustomers();
         fetchSegments();
     }, [search, filters]);
+
+    // CR-034: fetch tag catalog once on mount
+    useEffect(() => {
+        api.get("/customers/tags").then(r => setAvailableTags(r.data?.tags || [])).catch(() => {});
+    }, []);
 
     // Lock body scroll when filter drawer is open
     useEffect(() => {
@@ -1208,6 +1247,43 @@ export default function CustomersPage() {
                                                         {customer.tier}
                                                     </Badge>
                                                 </td>
+                                                {/* CR-034: tag chips — desktop */}
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-wrap gap-1 items-center">
+                                                        {(customer.tags || []).map(tag => (
+                                                            <TagChip key={tag} tag={tag} onRemove={() => handleRemoveTag(customer.id, tag)} />
+                                                        ))}
+                                                        <Popover open={!!tagPopoverOpen[customer.id]} onOpenChange={v => setTagPopoverOpen(p => ({ ...p, [customer.id]: v }))}>
+                                                            <PopoverTrigger asChild>
+                                                                <button className="px-2 py-0.5 border border-dashed border-gray-300 rounded-full text-[10px] text-gray-400 hover:border-[#F26B33] hover:text-[#F26B33] transition-colors whitespace-nowrap">
+                                                                    + tag
+                                                                </button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-52 p-1" align="start">
+                                                                <Command>
+                                                                    <CommandInput
+                                                                        placeholder="Search or type tag..."
+                                                                        className="text-xs h-7"
+                                                                        value={tagSearchInput[customer.id] || ""}
+                                                                        onValueChange={v => setTagSearchInput(p => ({ ...p, [customer.id]: v }))}
+                                                                    />
+                                                                    <CommandList>
+                                                                        {availableTags.filter(t => !(customer.tags || []).includes(t) && t.toLowerCase().includes((tagSearchInput[customer.id] || "").toLowerCase())).map(t => (
+                                                                            <CommandItem key={t} onSelect={() => handleAddTag(customer.id, t)} className="text-xs cursor-pointer">
+                                                                                <TagChip tag={t} className="pointer-events-none" />
+                                                                            </CommandItem>
+                                                                        ))}
+                                                                        {(tagSearchInput[customer.id] || "").trim() && !availableTags.includes((tagSearchInput[customer.id] || "").trim()) && (
+                                                                            <CommandItem onSelect={() => handleAddTag(customer.id, tagSearchInput[customer.id])} className="text-xs cursor-pointer text-[#F26B33] font-semibold">
+                                                                                + Create "{(tagSearchInput[customer.id] || "").trim()}"
+                                                                            </CommandItem>
+                                                                        )}
+                                                                    </CommandList>
+                                                                </Command>
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-3 text-center">
                                                     <button
                                                         onClick={(e) => openEditModal(customer, e)}
@@ -1295,6 +1371,14 @@ export default function CustomersPage() {
                                             </div>
                                             <ChevronRight className="w-5 h-5 text-[#A1A1AA]" />
                                         </div>
+                                        {/* CR-034: tag chips — mobile */}
+                                        {(customer.tags || []).length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-2 px-1">
+                                                {(customer.tags || []).map(tag => (
+                                                    <TagChip key={tag} tag={tag} onRemove={() => handleRemoveTag(customer.id, tag)} />
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

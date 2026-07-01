@@ -476,8 +476,16 @@ async def build_customer_query(user_id: str, filters: dict) -> dict:
         )
         query["id"] = {"$nin": messaged_ids}
 
-    return query
+    # ── CR-034: USER-DEFINED TAGS FILTER ────────────────────────────────────
+    # tags: list of tag strings; mode "any" (OR/$in) or "all" (AND/$all)
+    if filters.get("tags") and isinstance(filters["tags"], list) and len(filters["tags"]) > 0:
+        mode = filters.get("tags_mode", "any")
+        if mode == "all":
+            query["tags"] = {"$all": filters["tags"]}
+        else:
+            query["tags"] = {"$in": filters["tags"]}
 
+    return query
 
 
 async def resolve_audience(db, user_id: str, audience_id: str):
