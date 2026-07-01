@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CR-024 Mock — WhatsApp Marketing (3 Pages)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+  /* Layout */
+  .shell { display: flex; height: 100vh; }
+  .sidebar { width: 220px; background: #fff; border-right: 1px solid #e5e5e5; padding: 16px 0; flex-shrink: 0; overflow-y: auto; }
+  .main { flex: 1; overflow-y: auto; }
+
+  /* Sidebar */
+  .sidebar-logo { padding: 0 16px 20px; font-size: 20px; font-weight: 700; color: #F26B33; display: flex; align-items: center; gap: 8px; }
+  .sidebar-logo .dot { width: 28px; height: 28px; background: #F26B33; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 800; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; color: #52525b; cursor: pointer; transition: all 0.15s; }
+  .nav-item:hover { background: #f5f5f5; color: #1a1a1a; }
+  .nav-item.active { color: #F26B33; font-weight: 600; background: #FFF7ED; border-right: 3px solid #F26B33; }
+  .nav-section { padding: 8px 16px 4px; font-size: 10px; font-weight: 700; color: #a1a1aa; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
+  .nav-sub { padding-left: 36px; font-size: 12px; }
+  .nav-icon { width: 18px; height: 18px; opacity: 0.6; }
+  .nav-item.active .nav-icon { opacity: 1; }
+  .nav-chevron { margin-left: auto; font-size: 10px; color: #a1a1aa; }
+
+  /* Page header */
+  .page-header { padding: 24px 32px 0; display: flex; justify-content: space-between; align-items: center; }
+  .page-title { font-size: 28px; font-weight: 800; font-family: 'Georgia', serif; }
+  .page-subtitle { font-size: 13px; color: #71717a; margin-top: 2px; }
+
+  /* Buttons */
+  .btn { padding: 8px 20px; border-radius: 999px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .btn-primary { background: #F26B33; color: #fff; }
+  .btn-primary:hover { background: #d85a28; }
+  .btn-green { background: #25D366; color: #fff; }
+  .btn-green:hover { background: #1da851; }
+  .btn-outline { background: #fff; color: #52525b; border: 1px solid #e5e5e5; }
+  .btn-outline:hover { border-color: #F26B33; color: #F26B33; }
+  .btn-sm { padding: 6px 14px; font-size: 12px; }
+  .btn-danger { background: #fee2e2; color: #dc2626; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; }
+  .card-p { padding: 20px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 8px; padding: 16px 32px; }
+  .tab { padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: #1a1a1a; color: #fff; }
+  .tab:not(.active) { background: #f4f4f5; color: #71717a; }
+  .tab:not(.active):hover { background: #e4e4e7; }
+
+  /* Stats bar */
+  .stats-bar { display: flex; gap: 16px; padding: 0 32px 16px; }
+  .stat-card { flex: 1; padding: 16px; border-radius: 12px; background: #fff; border: 1px solid #e5e5e5; text-align: center; }
+  .stat-num { font-size: 24px; font-weight: 800; }
+  .stat-label { font-size: 11px; color: #71717a; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Campaign cards */
+  .campaign-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0 32px 32px; }
+  .campaign-row { display: flex; align-items: center; padding: 16px 20px; background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; gap: 16px; }
+  .campaign-row:hover { border-color: #F26B33; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .campaign-name { font-weight: 600; font-size: 14px; }
+  .campaign-meta { font-size: 12px; color: #71717a; margin-top: 2px; }
+  .campaign-stats { display: flex; gap: 16px; margin-left: auto; }
+  .campaign-stat { text-align: center; }
+  .campaign-stat-num { font-size: 16px; font-weight: 700; }
+  .campaign-stat-label { font-size: 10px; color: #71717a; }
+  .badge { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #dcfce7; color: #16a34a; }
+  .badge-amber { background: #fef3c7; color: #d97706; }
+  .badge-blue { background: #dbeafe; color: #2563eb; }
+  .badge-gray { background: #f4f4f5; color: #71717a; }
+  .badge-red { background: #fee2e2; color: #dc2626; }
+
+  /* Wizard */
+  .wizard-container { padding: 0 32px 32px; }
+  .wizard-steps { display: flex; gap: 0; margin-bottom: 24px; background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; overflow: hidden; }
+  .wizard-step { flex: 1; padding: 16px; text-align: center; cursor: pointer; position: relative; transition: all 0.15s; }
+  .wizard-step.active { background: #FFF7ED; }
+  .wizard-step.done { background: #f0fdf4; }
+  .wizard-step-num { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .wizard-step.active .wizard-step-num { background: #F26B33; color: #fff; }
+  .wizard-step.done .wizard-step-num { background: #25D366; color: #fff; }
+  .wizard-step:not(.active):not(.done) .wizard-step-num { background: #e5e5e5; color: #71717a; }
+  .wizard-step-label { font-size: 12px; font-weight: 600; color: #52525b; }
+  .wizard-step.active .wizard-step-label { color: #F26B33; }
+  .wizard-step.done .wizard-step-label { color: #16a34a; }
+  .wizard-step::after { content: '→'; position: absolute; right: -4px; top: 50%; transform: translateY(-50%); color: #d4d4d8; font-size: 16px; }
+  .wizard-step:last-child::after { display: none; }
+  .wizard-body { background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; padding: 24px; }
+
+  /* Form elements */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; color: #52525b; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #e5e5e5; font-size: 14px; outline: none; transition: border 0.15s; }
+  .form-input:focus { border-color: #F26B33; }
+  .form-select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #e5e5e5; font-size: 14px; background: #fff; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Audience cards */
+  .audience-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 0 32px 32px; }
+  .audience-card { padding: 16px; background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; }
+  .audience-card:hover { border-color: #F26B33; }
+  .audience-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .audience-count { font-size: 24px; font-weight: 800; color: #F26B33; margin: 8px 0; }
+  .audience-filters { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .filter-tag { padding: 2px 8px; background: #f4f4f5; border-radius: 4px; font-size: 11px; color: #52525b; }
+  .audience-actions { display: flex; gap: 6px; margin-top: 12px; }
+
+  /* WhatsApp preview */
+  .wa-preview { background: #e5ddd5; border-radius: 12px; padding: 16px; }
+  .wa-bubble { background: #dcf8c6; border-radius: 12px; padding: 12px; max-width: 300px; font-size: 13px; line-height: 1.5; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+  .wa-bubble .wa-var { background: #bbf7d0; padding: 1px 4px; border-radius: 3px; font-weight: 600; }
+  .wa-time { font-size: 10px; color: #999; text-align: right; margin-top: 4px; }
+  .wa-btn { text-align: center; padding: 8px; color: #00a5f4; font-size: 13px; font-weight: 500; border-top: 1px solid #d4d4d4; margin-top: 4px; }
+
+  /* Schedule options */
+  .schedule-option { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid #e5e5e5; border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
+  .schedule-option:hover { border-color: #F26B33; }
+  .schedule-option.selected { border-color: #25D366; background: #f0fdf4; }
+  .radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #d4d4d8; margin-top: 2px; flex-shrink: 0; }
+  .schedule-option.selected .radio { border-color: #25D366; background: #25D366; box-shadow: inset 0 0 0 3px #fff; }
+
+  /* Confirmation */
+  .confirm-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin-top: 16px; }
+  .confirm-title { font-weight: 700; color: #92400e; margin-bottom: 4px; }
+  .confirm-detail { font-size: 13px; color: #78350f; }
+
+  /* History table */
+  .history-table { width: 100%; border-collapse: collapse; }
+  .history-table th { text-align: left; font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; border-bottom: 1px solid #e5e5e5; }
+  .history-table td { padding: 14px 12px; border-bottom: 1px solid #f4f4f5; font-size: 13px; }
+  .history-table tr:hover { background: #fafafa; }
+
+  /* Progress bar */
+  .progress-bar { height: 6px; background: #e5e5e5; border-radius: 999px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 999px; }
+
+  /* Page selector */
+  .page-selector { display: flex; gap: 4px; padding: 8px 32px; background: #fff; border-bottom: 1px solid #e5e5e5; position: sticky; top: 0; z-index: 10; }
+  .page-tab { padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 8px; }
+  .page-tab.active { background: #F26B33; color: #fff; }
+  .page-tab:not(.active) { color: #71717a; }
+  .page-tab:not(.active):hover { background: #f4f4f5; }
+
+  .hidden { display: none; }
+  .text-green { color: #16a34a; }
+  .text-amber { color: #d97706; }
+  .text-red { color: #dc2626; }
+  .text-blue { color: #2563eb; }
+  .mt-4 { margin-top: 16px; }
+  .mb-4 { margin-bottom: 16px; }
+  .gap-2 { gap: 8px; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo"><div class="dot">M</div> MyGenie</div>
+    <div class="nav-item"><span class="nav-icon">📊</span> Dashboard</div>
+    <div class="nav-item"><span class="nav-icon">👥</span> Customers</div>
+    <div class="nav-item"><span class="nav-icon">🎖️</span> Loyalty</div>
+    <div class="nav-item"><span class="nav-icon">🎟️</span> Coupons</div>
+    <div class="nav-item"><span class="nav-icon">💳</span> Wallet</div>
+
+    <div class="nav-section">WhatsApp</div>
+    <div class="nav-item nav-sub"><span class="nav-icon">⚙️</span> Settings</div>
+    <div class="nav-item nav-sub"><span class="nav-icon">📄</span> Templates</div>
+    <div class="nav-item nav-sub"><span class="nav-icon">⚡</span> Automation</div>
+
+    <div class="nav-section" style="color:#F26B33;">Marketing ← NEW</div>
+    <div class="nav-item nav-sub active" id="nav-campaigns" onclick="showPage('campaigns')"><span class="nav-icon">📢</span> Campaigns</div>
+    <div class="nav-item nav-sub" id="nav-audiences" onclick="showPage('audiences')"><span class="nav-icon">👥</span> Audiences</div>
+    <div class="nav-item nav-sub" id="nav-history" onclick="showPage('history')"><span class="nav-icon">📋</span> History</div>
+
+    <div style="border-top: 1px solid #e5e5e5; margin-top: 8px;"></div>
+    <div class="nav-item"><span class="nav-icon">📈</span> Analytics</div>
+    <div class="nav-item"><span class="nav-icon">💬</span> Feedback</div>
+    <div class="nav-item"><span class="nav-icon">👤</span> Profile</div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <!-- Page Selector (for mock navigation) -->
+    <div class="page-selector">
+      <div class="page-tab active" id="tab-campaigns" onclick="showPage('campaigns')">Page 1: Campaigns</div>
+      <div class="page-tab" id="tab-audiences" onclick="showPage('audiences')">Page 2: Audiences</div>
+      <div class="page-tab" id="tab-history" onclick="showPage('history')">Page 3: History</div>
+      <div class="page-tab" id="tab-wizard" onclick="showPage('wizard')">Campaign Wizard (Full Page)</div>
+    </div>
+
+    <!-- ==================== PAGE 1: CAMPAIGNS ==================== -->
+    <div id="page-campaigns">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Campaigns</div>
+          <div class="page-subtitle">Create and manage WhatsApp marketing campaigns</div>
+        </div>
+        <button class="btn btn-primary" onclick="showPage('wizard')">+ New Campaign</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-bar" style="padding-top: 20px;">
+        <div class="stat-card">
+          <div class="stat-num">12</div>
+          <div class="stat-label">Total Campaigns</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num text-green">3</div>
+          <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num text-blue">2</div>
+          <div class="stat-label">Scheduled</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">8,420</div>
+          <div class="stat-label">Messages Sent</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num text-green">92%</div>
+          <div class="stat-label">Avg. Delivery</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active">All (12)</div>
+        <div class="tab">Active (3)</div>
+        <div class="tab">Scheduled (2)</div>
+        <div class="tab">Completed (7)</div>
+        <div class="tab">Draft (0)</div>
+      </div>
+
+      <!-- Campaign List -->
+      <div class="campaign-grid">
+        <div class="campaign-row">
+          <div style="flex:1;">
+            <div class="campaign-name">Weekend Biryani Festival</div>
+            <div class="campaign-meta">Audience: Gold Customers (342) · Template: weekend_offer · Sent 2h ago</div>
+          </div>
+          <div class="campaign-stats">
+            <div class="campaign-stat"><div class="campaign-stat-num">342</div><div class="campaign-stat-label">Sent</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num text-green">330</div><div class="campaign-stat-label">Delivered</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num text-blue">285</div><div class="campaign-stat-label">Read</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num text-red">12</div><div class="campaign-stat-label">Failed</div></div>
+          </div>
+          <span class="badge badge-green">Completed</span>
+          <button class="btn btn-outline btn-sm">View</button>
+        </div>
+
+        <div class="campaign-row">
+          <div style="flex:1;">
+            <div class="campaign-name">June Loyalty Boost</div>
+            <div class="campaign-meta">Audience: Inactive 30+ days (128) · Template: win_back · Scheduled: Jun 8, 10:00 AM</div>
+          </div>
+          <div class="campaign-stats">
+            <div class="campaign-stat"><div class="campaign-stat-num">128</div><div class="campaign-stat-label">Target</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num">—</div><div class="campaign-stat-label">Sent</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num">—</div><div class="campaign-stat-label">Delivered</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num">—</div><div class="campaign-stat-label">Read</div></div>
+          </div>
+          <span class="badge badge-blue">Scheduled</span>
+          <button class="btn btn-outline btn-sm">Edit</button>
+        </div>
+
+        <div class="campaign-row">
+          <div style="flex:1;">
+            <div class="campaign-name">Birthday Club Weekly</div>
+            <div class="campaign-meta">Audience: Birthday This Week (15) · Template: birthday_wish · Recurring: Weekly (Mon)</div>
+          </div>
+          <div class="campaign-stats">
+            <div class="campaign-stat"><div class="campaign-stat-num">~15</div><div class="campaign-stat-label">Per Send</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num">180</div><div class="campaign-stat-label">Total Sent</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num text-green">96%</div><div class="campaign-stat-label">Delivery</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num">12</div><div class="campaign-stat-label">Runs</div></div>
+          </div>
+          <span class="badge badge-green">Active</span>
+          <button class="btn btn-outline btn-sm">Pause</button>
+        </div>
+
+        <div class="campaign-row" style="opacity: 0.6;">
+          <div style="flex:1;">
+            <div class="campaign-name">Diwali Mega Offer</div>
+            <div class="campaign-meta">Audience: All Customers (4980) · Template: diwali_offer · Sent Oct 20, 2025</div>
+          </div>
+          <div class="campaign-stats">
+            <div class="campaign-stat"><div class="campaign-stat-num">4980</div><div class="campaign-stat-label">Sent</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num text-green">4820</div><div class="campaign-stat-label">Delivered</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num text-blue">3900</div><div class="campaign-stat-label">Read</div></div>
+            <div class="campaign-stat"><div class="campaign-stat-num text-red">160</div><div class="campaign-stat-label">Failed</div></div>
+          </div>
+          <span class="badge badge-gray">Completed</span>
+          <button class="btn btn-outline btn-sm">View</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 2: AUDIENCES ==================== -->
+    <div id="page-audiences" class="hidden">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Audiences</div>
+          <div class="page-subtitle">Create and manage customer segments for targeted campaigns</div>
+        </div>
+        <button class="btn btn-primary">+ Create Audience</button>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active">All (5)</div>
+        <div class="tab">Used in Campaigns (3)</div>
+        <div class="tab">Unused (2)</div>
+      </div>
+
+      <div class="audience-grid">
+        <!-- All Customers -->
+        <div class="audience-card" style="border-left: 3px solid #F26B33;">
+          <div class="audience-name">
+            <span style="font-size:16px;">📋</span> All Customers
+            <span class="badge badge-amber" style="font-size:10px;">Default</span>
+          </div>
+          <div class="audience-count">4,980</div>
+          <div style="font-size:12px; color:#71717a;">Every customer in your database</div>
+          <div style="font-size:11px; color:#71717a; margin-top:8px;">Used in 2 campaigns</div>
+        </div>
+
+        <!-- Gold Customers -->
+        <div class="audience-card">
+          <div class="audience-name"><span style="font-size:16px;">🥇</span> Gold Customers</div>
+          <div class="audience-count">342</div>
+          <div class="audience-filters">
+            <span class="filter-tag">Tier: Gold</span>
+            <span class="filter-tag">Visits: 10+</span>
+          </div>
+          <div style="font-size:11px; color:#71717a;">Used in 3 campaigns · Last: 2h ago</div>
+          <div class="audience-actions">
+            <button class="btn btn-outline btn-sm">Edit</button>
+            <button class="btn btn-outline btn-sm">Preview</button>
+            <button class="btn btn-outline btn-sm" style="color:#dc2626; border-color:#fecaca;">Delete</button>
+          </div>
+        </div>
+
+        <!-- Inactive -->
+        <div class="audience-card">
+          <div class="audience-name"><span style="font-size:16px;">😴</span> Inactive 30+ Days</div>
+          <div class="audience-count">128</div>
+          <div class="audience-filters">
+            <span class="filter-tag">Last Visit: 30+ days</span>
+            <span class="filter-tag">Visits: 3+</span>
+          </div>
+          <div style="font-size:11px; color:#71717a;">Used in 1 campaign</div>
+          <div class="audience-actions">
+            <button class="btn btn-outline btn-sm">Edit</button>
+            <button class="btn btn-outline btn-sm">Preview</button>
+            <button class="btn btn-outline btn-sm" style="color:#dc2626; border-color:#fecaca;">Delete</button>
+          </div>
+        </div>
+
+        <!-- Birthday -->
+        <div class="audience-card">
+          <div class="audience-name"><span style="font-size:16px;">🎂</span> Birthday This Month</div>
+          <div class="audience-count">45</div>
+          <div class="audience-filters">
+            <span class="filter-tag">Birthday: This Month</span>
+          </div>
+          <div style="font-size:11px; color:#71717a;">Used in 1 campaign</div>
+          <div class="audience-actions">
+            <button class="btn btn-outline btn-sm">Edit</button>
+            <button class="btn btn-outline btn-sm">Preview</button>
+          </div>
+        </div>
+
+        <!-- VIP -->
+        <div class="audience-card">
+          <div class="audience-name"><span style="font-size:16px;">⭐</span> VIP High Spenders</div>
+          <div class="audience-count">67</div>
+          <div class="audience-filters">
+            <span class="filter-tag">Spent: ₹10,000+</span>
+            <span class="filter-tag">VIP: Yes</span>
+            <span class="filter-tag">Opt-in: Yes</span>
+          </div>
+          <div style="font-size:11px; color:#71717a;">Not used yet</div>
+          <div class="audience-actions">
+            <button class="btn btn-outline btn-sm">Edit</button>
+            <button class="btn btn-outline btn-sm">Preview</button>
+            <button class="btn btn-outline btn-sm" style="color:#dc2626; border-color:#fecaca;">Delete</button>
+          </div>
+        </div>
+
+        <!-- Create New Card -->
+        <div class="audience-card" style="border: 2px dashed #e5e5e5; display:flex; align-items:center; justify-content:center; min-height:180px; cursor:pointer;" onmouseover="this.style.borderColor='#F26B33'" onmouseout="this.style.borderColor='#e5e5e5'">
+          <div style="text-align:center; color:#71717a;">
+            <div style="font-size:24px; margin-bottom:8px;">+</div>
+            <div style="font-size:13px; font-weight:600;">Create New Audience</div>
+            <div style="font-size:11px;">Define filters to target customers</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 3: HISTORY ==================== -->
+    <div id="page-history" class="hidden">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Campaign History</div>
+          <div class="page-subtitle">Track delivery and engagement for all campaign runs</div>
+        </div>
+        <div class="flex gap-2">
+          <select class="form-select" style="width:150px; padding:8px 12px; font-size:13px;">
+            <option>All Campaigns</option>
+            <option>Weekend Biryani</option>
+            <option>Loyalty Boost</option>
+            <option>Birthday Club</option>
+          </select>
+          <select class="form-select" style="width:130px; padding:8px 12px; font-size:13px;">
+            <option>Last 30 Days</option>
+            <option>Last 7 Days</option>
+            <option>Last 90 Days</option>
+            <option>All Time</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="stats-bar" style="padding-top:20px;">
+        <div class="stat-card">
+          <div class="stat-num">24</div>
+          <div class="stat-label">Campaign Runs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">8,420</div>
+          <div class="stat-label">Total Sent</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num text-green">7,890</div>
+          <div class="stat-label">Delivered</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num text-blue">6,320</div>
+          <div class="stat-label">Read</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num text-red">530</div>
+          <div class="stat-label">Failed</div>
+        </div>
+      </div>
+
+      <!-- History Table -->
+      <div style="padding: 0 32px 32px;">
+        <div class="card">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Audience</th>
+                <th>Template</th>
+                <th>Sent</th>
+                <th>Delivered</th>
+                <th>Read</th>
+                <th>Failed</th>
+                <th>Delivery %</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Weekend Biryani Festival</strong></td>
+                <td>Gold Customers</td>
+                <td>weekend_offer</td>
+                <td>342</td>
+                <td class="text-green">330</td>
+                <td class="text-blue">285</td>
+                <td class="text-red">12</td>
+                <td>
+                  <span class="text-green" style="font-weight:600;">96.5%</span>
+                  <div class="progress-bar"><div class="progress-fill" style="width:96.5%; background:#25D366;"></div></div>
+                </td>
+                <td style="font-size:12px; color:#71717a;">Jun 6, 2:30 PM</td>
+                <td><button class="btn btn-outline btn-sm">Details</button></td>
+              </tr>
+              <tr>
+                <td><strong>Birthday Club Weekly</strong><br><span style="font-size:11px; color:#71717a;">Run #12</span></td>
+                <td>Birthday This Month</td>
+                <td>birthday_wish</td>
+                <td>18</td>
+                <td class="text-green">18</td>
+                <td class="text-blue">15</td>
+                <td class="text-red">0</td>
+                <td>
+                  <span class="text-green" style="font-weight:600;">100%</span>
+                  <div class="progress-bar"><div class="progress-fill" style="width:100%; background:#25D366;"></div></div>
+                </td>
+                <td style="font-size:12px; color:#71717a;">Jun 3, 10:00 AM</td>
+                <td><button class="btn btn-outline btn-sm">Details</button></td>
+              </tr>
+              <tr>
+                <td><strong>Win-back June</strong></td>
+                <td>Inactive 30+ Days</td>
+                <td>win_back</td>
+                <td>128</td>
+                <td class="text-green">115</td>
+                <td class="text-blue">72</td>
+                <td class="text-red">13</td>
+                <td>
+                  <span class="text-amber" style="font-weight:600;">89.8%</span>
+                  <div class="progress-bar"><div class="progress-fill" style="width:89.8%; background:#d97706;"></div></div>
+                </td>
+                <td style="font-size:12px; color:#71717a;">Jun 1, 11:00 AM</td>
+                <td><button class="btn btn-outline btn-sm">Details</button> <button class="btn btn-outline btn-sm">Resend Failed</button></td>
+              </tr>
+              <tr style="opacity:0.6;">
+                <td><strong>Diwali Mega Offer</strong></td>
+                <td>All Customers</td>
+                <td>diwali_offer</td>
+                <td>4,980</td>
+                <td class="text-green">4,820</td>
+                <td class="text-blue">3,900</td>
+                <td class="text-red">160</td>
+                <td>
+                  <span class="text-green" style="font-weight:600;">96.8%</span>
+                  <div class="progress-bar"><div class="progress-fill" style="width:96.8%; background:#25D366;"></div></div>
+                </td>
+                <td style="font-size:12px; color:#71717a;">Oct 20, 2025</td>
+                <td><button class="btn btn-outline btn-sm">Details</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CAMPAIGN WIZARD (Full Page) ==================== -->
+    <div id="page-wizard" class="hidden">
+      <!-- Top Bar -->
+      <div style="padding: 12px 32px; background:#fff; border-bottom:1px solid #e5e5e5; display:flex; align-items:center; gap:12px;">
+        <button class="btn btn-outline btn-sm" onclick="showPage('campaigns')">← Back</button>
+        <span style="font-size:16px; font-weight:700;">New Campaign</span>
+        <span class="badge badge-amber">Draft</span>
+      </div>
+
+      <!-- Wizard Steps -->
+      <div class="wizard-container" style="padding-top:20px;">
+        <div class="wizard-steps">
+          <div class="wizard-step done" onclick="showWizardStep(1)">
+            <div class="wizard-step-num">✓</div>
+            <div class="wizard-step-label">Name & Audience</div>
+          </div>
+          <div class="wizard-step active" onclick="showWizardStep(2)">
+            <div class="wizard-step-num">2</div>
+            <div class="wizard-step-label">Message</div>
+          </div>
+          <div class="wizard-step" onclick="showWizardStep(3)">
+            <div class="wizard-step-num">3</div>
+            <div class="wizard-step-label">Schedule & Send</div>
+          </div>
+        </div>
+
+        <!-- STEP 1: Name & Audience -->
+        <div id="wizard-step-1" class="wizard-body hidden">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Campaign Details</h3>
+          <div class="form-group">
+            <label class="form-label">Campaign Name *</label>
+            <input class="form-input" value="Weekend Biryani Festival" placeholder="Enter campaign name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Select Audience</label>
+            <select class="form-select">
+              <option>Gold Customers (342 customers)</option>
+              <option>All Customers (4,980 customers)</option>
+              <option>Inactive 30+ Days (128 customers)</option>
+              <option>Birthday This Month (45 customers)</option>
+              <option>VIP High Spenders (67 customers)</option>
+            </select>
+            <div style="font-size:12px; color:#71717a; margin-top:6px;">or <a href="#" style="color:#F26B33; text-decoration:underline;">create a new audience</a></div>
+          </div>
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px; margin-top:12px;">
+            <div style="font-size:13px; font-weight:600; color:#16a34a;">342 customers will receive this campaign</div>
+            <div style="font-size:12px; color:#15803d; margin-top:4px;">Filters: Tier = Gold, Visits ≥ 10 · 12 opted out (will be skipped)</div>
+          </div>
+          <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+            <button class="btn btn-primary" onclick="showWizardStep(2)">Next: Choose Message →</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Message -->
+        <div id="wizard-step-2" class="wizard-body">
+          <div style="display:grid; grid-template-columns:1fr 340px; gap:24px;">
+            <!-- Left: Template Selection -->
+            <div>
+              <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Choose Message Template</h3>
+              <div class="form-group">
+                <label class="form-label">Template</label>
+                <select class="form-select">
+                  <option>weekend_offer (7 variables, fully mapped)</option>
+                  <option>payment_bill (7 variables, fully mapped)</option>
+                  <option>birthday_wish (3 variables, fully mapped)</option>
+                  <option>win_back (4 variables, fully mapped)</option>
+                </select>
+                <div style="font-size:11px; color:#71717a; margin-top:4px;">Only templates with all variables mapped are shown</div>
+              </div>
+
+              <!-- Variable Mapping Preview -->
+              <div style="margin-top:16px;">
+                <label class="form-label">Variable Mapping</label>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
+                  <div style="display:grid; grid-template-columns: 80px 20px 1fr; gap:6px; font-size:12px;">
+                    <span style="color:#71717a;">{"{{1}}"}</span><span>→</span><span style="font-weight:600;">customer_name</span>
+                    <span style="color:#71717a;">{"{{2}}"}</span><span>→</span><span style="font-weight:600;">restaurant_name</span>
+                    <span style="color:#71717a;">{"{{3}}"}</span><span>→</span><span style="font-weight:600;">coupon_code</span>
+                    <span style="color:#71717a;">{"{{4}}"}</span><span>→</span><span style="font-weight:600;">coupon_expiry</span>
+                  </div>
+                  <div style="margin-top:8px; font-size:11px; color:#16a34a;">All 4 variables mapped</div>
+                </div>
+              </div>
+
+              <div style="margin-top:20px; display:flex; justify-content:space-between;">
+                <button class="btn btn-outline" onclick="showWizardStep(1)">← Back</button>
+                <button class="btn btn-primary" onclick="showWizardStep(3)">Next: Schedule & Send →</button>
+              </div>
+            </div>
+
+            <!-- Right: WhatsApp Preview -->
+            <div>
+              <label class="form-label" style="margin-bottom:8px;">WhatsApp Preview</label>
+              <div class="wa-preview">
+                <div class="wa-bubble">
+                  <p>Hi <span class="wa-var">abhishek jain</span>! 🎉</p>
+                  <p style="margin-top:8px;">This weekend at <span class="wa-var">Kunafa Mahal</span>, enjoy our special Biryani Festival!</p>
+                  <p style="margin-top:8px;">Use code <span class="wa-var">WEEKEND20</span> for 20% off.</p>
+                  <p style="margin-top:8px;">Valid till <span class="wa-var">Jun 8, 2026</span></p>
+                  <div class="wa-time">11:42 AM ✓✓</div>
+                  <div class="wa-btn">Order Now ↗</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Schedule & Send -->
+        <div id="wizard-step-3" class="wizard-body hidden">
+          <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">When to Send</h3>
+
+          <div class="schedule-option selected">
+            <div class="radio"></div>
+            <div>
+              <div style="font-weight:600; font-size:14px;">Send Now</div>
+              <div style="font-size:12px; color:#71717a;">Send immediately to all 342 customers</div>
+            </div>
+          </div>
+          <div class="schedule-option">
+            <div class="radio"></div>
+            <div>
+              <div style="font-weight:600; font-size:14px;">Schedule for Later</div>
+              <div style="font-size:12px; color:#71717a;">Pick a specific date and time</div>
+              <div class="form-row" style="margin-top:8px;">
+                <input type="date" class="form-input" style="font-size:13px;">
+                <input type="time" class="form-input" value="10:00" style="font-size:13px;">
+              </div>
+            </div>
+          </div>
+          <div class="schedule-option">
+            <div class="radio"></div>
+            <div>
+              <div style="font-weight:600; font-size:14px;">Recurring</div>
+              <div style="font-size:12px; color:#71717a;">Send daily, weekly, or monthly</div>
+              <div class="form-row" style="margin-top:8px;">
+                <select class="form-select" style="font-size:13px;">
+                  <option>Daily</option>
+                  <option>Weekly</option>
+                  <option>Monthly</option>
+                </select>
+                <input type="time" class="form-input" value="10:00" style="font-size:13px;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Confirmation Box -->
+          <div class="confirm-box">
+            <div class="confirm-title">⚠️ Confirm Campaign Send</div>
+            <div class="confirm-detail">
+              <strong>Campaign:</strong> Weekend Biryani Festival<br>
+              <strong>Audience:</strong> Gold Customers (342 customers, 12 opted-out skipped = <strong>330 messages</strong>)<br>
+              <strong>Template:</strong> weekend_offer<br>
+              <strong>Schedule:</strong> Send Now<br>
+              <strong>Daily limit:</strong> 330 of 1,000 remaining today
+            </div>
+          </div>
+
+          <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn btn-outline" onclick="showWizardStep(2)">← Back</button>
+            <div class="flex gap-2">
+              <button class="btn btn-outline">Save as Draft</button>
+              <button class="btn btn-green" style="font-size:14px; padding:10px 28px;">
+                ✓ Send to 330 Customers
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showPage(page) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.page-tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item.nav-sub').forEach(el => el.classList.remove('active'));
+
+  document.getElementById('page-' + page).classList.remove('hidden');
+  document.getElementById('tab-' + page).classList.add('active');
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+}
+
+function showWizardStep(step) {
+  document.querySelectorAll('[id^="wizard-step-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('wizard-step-' + step).classList.remove('hidden');
+
+  document.querySelectorAll('.wizard-step').forEach((el, i) => {
+    el.classList.remove('active', 'done');
+    if (i + 1 < step) el.classList.add('done');
+    if (i + 1 === step) el.classList.add('active');
+  });
+}
+</script>
+</body>
+</html>

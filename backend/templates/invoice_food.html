@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ restaurant_name }} — Invoice {{ invoice_number }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .invoice { max-width: 480px; margin: 0 auto; background: #fff; }
+
+  /* Header */
+  .hdr { background: {{ header_color }}; color: #fff; padding: 22px 20px 18px; }
+  .hdr-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .logo-img { width: 48px; height: 48px; border-radius: 10px; object-fit: contain; background: #fff; }
+  .logo-circle { width: 48px; height: 48px; border-radius: 50%; background: {{ accent_color }}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; color: #fff; flex-shrink: 0; }
+  .r-info h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+  .r-info .tagline { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 1px; font-style: italic; }
+  .r-info .addr { font-size: 10px; color: rgba(255,255,255,0.8); margin-top: 4px; line-height: 1.4; }
+  .badge { display: inline-block; background: {{ accent_color }}; color: #fff; font-size: 9px; font-weight: 700; padding: 3px 10px; border-radius: 3px; letter-spacing: 1.5px; margin-top: 10px; }
+  .hdr-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; font-size: 11px; }
+  .hdr-meta dt { color: rgba(255,255,255,0.6); }
+  .hdr-meta dd { color: #fff; font-weight: 600; }
+
+  /* GSTIN strip */
+  .g-strip { background: #f8f8f8; padding: 7px 20px; font-size: 10px; color: #666; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; }
+  .g-strip strong { color: #333; }
+
+  /* Meta sections */
+  .meta { padding: 14px 20px; border-bottom: 1px solid #eee; }
+  .meta h3 { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .meta-grid .lbl { font-size: 10px; color: #888; }
+  .meta-grid .val { font-size: 11px; font-weight: 600; color: #333; }
+  .del-badge { display: inline-flex; align-items: center; gap: 4px; background: #E8F5E9; color: #2E7D32; font-size: 9px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin: 8px 0 6px; }
+  .del-addr { font-size: 11px; color: #555; line-height: 1.5; padding: 7px 10px; background: #fafafa; border-radius: 6px; border-left: 3px solid {{ accent_color }}; }
+
+  /* Items */
+  .items { padding: 14px 20px; }
+  .items h3 { font-size: 9px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .item { display: flex; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed #eee; }
+  .item:last-child { border-bottom: none; }
+  .vdot { width: 12px; height: 12px; border: 1.5px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; margin-right: 7px; margin-top: 2px; flex-shrink: 0; }
+  .vdot.v { border-color: #2E7D32; }
+  .vdot.v::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #2E7D32; }
+  .vdot.nv { border-color: #C62828; }
+  .vdot.nv::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #C62828; }
+  .i-det { flex: 1; }
+  .i-name { font-size: 12px; font-weight: 600; color: #333; }
+  .i-var { font-size: 9px; color: #888; margin-top: 1px; }
+  .i-qp { font-size: 10px; color: #666; margin-top: 1px; }
+  .i-tot { font-size: 12px; font-weight: 700; color: #333; text-align: right; min-width: 65px; }
+
+  /* Totals */
+  .totals { padding: 10px 20px; border-top: 2px solid #eee; }
+  .t-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
+  .t-row .tl { color: #666; }
+  .t-row .tv { font-weight: 600; color: #333; }
+  .t-row.disc .tl, .t-row.disc .tv { color: #2E7D32; }
+  .t-row.tax .tl { color: #888; padding-left: 10px; font-size: 10px; }
+  .t-row.tax .tv { font-size: 10px; }
+  .t-row.grand { padding: 8px 0 4px; margin-top: 4px; border-top: 2px solid #2B2B2B; font-size: 15px; font-weight: 800; }
+  .t-row.grand .tl { color: #2B2B2B; }
+  .t-row.grand .tv { color: {{ accent_color }}; }
+  .words { font-size: 9px; color: #888; font-style: italic; padding: 1px 0 6px; }
+
+  /* Payment */
+  .pay { background: #f8f8f8; padding: 9px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+  .pay-method { font-size: 11px; font-weight: 600; color: #333; }
+  .pay-badge { font-size: 9px; background: #E8F5E9; color: #2E7D32; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+  /* Loyalty */
+  .loyalty { padding: 12px 20px; background: #FFF8F0; border-top: 1px solid #FFE0CC; }
+  .loyalty h3 { font-size: 9px; font-weight: 700; color: {{ accent_color }}; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .l-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .l-item { text-align: center; padding: 6px; background: #fff; border-radius: 6px; border: 1px solid #FFE0CC; }
+  .l-item .num { font-size: 16px; font-weight: 800; color: {{ accent_color }}; }
+  .l-item .ll { font-size: 8px; color: #999; margin-top: 1px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Footer */
+  .footer { padding: 14px 20px; text-align: center; border-top: 1px solid #eee; }
+  .footer .ty { font-size: 13px; font-weight: 700; color: {{ accent_color }}; margin-bottom: 3px; }
+  .footer p { font-size: 9px; color: #999; line-height: 1.5; }
+  .footer .sac { font-size: 8px; color: #bbb; margin-top: 6px; }
+  .footer .terms { font-size: 8px; color: #aaa; margin-top: 6px; border-top: 1px dashed #eee; padding-top: 6px; text-align: left; }
+  .footer .social { margin-top: 6px; font-size: 9px; color: #888; }
+  .footer .social a { color: {{ accent_color }}; text-decoration: none; }
+
+  /* PDF button (hidden in PDF output) */
+  .pdf-btn { display: block; margin: 14px 20px; padding: 12px; background: {{ accent_color }}; color: #fff; text-align: center; border-radius: 10px; font-size: 13px; font-weight: 700; text-decoration: none; }
+  @media print { .pdf-btn { display: none; } }
+</style>
+</head>
+<body>
+<div class="invoice">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-top">
+      {% if logo_url %}
+      <img src="{{ logo_url }}" alt="Logo" class="logo-img">
+      {% else %}
+      <div class="logo-circle">{{ restaurant_initials }}</div>
+      {% endif %}
+      <div class="r-info">
+        <h1>{{ restaurant_name }}</h1>
+        {% if tagline %}<div class="tagline">{{ tagline }}</div>{% endif %}
+        <div class="addr">
+          {% if address_line1 %}{{ address_line1 }}{% endif %}
+          {% if address_line2 %}, {{ address_line2 }}{% endif %}
+          {% if city or state %}<br>{% if city %}{{ city }}{% endif %}{% if city and state %}, {% endif %}{% if state %}{{ state }}{% endif %}{% if pincode %} — {{ pincode }}{% endif %}{% endif %}
+          {% if phone %}<br>Ph: {{ phone }}{% endif %}{% if email %} | {{ email }}{% endif %}
+        </div>
+      </div>
+    </div>
+    {% if is_gst_invoice %}<div class="badge">TAX INVOICE</div>{% else %}<div class="badge">RECEIPT</div>{% endif %}
+    <div class="hdr-meta">
+      <dt>Invoice No.</dt><dd>{{ invoice_number }}</dd>
+      <dt>Date</dt><dd>{{ order_date }}</dd>
+      <dt>Bill No.</dt><dd>{{ bill_number }}</dd>
+    </div>
+  </div>
+
+  <!-- GSTIN / FSSAI Strip -->
+  {% if (show_gstin and gstin) or (show_fssai and fssai_license) %}
+  <div class="g-strip">
+    {% if show_gstin and gstin %}<span>GSTIN: <strong>{{ gstin }}</strong></span>{% endif %}
+    {% if show_fssai and fssai_license %}<span>FSSAI: <strong>{{ fssai_license }}</strong></span>{% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Customer -->
+  <div class="meta">
+    <h3>Customer</h3>
+    <div class="meta-grid">
+      <div><div class="lbl">Name</div><div class="val">{{ customer_name }}</div></div>
+      <div><div class="lbl">Phone</div><div class="val">{{ customer_phone }}</div></div>
+      {% if order_type == 'dinein' and table_id %}
+      <div><div class="lbl">Table</div><div class="val">{{ table_id }}</div></div>
+      {% endif %}
+      <div><div class="lbl">Type</div><div class="val">{{ order_type_display }}</div></div>
+    </div>
+    {% if show_customer_gstin and customer_gstin %}
+    <div style="margin-top:6px"><div class="lbl">Customer GSTIN</div><div class="val">{{ customer_gstin }}</div></div>
+    {% endif %}
+    {% if order_type == 'delivery' and delivery_address %}
+    <div class="del-badge">DELIVERY</div>
+    <div class="del-addr">{{ delivery_address }}</div>
+    {% endif %}
+  </div>
+
+  <!-- Items -->
+  <div class="items">
+    <h3>Items</h3>
+    {% for item in items %}
+    <div class="item">
+      {% if show_veg_dots %}
+      <div class="vdot {{ 'v' if item.is_veg else 'nv' }}"></div>
+      {% endif %}
+      <div class="i-det">
+        <div class="i-name">{{ item.name }}</div>
+        {% if item.variant %}<div class="i-var">+ {{ item.variant }}</div>{% endif %}
+        <div class="i-qp">{{ item.qty }} x {{ cs }}{{ item.unit_price }}</div>
+      </div>
+      <div class="i-tot">{{ cs }}{{ item.line_total }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Totals -->
+  <div class="totals">
+    <div class="t-row"><span class="tl">Item Total ({{ item_count }} items)</span><span class="tv">{{ cs }}{{ item_total }}</span></div>
+    {% if delivery_charge > 0 %}
+    <div class="t-row"><span class="tl">Delivery Charge</span><span class="tv">{{ cs }}{{ delivery_charge_display }}</span></div>
+    {% endif %}
+    {% if has_subtotal_diff %}
+    <div class="t-row"><span class="tl">Subtotal</span><span class="tv">{{ cs }}{{ subtotal }}</span></div>
+    {% endif %}
+    {% if coupon_discount > 0 %}
+    <div class="t-row disc"><span class="tl">Coupon Discount{% if coupon_code %} ({{ coupon_code }}){% endif %}</span><span class="tv">- {{ cs }}{{ coupon_discount_display }}</span></div>
+    {% endif %}
+    {% if loyalty_discount > 0 %}
+    <div class="t-row disc"><span class="tl">Loyalty Points Redeemed{% if loyalty_points_used %} ({{ loyalty_points_used }} pts){% endif %}</span><span class="tv">- {{ cs }}{{ loyalty_discount_display }}</span></div>
+    {% endif %}
+    {% if wallet_used > 0 %}
+    <div class="t-row disc"><span class="tl">Wallet Used</span><span class="tv">- {{ cs }}{{ wallet_used_display }}</span></div>
+    {% endif %}
+    {% if self_discount > 0 %}
+    <div class="t-row disc"><span class="tl">Discount</span><span class="tv">- {{ cs }}{{ self_discount_display }}</span></div>
+    {% endif %}
+    {% if taxable_amount != item_total_raw %}
+    <div class="t-row"><span class="tl">Taxable Amount</span><span class="tv">{{ cs }}{{ taxable_amount_display }}</span></div>
+    {% endif %}
+    {% if cgst > 0 %}
+    <div class="t-row tax"><span class="tl">CGST @ {{ tax_rate_half }}%</span><span class="tv">{{ cs }}{{ cgst_display }}</span></div>
+    <div class="t-row tax"><span class="tl">SGST @ {{ tax_rate_half }}%</span><span class="tv">{{ cs }}{{ sgst_display }}</span></div>
+    {% elif gst_tax > 0 %}
+    <div class="t-row tax"><span class="tl">GST</span><span class="tv">{{ cs }}{{ gst_tax_display }}</span></div>
+    {% endif %}
+    {% if vat_tax > 0 %}
+    <div class="t-row tax"><span class="tl">VAT</span><span class="tv">{{ cs }}{{ vat_tax_display }}</span></div>
+    {% endif %}
+    {% if service_tax > 0 %}
+    <div class="t-row tax"><span class="tl">Service Charge</span><span class="tv">{{ cs }}{{ service_tax_display }}</span></div>
+    {% endif %}
+    {% if tip_amount > 0 %}
+    <div class="t-row"><span class="tl">Tip</span><span class="tv">{{ cs }}{{ tip_display }}</span></div>
+    {% endif %}
+    {% if round_up != 0 %}
+    <div class="t-row"><span class="tl">Round Off</span><span class="tv">{{ cs }}{{ round_up_display }}</span></div>
+    {% endif %}
+    <div class="t-row grand"><span class="tl">Total</span><span class="tv">{{ cs }}{{ grand_total }}</span></div>
+    {% if show_amount_in_words and amount_in_words %}
+    <div class="words">{{ amount_in_words }}</div>
+    {% endif %}
+  </div>
+
+  <!-- Payment -->
+  <div class="pay">
+    <div class="pay-method">{{ payment_method_display }}</div>
+    {% if payment_status == 'paid' %}<span class="pay-badge">PAID</span>{% else %}<span class="pay-badge" style="background:#FFF3E0;color:#E65100">{{ payment_status|upper }}</span>{% endif %}
+  </div>
+
+  <!-- Loyalty -->
+  {% if show_loyalty_section %}
+  <div class="loyalty">
+    <h3>Loyalty Rewards</h3>
+    <div class="l-grid">
+      <div class="l-item"><div class="num">+{{ points_earned }}</div><div class="ll">Points Earned</div></div>
+      <div class="l-item"><div class="num">{{ points_balance }}</div><div class="ll">Points Balance</div></div>
+      {% if customer_tier %}<div class="l-item"><div class="num">{{ customer_tier }}</div><div class="ll">Your Tier</div></div>{% endif %}
+      {% if wallet_balance %}<div class="l-item"><div class="num">{{ cs }}{{ wallet_balance }}</div><div class="ll">Wallet Balance</div></div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div class="footer">
+    {% if footer_message %}<div class="ty">{{ footer_message }}</div>{% endif %}
+    <p>This is a computer-generated invoice and does not require a signature.
+    {% if footer_contact %}<br>For queries, contact us at {{ footer_contact }}{% endif %}</p>
+    {% if show_sac_code and sac_code %}
+    <div class="sac">SAC: {{ sac_code }}{% if state %} | Place of Supply: {{ state }}{% endif %}</div>
+    {% endif %}
+    {% if terms_and_conditions %}
+    <div class="terms">{{ terms_and_conditions }}</div>
+    {% endif %}
+    {% if social_instagram or social_google_review %}
+    <div class="social">
+      {% if social_instagram %}Instagram: <a href="https://instagram.com/{{ social_instagram|replace('@','') }}">{{ social_instagram }}</a>{% endif %}
+      {% if social_instagram and social_google_review %} | {% endif %}
+      {% if social_google_review %}<a href="{{ social_google_review }}">Leave a Review</a>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- PDF download (HTML view only) -->
+  <a href="{{ pdf_url }}" class="pdf-btn">Download PDF</a>
+  <div style="height:16px"></div>
+
+</div>
+</body>
+</html>
