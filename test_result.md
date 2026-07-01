@@ -14,7 +14,36 @@
 # Main and testing agents must follow this exact format to maintain testing data. 
 # The testing data must be entered in yaml format Below is the data structure:
 # 
-## user_problem_statement: {problem_statement}
+## user_problem_statement: "Login returning 503 for owner@cafe103.com / Qplazm@10"
+
+## backend:
+  - task: "Login with owner@cafe103.com / Qplazm@10"
+    implemented: true
+    working: true
+    file: "backend/routers/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Root cause: .env had wrong MYGENIE_API_URL (api.mygenie.in — DNS not resolving) and MYGENIE_LOGIN_ENDPOINT was a full URL instead of a path, causing double-URL concatenation. Fixed to: MYGENIE_API_URL=https://preprod.mygenie.online, MYGENIE_LOGIN_ENDPOINT=/api/v1/auth/vendoremployee/login, MYGENIE_PROFILE_ENDPOINT=/api/v1/vendoremployee/profile, MYGENIE_CRM_TOKEN_ENDPOINT=/api/v1/auth/restaurant-crm-token. Curl test confirms login now returns access_token."
+      - working: true
+        agent: "main"
+        comment: "Curl confirms: POST /api/auth/login with owner@cafe103.com returns access_token. Needs testing agent verification."
+
+## frontend:
+  - task: "Login page loads and accepts credentials"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/LoginPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Login page renders correctly. Needs testing agent to verify full login flow including redirect to dashboard after successful login."
 ## backend:
 ##   - task: "Task name"
 ##     implemented: true
@@ -101,3 +130,85 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+
+user_problem_statement: "Login returning 503 for owner@cafe103.com / Qplazm@10"
+
+backend:
+  - task: "Login with owner@cafe103.com / Qplazm@10"
+    implemented: true
+    working: true
+    file: "backend/routers/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Root cause: .env had wrong MYGENIE_API_URL (api.mygenie.in — DNS not resolving) and MYGENIE_LOGIN_ENDPOINT was a full URL instead of a path, causing double-URL concatenation. Fixed to: MYGENIE_API_URL=https://preprod.mygenie.online, MYGENIE_LOGIN_ENDPOINT=/api/v1/auth/vendoremployee/login, MYGENIE_PROFILE_ENDPOINT=/api/v1/vendoremployee/profile, MYGENIE_CRM_TOKEN_ENDPOINT=/api/v1/auth/restaurant-crm-token. Curl test confirms login now returns access_token."
+      - working: true
+        agent: "main"
+        comment: "Curl confirms: POST /api/auth/login with owner@cafe103.com returns access_token. Needs testing agent verification."
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: All backend login tests PASSED. Tested: (1) GET /api/health returns 200 with status=healthy. (2) POST /api/auth/login with owner@cafe103.com/Qplazm@10 returns 200 with access_token, user data (id, email, restaurant_name, phone, pos_id, pos_name), pos_config, and mygenie_token. (3) POST /api/auth/login with owner@kunafamahal.com/Qplazm@10 returns 200 with access_token and complete user data. (4) GET /api/auth/me with both tokens returns 200 with full user profiles including GSTIN, state, and address fields synced from MyGenie. Backend logs confirm successful MyGenie API calls to preprod.mygenie.online. No 503 errors observed. Login flow is fully functional."
+
+  - task: "Login with owner@kunafamahal.com / Qplazm@10"
+    implemented: true
+    working: true
+    file: "backend/routers/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: Login successful with owner@kunafamahal.com/Qplazm@10. Returns 200 with access_token, user data (restaurant: Kunafa Mahal, phone: 7307097771, pos_id: 0001), pos_config, and mygenie_token. GET /api/auth/me returns complete profile with GSTIN: 09NTAPK9306R1ZP, State: Uttar Pradesh, Address synced from MyGenie."
+
+  - task: "Health check endpoint"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: GET /api/health returns 200 with status=healthy and timestamp."
+
+frontend:
+  - task: "Login page loads and accepts credentials"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/LoginPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Login page renders correctly. Needs testing agent to verify full login flow including redirect to dashboard after successful login."
+      - working: "NA"
+        agent: "testing"
+        comment: "NOT TESTED: Frontend testing is outside the scope of backend testing agent. Backend APIs are fully functional and ready for frontend integration. User should manually test browser login flow at https://react-python-crm-4.preview.emergentagent.com/login with owner@cafe103.com/Qplazm@10."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Login with owner@cafe103.com / Qplazm@10"
+    - "Login with owner@kunafamahal.com / Qplazm@10"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Fixed MYGENIE_API_URL and endpoint paths in .env. Login now returns access_token instead of 503. Requesting testing agent to verify full login flow with both credentials."
+  - agent: "testing"
+    message: "Backend testing COMPLETE. All login endpoints working correctly. Health check: ✓ PASSED. Login with owner@cafe103.com: ✓ PASSED. Login with owner@kunafamahal.com: ✓ PASSED. Profile fetch with tokens: ✓ PASSED. MyGenie API integration confirmed working with preprod.mygenie.online. No 503 errors. Backend logs show successful authentication flow. Frontend testing not performed (outside scope). Ready for user acceptance testing."
