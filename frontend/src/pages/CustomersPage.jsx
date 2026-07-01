@@ -1251,7 +1251,7 @@ export default function CustomersPage() {
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-wrap gap-1 items-center">
                                                         {(customer.tags || []).map(tag => (
-                                                            <span key={tag} onClick={e => e.stopPropagation()}>
+                                                            <span key={tag} onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
                                                                 <TagChip tag={tag} onRemove={() => handleRemoveTag(customer.id, tag)} />
                                                             </span>
                                                         ))}
@@ -1263,7 +1263,12 @@ export default function CustomersPage() {
                                                                     + tag
                                                                 </button>
                                                             </PopoverTrigger>
-                                                            <PopoverContent className="w-52 p-1" align="start">
+                                                            <PopoverContent
+                                                                className="w-52 p-1"
+                                                                align="start"
+                                                                onClick={e => e.stopPropagation()}
+                                                                onPointerDown={e => e.stopPropagation()}
+                                                            >
                                                                 <Command>
                                                                     <CommandInput
                                                                         placeholder="Search or type tag..."

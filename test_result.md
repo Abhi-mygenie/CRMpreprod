@@ -14,7 +14,36 @@
 # Main and testing agents must follow this exact format to maintain testing data. 
 # The testing data must be entered in yaml format Below is the data structure:
 # 
-## user_problem_statement: "Login returning 503 for owner@cafe103.com / Qplazm@10"
+## user_problem_statement: "When adding a new tag from the customer list, clicking the CommandItem (+ Create tag) inside the tag popover causes navigation to customer detail page"
+
+## backend:
+  - task: "Tag endpoints working"
+    implemented: true
+    working: true
+    file: "backend/routers/customers.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Tag endpoints verified working. Issue is purely frontend."
+
+## frontend:
+  - task: "Add tag from customer list without navigating away"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/CustomersPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Bug: clicking CommandItem (+ Create tag) inside PopoverContent was bubbling click/pointerdown events up to the parent <tr onClick={() => navigate(customer_id)}> causing navigation to customer detail. Fix: added onClick and onPointerDown stopPropagation on PopoverContent and the tag chip span wrapper."
+      - working: true
+        agent: "main"
+        comment: "Fix applied. PopoverContent now has onClick and onPointerDown stopPropagation. Compiled clean. Needs testing agent to verify tag can be added without navigation."
 
 ## backend:
   - task: "Login with owner@cafe103.com / Qplazm@10"
@@ -132,9 +161,21 @@
 #====================================================================================================
 
 
-user_problem_statement: "Login returning 503 for owner@cafe103.com / Qplazm@10"
+user_problem_statement: "When adding a new tag from the Customers list page, clicking the '+ Create [tag]' option inside the tag dropdown was redirecting the user to the customer detail page instead of staying on the customers list"
 
 backend:
+  - task: "Tag endpoints working"
+    implemented: true
+    working: true
+    file: "backend/routers/customers.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Tag endpoints verified working. Issue is purely frontend event bubbling."
+
   - task: "Login with owner@cafe103.com / Qplazm@10"
     implemented: true
     working: true
@@ -178,31 +219,48 @@ backend:
         comment: "VERIFIED: GET /api/health returns 200 with status=healthy and timestamp."
 
 frontend:
+  - task: "Add tag from customer list without navigating away"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/CustomersPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Bug: clicking CommandItem (+ Create tag) inside PopoverContent was bubbling click/pointerdown events up to the parent <tr onClick={() => navigate(customer_id)}> causing navigation to customer detail. Fix: added onClick and onPointerDown stopPropagation on PopoverContent (lines 1269-1270) and the tag chip span wrapper (line 1254)."
+      - working: true
+        agent: "main"
+        comment: "Fix applied. PopoverContent now has onClick={e => e.stopPropagation()} and onPointerDown={e => e.stopPropagation()}. Compiled clean. Needs testing agent to verify tag can be added without navigation."
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: Tag functionality bug fix PASSED all Playwright E2E tests. Tested: (1) Login with owner@cafe103.com/Qplazm@10 successful. (2) Navigate to /customers page loads 100 customer rows. (3) Click '+ tag' button opens dropdown WITHOUT navigation - URL stays at /customers. (4) Type 'E2ETestTag' and click '+ Create E2ETestTag' - tag created WITHOUT navigation. (5) Tag appears on customer row immediately. (6) Page reload - tag persists correctly. (7) Click on tag chip - NO navigation occurs. (8) Click X button on tag - tag removed WITHOUT navigation. All stopPropagation handlers working correctly on PopoverContent (lines 1269-1270) and tag chip wrapper (line 1254). Bug fix confirmed working in production at https://react-python-crm-4.preview.emergentagent.com/customers."
+
   - task: "Login page loads and accepts credentials"
     implemented: true
-    working: "NA"
+    working: true
     file: "frontend/src/pages/LoginPage.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Login page renders correctly. Needs testing agent to verify full login flow including redirect to dashboard after successful login."
-      - working: "NA"
+      - working: true
         agent: "testing"
-        comment: "NOT TESTED: Frontend testing is outside the scope of backend testing agent. Backend APIs are fully functional and ready for frontend integration. User should manually test browser login flow at https://react-python-crm-4.preview.emergentagent.com/login with owner@cafe103.com/Qplazm@10."
+        comment: "VERIFIED: Login flow working correctly. User can login with owner@cafe103.com/Qplazm@10, gets redirected to / (root), and can navigate to /customers. Full E2E flow tested with Playwright."
 
 metadata:
   created_by: "main_agent"
-  version: "1.0"
-  test_sequence: 1
-  run_ui: false
+  version: "1.1"
+  test_sequence: 2
+  run_ui: true
 
 test_plan:
   current_focus:
-    - "Login with owner@cafe103.com / Qplazm@10"
-    - "Login with owner@kunafamahal.com / Qplazm@10"
+    - "Add tag from customer list without navigating away"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -212,3 +270,7 @@ agent_communication:
     message: "Fixed MYGENIE_API_URL and endpoint paths in .env. Login now returns access_token instead of 503. Requesting testing agent to verify full login flow with both credentials."
   - agent: "testing"
     message: "Backend testing COMPLETE. All login endpoints working correctly. Health check: ✓ PASSED. Login with owner@cafe103.com: ✓ PASSED. Login with owner@kunafamahal.com: ✓ PASSED. Profile fetch with tokens: ✓ PASSED. MyGenie API integration confirmed working with preprod.mygenie.online. No 503 errors. Backend logs show successful authentication flow. Frontend testing not performed (outside scope). Ready for user acceptance testing."
+  - agent: "main"
+    message: "Tag bug fix applied. Added stopPropagation on PopoverContent and tag chip wrapper to prevent event bubbling to parent <tr> onClick handler. Requesting testing agent to verify with Playwright E2E tests."
+  - agent: "testing"
+    message: "UI BUG FIX VERIFIED: Comprehensive Playwright E2E testing confirms tag functionality working perfectly. All 6 test scenarios passed: (1) Tag creation without navigation ✓ (2) Tag visibility ✓ (3) Tag persistence after reload ✓ (4) Click tag chip without navigation ✓ (5) Tag removal without navigation ✓ (6) Full lifecycle test ✓. The stopPropagation fix on PopoverContent (onClick and onPointerDown) and tag chip wrapper successfully prevents event bubbling to the parent table row's navigate handler. Bug is RESOLVED. Production URL tested: https://react-python-crm-4.preview.emergentagent.com/customers"
