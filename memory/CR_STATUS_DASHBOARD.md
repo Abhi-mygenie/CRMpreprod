@@ -8,7 +8,28 @@
 
 ## 📌 Latest Session Snapshot
 
-**Session date**: 2026-06-18 (SESSION 6 — Investigation + CR-027 + CR-028/BUG-008 implemented + 6 CRs QA'd)
+**Session date**: 2026-07-01 (SESSION 7 — CR-033 + CR-034 implemented, INV-004 investigation, 3 new CRs registered, 2 bugs fixed)
+**Pod URL**: `https://react-python-crm-4.preview.emergentagent.com`
+**Branch**: `1-july`
+**DB**: Remote MongoDB `52.66.232.149:27017/mygenie` (no local DB)
+
+### What happened this session
+1. **Repo bootstrapped** from `1-july` branch (`Abhi-mygenie/CRMpreprod`). Backend `.env` corrected (MYGENIE_API_URL, endpoint paths). All deps installed.
+2. **CR-033 IMPLEMENTED** — 20 additional audience filters (6 BUG-A fixes + 11 P1 + 3 P2 cross-join). `build_customer_query` made async. AudiencesPage rebuilt with max-w-2xl accordion dialog.
+3. **CR-034 IMPLEMENTED** — Customer tag system. 5 tag endpoints, TagChip component, tag chips on CustomersPage + CustomerDetailPage + AudiencesPage. Migration tagged 2 VIP customers.
+4. **BUG FIX** — Login 503: MYGENIE_API_URL was wrong domain + double URL concat. Fixed .env.
+5. **BUG FIX** — Tag popover navigating to customer detail: stopPropagation on PopoverContent + onPointerDown.
+6. **INV-004** — Investigated 6 issues: scheduled campaigns (flag off), EN→Hindi (authkey side), media headers (wrong format), export/import (no code), template status mismatch (code bug confirmed), loyalty (settings off).
+7. **CR-035 registered** — Customer Export/Import (blocked on Q1-Q6).
+8. **CR-036 registered** — Media header upload fix (discovery complete).
+9. **CR-037 registered** — Template status sync fix (planning complete, gate open).
+10. **Smoke test HTML** created: `/cr033_cr034_smoke_test.html`
+
+### Handover doc
+`/app/memory/crm/crm_roi_sprint/handoff/SESSION_2026_07_01_HANDOVER.md`
+
+### Next-agent message (copy-paste)
+Present GROUP A/B/C/D work queue from handover doc and ask owner which to pick up first.
 **Pod URL**: `https://cc511585-de01-49af-9a9b-3d577b5c408b.preview.emergentagent.com`
 **Branch**: `main`
 **DB**: Remote MongoDB `52.66.232.149:27017/mygenie` (no local DB)
