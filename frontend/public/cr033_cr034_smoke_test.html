@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoke Test Guide — CR-033 + CR-034 | MyGenie CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #F5F5F5; color: #2B2B2B; font-size: 14px; line-height: 1.6; }
+
+  /* ── Layout ── */
+  .page { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  /* ── Header ── */
+  .doc-header { background: #2B2B2B; border-radius: 16px; padding: 28px 32px; margin-bottom: 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .doc-header-left h1 { font-size: 22px; font-weight: 800; color: white; }
+  .doc-header-left p { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+  .doc-header-meta { display: flex; flex-direction: column; gap: 6px; text-align: right; }
+  .doc-header-meta span { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .doc-header-meta strong { color: #F26B33; }
+
+  /* ── Credentials box ── */
+  .cred-box { background: white; border: 1px solid #E5E7EB; border-left: 4px solid #F26B33; border-radius: 10px; padding: 14px 18px; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .cred-box-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9CA3AF; margin-bottom: 4px; }
+  .cred-box-value { font-size: 14px; font-weight: 600; color: #2B2B2B; }
+  .cred-box-url a { color: #F26B33; text-decoration: none; font-weight: 600; }
+  .cred-box-url a:hover { text-decoration: underline; }
+
+  /* ── What was built ── */
+  .cr-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 32px; }
+  .cr-card { background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 18px 20px; }
+  .cr-card-badge { display: inline-flex; align-items: center; gap: 6px; background: #FEF3ED; border: 1px solid #FDDBC8; color: #F26B33; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 10px; }
+  .cr-card h3 { font-size: 14px; font-weight: 700; color: #2B2B2B; margin-bottom: 6px; }
+  .cr-card p { font-size: 12px; color: #6B7280; line-height: 1.5; }
+
+  /* ── Section ── */
+  .section { margin-bottom: 36px; }
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #E5E7EB; }
+  .section-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .section-dot.orange { background: #F26B33; }
+  .section-dot.blue { background: #2563EB; }
+  .section-header h2 { font-size: 16px; font-weight: 800; color: #2B2B2B; }
+  .section-header .count { font-size: 11px; color: #9CA3AF; font-weight: 500; margin-left: 4px; }
+
+  /* ── Test card ── */
+  .test-card { background: white; border: 1px solid #E5E7EB; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .test-card-header { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; cursor: pointer; user-select: none; }
+  .test-card-header:hover { background: #FAFAFA; }
+  .test-num { width: 28px; height: 28px; border-radius: 8px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #6B7280; flex-shrink: 0; }
+  .test-num.critical { background: #FEF3ED; color: #F26B33; border: 1px solid #FDDBC8; }
+  .test-title-area { flex: 1; }
+  .test-title { font-size: 13px; font-weight: 700; color: #2B2B2B; }
+  .test-subtitle { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+  .test-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 5px; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; }
+  .badge-critical { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+  .badge-high { background: #FEF3ED; color: #F26B33; border: 1px solid #FDDBC8; }
+  .badge-medium { background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; }
+  .badge-bugfix { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+  .badge-new { background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
+  .test-arrow { color: #9CA3AF; font-size: 12px; transition: transform 0.2s; flex-shrink: 0; margin-top: 6px; }
+  .test-arrow.open { transform: rotate(180deg); }
+
+  /* ── Test body ── */
+  .test-body { display: none; padding: 0 18px 16px 58px; border-top: 1px solid #F3F4F6; }
+  .test-body.visible { display: block; }
+  .test-body-inner { padding-top: 14px; }
+  .step-list { counter-reset: steps; list-style: none; }
+  .step-list li { counter-increment: steps; display: flex; gap: 10px; margin-bottom: 8px; font-size: 13px; color: #374151; }
+  .step-list li::before { content: counter(steps); width: 22px; height: 22px; border-radius: 50%; background: #F3F4F6; color: #6B7280; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .pass-box { background: #F0FDF4; border: 1px solid #BBF7D0; border-left: 3px solid #329937; border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 12px; color: #166534; }
+  .pass-box strong { font-weight: 700; }
+  .warn-box { background: #FFF7F4; border: 1px solid #FDDBC8; border-left: 3px solid #F26B33; border-radius: 8px; padding: 10px 14px; margin-top: 8px; font-size: 12px; color: #92400E; }
+  .info-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-left: 3px solid #2563EB; border-radius: 8px; padding: 10px 14px; margin-top: 8px; font-size: 12px; color: #1E40AF; }
+  code { background: #F3F4F6; border: 1px solid #E5E7EB; border-radius: 4px; padding: 1px 6px; font-family: monospace; font-size: 12px; color: #2B2B2B; }
+
+  /* ── Result checkbox ── */
+  .result-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #E5E7EB; }
+  .result-row label { font-size: 12px; font-weight: 600; color: #6B7280; }
+  .result-btn { padding: 4px 14px; border-radius: 99px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: all 0.15s; }
+  .result-btn.pass { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+  .result-btn.fail { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+  .result-btn.pass:hover { background: #329937; color: white; }
+  .result-btn.fail:hover { background: #DC2626; color: white; }
+  .result-btn.active-pass { background: #329937; color: white; border-color: #329937; }
+  .result-btn.active-fail { background: #DC2626; color: white; border-color: #DC2626; }
+
+  /* ── Checklist table ── */
+  .checklist-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #E5E7EB; }
+  .checklist-table th { background: #F9FAFB; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; text-align: left; border-bottom: 1px solid #E5E7EB; }
+  .checklist-table td { padding: 10px 14px; font-size: 12px; border-bottom: 1px solid #F3F4F6; vertical-align: middle; }
+  .checklist-table tr:last-child td { border-bottom: none; }
+  .checklist-table tr:hover td { background: #FAFAFA; }
+  .t-num { font-weight: 700; color: #9CA3AF; width: 40px; }
+  .t-critical { color: #DC2626; font-weight: 700; }
+  .t-high { color: #F26B33; font-weight: 600; }
+  .t-medium { color: #6B7280; }
+  .result-cell { width: 100px; }
+  .result-select { width: 90px; padding: 4px 8px; border: 1px solid #E5E7EB; border-radius: 6px; font-size: 11px; font-family: 'Inter', sans-serif; background: white; cursor: pointer; }
+  .result-select.pass-selected { border-color: #329937; color: #329937; background: #F0FDF4; }
+  .result-select.fail-selected { border-color: #DC2626; color: #DC2626; background: #FEF2F2; }
+
+  /* ── Progress bar ── */
+  .progress-section { background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; }
+  .progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .progress-header span { font-size: 13px; font-weight: 700; }
+  .progress-bar-bg { height: 8px; background: #F3F4F6; border-radius: 99px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #329937, #F26B33); border-radius: 99px; transition: width 0.4s ease; }
+  .progress-counts { display: flex; gap: 16px; margin-top: 8px; font-size: 11px; }
+  .progress-counts .pc-pass { color: #329937; font-weight: 600; }
+  .progress-counts .pc-fail { color: #DC2626; font-weight: 600; }
+  .progress-counts .pc-todo { color: #9CA3AF; }
+
+  /* ── Troubleshoot ── */
+  .trouble-row { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F3F4F6; }
+  .trouble-row:last-child { border-bottom: none; }
+  .trouble-sym { flex: 1; font-size: 12px; color: #DC2626; font-weight: 600; }
+  .trouble-cause { flex: 1; font-size: 12px; color: #6B7280; }
+  .trouble-action { flex: 1; font-size: 12px; color: #2B2B2B; }
+
+  /* ── Print button ── */
+  .actions-bar { display: flex; gap: 10px; margin-bottom: 24px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 99px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
+  .btn-outline { background: white; border: 1px solid #E5E7EB; color: #2B2B2B; }
+  .btn-outline:hover { border-color: #F26B33; color: #F26B33; }
+  .btn-orange { background: #F26B33; color: white; }
+  .btn-orange:hover { background: #D85A2A; }
+
+  /* ── Print ── */
+  @media print {
+    .actions-bar, .result-btn { display: none; }
+    .test-body { display: block !important; }
+    body { background: white; }
+    .doc-header { background: #2B2B2B !important; -webkit-print-color-adjust: exact; }
+  }
+
+  /* ── Separator ── */
+  hr { border: none; border-top: 1px solid #E5E7EB; margin: 28px 0; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <h1>Smoke Test Guide — CR-033 + CR-034</h1>
+      <p>Additional Audience Filters · Customer Tag System · MyGenie CRM</p>
+    </div>
+    <div class="doc-header-meta">
+      <span>Date: <strong>2026-07-01</strong></span>
+      <span>Tests: <strong>20 total</strong></span>
+      <span>Critical: <strong style="color:#DC2626;">5</strong></span>
+    </div>
+  </div>
+
+  <!-- Credentials -->
+  <div class="cred-box">
+    <div class="cred-box-url">
+      <div class="cred-box-label">App URL</div>
+      <div class="cred-box-value"><a href="https://react-python-crm-4.preview.emergentagent.com" target="_blank">https://react-python-crm-4.preview.emergentagent.com</a></div>
+    </div>
+    <div>
+      <div class="cred-box-label">Login</div>
+      <div class="cred-box-value">owner@cafe103.com</div>
+    </div>
+    <div>
+      <div class="cred-box-label">Password</div>
+      <div class="cred-box-value">Qplazm@10</div>
+    </div>
+    <div>
+      <div class="cred-box-label">Alt Login</div>
+      <div class="cred-box-value">owner@kunafamahal.com / Qplazm@10</div>
+    </div>
+  </div>
+
+  <!-- What was built -->
+  <div class="cr-summary">
+    <div class="cr-card">
+      <div class="cr-card-badge">CR-033</div>
+      <h3>Additional Audience Filters</h3>
+      <p>20 filter dimensions (was 7). Fixes 6 broken filters silently ignored by backend (BUG-A). New grouped accordion UI with 5 sections. Dismissible active filter chips.</p>
+    </div>
+    <div class="cr-card">
+      <div class="cr-card-badge">CR-034</div>
+      <h3>Customer Tag System</h3>
+      <p>Free-form tags on customers. Add / remove inline on list and detail page. Tag-based audience filter with ANY/ALL toggle. Auto-tagged existing VIP customers on deploy.</p>
+    </div>
+  </div>
+
+  <!-- Actions bar -->
+  <div class="actions-bar">
+    <button class="btn btn-orange" onclick="expandAll()">Expand All Tests</button>
+    <button class="btn btn-outline" onclick="collapseAll()">Collapse All</button>
+    <button class="btn btn-outline" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <span>Overall Progress</span>
+      <span id="prog-label" style="color:#9CA3AF; font-weight:500; font-size:12px;">0 / 20 completed</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-bar" style="width:0%"></div></div>
+    <div class="progress-counts">
+      <span class="pc-pass" id="pc-pass">✓ 0 Pass</span>
+      <span class="pc-fail" id="pc-fail">✗ 0 Fail</span>
+      <span class="pc-todo" id="pc-todo">◦ 20 Pending</span>
+    </div>
+  </div>
+
+  <!-- ───────────────────────────────── CR-033 ─────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-dot orange"></div>
+      <h2>CR-033 — Additional Audience Filters</h2>
+      <span class="count">Tests T01–T11</span>
+    </div>
+
+    <!-- T01 -->
+    <div class="test-card" id="card-t01">
+      <div class="test-card-header" onclick="toggle('t01')">
+        <div class="test-num">T01</div>
+        <div class="test-title-area">
+          <div class="test-title">New accordion dialog UI</div>
+          <div class="test-badges"><span class="badge badge-new">New UI</span><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t01">▾</div>
+      </div>
+      <div class="test-body" id="body-t01">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Go to <strong>Marketing → Audiences</strong></li>
+            <li>Click <strong>Create Audience</strong></li>
+            <li>Check the dialog that opens</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Dialog is wider than before. Shows 5 collapsible colour-coded sections: 🟠 Loyalty & Tier · 🔵 Dates & Occasions · 🟢 WhatsApp & Engagement · 🟣 Customer Flags · 🟠 Tags. First two sections are open by default, rest collapsed.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t01','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t01','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T02 -->
+    <div class="test-card" id="card-t02">
+      <div class="test-card-header" onclick="toggle('t02')">
+        <div class="test-num critical">T02</div>
+        <div class="test-title-area">
+          <div class="test-title">BUG-A Fix — Birthday This Month filter</div>
+          <div class="test-subtitle">Was returning ALL 5,907 customers — now must return a small number</div>
+          <div class="test-badges"><span class="badge badge-critical">Critical</span><span class="badge badge-bugfix">BUG-A Fix</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t02">▾</div>
+      </div>
+      <div class="test-body" id="body-t02">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open <strong>Create Audience</strong> dialog</li>
+            <li>Click <strong>Dates & Occasions</strong> section to expand it</li>
+            <li>Tick the checkbox <strong>"Birthday this month"</strong></li>
+            <li>Click <strong>Preview Count</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Count returned is a small number (e.g. 0–20). NOT equal to your total customer count (5,907).</div>
+          <div class="warn-box"><strong>Fail if:</strong> Count returned equals total customers (5,907 or similar). This means the fix did not work.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t02','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t02','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T03 -->
+    <div class="test-card" id="card-t03">
+      <div class="test-card-header" onclick="toggle('t03')">
+        <div class="test-num critical">T03</div>
+        <div class="test-title-area">
+          <div class="test-title">BUG-A Fix — VIP filter no longer ignored</div>
+          <div class="test-subtitle">VIP criterion was silently dropped by the backend before this fix</div>
+          <div class="test-badges"><span class="badge badge-critical">Critical</span><span class="badge badge-bugfix">BUG-A Fix</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t03">▾</div>
+      </div>
+      <div class="test-body" id="body-t03">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open <strong>Create Audience</strong> dialog</li>
+            <li>Click <strong>Customer Flags & Profile</strong> section</li>
+            <li>Set <strong>VIP Status = VIP Only</strong></li>
+            <li>Click <strong>Preview Count</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Count returned is small (≥ 0) and less than your total customers. The filter is actually applied now.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t03','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t03','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T04 -->
+    <div class="test-card" id="card-t04">
+      <div class="test-card-header" onclick="toggle('t04')">
+        <div class="test-num critical">T04</div>
+        <div class="test-title-area">
+          <div class="test-title">BUG-A Fix — WhatsApp Opted-In filter no longer ignored</div>
+          <div class="test-subtitle">WA opt-in criterion was silently dropped by the backend before this fix</div>
+          <div class="test-badges"><span class="badge badge-critical">Critical</span><span class="badge badge-bugfix">BUG-A Fix</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t04">▾</div>
+      </div>
+      <div class="test-body" id="body-t04">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open <strong>Create Audience</strong> dialog</li>
+            <li>Click <strong>WhatsApp & Engagement</strong> section</li>
+            <li>Set <strong>WhatsApp Opted-In = Opted In</strong></li>
+            <li>Click <strong>Preview Count</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Count is a subset of total customers. No 503 error.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t04','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t04','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T05 -->
+    <div class="test-card" id="card-t05">
+      <div class="test-card-header" onclick="toggle('t05')">
+        <div class="test-num">T05</div>
+        <div class="test-title-area">
+          <div class="test-title">New Date filters — Birthday Month + Signed Up Recently</div>
+          <div class="test-badges"><span class="badge badge-new">New</span><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t05">▾</div>
+      </div>
+      <div class="test-body" id="body-t05">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open Create Audience → <strong>Dates & Occasions</strong></li>
+            <li>Set <strong>Birthday Month = Jul</strong> → click <strong>Preview Count</strong>, note the number</li>
+            <li>Reset → set <strong>Signed Up = Last 30 days</strong> → click <strong>Preview Count</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Both return a number without errors or blank screen.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t05','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t05','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T06 -->
+    <div class="test-card" id="card-t06">
+      <div class="test-card-header" onclick="toggle('t06')">
+        <div class="test-num">T06</div>
+        <div class="test-title-area">
+          <div class="test-title">New Loyalty filters — Wallet Balance + Coupons Used</div>
+          <div class="test-badges"><span class="badge badge-new">New</span><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t06">▾</div>
+      </div>
+      <div class="test-body" id="body-t06">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open Create Audience → <strong>Loyalty & Tier</strong></li>
+            <li>Set <strong>Wallet Balance = Zero</strong> → Preview Count</li>
+            <li>Reset → set <strong>Coupons Used = None</strong> → Preview Count</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Both return counts without errors.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t06','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t06','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T07 -->
+    <div class="test-card" id="card-t07">
+      <div class="test-card-header" onclick="toggle('t07')">
+        <div class="test-num">T07</div>
+        <div class="test-title-area">
+          <div class="test-title">New Flag filters — Lead Source + Has Complaint</div>
+          <div class="test-badges"><span class="badge badge-new">New</span><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t07">▾</div>
+      </div>
+      <div class="test-body" id="body-t07">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open Create Audience → <strong>Customer Flags & Profile</strong></li>
+            <li>Set <strong>Lead Source = Walk-in</strong> → Preview Count</li>
+            <li>Reset → tick <strong>"Has Complaint"</strong> → Preview Count</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Both return counts without errors.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t07','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t07','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T08 -->
+    <div class="test-card" id="card-t08">
+      <div class="test-card-header" onclick="toggle('t08')">
+        <div class="test-num">T08</div>
+        <div class="test-title-area">
+          <div class="test-title">Multiple filters combine with AND logic</div>
+          <div class="test-badges"><span class="badge badge-high">High</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t08">▾</div>
+      </div>
+      <div class="test-body" id="body-t08">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open Create Audience</li>
+            <li>Set <strong>Tier = Gold</strong> (Loyalty section) → note standalone Gold count</li>
+            <li>Also set <strong>Last Visit = 30+ days ago</strong> (Dates section)</li>
+            <li>Click <strong>Preview Count</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Combined count is ≤ the Gold-only count. (AND = stricter = fewer customers)</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t08','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t08','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T09 -->
+    <div class="test-card" id="card-t09">
+      <div class="test-card-header" onclick="toggle('t09')">
+        <div class="test-num">T09</div>
+        <div class="test-title-area">
+          <div class="test-title">Active filter chips are dismissible</div>
+          <div class="test-badges"><span class="badge badge-new">New UI</span><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t09">▾</div>
+      </div>
+      <div class="test-body" id="body-t09">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open Create Audience → set <strong>Tier = Gold</strong> + tick <strong>Birthday this month</strong></li>
+            <li>Two chip tags should appear above the accordion (e.g. "Tier: Gold", "Birthday: This Month")</li>
+            <li>Click the <strong>×</strong> on the "Tier: Gold" chip</li>
+            <li>Click <strong>Preview Count</strong> again</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Tier chip disappears. Count changes (now only birthday filter active).</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t09','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t09','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T10 -->
+    <div class="test-card" id="card-t10">
+      <div class="test-card-header" onclick="toggle('t10')">
+        <div class="test-num">T10</div>
+        <div class="test-title-area">
+          <div class="test-title">Save a new audience with new filters</div>
+          <div class="test-badges"><span class="badge badge-high">High</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t10">▾</div>
+      </div>
+      <div class="test-body" id="body-t10">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Open Create Audience → set <strong>Tier = Gold</strong></li>
+            <li>Enter name: <code>Gold Customers — Smoke Test</code></li>
+            <li>Click <strong>Preview Count</strong> → note the number</li>
+            <li>Click <strong>Create Audience</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Dialog closes. New audience card appears in the grid with the correct customer count.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t10','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t10','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T11 -->
+    <div class="test-card" id="card-t11">
+      <div class="test-card-header" onclick="toggle('t11')">
+        <div class="test-num">T11</div>
+        <div class="test-title-area">
+          <div class="test-title">Edit existing audience with a new filter</div>
+          <div class="test-badges"><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t11">▾</div>
+      </div>
+      <div class="test-body" id="body-t11">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Click <strong>Edit</strong> on any existing audience card</li>
+            <li>Expand <strong>WhatsApp & Engagement</strong> → set <strong>Opted In = Yes</strong></li>
+            <li>Click <strong>Preview Count</strong> → click <strong>Update Audience</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Audience saves. Count on card updates when refreshed.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t11','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t11','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────────────────────────────── CR-034 ─────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-dot blue"></div>
+      <h2>CR-034 — Customer Tag System</h2>
+      <span class="count">Tests T12–T20</span>
+    </div>
+
+    <!-- T12 -->
+    <div class="test-card" id="card-t12">
+      <div class="test-card-header" onclick="toggle('t12')">
+        <div class="test-num critical">T12</div>
+        <div class="test-title-area">
+          <div class="test-title">Add a tag to a customer (Customers page)</div>
+          <div class="test-badges"><span class="badge badge-critical">Critical</span><span class="badge badge-new">New Feature</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t12">▾</div>
+      </div>
+      <div class="test-body" id="body-t12">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Go to <strong>Customers</strong></li>
+            <li>Find any customer row — look for a small <strong>"+ tag"</strong> button next to their badges</li>
+            <li>Click <strong>"+ tag"</strong> → type <code>VIP</code></li>
+            <li>Select <strong>VIP</strong> from the dropdown (or press Enter if it shows "Create VIP")</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> A coloured tag chip (e.g. orange "VIP") appears on that customer's row immediately. No error toast.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t12','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t12','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T13 -->
+    <div class="test-card" id="card-t13">
+      <div class="test-card-header" onclick="toggle('t13')">
+        <div class="test-num">T13</div>
+        <div class="test-title-area">
+          <div class="test-title">Create a brand-new custom tag</div>
+          <div class="test-badges"><span class="badge badge-high">High</span><span class="badge badge-new">New Feature</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t13">▾</div>
+      </div>
+      <div class="test-body" id="body-t13">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>On any customer row → click <strong>"+ tag"</strong></li>
+            <li>Type a brand-new tag name e.g. <code>Anniversary Guest</code></li>
+            <li>Select <strong>"+ Create 'Anniversary Guest'"</strong> from dropdown</li>
+            <li>Close the popover → click <strong>"+ tag"</strong> on any other customer</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> "Anniversary Guest" tag chip appears on the first customer. It also now appears as an option in the dropdown for other customers.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t13','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t13','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T14 -->
+    <div class="test-card" id="card-t14">
+      <div class="test-card-header" onclick="toggle('t14')">
+        <div class="test-num">T14</div>
+        <div class="test-title-area">
+          <div class="test-title">Remove a tag from a customer</div>
+          <div class="test-badges"><span class="badge badge-high">High</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t14">▾</div>
+      </div>
+      <div class="test-body" id="body-t14">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>On a customer row that has a tag (from T12/T13)</li>
+            <li>Click the <strong>×</strong> on the tag chip</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Tag chip disappears immediately. No error toast.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t14','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t14','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T15 -->
+    <div class="test-card" id="card-t15">
+      <div class="test-card-header" onclick="toggle('t15')">
+        <div class="test-num">T15</div>
+        <div class="test-title-area">
+          <div class="test-title">Tags on Customer Detail page</div>
+          <div class="test-badges"><span class="badge badge-high">High</span><span class="badge badge-new">New Feature</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t15">▾</div>
+      </div>
+      <div class="test-body" id="body-t15">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Click into any customer → open their detail page</li>
+            <li>Look for a <strong>"+ add tag"</strong> button below the customer name / tier header</li>
+            <li>Click it → type a tag → select or create it</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Tag appears on the detail page header. Persists after refreshing the page.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t15','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t15','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T16 -->
+    <div class="test-card" id="card-t16">
+      <div class="test-card-header" onclick="toggle('t16')">
+        <div class="test-num critical">T16</div>
+        <div class="test-title-area">
+          <div class="test-title">Tag filter in Audience builder</div>
+          <div class="test-badges"><span class="badge badge-critical">Critical</span><span class="badge badge-new">New Feature</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t16">▾</div>
+      </div>
+      <div class="test-body" id="body-t16">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Go to <strong>Marketing → Audiences</strong> → Create Audience</li>
+            <li>Scroll to the last section <strong>"Tags"</strong> (orange header) → click to expand</li>
+            <li>Click a tag from the catalog (e.g. "VIP") to add it as a filter</li>
+            <li>Click <strong>Preview Count</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Count returned > 0 (at least the customers you tagged manually + 2 auto-tagged). No error.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t16','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t16','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T17 -->
+    <div class="test-card" id="card-t17">
+      <div class="test-card-header" onclick="toggle('t17')">
+        <div class="test-num">T17</div>
+        <div class="test-title-area">
+          <div class="test-title">ANY vs ALL toggle for multi-tag filter</div>
+          <div class="test-badges"><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t17">▾</div>
+      </div>
+      <div class="test-body" id="body-t17">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>In Create Audience → Tags section → add <strong>2 different tags</strong></li>
+            <li>An <strong>ANY (OR) / ALL (AND)</strong> toggle appears</li>
+            <li>Select <strong>ANY</strong> → Preview Count → note number</li>
+            <li>Switch to <strong>ALL</strong> → Preview Count → note number</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> ANY count ≥ ALL count (OR = broader, AND = stricter). Both return numbers without errors.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t17','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t17','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T18 -->
+    <div class="test-card" id="card-t18">
+      <div class="test-card-header" onclick="toggle('t18')">
+        <div class="test-num">T18</div>
+        <div class="test-title-area">
+          <div class="test-title">Use a tag-based audience in a Campaign</div>
+          <div class="test-badges"><span class="badge badge-high">High</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t18">▾</div>
+      </div>
+      <div class="test-body" id="body-t18">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Create an audience with Tags = "VIP" (from T16 above) → save as <code>VIP Tag Audience</code></li>
+            <li>Go to <strong>Marketing → Campaigns</strong> → New Campaign</li>
+            <li>In the Audience step, select <strong>"VIP Tag Audience"</strong></li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> Campaign wizard accepts the tag-based audience. Shows recipient count. Campaign can be created (draft is fine, don't send).</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t18','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t18','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T19 -->
+    <div class="test-card" id="card-t19">
+      <div class="test-card-header" onclick="toggle('t19')">
+        <div class="test-num">T19</div>
+        <div class="test-title-area">
+          <div class="test-title">Auto-backfill — VIP-flagged customers got "VIP" tag</div>
+          <div class="test-subtitle">A migration ran on deploy to auto-tag existing VIP customers</div>
+          <div class="test-badges"><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t19">▾</div>
+      </div>
+      <div class="test-body" id="body-t19">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Go to <strong>Customers</strong></li>
+            <li>In the filter drawer, find <strong>VIP Status = VIP Only</strong> → apply</li>
+            <li>Check the customer rows shown</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> VIP-flagged customers also show a "VIP" tag chip on their row (auto-applied by the migration).</div>
+          <div class="info-box">Note: The migration tagged 2 customers on this restaurant's account. If the filter shows 0, those specific customers may have been un-flagged in the live data.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t19','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t19','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T20 -->
+    <div class="test-card" id="card-t20">
+      <div class="test-card-header" onclick="toggle('t20')">
+        <div class="test-num">T20</div>
+        <div class="test-title-area">
+          <div class="test-title">Tenant isolation — tags are per-restaurant</div>
+          <div class="test-badges"><span class="badge badge-high">High</span></div>
+        </div>
+        <div class="test-arrow" id="arrow-t20">▾</div>
+      </div>
+      <div class="test-body" id="body-t20">
+        <div class="test-body-inner">
+          <ol class="step-list">
+            <li>Login as <strong>owner@cafe103.com</strong> → add tag <code>Cafe103-Special</code> to any customer</li>
+            <li>Logout → login as <strong>owner@kunafamahal.com / Qplazm@10</strong></li>
+            <li>Go to any customer → click <strong>"+ tag"</strong> → check the dropdown</li>
+          </ol>
+          <div class="pass-box"><strong>Pass if:</strong> "Cafe103-Special" does NOT appear in the tag catalog for Kunafa Mahal. Tags are fully isolated per restaurant.</div>
+          <div class="result-row"><label>Result:</label><button class="result-btn pass" onclick="setResult('t20','pass',this)">✓ Pass</button><button class="result-btn fail" onclick="setResult('t20','fail',this)">✗ Fail</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Full checklist -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-dot orange"></div>
+      <h2>Full Test Checklist</h2>
+    </div>
+    <table class="checklist-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Test</th>
+          <th>CR</th>
+          <th>Priority</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="t-num">T01</td><td>New accordion dialog UI</td><td>CR-033</td><td class="t-medium">Medium</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t01')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T02</td><td class="t-critical">⭐ Birthday filter — NOT returning 5,907</td><td>CR-033</td><td class="t-critical">Critical</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t02')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T03</td><td class="t-critical">⭐ VIP filter — not silently ignored</td><td>CR-033</td><td class="t-critical">Critical</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t03')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T04</td><td class="t-critical">⭐ WA Opted-In filter — not silently ignored</td><td>CR-033</td><td class="t-critical">Critical</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t04')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T05</td><td>New date filters (birthday month, signed up)</td><td>CR-033</td><td class="t-medium">Medium</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t05')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T06</td><td>New loyalty filters (wallet balance, coupons)</td><td>CR-033</td><td class="t-medium">Medium</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t06')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T07</td><td>New flag filters (lead source, has complaint)</td><td>CR-033</td><td class="t-medium">Medium</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t07')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T08</td><td>Multiple filters combine with AND</td><td>CR-033</td><td class="t-high">High</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t08')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T09</td><td>Active filter chips are dismissible</td><td>CR-033</td><td class="t-medium">Medium</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t09')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T10</td><td>Save new audience with new filters</td><td>CR-033</td><td class="t-high">High</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t10')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T11</td><td>Edit existing audience with new filter</td><td>CR-033</td><td class="t-medium">Medium</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t11')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T12</td><td class="t-critical">⭐ Add tag to customer (Customers page)</td><td>CR-034</td><td class="t-critical">Critical</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t12')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T13</td><td>Create a new custom tag</td><td>CR-034</td><td class="t-high">High</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t13')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T14</td><td>Remove a tag</td><td>CR-034</td><td class="t-high">High</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t14')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T15</td><td>Tags on Customer Detail page</td><td>CR-034</td><td class="t-high">High</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t15')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T16</td><td class="t-critical">⭐ Tag filter in Audience builder</td><td>CR-034</td><td class="t-critical">Critical</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t16')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T17</td><td>ANY vs ALL tag matching toggle</td><td>CR-034</td><td class="t-medium">Medium</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t17')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T18</td><td>Tag audience used in Campaign</td><td>CR-034</td><td class="t-high">High</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t18')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T19</td><td>Auto-backfill VIP customers got tag</td><td>CR-034</td><td class="t-medium">Medium</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t19')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+        <tr><td class="t-num">T20</td><td>Tenant isolation — tags are per-restaurant</td><td>CR-034</td><td class="t-high">High</td><td class="result-cell"><select class="result-select" onchange="updateChecklist(this,'t20')"><option value="">Pending</option><option value="pass">✓ Pass</option><option value="fail">✗ Fail</option></select></td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px; font-size:11px; color:#9CA3AF;">⭐ = Critical tests — minimum bar to consider CRs working (T02, T03, T04, T12, T16)</div>
+  </div>
+
+  <hr>
+
+  <!-- Troubleshooting -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-dot orange"></div>
+      <h2>Troubleshooting</h2>
+    </div>
+    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:4px 20px 8px;">
+      <div style="display:grid; grid-template-columns:2fr 2fr 2fr; gap:8px; padding:10px 0 6px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#9CA3AF; border-bottom:1px solid #F3F4F6;">
+        <span>Symptom</span><span>Likely Cause</span><span>Action</span>
+      </div>
+      <div class="trouble-row">
+        <div class="trouble-sym">Preview count = 5,907 (or total customers)</div>
+        <div class="trouble-cause">BUG-A filter still not fixed for this specific filter</div>
+        <div class="trouble-action">Note which filter key + value you used. Report to dev team.</div>
+      </div>
+      <div class="trouble-row">
+        <div class="trouble-sym">"Failed to add tag" toast</div>
+        <div class="trouble-cause">Tag API endpoint issue</div>
+        <div class="trouble-action">Note customer name + tag text. Open browser console (F12) and screenshot the error.</div>
+      </div>
+      <div class="trouble-row">
+        <div class="trouble-sym">Tags section missing in Audience dialog</div>
+        <div class="trouble-cause">Frontend didn't compile the CR-034 accordion section</div>
+        <div class="trouble-action">Hard refresh (Ctrl+Shift+R). If still missing, screenshot and report.</div>
+      </div>
+      <div class="trouble-row">
+        <div class="trouble-sym">Login fails with 503</div>
+        <div class="trouble-cause">MyGenie API unreachable</div>
+        <div class="trouble-action">Wait 2 min and retry. If persists, report to dev team (check .env MYGENIE_API_URL).</div>
+      </div>
+      <div class="trouble-row">
+        <div class="trouble-sym">"+  tag" button not visible on customer row</div>
+        <div class="trouble-cause">CustomersPage didn't receive the tag chip code</div>
+        <div class="trouble-action">Hard refresh. Check if you're in desktop view (table view, not mobile). Screenshot and report.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end page -->
+
+<script>
+  const results = {};
+
+  function toggle(id) {
+    const body = document.getElementById('body-' + id);
+    const arrow = document.getElementById('arrow-' + id);
+    const isVisible = body.classList.contains('visible');
+    body.classList.toggle('visible', !isVisible);
+    arrow.classList.toggle('open', !isVisible);
+  }
+
+  function expandAll() {
+    for (let i = 1; i <= 20; i++) {
+      const id = 't' + String(i).padStart(2, '0');
+      document.getElementById('body-' + id)?.classList.add('visible');
+      document.getElementById('arrow-' + id)?.classList.add('open');
+    }
+  }
+
+  function collapseAll() {
+    for (let i = 1; i <= 20; i++) {
+      const id = 't' + String(i).padStart(2, '0');
+      document.getElementById('body-' + id)?.classList.remove('visible');
+      document.getElementById('arrow-' + id)?.classList.remove('open');
+    }
+  }
+
+  function setResult(id, val, btn) {
+    results[id] = val;
+    // Update card border
+    const card = document.getElementById('card-' + id);
+    card.style.borderColor = val === 'pass' ? '#329937' : '#DC2626';
+    card.style.borderLeftWidth = '3px';
+    // Update buttons in the card
+    const btns = btn.parentElement.querySelectorAll('.result-btn');
+    btns.forEach(b => { b.classList.remove('active-pass', 'active-fail'); });
+    btn.classList.add(val === 'pass' ? 'active-pass' : 'active-fail');
+    // Sync checklist dropdown
+    const sel = document.querySelector(`select[onchange*="'${id}'"]`);
+    if (sel) { sel.value = val; sel.className = 'result-select ' + (val === 'pass' ? 'pass-selected' : 'fail-selected'); }
+    updateProgress();
+  }
+
+  function updateChecklist(sel, id) {
+    const val = sel.value;
+    if (!val) return;
+    results[id] = val;
+    sel.className = 'result-select ' + (val === 'pass' ? 'pass-selected' : 'fail-selected');
+    const card = document.getElementById('card-' + id);
+    if (card) { card.style.borderColor = val === 'pass' ? '#329937' : '#DC2626'; card.style.borderLeftWidth = '3px'; }
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const vals = Object.values(results);
+    const total = 20;
+    const pass = vals.filter(v => v === 'pass').length;
+    const fail = vals.filter(v => v === 'fail').length;
+    const done = pass + fail;
+    const pct = Math.round((done / total) * 100);
+
+    document.getElementById('prog-bar').style.width = pct + '%';
+    document.getElementById('prog-label').textContent = done + ' / ' + total + ' completed';
+    document.getElementById('pc-pass').textContent = '✓ ' + pass + ' Pass';
+    document.getElementById('pc-fail').textContent = '✗ ' + fail + ' Fail';
+    document.getElementById('pc-todo').textContent = '◦ ' + (total - done) + ' Pending';
+  }
+</script>
+</body>
+</html>
