@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CR-033 + CR-034 Mockup — MyGenie CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #F5F5F5; color: #2B2B2B; }
+
+  /* ── Layout ── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+  .section { margin-bottom: 56px; }
+  .section-header { margin-bottom: 20px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #F26B33; margin-bottom: 4px; }
+  .section-title { font-size: 20px; font-weight: 700; color: #2B2B2B; }
+  .section-desc { font-size: 13px; color: #6B7280; margin-top: 4px; }
+
+  /* ── Top Banner ── */
+  .top-banner { background: #2B2B2B; color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; border-radius: 12px; }
+  .top-banner h1 { font-size: 16px; font-weight: 700; }
+  .top-banner p { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+  .badge-orange { background: #F26B33; color: white; padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+
+  /* ── Cards ── */
+  .card { background: white; border-radius: 12px; border: 1px solid #E5E7EB; overflow: hidden; }
+  .card-pad { padding: 24px; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 99px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; }
+  .btn-orange { background: #F26B33; color: white; }
+  .btn-orange:hover { background: #D85A2A; }
+  .btn-outline { background: white; color: #2B2B2B; border: 1px solid #E5E7EB; }
+  .btn-outline:hover { border-color: #F26B33; color: #F26B33; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-green { background: #329937; color: white; }
+
+  /* ── Chips / Pills ── */
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 500; }
+  .chip-orange { background: #FEF3ED; color: #F26B33; border: 1px solid #FDDBC8; }
+  .chip-green { background: #EAFBEB; color: #329937; border: 1px solid #B9E8BB; }
+  .chip-gray { background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; }
+  .chip-blue { background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
+  .chip-purple { background: #F5F3FF; color: #7C3AED; border: 1px solid #DDD6FE; }
+  .chip-red { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+
+  /* ── Form Controls ── */
+  .form-group { margin-bottom: 12px; }
+  .form-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; margin-bottom: 5px; display: block; }
+  select, input[type=text] {
+    width: 100%; padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 8px;
+    font-size: 13px; color: #2B2B2B; background: white; outline: none;
+    font-family: 'Inter', sans-serif;
+  }
+  select:focus, input:focus { border-color: #F26B33; box-shadow: 0 0 0 2px rgba(242,107,51,0.15); }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #2B2B2B; }
+  .checkbox-row input { width: 15px; height: 15px; accent-color: #F26B33; }
+
+  /* ── Grid helpers ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .flex { display: flex; }
+  .flex-center { display: flex; align-items: center; }
+  .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; }
+  .gap-4 { gap: 16px; }
+  .flex-wrap { flex-wrap: wrap; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .justify-end { justify-content: flex-end; }
+  .mt-1 { margin-top: 4px; }
+  .mt-2 { margin-top: 8px; }
+  .mt-3 { margin-top: 12px; }
+  .mt-4 { margin-top: 16px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-3 { margin-bottom: 12px; }
+  .w-full { width: 100%; }
+  .text-xs { font-size: 11px; }
+  .text-sm { font-size: 13px; }
+  .text-orange { color: #F26B33; }
+  .text-green { color: #329937; }
+  .text-gray { color: #6B7280; }
+  .font-semibold { font-weight: 600; }
+  .font-bold { font-weight: 700; }
+
+  /* ── Accordion sections ── */
+  .acc-section { border: 1px solid #E5E7EB; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+  .acc-header { padding: 10px 14px; background: #FAFAFA; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6B7280; }
+  .acc-header.active { color: #F26B33; background: #FFF7F4; }
+  .acc-header .acc-arrow { font-size: 10px; transition: transform 0.2s; }
+  .acc-header.active .acc-arrow { transform: rotate(180deg); }
+  .acc-body { padding: 12px 14px; border-top: 1px solid #E5E7EB; background: white; }
+  .acc-body.hidden { display: none; }
+  .filter-count { background: #F26B33; color: white; border-radius: 99px; font-size: 10px; padding: 1px 6px; font-weight: 700; }
+
+  /* ── AND/OR Explainer ── */
+  .diagram-box { border: 2px solid #E5E7EB; border-radius: 10px; padding: 16px; background: white; }
+  .diagram-box.and-box { border-color: #2563EB; }
+  .diagram-box.or-box { border-color: #329937; }
+  .diagram-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+  .diagram-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+  .circle-check { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .circle-green { background: #329937; color: white; }
+  .circle-red { background: #DC2626; color: white; }
+  .circle-gray { background: #D1D5DB; color: white; }
+  .customer-avatar { width: 30px; height: 30px; border-radius: 50%; background: #F3F4F6; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .or-badge { background: #DCFCE7; color: #329937; border-radius: 99px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+  .and-badge { background: #DBEAFE; color: #2563EB; border-radius: 99px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+  .recommended-badge { background: #FEF3ED; color: #F26B33; border-radius: 99px; padding: 2px 8px; font-size: 10px; font-weight: 700; border: 1px solid #FDDBC8; }
+
+  /* ── Mock Dialog ── */
+  .mock-dialog { background: white; border-radius: 16px; border: 1px solid #E5E7EB; box-shadow: 0 20px 60px rgba(0,0,0,0.12); padding: 24px; max-width: 520px; width: 100%; }
+  .mock-dialog-wide { max-width: 680px; }
+  .dialog-header { border-bottom: 1px solid #F3F4F6; padding-bottom: 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+  .dialog-title { font-size: 16px; font-weight: 700; color: #2B2B2B; }
+  .dialog-close { width: 28px; height: 28px; border-radius: 50%; background: #F3F4F6; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: #6B7280; }
+
+  /* ── Preview count bar ── */
+  .preview-bar { background: #FFF7F4; border: 1px solid #FDDBC8; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .preview-num { font-size: 20px; font-weight: 800; color: #F26B33; }
+
+  /* ── Tag input ── */
+  .tag-input-area { border: 1px solid #E5E7EB; border-radius: 8px; padding: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 40px; }
+  .tag-input-area:focus-within { border-color: #F26B33; box-shadow: 0 0 0 2px rgba(242,107,51,0.15); }
+  .tag-input-area input { border: none; outline: none; font-size: 13px; min-width: 80px; flex: 1; font-family: 'Inter', sans-serif; }
+  .tag-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: #FEF3ED; border: 1px solid #FDDBC8; border-radius: 99px; font-size: 11px; color: #F26B33; font-weight: 600; }
+  .tag-chip .remove { cursor: pointer; color: #F26B33; font-size: 12px; opacity: 0.7; }
+  .tag-chip .remove:hover { opacity: 1; }
+  .tag-chip-green { background: #EAFBEB; border-color: #B9E8BB; color: #329937; }
+  .tag-chip-purple { background: #F5F3FF; border-color: #DDD6FE; color: #7C3AED; }
+  .tag-chip-blue { background: #EFF6FF; border-color: #BFDBFE; color: #2563EB; }
+
+  /* Customer list row */
+  .customer-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #F3F4F6; }
+  .customer-info { flex: 1; min-width: 0; }
+  .customer-name { font-size: 13px; font-weight: 600; }
+  .customer-phone { font-size: 11px; color: #9CA3AF; }
+  .customer-tier { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  .tier-gold { background: #FEF9C3; color: #A16207; }
+  .tier-silver { background: #F3F4F6; color: #374151; }
+  .tier-bronze { background: #FEF3C7; color: #92400E; }
+  .tier-platinum { background: #F0FDF4; color: #166534; }
+
+  /* Separator */
+  .sep { border: none; border-top: 1px solid #E5E7EB; margin: 20px 0; }
+
+  /* 2-col layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* annotation */
+  .annotation { font-size: 11px; color: #9CA3AF; font-style: italic; margin-top: 6px; }
+
+  /* nav header */
+  .mock-nav { background: white; border-bottom: 1px solid #E5E7EB; padding: 14px 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; border-radius: 12px 12px 0 0; }
+  .nav-logo { font-size: 16px; font-weight: 800; color: #F26B33; }
+  .nav-sep { width: 1px; height: 20px; background: #E5E7EB; }
+  .nav-item { font-size: 13px; color: #6B7280; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+  .nav-item.active { background: #FFF7F4; color: #F26B33; font-weight: 600; }
+
+  /* decision indicator */
+  .decision-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 8px; background: #F9FAFB; border: 1px solid #E5E7EB; margin-bottom: 8px; }
+  .decision-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+  .decision-icon.open { background: #FEF3ED; color: #F26B33; border: 1px solid #FDDBC8; }
+  .decision-icon.answered { background: #DCFCE7; color: #329937; }
+  .decision-q { font-size: 12px; font-weight: 600; color: #2B2B2B; }
+  .decision-a { font-size: 11px; color: #6B7280; margin-top: 2px; }
+
+  /* ── section nav ── */
+  .sticky-nav { position: sticky; top: 0; z-index: 50; background: #2B2B2B; padding: 10px 20px; display: flex; gap: 8px; flex-wrap: wrap; border-radius: 0 0 12px 12px; margin-bottom: 32px; }
+  .sticky-nav a { font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: all 0.15s; }
+  .sticky-nav a:hover { background: rgba(255,255,255,0.15); color: white; }
+
+  /* highlight box */
+  .highlight-box { background: #FFF7F4; border: 1px solid #FDDBC8; border-left: 3px solid #F26B33; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #2B2B2B; }
+  .info-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-left: 3px solid #2563EB; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #2B2B2B; }
+  .success-box { background: #F0FDF4; border: 1px solid #BBF7D0; border-left: 3px solid #329937; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #2B2B2B; }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER BANNER -->
+  <div class="top-banner">
+    <div>
+      <h1>CR-033 + CR-034 — UI Mockup for Owner Review</h1>
+      <p>Answers to Q2, Q3, Q4 (CR-033) · Full mock of tag system (CR-034)</p>
+    </div>
+    <span class="badge-orange">Decision Required</span>
+  </div>
+
+  <!-- STICKY NAV -->
+  <div class="sticky-nav">
+    <a href="#q2">Q2 — AND / OR Explained</a>
+    <a href="#q3">Q3 — Filter UI Design</a>
+    <a href="#q4">Q4 — All Filters Expanded</a>
+    <a href="#cr034-tags">CR-034 — Tag System UI</a>
+    <a href="#decisions">Decision Summary</a>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- SECTION 1 — Q2: AND / OR COMBINATOR -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <div class="section" id="q2">
+    <div class="section-header">
+      <div class="section-label">CR-033 · Q2</div>
+      <div class="section-title">AND / OR — Simple Explanation</div>
+      <div class="section-desc">When you pick multiple filter criteria, how should they combine to find customers?</div>
+    </div>
+
+    <div class="info-box">
+      <strong>Simple analogy:</strong> You are searching for customers. You pick Tier = Gold, AND Birthday = This Month. Should customers need BOTH to match, or EITHER?
+    </div>
+
+    <div class="two-col">
+
+      <!-- AND -->
+      <div class="card card-pad">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+          <div class="and-badge">AND</div>
+          <div class="text-sm font-bold">All filters must match (stricter)</div>
+        </div>
+        <div style="font-size:12px; color:#6B7280; margin-bottom:12px;">
+          Customer must satisfy <strong>every criterion</strong> you pick.
+        </div>
+
+        <div style="background:#F9FAFB; border-radius:8px; padding:12px; margin-bottom:12px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#6B7280; margin-bottom:8px;">Your Filters</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <span class="chip chip-orange">Tier = Gold</span>
+            <span class="chip chip-gray">+</span>
+            <span class="chip chip-blue">Birthday = This Month</span>
+          </div>
+        </div>
+
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#6B7280; margin-bottom:8px;">Which customers qualify?</div>
+        <div class="diagram-row">
+          <div class="customer-avatar">RK</div>
+          <div style="flex:1; font-size:12px;"><strong>Raj Kumar</strong> — Gold, Birthday July ✓</div>
+          <div class="circle-check circle-green">✓</div>
+        </div>
+        <div class="diagram-row">
+          <div class="customer-avatar">MP</div>
+          <div style="flex:1; font-size:12px;"><strong>Meena Patel</strong> — Gold, Birthday Aug ✗</div>
+          <div class="circle-check circle-red">✗</div>
+        </div>
+        <div class="diagram-row">
+          <div class="customer-avatar">AS</div>
+          <div style="flex:1; font-size:12px;"><strong>Aman Singh</strong> — Silver, Birthday July ✗</div>
+          <div class="circle-check circle-red">✗</div>
+        </div>
+
+        <div style="margin-top:12px; padding:10px 12px; background:#EFF6FF; border-radius:8px; font-size:12px;">
+          <strong>Result:</strong> Only 1 customer — Raj Kumar (Gold tier + birthday this month)
+        </div>
+        <div class="annotation">Use AND when you want a very precise, small list.</div>
+      </div>
+
+      <!-- OR (within same filter type) -->
+      <div class="card card-pad" style="border: 2px solid #F26B33;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+          <div class="or-badge">OR (within same filter)</div>
+          <span class="recommended-badge">✓ Our Approach</span>
+        </div>
+        <div style="font-size:12px; color:#6B7280; margin-bottom:12px;">
+          Multi-value within one filter = OR. Different filters = AND.
+        </div>
+
+        <div style="background:#F9FAFB; border-radius:8px; padding:12px; margin-bottom:12px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#6B7280; margin-bottom:8px;">Your Filters</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <span class="chip chip-orange">Tier = Gold OR Silver</span>
+            <span class="chip chip-gray">AND</span>
+            <span class="chip chip-blue">Last Visit = 30+ days</span>
+          </div>
+          <div class="annotation" style="margin-top:6px;">Multi-select Tier (Gold + Silver) = OR. Tier-AND-LastVisit = AND.</div>
+        </div>
+
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#6B7280; margin-bottom:8px;">Which customers qualify?</div>
+        <div class="diagram-row">
+          <div class="customer-avatar">RK</div>
+          <div style="flex:1; font-size:12px;"><strong>Raj Kumar</strong> — Gold, last visit 45d ago ✓</div>
+          <div class="circle-check circle-green">✓</div>
+        </div>
+        <div class="diagram-row">
+          <div class="customer-avatar">MP</div>
+          <div style="flex:1; font-size:12px;"><strong>Meena Patel</strong> — Silver, last visit 60d ago ✓</div>
+          <div class="circle-check circle-green">✓</div>
+        </div>
+        <div class="diagram-row">
+          <div class="customer-avatar">AS</div>
+          <div style="flex:1; font-size:12px;"><strong>Aman Singh</strong> — Bronze, last visit 60d ago ✗</div>
+          <div class="circle-check circle-red">✗</div>
+        </div>
+
+        <div style="margin-top:12px; padding:10px 12px; background:#FFF7F4; border-radius:8px; font-size:12px;">
+          <strong>Result:</strong> Raj + Meena — (Gold OR Silver) AND visited 30+ days ago
+        </div>
+        <div class="annotation">How most CRM tools work (Mailchimp, Hubspot). Easy to understand.</div>
+      </div>
+
+    </div>
+
+    <div class="success-box" style="margin-top:16px;">
+      <strong>Recommendation for you:</strong> Use "our approach" — <strong>multi-select within the same filter = OR</strong>, <strong>different filter types = AND</strong>. So "Gold OR Silver" works, but you always need BOTH the tier AND the visit date criteria. This matches how WhatsApp tools like Wati and Interakt work. No confusing toggle needed.
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- SECTION 2 — Q3: Filter UI Design (Web-optimized) -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <div class="section" id="q3">
+    <div class="section-header">
+      <div class="section-label">CR-033 · Q3</div>
+      <div class="section-title">Filter UI Design — Web Optimised</div>
+      <div class="section-desc">Your app currently uses a Dialog modal for the audience builder. Here are 2 options for fitting 20+ filters.</div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:24px;">
+
+      <!-- Option A: Current Dialog (too small) -->
+      <div>
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#DC2626; margin-bottom:10px; letter-spacing:0.5px;">Current (too cramped for 20+ filters)</div>
+        <div class="mock-dialog" style="opacity:0.7;">
+          <div class="dialog-header">
+            <div class="dialog-title">Create New Audience</div>
+            <div class="dialog-close">✕</div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Tier</label>
+              <select><option>All Tiers</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Visit</label>
+              <select><option>Any time</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Total Spent</label>
+              <select><option>Any amount</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Visits</label>
+              <select><option>Any</option></select>
+            </div>
+          </div>
+          <div class="checkbox-row mt-2"><input type="checkbox"> <span>Birthday this month</span></div>
+          <div style="margin-top:12px; padding:8px; background:#FEF2F2; border-radius:6px; font-size:11px; color:#DC2626;">
+            ⚠ Adding 15 more filters here would require heavy scrolling inside a modal.
+          </div>
+        </div>
+        <div class="annotation" style="margin-top:8px;">Modal max-w-lg = 512px. Not enough space for 20+ filters comfortably.</div>
+      </div>
+
+      <!-- Option B: Wider Dialog with Accordion sections (RECOMMENDED) -->
+      <div>
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#329937; margin-bottom:10px; letter-spacing:0.5px;">Proposed — Wide Dialog + Accordion Sections ✓</div>
+        <div class="mock-dialog mock-dialog-wide">
+          <div class="dialog-header">
+            <div>
+              <div class="dialog-title">Create New Audience</div>
+              <div style="font-size:11px; color:#9CA3AF; margin-top:2px;">Filters combine with AND · Multi-select within a filter = OR</div>
+            </div>
+            <div class="dialog-close">✕</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Audience Name</label>
+            <input type="text" placeholder="e.g. Gold Regulars — Birthday This Month" style="font-size:13px;">
+          </div>
+
+          <!-- Active filter chips row -->
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height:22px;">
+            <span class="chip chip-orange">Tier: Gold, Silver <span style="cursor:pointer; margin-left:3px;">×</span></span>
+            <span class="chip chip-blue">Birthday: This Month <span style="cursor:pointer; margin-left:3px;">×</span></span>
+            <span class="chip chip-green">WhatsApp Opted-In <span style="cursor:pointer; margin-left:3px;">×</span></span>
+          </div>
+
+          <!-- Accordion sections -->
+          <div class="acc-section">
+            <div class="acc-header active" onclick="toggleAcc(this)">
+              <span>Loyalty & Tier</span>
+              <div style="display:flex; align-items:center; gap:6px;"><span class="filter-count">2</span><span class="acc-arrow">▾</span></div>
+            </div>
+            <div class="acc-body">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Tier</label>
+                  <select><option>Gold, Silver selected</option></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Total Visits</label>
+                  <select><option>Any</option></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Total Spent</label>
+                  <select><option>Any amount</option></select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Points Earned</label>
+                  <select><option>Any</option></select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="acc-section">
+            <div class="acc-header active" onclick="toggleAcc(this)">
+              <span>Dates & Occasions</span>
+              <div style="display:flex; align-items:center; gap:6px;"><span class="filter-count">1</span><span class="acc-arrow">▾</span></div>
+            </div>
+            <div class="acc-body">
+              <div class="grid-2">
+                <div class="checkbox-row"><input type="checkbox" checked> <span>Birthday this month</span></div>
+                <div class="checkbox-row"><input type="checkbox"> <span>Anniversary this month</span></div>
+                <div class="form-group mt-2">
+                  <label class="form-label">Last Visit</label>
+                  <select><option>Any time</option><option>30+ days ago</option></select>
+                </div>
+                <div class="form-group mt-2">
+                  <label class="form-label">Signed Up</label>
+                  <select><option>Any time</option><option>Last 7 days</option></select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="acc-section">
+            <div class="acc-header" onclick="toggleAcc(this)">
+              <span>WhatsApp & Engagement</span>
+              <div style="display:flex; align-items:center; gap:6px;"><span class="filter-count">1</span><span class="acc-arrow">▾</span></div>
+            </div>
+            <div class="acc-body hidden">
+              <div class="grid-2">
+                <div class="form-group"><label class="form-label">WhatsApp Opted-In</label><select><option>Yes</option></select></div>
+                <div class="form-group"><label class="form-label">Campaign Received</label><select><option>Any</option></select></div>
+                <div class="checkbox-row"><input type="checkbox"> <span>Message failed recently</span></div>
+                <div class="checkbox-row"><input type="checkbox"> <span>Never messaged on WA</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="acc-section">
+            <div class="acc-header" onclick="toggleAcc(this)">
+              <span>Customer Flags</span>
+              <div style="display:flex; align-items:center; gap:6px;"><span class="acc-arrow">▾</span></div>
+            </div>
+            <div class="acc-body hidden">
+              <div class="three-col">
+                <div class="checkbox-row"><input type="checkbox"> <span>VIP</span></div>
+                <div class="checkbox-row"><input type="checkbox"> <span>Has Complaint</span></div>
+                <div class="checkbox-row"><input type="checkbox"> <span>Blacklisted</span></div>
+                <div class="checkbox-row"><input type="checkbox"> <span>Blocked</span></div>
+                <div class="checkbox-row"><input type="checkbox"> <span>Has GST</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="acc-section">
+            <div class="acc-header" onclick="toggleAcc(this)">
+              <span>Tags</span>
+              <div style="display:flex; align-items:center; gap:6px;"><span class="acc-arrow">▾</span></div>
+            </div>
+            <div class="acc-body hidden">
+              <label class="form-label">Filter customers with these tags (OR)</label>
+              <div class="tag-input-area mt-1">
+                <span class="tag-chip">VIP <span class="remove">×</span></span>
+                <input type="text" placeholder="Type a tag...">
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-bar mt-3">
+            <div>
+              <div style="font-size:11px; color:#6B7280;">Customers matching these filters</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                <div class="preview-num">312</div>
+                <div style="font-size:12px; color:#6B7280;">of 5,907 total</div>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm">Refresh Count</button>
+          </div>
+
+          <div class="flex justify-end gap-2 mt-3">
+            <button class="btn btn-outline">Cancel</button>
+            <button class="btn btn-orange">Create Audience</button>
+          </div>
+        </div>
+        <div class="annotation" style="margin-top:8px;">Dialog max-w-2xl = 672px. Accordion sections collapse, active filter chips visible at top. Matches your current Dialog pattern.</div>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <strong>Recommendation for Q3:</strong> Use <strong>Option B — wider Dialog (max-w-2xl) with collapsible accordion sections</strong>. This matches the Dialog pattern you already use in AudiencesPage and avoids introducing a new Sheet/drawer pattern. Active filters are shown as chips at the top so users can see what's selected at a glance without scrolling through all sections.
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- SECTION 3 — Q4: FULL FILTER LIST EXPANDED -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <div class="section" id="q4">
+    <div class="section-header">
+      <div class="section-label">CR-033 · Q4</div>
+      <div class="section-title">Full Filter List — All 17 Filters Proposed for Phase 1+2+3</div>
+      <div class="section-desc">This is the complete list of filters we plan to add across 5 accordion sections. Review and mark any you want to add, remove or re-prioritise.</div>
+    </div>
+
+    <div class="two-col">
+
+      <!-- Left column: Sections 1-3 -->
+      <div>
+
+        <!-- Section: Loyalty & Tier -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="background:#FFF7F4; padding:12px 16px; border-bottom:1px solid #FDDBC8; display:flex; align-items:center; gap:8px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#F26B33;">Section 1 · Loyalty & Tier</div>
+            <span class="chip chip-green" style="font-size:10px;">Already exists</span>
+          </div>
+          <div style="padding:16px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead><tr style="color:#9CA3AF; text-transform:uppercase; font-size:10px; font-weight:700;">
+                <th style="text-align:left; padding:4px 0;">Filter</th>
+                <th style="text-align:left;">Input type</th>
+                <th style="text-align:left;">Status</th>
+              </tr></thead>
+              <tbody>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0 7px;"><strong>Tier</strong> (Bronze/Silver/Gold/Platinum)</td><td>Multi-select chips</td><td><span class="chip chip-green" style="font-size:10px;">Live today</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0 7px;"><strong>Total Visits</strong></td><td>Dropdown bucket</td><td><span class="chip chip-green" style="font-size:10px;">Live today</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0 7px;"><strong>Total Spent</strong></td><td>Dropdown bucket</td><td><span class="chip chip-green" style="font-size:10px;">Live today</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0 7px;"><strong>Points Earned</strong></td><td>Dropdown (Low/Mid/High/Very High)</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0 7px;"><strong>Wallet Balance</strong></td><td>Dropdown (Zero/Low/Mid/High)</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0 7px;"><strong>Coupons Used</strong></td><td>Dropdown (0 / 1-5 / 6+)</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section: Dates -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="background:#EFF6FF; padding:12px 16px; border-bottom:1px solid #BFDBFE; display:flex; align-items:center; gap:8px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#2563EB;">Section 2 · Dates & Occasions</div>
+          </div>
+          <div style="padding:16px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead><tr style="color:#9CA3AF; text-transform:uppercase; font-size:10px; font-weight:700;">
+                <th style="text-align:left; padding:4px 0;">Filter</th><th>Input</th><th>Status</th>
+              </tr></thead>
+              <tbody>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Last Visit</td><td>Dropdown (7 / 14 / 30 / 60 / 90+ days)</td><td><span class="chip chip-green" style="font-size:10px;">Live today</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Birthday this month</td><td>Toggle (Yes / No)</td><td><span class="chip chip-red" style="font-size:10px;">BUG-A · fix P0</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Anniversary this month</td><td>Toggle</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Birthday in specific month</td><td>Month dropdown (Jan–Dec)</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Age range</td><td>Dropdown (18-25 / 26-35 / 36-50 / 50+)</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Signed up recently</td><td>Dropdown (last 7d / 30d / 90d)</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right column: Sections 4-5 + BUG-A fixes -->
+      <div>
+
+        <!-- Section: WhatsApp & Engagement -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="background:#F0FDF4; padding:12px 16px; border-bottom:1px solid #BBF7D0; display:flex; align-items:center; gap:8px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#329937;">Section 3 · WhatsApp & Engagement</div>
+          </div>
+          <div style="padding:16px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead><tr style="color:#9CA3AF; text-transform:uppercase; font-size:10px; font-weight:700;">
+                <th style="text-align:left; padding:4px 0;">Filter</th><th>Input</th><th>Status</th>
+              </tr></thead>
+              <tbody>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">WhatsApp Opted-In</td><td>Toggle (Yes / No / All)</td><td><span class="chip chip-red" style="font-size:10px;">BUG-A · fix P0</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Received campaign</td><td>Campaign dropdown</td><td><span class="chip chip-purple" style="font-size:10px;">P2 join</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Message failed recently</td><td>Toggle</td><td><span class="chip chip-purple" style="font-size:10px;">P2 join</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Never messaged on WA</td><td>Toggle</td><td><span class="chip chip-purple" style="font-size:10px;">P2 join</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section: Customer Flags -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="background:#F5F3FF; padding:12px 16px; border-bottom:1px solid #DDD6FE; display:flex; align-items:center; gap:8px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#7C3AED;">Section 4 · Customer Flags</div>
+          </div>
+          <div style="padding:16px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead><tr style="color:#9CA3AF; text-transform:uppercase; font-size:10px; font-weight:700;">
+                <th style="text-align:left; padding:4px 0;">Filter</th><th>Input</th><th>Status</th>
+              </tr></thead>
+              <tbody>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">VIP</td><td>Toggle (Yes / No / All)</td><td><span class="chip chip-red" style="font-size:10px;">BUG-A · fix P0</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Has Complaint</td><td>Toggle</td><td><span class="chip chip-red" style="font-size:10px;">Fix P0 · new</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Blacklisted</td><td>Toggle</td><td><span class="chip chip-red" style="font-size:10px;">Fix P0 · new</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Blocked</td><td>Toggle</td><td><span class="chip chip-red" style="font-size:10px;">Fix P0 · new</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Lead Source</td><td>Multi-select (Walk-in/Swiggy/Zomato etc)</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Has GST Number</td><td>Toggle</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Gender</td><td>Dropdown (M/F/Other)</td><td><span class="chip chip-orange" style="font-size:10px;">New · P1</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section: Tags (CR-034) -->
+        <div class="card" style="margin-bottom:16px; border: 2px solid #F26B33;">
+          <div style="background:#FFF7F4; padding:12px 16px; border-bottom:1px solid #FDDBC8; display:flex; align-items:center; gap:8px;">
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#F26B33;">Section 5 · Tags (CR-034)</div>
+            <span class="chip chip-orange" style="font-size:10px;">New Feature</span>
+          </div>
+          <div style="padding:16px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <tbody>
+                <tr><td style="padding:7px 0;">Filter by tag</td><td>Multi-select from tag catalog</td><td><span class="chip chip-orange" style="font-size:10px;">CR-034</span></td></tr>
+                <tr style="border-top:1px solid #F3F4F6;"><td style="padding:7px 0;">Tag match mode</td><td>OR (has any) / AND (has all)</td><td><span class="chip chip-orange" style="font-size:10px;">CR-034</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="success-box">
+      <strong>Summary:</strong> Total <strong>20 filters</strong> proposed. 
+      <span class="chip chip-red">5 BUG-A fixes</span> &nbsp;
+      <span class="chip chip-orange">12 new P1 additions</span> &nbsp;
+      <span class="chip chip-purple">3 P2 joins (WA logs)</span> &nbsp;
+      <span class="chip chip-green">2 CR-034 tag filters</span>
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- SECTION 4 — CR-034: TAG SYSTEM UI -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <div class="section" id="cr034-tags">
+    <div class="section-header">
+      <div class="section-label">CR-034 · Tag System</div>
+      <div class="section-title">Customer Tag System — Full UI Mockup</div>
+      <div class="section-desc">Tags are free-form labels you create yourself. Unlike tier (auto-computed by loyalty), tags are manual — you decide who gets what label.</div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:24px;">
+
+      <!-- Left: Customer list with tags -->
+      <div>
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#6B7280; margin-bottom:10px; letter-spacing:0.5px;">Customers Page — Tag Chips on Each Row</div>
+        <div class="card card-pad">
+          <div class="flex items-center justify-between mb-3">
+            <div style="font-size:14px; font-weight:700;">Customers</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span style="font-size:11px; color:#6B7280;">3 selected</span>
+              <button class="btn btn-outline btn-sm">Tag Selected...</button>
+            </div>
+          </div>
+
+          <!-- Row 1 -->
+          <div class="customer-row">
+            <input type="checkbox" checked style="accent-color:#F26B33;">
+            <div class="customer-avatar">RK</div>
+            <div class="customer-info">
+              <div class="customer-name">Raj Kumar</div>
+              <div class="customer-phone">+91 98765 43210</div>
+              <div class="flex flex-wrap gap-2 mt-1">
+                <span class="tag-chip">VIP <span class="remove">×</span></span>
+                <span class="tag-chip tag-chip-green">Regular <span class="remove">×</span></span>
+                <span style="cursor:pointer; display:inline-flex; align-items:center; padding:2px 7px; border:1px dashed #E5E7EB; border-radius:99px; font-size:10px; color:#9CA3AF;">+ Add tag</span>
+              </div>
+            </div>
+            <span class="customer-tier tier-gold">Gold</span>
+          </div>
+
+          <!-- Row 2 -->
+          <div class="customer-row">
+            <input type="checkbox" checked style="accent-color:#F26B33;">
+            <div class="customer-avatar">MP</div>
+            <div class="customer-info">
+              <div class="customer-name">Meena Patel</div>
+              <div class="customer-phone">+91 87654 32109</div>
+              <div class="flex flex-wrap gap-2 mt-1">
+                <span class="tag-chip tag-chip-purple">Anniversary Guest <span class="remove">×</span></span>
+                <span style="cursor:pointer; display:inline-flex; align-items:center; padding:2px 7px; border:1px dashed #E5E7EB; border-radius:99px; font-size:10px; color:#9CA3AF;">+ Add tag</span>
+              </div>
+            </div>
+            <span class="customer-tier tier-silver">Silver</span>
+          </div>
+
+          <!-- Row 3 (no tags) -->
+          <div class="customer-row">
+            <input type="checkbox" style="accent-color:#F26B33;">
+            <div class="customer-avatar">AS</div>
+            <div class="customer-info">
+              <div class="customer-name">Aman Singh</div>
+              <div class="customer-phone">+91 76543 21098</div>
+              <div class="flex flex-wrap gap-2 mt-1">
+                <span style="cursor:pointer; display:inline-flex; align-items:center; padding:2px 7px; border:1px dashed #E5E7EB; border-radius:99px; font-size:10px; color:#9CA3AF;">+ Add tag</span>
+              </div>
+            </div>
+            <span class="customer-tier tier-bronze">Bronze</span>
+          </div>
+
+          <!-- Row 4 -->
+          <div class="customer-row">
+            <input type="checkbox" checked style="accent-color:#F26B33;">
+            <div class="customer-avatar">PJ</div>
+            <div class="customer-info">
+              <div class="customer-name">Priya Joshi</div>
+              <div class="customer-phone">+91 65432 10987</div>
+              <div class="flex flex-wrap gap-2 mt-1">
+                <span class="tag-chip">VIP <span class="remove">×</span></span>
+                <span class="tag-chip tag-chip-blue">High Roller <span class="remove">×</span></span>
+                <span style="cursor:pointer; display:inline-flex; align-items:center; padding:2px 7px; border:1px dashed #E5E7EB; border-radius:99px; font-size:10px; color:#9CA3AF;">+ Add tag</span>
+              </div>
+            </div>
+            <span class="customer-tier tier-platinum">Platinum</span>
+          </div>
+
+        </div>
+
+        <!-- Bulk tag action -->
+        <div style="margin-top:12px;">
+          <div class="card card-pad" style="border:2px solid #F26B33;">
+            <div style="font-size:12px; font-weight:700; margin-bottom:10px; color:#F26B33;">Bulk Tag Action (3 customers selected)</div>
+            <div class="form-group">
+              <label class="form-label">Choose or create a tag</label>
+              <div class="tag-input-area">
+                <span class="tag-chip">VIP <span class="remove">×</span></span>
+                <input type="text" placeholder="Type tag name...">
+              </div>
+              <div style="margin-top:6px; font-size:11px; color:#9CA3AF;">Existing tags: <span class="chip chip-orange" style="font-size:10px; cursor:pointer;">VIP</span> <span class="chip chip-green" style="font-size:10px; cursor:pointer;">Regular</span> <span class="chip chip-purple" style="font-size:10px; cursor:pointer;">Anniversary Guest</span> <span class="chip chip-blue" style="font-size:10px; cursor:pointer;">High Roller</span></div>
+            </div>
+            <div class="flex gap-2 mt-2">
+              <button class="btn btn-orange btn-sm">Apply Tag to 3 Customers</button>
+              <button class="btn btn-outline btn-sm">Remove Tag</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: Add tag inline + Audience tag filter -->
+      <div>
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#6B7280; margin-bottom:10px; letter-spacing:0.5px;">Inline "Add Tag" — Autocomplete Dropdown</div>
+        <div class="card card-pad" style="margin-bottom:16px;">
+          <div class="customer-row" style="border:none; padding:0;">
+            <div class="customer-avatar">RK</div>
+            <div class="customer-info">
+              <div class="customer-name">Raj Kumar</div>
+              <div class="flex flex-wrap gap-2 mt-1">
+                <span class="tag-chip">VIP <span class="remove">×</span></span>
+                <span class="tag-chip tag-chip-green">Regular <span class="remove">×</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Autocomplete dropdown -->
+          <div style="margin-top:12px; border:1px solid #E5E7EB; border-radius:8px; overflow:hidden;">
+            <div style="padding:8px 10px; border-bottom:1px solid #F3F4F6; display:flex; align-items:center; gap:6px;">
+              <input type="text" value="Ann" style="border:none; outline:none; font-size:13px; flex:1;">
+            </div>
+            <div style="max-height:160px; overflow:auto;">
+              <div style="padding:8px 12px; background:#FFF7F4; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:8px;">
+                <span class="tag-chip tag-chip-purple">Anniversary Guest</span>
+                <span style="font-size:11px; color:#9CA3AF;">3 customers</span>
+              </div>
+              <div style="padding:8px 12px; cursor:pointer; font-size:13px; color:#F26B33; display:flex; align-items:center; gap:6px; border-top:1px solid #F3F4F6;">
+                <span style="font-weight:700; font-size:16px;">+</span> Create new tag <strong>"Ann"</strong>
+              </div>
+            </div>
+          </div>
+          <div class="annotation" style="margin-top:6px;">Existing tags shown first. Press Enter to create a new tag if not in list.</div>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#6B7280; margin-bottom:10px; letter-spacing:0.5px;">Audiences Page — Tag Filter</div>
+        <div class="card card-pad" style="margin-bottom:16px;">
+          <div class="mock-dialog" style="border:none; box-shadow:none; padding:0; max-width:100%;">
+            <!-- Accordion section for tags -->
+            <div class="acc-section">
+              <div class="acc-header active" onclick="toggleAcc(this)">
+                <span>Tags</span>
+                <div style="display:flex; align-items:center; gap:6px;"><span class="filter-count">1</span><span class="acc-arrow">▾</span></div>
+              </div>
+              <div class="acc-body">
+                <label class="form-label">Include customers with ANY of these tags</label>
+                <div class="tag-input-area mt-1" style="margin-bottom:8px;">
+                  <span class="tag-chip">VIP <span class="remove">×</span></span>
+                  <input type="text" placeholder="Search or type tag...">
+                </div>
+                <div style="font-size:11px; color:#9CA3AF; margin-bottom:8px;">Click to add: 
+                  <span class="chip chip-orange" style="font-size:10px; cursor:pointer; margin-left:4px;">Regular</span>
+                  <span class="chip chip-purple" style="font-size:10px; cursor:pointer; margin-left:4px;">Anniversary Guest</span>
+                  <span class="chip chip-blue" style="font-size:10px; cursor:pointer; margin-left:4px;">High Roller</span>
+                </div>
+                <!-- AND/OR toggle -->
+                <div style="display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px 10px; background:#F9FAFB; border-radius:6px;">
+                  <span style="font-size:11px; color:#6B7280;">Match:</span>
+                  <div style="display:flex; border:1px solid #E5E7EB; border-radius:6px; overflow:hidden;">
+                    <button style="padding:3px 10px; font-size:11px; font-weight:600; background:#F26B33; color:white; border:none; cursor:pointer;">ANY tag (OR)</button>
+                    <button style="padding:3px 10px; font-size:11px; font-weight:600; background:white; color:#6B7280; border:none; cursor:pointer;">ALL tags (AND)</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="annotation" style="margin-top:6px;">Autocomplete from the tenant's tag catalog. Toggle between ANY/ALL.</div>
+        </div>
+
+        <!-- Backfill note -->
+        <div class="highlight-box">
+          <strong>One-time migration on deploy:</strong> The 46 customers who already have <code>vip_flag = True</code> will automatically get the tag <strong>"VIP"</strong> added. This fixes the phantom VIP feature — your existing "VIP High Spenders" segment will now actually filter by VIP.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tag catalog -->
+    <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#6B7280; margin-bottom:10px; letter-spacing:0.5px;">Tag Catalog — Per-Restaurant (visible in Settings or Audience builder)</div>
+    <div class="card card-pad">
+      <div class="flex items-center justify-between mb-3">
+        <div style="font-size:14px; font-weight:700;">Your Tag Catalog</div>
+        <span style="font-size:12px; color:#9CA3AF;">4 tags in use</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid #FDDBC8; border-radius:99px; background:#FFF7F4;">
+          <span class="tag-chip" style="border:none; background:transparent; padding:0; font-size:12px;">VIP</span>
+          <span style="font-size:11px; color:#9CA3AF;">46 customers</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid #B9E8BB; border-radius:99px; background:#EAFBEB;">
+          <span class="tag-chip-green" style="font-size:12px; display:inline-flex;">Regular</span>
+          <span style="font-size:11px; color:#9CA3AF;">128 customers</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid #DDD6FE; border-radius:99px; background:#F5F3FF;">
+          <span class="tag-chip-purple" style="font-size:12px; display:inline-flex;">Anniversary Guest</span>
+          <span style="font-size:11px; color:#9CA3AF;">73 customers</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid #BFDBFE; border-radius:99px; background:#EFF6FF;">
+          <span class="tag-chip-blue" style="font-size:12px; display:inline-flex;">High Roller</span>
+          <span style="font-size:11px; color:#9CA3AF;">12 customers</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; padding:6px 12px; border:1px dashed #E5E7EB; border-radius:99px; cursor:pointer; color:#9CA3AF; font-size:12px;">
+          + Create new tag
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="sep">
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- SECTION 5 — DECISION SUMMARY -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <div class="section" id="decisions">
+    <div class="section-header">
+      <div class="section-label">Decision Summary</div>
+      <div class="section-title">All Open Questions — Status After This Mockup</div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div style="font-size:13px; font-weight:700; margin-bottom:10px; color:#F26B33;">CR-033 · Audience Filters</div>
+
+        <div class="decision-row">
+          <div class="decision-icon answered">✓</div>
+          <div><div class="decision-q">Q1 — Which phases to ship?</div><div class="decision-a">✅ Owner confirmed: all together (P0 + P1 + P2)</div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon open">?</div>
+          <div><div class="decision-q">Q2 — AND / OR combinator</div><div class="decision-a">Recommended: multi-select within filter = OR, filters = AND. Seen in §Q2 above. <strong>Please confirm.</strong></div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon open">?</div>
+          <div><div class="decision-q">Q3 — Filter UI design</div><div class="decision-a">Recommended: wider Dialog + accordion sections (seen in §Q3 above). <strong>Please confirm.</strong></div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon open">?</div>
+          <div><div class="decision-q">Q4 — Any filters to add/remove/reprioritise?</div><div class="decision-a">20 filters across 5 sections shown in §Q4 above. <strong>Any changes?</strong></div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon open">?</div>
+          <div><div class="decision-q">Q5 — Any must-have filter not listed?</div><div class="decision-a">Review the filter list above. Any missing dimensions?</div></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px; font-weight:700; margin-bottom:10px; color:#F26B33;">CR-034 · Customer Tags</div>
+
+        <div class="decision-row">
+          <div class="decision-icon answered">✓</div>
+          <div><div class="decision-q">Q1 — Tag UI locations?</div><div class="decision-a">✅ Recommendation accepted: CustomersPage row + Customer Detail modal</div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon answered">✓</div>
+          <div><div class="decision-q">Q2 — Filter semantics (OR / AND)?</div><div class="decision-a">✅ OR default with AND toggle (seen above)</div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon answered">✓</div>
+          <div><div class="decision-q">Q3 — Remove from catalog when last untagged?</div><div class="decision-a">✅ Keep in catalog</div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon answered">✓</div>
+          <div><div class="decision-q">Q4 — Tag name constraints?</div><div class="decision-a">✅ Max 30 chars, alphanumeric + space, case-preserving</div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon answered">✓</div>
+          <div><div class="decision-q">Q5 — Tier as tag?</div><div class="decision-a">✅ Keep tier separate</div></div>
+        </div>
+
+        <div class="decision-row">
+          <div class="decision-icon answered">✓</div>
+          <div><div class="decision-q">Q6 — Backfill vip_flag → VIP tag?</div><div class="decision-a">✅ Auto-tag 46 customers on deploy</div></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:20px;">
+      <strong>To unblock implementation:</strong> Please confirm Q2 (AND/OR), Q3 (dialog design), Q4 (filter list). CR-034 is fully unblocked — all Q1-Q6 answered. Once Q2+Q3+Q4 are confirmed for CR-033, implementation starts immediately. Estimated ~10 hours total for both CRs.
+    </div>
+
+  </div>
+
+</div><!-- end .page -->
+
+<script>
+function toggleAcc(header) {
+  const body = header.nextElementSibling;
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    header.classList.add('active');
+  } else {
+    body.classList.add('hidden');
+    header.classList.remove('active');
+  }
+}
+</script>
+</body>
+</html>
