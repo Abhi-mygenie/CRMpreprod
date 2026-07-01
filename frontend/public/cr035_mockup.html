@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CR-035 — Export & Import Mockup</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+  h1, h2, .mont { font-family: 'Montserrat', sans-serif; }
+  .tab-active { background: #1a1a1a; color: #fff; }
+  .tab-inactive { background: #f3f4f6; color: #6b7280; }
+  .tab-inactive:hover { background: #e5e7eb; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal-box { background: #fff; border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.18); }
+  .drop-zone { border: 2px dashed #d1d5db; border-radius: 12px; padding: 36px 24px; text-align: center; transition: all 0.2s; cursor: pointer; }
+  .drop-zone:hover, .drop-zone.dragover { border-color: #F26B33; background: #fff8f5; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: all 0.15s; color: #52525b; font-size: 14px; font-weight: 500; }
+  .nav-item:hover { background: #f4f4f5; }
+  .nav-item.active { background: #fff5f0; color: #F26B33; font-weight: 600; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .step-active { background: #F26B33; color: #fff; }
+  .step-done { background: #22c55e; color: #fff; }
+  .step-inactive { background: #e5e7eb; color: #9ca3af; }
+  .step-line { flex: 1; height: 2px; background: #e5e7eb; }
+  .step-line.done { background: #22c55e; }
+  .badge-bronze { background: #fef3c7; color: #92400e; }
+  .badge-silver { background: #f3f4f6; color: #374151; }
+  .badge-gold { background: #fefce8; color: #854d0e; }
+  .tag-chip { display: inline-flex; align-items: center; gap: 4px; background: #f3f4f6; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 500; color: #374151; }
+  .dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 6px; background: #fff; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); border: 1px solid #f3f4f6; min-width: 160px; z-index: 100; overflow: hidden; }
+  .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 13px; color: #374151; cursor: pointer; transition: background 0.1s; }
+  .dropdown-item:hover { background: #f9fafb; }
+  .history-row:hover { background: #f9fafb; }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-box { animation: slideUp 0.25s ease; }
+  .progress-bar { height: 6px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 999px; background: #F26B33; transition: width 0.4s ease; }
+  .sidebar { width: 220px; flex-shrink: 0; background: #fff; border-right: 1px solid #f3f4f6; height: 100vh; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .main-content { flex: 1; overflow-y: auto; background: #f9f9f7; height: 100vh; }
+</style>
+</head>
+<body class="bg-gray-50">
+
+<!-- TOP NAV: Mockup Screens -->
+<div class="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 sticky top-0 z-40">
+  <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">CR-035 Mockup</span>
+  <button onclick="showScreen('s1')" id="btn-s1" class="tab-active px-4 py-1.5 rounded-full text-xs font-semibold transition-all">S1 · Header Buttons</button>
+  <button onclick="showScreen('s2')" id="btn-s2" class="tab-inactive px-4 py-1.5 rounded-full text-xs font-semibold transition-all">S2 · Import Modal</button>
+  <button onclick="showScreen('s3')" id="btn-s3" class="tab-inactive px-4 py-1.5 rounded-full text-xs font-semibold transition-all">S3 · Preview & Confirm</button>
+  <button onclick="showScreen('s4')" id="btn-s4" class="tab-inactive px-4 py-1.5 rounded-full text-xs font-semibold transition-all">S4 · Import Result</button>
+  <button onclick="showScreen('s5')" id="btn-s5" class="tab-inactive px-4 py-1.5 rounded-full text-xs font-semibold transition-all">S5 · Import History</button>
+  <button onclick="showScreen('s6')" id="btn-s6" class="tab-inactive px-4 py-1.5 rounded-full text-xs font-semibold transition-all">S6 · Export Flow</button>
+  <div class="ml-auto text-[11px] text-gray-400">Design review only — no implementation</div>
+</div>
+
+<!-- ===================== S1: Header with Export / Import buttons ===================== -->
+<div id="s1" class="screen active">
+  <div class="flex h-screen" style="height: calc(100vh - 48px)">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="flex items-center gap-2 px-2 mb-4">
+        <div class="w-7 h-7 rounded-lg bg-[#F26B33] flex items-center justify-center">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="font-bold text-sm text-gray-800 mont">MyGenie CRM</span>
+      </div>
+      <div class="nav-item active">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Customers
+      </div>
+      <div class="nav-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Campaigns
+      </div>
+      <div class="nav-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg>
+        Dashboard
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content p-6 lg:p-8">
+      <div class="max-w-5xl mx-auto">
+
+        <!-- ★ CHANGED: Header row with 3 buttons -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-[#1A1A1A] mont">Customers</h1>
+            <p class="text-sm text-gray-500 mt-0.5">1,247 total customers</p>
+          </div>
+          <!-- NEW: 3-button group -->
+          <div class="flex gap-2 items-center">
+
+            <!-- Export dropdown button (NEW) -->
+            <div class="relative" id="export-dropdown-wrapper">
+              <button onclick="toggleExportDropdown()" class="flex items-center gap-2 h-10 px-4 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all">
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Export
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div id="export-dropdown" class="dropdown-menu hidden">
+                <div class="dropdown-item">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#22c55e" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke="#22c55e" stroke-width="2"/></svg>
+                  <span>Export as CSV</span>
+                </div>
+                <div class="dropdown-item">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#16a34a" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke="#16a34a" stroke-width="2"/></svg>
+                  <span>Export as Excel</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Import button (NEW) -->
+            <button onclick="showScreen('s2')" class="flex items-center gap-2 h-10 px-4 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Import
+            </button>
+
+            <!-- Existing Add button -->
+            <button class="flex items-center gap-1.5 h-10 px-4 rounded-full bg-[#F26B33] hover:bg-[#D85A2A] text-white text-sm font-semibold transition-all">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+              Add
+            </button>
+          </div>
+        </div>
+
+        <!-- Search + filter row (unchanged) -->
+        <div class="flex gap-3 mb-4">
+          <div class="relative flex-1 max-w-md">
+            <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input type="text" placeholder="Search by name or phone..." class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#F26B33]"/>
+          </div>
+          <button class="flex items-center gap-2 h-10 px-4 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:border-gray-300 transition-all">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Filters
+          </button>
+        </div>
+
+        <!-- Annotation callouts -->
+        <div class="mb-6 grid grid-cols-3 gap-3">
+          <div class="bg-green-50 border border-green-200 rounded-xl p-3">
+            <div class="text-xs font-bold text-green-700 mb-1">① Export Button (NEW)</div>
+            <p class="text-xs text-green-600">Dropdown with "Export as CSV" and "Export as Excel". Downloads all 1,247 customers with all fields including loyalty + tags.</p>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-3">
+            <div class="text-xs font-bold text-blue-700 mb-1">② Import Button (NEW)</div>
+            <p class="text-xs text-blue-600">Opens Import modal (S2). Accepts CSV or Excel file up to 5,000 rows. Duplicate phone = update existing customer.</p>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-3">
+            <div class="text-xs font-bold text-gray-700 mb-1">③ Add Button (UNCHANGED)</div>
+            <p class="text-xs text-gray-500">Existing manual add-customer flow. Position shifted left to accommodate new buttons.</p>
+          </div>
+        </div>
+
+        <!-- Customer table (abbreviated) -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tier</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tags</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Points</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              <tr class="hover:bg-gray-50/50 cursor-pointer">
+                <td class="px-4 py-3"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-[#F26B33] font-bold text-sm">A</div><div><div class="font-medium text-sm text-gray-900">Aisha Sharma</div><div class="text-xs text-gray-400">aisha@gmail.com</div></div></div></td>
+                <td class="px-4 py-3 text-sm text-gray-600">+91 98765 43210</td>
+                <td class="px-4 py-3"><span class="badge-gold px-2.5 py-1 rounded-full text-xs font-semibold">Gold</span></td>
+                <td class="px-4 py-3"><span class="tag-chip">VIP</span> <span class="tag-chip">Regular</span></td>
+                <td class="px-4 py-3 text-right text-sm font-semibold text-gray-800">2,450</td>
+              </tr>
+              <tr class="hover:bg-gray-50/50 cursor-pointer">
+                <td class="px-4 py-3"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">R</div><div><div class="font-medium text-sm text-gray-900">Rahul Mehta</div><div class="text-xs text-gray-400">—</div></div></div></td>
+                <td class="px-4 py-3 text-sm text-gray-600">+91 91234 56789</td>
+                <td class="px-4 py-3"><span class="badge-silver px-2.5 py-1 rounded-full text-xs font-semibold">Silver</span></td>
+                <td class="px-4 py-3"><span class="tag-chip">Influencer</span></td>
+                <td class="px-4 py-3 text-right text-sm font-semibold text-gray-800">980</td>
+              </tr>
+              <tr class="hover:bg-gray-50/50 cursor-pointer">
+                <td class="px-4 py-3"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-sm">P</div><div><div class="font-medium text-sm text-gray-900">Priya Nair</div><div class="text-xs text-gray-400">priya@company.in</div></div></div></td>
+                <td class="px-4 py-3 text-sm text-gray-600">+91 97000 11223</td>
+                <td class="px-4 py-3"><span class="badge-bronze px-2.5 py-1 rounded-full text-xs font-semibold">Bronze</span></td>
+                <td class="px-4 py-3 text-xs text-gray-400">—</td>
+                <td class="px-4 py-3 text-right text-sm font-semibold text-gray-800">120</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== S2: Import Modal — Upload Step ===================== -->
+<div id="s2" class="screen">
+  <div class="flex h-screen" style="height: calc(100vh - 48px)">
+    <div class="sidebar">
+      <div class="flex items-center gap-2 px-2 mb-4">
+        <div class="w-7 h-7 rounded-lg bg-[#F26B33]"></div>
+        <span class="font-bold text-sm mont">MyGenie CRM</span>
+      </div>
+      <div class="nav-item active">Customers</div>
+    </div>
+    <div class="main-content p-8" style="filter: blur(1px); pointer-events: none;">
+      <h1 class="text-2xl font-bold mont">Customers</h1>
+    </div>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay">
+    <div class="modal-box p-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h2 class="text-lg font-bold mont text-gray-900">Import Customers</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Upload a CSV or Excel file to bulk import or update customers</p>
+        </div>
+        <button class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Step indicator -->
+      <div class="flex items-center gap-2 mb-6">
+        <div class="step-dot step-active">1</div>
+        <div class="step-line"></div>
+        <div class="step-dot step-inactive">2</div>
+        <div class="step-line"></div>
+        <div class="step-dot step-inactive">3</div>
+        <div class="ml-3 text-xs text-gray-500 font-medium">Step 1 of 3 — Upload File</div>
+      </div>
+
+      <!-- Drop zone -->
+      <div class="drop-zone mb-4" onclick="showScreen('s3')">
+        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="#F26B33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <p class="font-semibold text-gray-700 text-sm mb-1">Drop your file here, or <span class="text-[#F26B33]">browse</span></p>
+        <p class="text-xs text-gray-400">Supports CSV (.csv) and Excel (.xlsx) — max 5,000 rows</p>
+      </div>
+
+      <!-- Format guidance -->
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+        <div class="flex gap-2">
+          <svg width="15" height="15" class="text-amber-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <div>
+            <p class="text-xs font-semibold text-amber-700 mb-1">Required columns: <code class="bg-amber-100 px-1 rounded">name</code> and <code class="bg-amber-100 px-1 rounded">phone</code></p>
+            <p class="text-xs text-amber-600">Optional: email, dob, city, tier (ignored — computed), tags (comma-separated). Duplicate phone = update existing customer.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Download template link -->
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 mb-5">
+        <div class="flex items-center gap-2">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#22c55e" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke="#22c55e" stroke-width="2"/></svg>
+          <span class="text-xs font-medium text-gray-600">Not sure of the format?</span>
+        </div>
+        <button class="text-xs font-semibold text-[#F26B33] hover:underline flex items-center gap-1">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download Sample Template
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex gap-3">
+        <button class="flex-1 h-10 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all">Cancel</button>
+        <button onclick="showScreen('s3')" class="flex-1 h-10 rounded-full bg-[#F26B33] hover:bg-[#D85A2A] text-white text-sm font-semibold transition-all">Next — Preview</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== S3: Import Modal — Preview Step ===================== -->
+<div id="s3" class="screen">
+  <div class="flex h-screen" style="height: calc(100vh - 48px)">
+    <div class="sidebar"><div class="nav-item active">Customers</div></div>
+    <div class="main-content p-8" style="filter: blur(1px); pointer-events: none;"><h1 class="text-2xl font-bold mont">Customers</h1></div>
+  </div>
+  <div class="modal-overlay">
+    <div class="modal-box p-6">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h2 class="text-lg font-bold mont text-gray-900">Import Customers</h2>
+          <p class="text-xs text-gray-500 mt-0.5">customers_bulk_july.xlsx · 312 rows detected</p>
+        </div>
+        <button class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Step indicator -->
+      <div class="flex items-center gap-2 mb-5">
+        <div class="step-dot step-done">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="step-line done"></div>
+        <div class="step-dot step-active">2</div>
+        <div class="step-line"></div>
+        <div class="step-dot step-inactive">3</div>
+        <div class="ml-3 text-xs text-gray-500 font-medium">Step 2 of 3 — Preview</div>
+      </div>
+
+      <!-- Summary pills -->
+      <div class="flex gap-3 mb-4">
+        <div class="flex-1 bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+          <div class="text-xl font-bold text-green-700">298</div>
+          <div class="text-xs text-green-600 mt-0.5">New customers</div>
+        </div>
+        <div class="flex-1 bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+          <div class="text-xl font-bold text-blue-700">11</div>
+          <div class="text-xs text-blue-600 mt-0.5">Will be updated</div>
+        </div>
+        <div class="flex-1 bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+          <div class="text-xl font-bold text-red-700">3</div>
+          <div class="text-xs text-red-600 mt-0.5">Errors (skip)</div>
+        </div>
+      </div>
+
+      <!-- Preview table (first 5 rows) -->
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Preview — first 5 rows</p>
+      <div class="rounded-xl border border-gray-100 overflow-hidden mb-4">
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead class="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th class="px-3 py-2 text-left font-semibold text-gray-500">#</th>
+                <th class="px-3 py-2 text-left font-semibold text-gray-500">Name</th>
+                <th class="px-3 py-2 text-left font-semibold text-gray-500">Phone</th>
+                <th class="px-3 py-2 text-left font-semibold text-gray-500">Email</th>
+                <th class="px-3 py-2 text-left font-semibold text-gray-500">Tags</th>
+                <th class="px-3 py-2 text-left font-semibold text-gray-500">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              <tr><td class="px-3 py-2 text-gray-400">1</td><td class="px-3 py-2 font-medium">Sunita Rao</td><td class="px-3 py-2 text-gray-600">9876501234</td><td class="px-3 py-2 text-gray-500">sunita@mail.com</td><td class="px-3 py-2"><span class="tag-chip">VIP</span></td><td class="px-3 py-2"><span class="text-green-600 font-medium flex items-center gap-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>New</span></td></tr>
+              <tr><td class="px-3 py-2 text-gray-400">2</td><td class="px-3 py-2 font-medium">Arjun Das</td><td class="px-3 py-2 text-gray-600">9123456780</td><td class="px-3 py-2 text-gray-400">—</td><td class="px-3 py-2 text-gray-400">—</td><td class="px-3 py-2"><span class="text-blue-600 font-medium flex items-center gap-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Update</span></td></tr>
+              <tr><td class="px-3 py-2 text-gray-400">3</td><td class="px-3 py-2 font-medium">Meera Pillai</td><td class="px-3 py-2 text-gray-600">9000112233</td><td class="px-3 py-2 text-gray-500">meera@in.com</td><td class="px-3 py-2"><span class="tag-chip">Regular</span></td><td class="px-3 py-2"><span class="text-green-600 font-medium flex items-center gap-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>New</span></td></tr>
+              <tr class="bg-red-50/60"><td class="px-3 py-2 text-gray-400">4</td><td class="px-3 py-2 text-red-400 italic">—</td><td class="px-3 py-2 text-red-500 font-medium">missing</td><td class="px-3 py-2 text-gray-400">—</td><td class="px-3 py-2 text-gray-400">—</td><td class="px-3 py-2"><span class="text-red-500 font-medium flex items-center gap-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Error: missing phone</span></td></tr>
+              <tr><td class="px-3 py-2 text-gray-400">5</td><td class="px-3 py-2 font-medium">Farhan Sheikh</td><td class="px-3 py-2 text-gray-600">9555667788</td><td class="px-3 py-2 text-gray-500">farhan@biz.com</td><td class="px-3 py-2"><span class="tag-chip">Bulk Order</span></td><td class="px-3 py-2"><span class="text-green-600 font-medium flex items-center gap-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>New</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Error note -->
+      <div class="bg-red-50 border border-red-100 rounded-xl p-2.5 mb-5 flex items-start gap-2">
+        <svg width="13" height="13" class="text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <p class="text-xs text-red-600"><span class="font-semibold">3 rows will be skipped</span> due to missing phone numbers. Valid rows (309) will still import.</p>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="showScreen('s2')" class="flex-1 h-10 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">← Back</button>
+        <button onclick="showScreen('s4')" class="flex-1 h-10 rounded-full bg-[#F26B33] hover:bg-[#D85A2A] text-white text-sm font-semibold">Import 309 Customers</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== S4: Import Result ===================== -->
+<div id="s4" class="screen">
+  <div class="flex h-screen" style="height: calc(100vh - 48px)">
+    <div class="sidebar"><div class="nav-item active">Customers</div></div>
+    <div class="main-content p-8" style="filter: blur(1px); pointer-events: none;"><h1 class="text-2xl font-bold mont">Customers</h1></div>
+  </div>
+  <div class="modal-overlay">
+    <div class="modal-box p-6">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-bold mont text-gray-900">Import Complete</h2>
+      </div>
+
+      <!-- Step indicator -->
+      <div class="flex items-center gap-2 mb-6">
+        <div class="step-dot step-done"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-line done"></div>
+        <div class="step-dot step-done"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="step-line done"></div>
+        <div class="step-dot step-done"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ml-3 text-xs text-gray-500 font-medium">Step 3 of 3 — Done</div>
+      </div>
+
+      <!-- Big success icon -->
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3 class="text-xl font-bold mont text-gray-900">Import Successful</h3>
+        <p class="text-sm text-gray-500 mt-1">customers_bulk_july.xlsx processed in 2.3s</p>
+      </div>
+
+      <!-- Result stats -->
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+          <div class="text-2xl font-bold text-green-700">298</div>
+          <div class="text-xs text-green-600 mt-0.5">Created</div>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+          <div class="text-2xl font-bold text-blue-700">11</div>
+          <div class="text-xs text-blue-600 mt-0.5">Updated</div>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+          <div class="text-2xl font-bold text-red-600">3</div>
+          <div class="text-xs text-red-500 mt-0.5">Failed (skipped)</div>
+        </div>
+      </div>
+
+      <!-- Failed rows detail -->
+      <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 mb-5">
+        <p class="text-xs font-semibold text-gray-600 mb-2">Failed rows (3) — skipped</p>
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2 text-xs"><span class="bg-red-100 text-red-600 rounded px-1.5 py-0.5 font-mono font-medium">Row 4</span><span class="text-gray-500">Missing phone number</span></div>
+          <div class="flex items-center gap-2 text-xs"><span class="bg-red-100 text-red-600 rounded px-1.5 py-0.5 font-mono font-medium">Row 87</span><span class="text-gray-500">Missing name</span></div>
+          <div class="flex items-center gap-2 text-xs"><span class="bg-red-100 text-red-600 rounded px-1.5 py-0.5 font-mono font-medium">Row 203</span><span class="text-gray-500">Invalid phone format (letters in number)</span></div>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button class="flex-1 h-10 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50" onclick="showScreen('s5')">View Import History</button>
+        <button class="flex-1 h-10 rounded-full bg-[#F26B33] hover:bg-[#D85A2A] text-white text-sm font-semibold" onclick="showScreen('s1')">Done — View Customers</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== S5: Import History ===================== -->
+<div id="s5" class="screen">
+  <div class="flex h-screen" style="height: calc(100vh - 48px)">
+    <div class="sidebar">
+      <div class="flex items-center gap-2 px-2 mb-4"><div class="w-7 h-7 rounded-lg bg-[#F26B33]"></div><span class="font-bold text-sm mont">MyGenie CRM</span></div>
+      <div class="nav-item active">Customers</div>
+    </div>
+    <div class="main-content p-6 lg:p-8">
+      <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-[#1A1A1A] mont">Customers</h1>
+            <p class="text-sm text-gray-500 mt-0.5">1,545 total customers</p>
+          </div>
+          <div class="flex gap-2">
+            <button class="flex items-center gap-2 h-10 px-4 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+            <button class="flex items-center gap-2 h-10 px-4 rounded-full border border-[#F26B33] bg-white text-sm font-medium text-[#F26B33] hover:bg-orange-50 transition-all">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Import
+            </button>
+            <button class="flex items-center gap-1.5 h-10 px-4 rounded-full bg-[#F26B33] hover:bg-[#D85A2A] text-white text-sm font-semibold">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+              Add
+            </button>
+          </div>
+        </div>
+
+        <!-- ★ NEW: Import History section -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+            <div class="flex items-center gap-2">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#F26B33" stroke-width="2" stroke-linecap="round"/></svg>
+              <h3 class="font-semibold text-sm text-gray-800">Import History</h3>
+            </div>
+            <span class="text-xs text-gray-400">Last 5 imports</span>
+          </div>
+          <div class="divide-y divide-gray-50">
+            <div class="history-row flex items-center gap-4 px-5 py-3 cursor-pointer transition-colors">
+              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-800 truncate">customers_bulk_july.xlsx</div>
+                <div class="text-xs text-gray-400 mt-0.5">Today, 2:34 PM · Excel</div>
+              </div>
+              <div class="flex gap-3 text-xs font-semibold">
+                <span class="text-green-600">+298 new</span>
+                <span class="text-blue-600">11 updated</span>
+                <span class="text-red-400">3 failed</span>
+              </div>
+              <div class="progress-bar w-24 ml-2">
+                <div class="progress-fill" style="width: 99%"></div>
+              </div>
+              <span class="text-xs text-gray-400">309 / 312</span>
+            </div>
+            <div class="history-row flex items-center gap-4 px-5 py-3 cursor-pointer transition-colors">
+              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-800 truncate">existing_customers_june.csv</div>
+                <div class="text-xs text-gray-400 mt-0.5">Jun 28, 10:15 AM · CSV</div>
+              </div>
+              <div class="flex gap-3 text-xs font-semibold">
+                <span class="text-green-600">+0 new</span>
+                <span class="text-blue-600">145 updated</span>
+                <span class="text-red-400">0 failed</span>
+              </div>
+              <div class="progress-bar w-24 ml-2">
+                <div class="progress-fill" style="width: 100%; background: #3b82f6"></div>
+              </div>
+              <span class="text-xs text-gray-400">145 / 145</span>
+            </div>
+            <div class="history-row flex items-center gap-4 px-5 py-3 cursor-pointer transition-colors">
+              <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-800 truncate">new_signups.xlsx</div>
+                <div class="text-xs text-gray-400 mt-0.5">Jun 20, 4:02 PM · Excel</div>
+              </div>
+              <div class="flex gap-3 text-xs font-semibold">
+                <span class="text-green-600">+12 new</span>
+                <span class="text-blue-600">0 updated</span>
+                <span class="text-red-500">88 failed</span>
+              </div>
+              <div class="progress-bar w-24 ml-2">
+                <div class="progress-fill" style="width: 12%; background: #ef4444"></div>
+              </div>
+              <span class="text-xs text-gray-400">12 / 100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotation -->
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-3">
+          <div class="text-xs font-bold text-purple-700 mb-1">Import History Section (NEW)</div>
+          <p class="text-xs text-purple-600">Shown below the header on the Customers page. Collapsible. Shows last 5 import runs with filename, date, format, row counts (new / updated / failed), and a progress bar. Stored in <code class="bg-purple-100 px-1 rounded">import_logs</code> MongoDB collection.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== S6: Export Flow ===================== -->
+<div id="s6" class="screen">
+  <div class="flex h-screen" style="height: calc(100vh - 48px)">
+    <div class="sidebar"><div class="nav-item active">Customers</div></div>
+    <div class="main-content p-8">
+      <div class="max-w-5xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-[#1A1A1A] mont">Customers</h1>
+            <p class="text-sm text-gray-500 mt-0.5">1,545 total customers</p>
+          </div>
+          <div class="flex gap-2 items-center">
+            <!-- Export with dropdown open -->
+            <div class="relative">
+              <button class="flex items-center gap-2 h-10 px-4 rounded-full border border-[#F26B33] bg-orange-50 text-sm font-medium text-[#F26B33] shadow-sm">
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Export
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <!-- Dropdown open -->
+              <div class="dropdown-menu" style="display:block;">
+                <div class="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50">All 1,545 customers</div>
+                <div class="dropdown-item text-green-700 font-medium">
+                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#22c55e" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke="#22c55e" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke="#22c55e" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke="#22c55e" stroke-width="2"/></svg>
+                  <div><div>Export as CSV</div><div class="text-[10px] text-gray-400 font-normal">Comma-separated, UTF-8</div></div>
+                </div>
+                <div class="dropdown-item text-emerald-700 font-medium">
+                  <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#059669" stroke-width="2"/><polyline points="14,2 14,8 20,8" stroke="#059669" stroke-width="2"/><rect x="8" y="12" width="8" height="6" stroke="#059669" stroke-width="1.5"/></svg>
+                  <div><div>Export as Excel</div><div class="text-[10px] text-gray-400 font-normal">Formatted .xlsx workbook</div></div>
+                </div>
+              </div>
+            </div>
+            <button class="flex items-center gap-2 h-10 px-4 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700">Import</button>
+            <button class="flex items-center gap-1.5 h-10 px-4 rounded-full bg-[#F26B33] text-white text-sm font-semibold">+ Add</button>
+          </div>
+        </div>
+
+        <!-- Export in-progress toast -->
+        <div class="fixed bottom-6 right-6 bg-gray-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-3" style="z-index:200;">
+          <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <div>
+            <div class="font-semibold text-sm">Exporting 1,545 customers…</div>
+            <div class="text-xs text-gray-300 mt-0.5">Preparing customers_export_2026_07_01.xlsx</div>
+          </div>
+        </div>
+
+        <!-- Export fields legend -->
+        <div class="grid grid-cols-2 gap-4 mt-16">
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 class="font-semibold text-sm text-gray-800 mb-3 flex items-center gap-2">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#22c55e" stroke-width="2"/></svg>
+              Fields included in export
+            </h3>
+            <div class="grid grid-cols-2 gap-1">
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Name</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Phone</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Email</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Date of Birth</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>City</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Total Points</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Tier (Bronze/Silver…)</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Wallet Balance</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Total Orders</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Total Spend</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Last Visit</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Tags</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>WhatsApp Opt-in</div>
+              <div class="flex items-center gap-1.5 text-xs text-gray-600 py-1"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/></svg>Created At</div>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 class="font-semibold text-sm text-gray-800 mb-3">Import column rules</h3>
+            <div class="space-y-2">
+              <div class="flex items-start gap-2 text-xs">
+                <span class="bg-red-100 text-red-600 rounded px-1.5 py-0.5 font-bold text-[10px] flex-shrink-0 mt-0.5">REQ</span>
+                <div><span class="font-medium">name</span> — Customer full name</div>
+              </div>
+              <div class="flex items-start gap-2 text-xs">
+                <span class="bg-red-100 text-red-600 rounded px-1.5 py-0.5 font-bold text-[10px] flex-shrink-0 mt-0.5">REQ</span>
+                <div><span class="font-medium">phone</span> — 10-digit mobile (duplicates = update)</div>
+              </div>
+              <div class="flex items-start gap-2 text-xs">
+                <span class="bg-gray-100 text-gray-500 rounded px-1.5 py-0.5 font-bold text-[10px] flex-shrink-0 mt-0.5">OPT</span>
+                <div><span class="font-medium">email, dob, city, address</span> — Profile fields</div>
+              </div>
+              <div class="flex items-start gap-2 text-xs">
+                <span class="bg-gray-100 text-gray-500 rounded px-1.5 py-0.5 font-bold text-[10px] flex-shrink-0 mt-0.5">OPT</span>
+                <div><span class="font-medium">tags</span> — Comma-separated: <code class="bg-gray-100 px-1 rounded">VIP, Regular</code></div>
+              </div>
+              <div class="flex items-start gap-2 text-xs">
+                <span class="bg-amber-100 text-amber-600 rounded px-1.5 py-0.5 font-bold text-[10px] flex-shrink-0 mt-0.5">IGN</span>
+                <div><span class="font-medium">tier, wallet_balance</span> — Ignored on import (computed)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('[id^="btn-"]').forEach(b => {
+    b.className = 'tab-inactive px-4 py-1.5 rounded-full text-xs font-semibold transition-all';
+  });
+  const btn = document.getElementById('btn-' + id);
+  if (btn) btn.className = 'tab-active px-4 py-1.5 rounded-full text-xs font-semibold transition-all';
+}
+
+function toggleExportDropdown() {
+  const dd = document.getElementById('export-dropdown');
+  dd.classList.toggle('hidden');
+}
+document.addEventListener('click', (e) => {
+  const wrapper = document.getElementById('export-dropdown-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    document.getElementById('export-dropdown')?.classList.add('hidden');
+  }
+});
+</script>
+</body>
+</html>
