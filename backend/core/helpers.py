@@ -2,6 +2,7 @@ from datetime import datetime, timezone, timedelta
 import qrcode
 import io
 import base64
+from core.database import db as _db  # CR-033: needed for P2 cross-collection lookups
 
 def calculate_tier(total_points: int, settings: dict) -> str:
     """CR-001C-L Phase L1 (F1, 2026-05-22): re-export shim.
@@ -217,22 +218,27 @@ def check_off_peak_bonus(settings: dict) -> tuple:
     
     return False, 1.0, "multiplier", ""
 
-def build_customer_query(user_id: str, filters: dict) -> dict:
-    """Build MongoDB query from filter dictionary"""
+async def build_customer_query(user_id: str, filters: dict) -> dict:
+    """Build MongoDB query from filter dictionary.
+    CR-033: extended to 20 filter dimensions (P0 bug-A fixes + P1 + cheap P2).
+    Made async for P2 cross-collection lookups against whatsapp_message_logs.
+    CR-034 tags block will be added in the next phase.
+    """
     query = {"user_id": user_id}
-    
+
+    # ── EXISTING 14 DIMENSIONS (unchanged) ─────────────────────────────────
     # Tier filter
     if filters.get("tier") and filters["tier"] != "all":
         query["tier"] = {"$in": filters["tier"]} if isinstance(filters["tier"], list) else filters["tier"]
-    
+
     # City filter
     if filters.get("city") and filters["city"] != "all":
         query["city"] = {"$in": filters["city"]} if isinstance(filters["city"], list) else filters["city"]
-    
+
     # Customer type filter
     if filters.get("customer_type") and filters["customer_type"] != "all":
         query["customer_type"] = filters["customer_type"]
-    
+
     # Last visit days (inactive filter)
     if filters.get("last_visit_days") and filters["last_visit_days"] != "all":
         try:
@@ -241,7 +247,7 @@ def build_customer_query(user_id: str, filters: dict) -> dict:
             query["last_visit"] = {"$lt": cutoff_date}
         except (ValueError, TypeError):
             pass
-    
+
     # Points range
     if filters.get("points_min") is not None:
         query["total_points"] = query.get("total_points", {})
@@ -249,7 +255,7 @@ def build_customer_query(user_id: str, filters: dict) -> dict:
     if filters.get("points_max") is not None:
         query["total_points"] = query.get("total_points", {})
         query["total_points"]["$lte"] = filters["points_max"]
-    
+
     # Visits range (numeric)
     if filters.get("visits_min") is not None:
         query["total_visits"] = query.get("total_visits", {})
@@ -257,8 +263,8 @@ def build_customer_query(user_id: str, filters: dict) -> dict:
     if filters.get("visits_max") is not None:
         query["total_visits"] = query.get("total_visits", {})
         query["total_visits"]["$lte"] = filters["visits_max"]
-    
-    # Visits filter (string-based like "6-10", "10+", etc)
+
+    # Visits filter (string-based bucket)
     total_visits = filters.get("total_visits")
     if total_visits and total_visits != "all":
         if total_visits == "0":
@@ -269,8 +275,8 @@ def build_customer_query(user_id: str, filters: dict) -> dict:
             query["total_visits"] = {"$gte": 6, "$lte": 10}
         elif total_visits == "10+":
             query["total_visits"] = {"$gt": 10}
-    
-    # Total spent filter (string-based like "0-500", "10000+", etc)
+
+    # Total spent filter (string-based bucket)
     total_spent_filter = filters.get("total_spent")
     if total_spent_filter and total_spent_filter != "all":
         if total_spent_filter == "0-500":
@@ -283,7 +289,7 @@ def build_customer_query(user_id: str, filters: dict) -> dict:
             query["total_spent"] = {"$gte": 5000, "$lte": 10000}
         elif total_spent_filter == "10000+":
             query["total_spent"] = {"$gte": 10000}
-    
+
     # Spent range (numeric)
     if filters.get("spent_min") is not None:
         query["total_spent"] = query.get("total_spent", {})
@@ -291,19 +297,19 @@ def build_customer_query(user_id: str, filters: dict) -> dict:
     if filters.get("spent_max") is not None:
         query["total_spent"] = query.get("total_spent", {})
         query["total_spent"]["$lte"] = filters["spent_max"]
-    
+
     # Dietary preference
     if filters.get("dietary"):
         query["dietary"] = {"$in": filters["dietary"]} if isinstance(filters["dietary"], list) else filters["dietary"]
-    
+
     # Allergies
     if filters.get("allergies"):
         query["allergies"] = {"$in": filters["allergies"]} if isinstance(filters["allergies"], list) else filters["allergies"]
-    
+
     # Favorite food
     if filters.get("favorite_food"):
         query["favorite_food"] = {"$regex": filters["favorite_food"], "$options": "i"}
-    
+
     # Search by name or phone
     if filters.get("search"):
         search_regex = {"$regex": filters["search"], "$options": "i"}
@@ -312,7 +318,164 @@ def build_customer_query(user_id: str, filters: dict) -> dict:
             {"phone": search_regex},
             {"email": search_regex}
         ]
-    
+
+    # ── CR-033 P0: BUG-A FIXES (6 filters) ────────────────────────────────
+    # vip_flag
+    if filters.get("vip_flag") and filters["vip_flag"] != "all":
+        val = filters["vip_flag"]
+        query["vip_flag"] = (val is True or val == "true")
+
+    # whatsapp_opt_in
+    if filters.get("whatsapp_opt_in") and filters["whatsapp_opt_in"] != "all":
+        val = filters["whatsapp_opt_in"]
+        query["whatsapp_opt_in"] = (val is True or val == "true")
+
+    # has_birthday_this_month
+    if filters.get("has_birthday_this_month"):
+        current_month = datetime.now(timezone.utc).month
+        month_str = f"-{current_month:02d}-"
+        query["dob"] = {"$regex": month_str}
+
+    # is_blocked
+    if filters.get("is_blocked") and filters["is_blocked"] != "all":
+        val = filters["is_blocked"]
+        query["is_blocked"] = (val is True or val == "true")
+
+    # blacklist_flag
+    if filters.get("blacklist_flag") and filters["blacklist_flag"] != "all":
+        val = filters["blacklist_flag"]
+        query["blacklist_flag"] = (val is True or val == "true")
+
+    # complaint_flag
+    if filters.get("complaint_flag") and filters["complaint_flag"] != "all":
+        val = filters["complaint_flag"]
+        query["complaint_flag"] = (val is True or val == "true")
+
+    # ── CR-033 P1: NEW FILTERS (11 filters) ────────────────────────────────
+    # has_anniversary_this_month
+    if filters.get("has_anniversary_this_month"):
+        current_month = datetime.now(timezone.utc).month
+        month_str = f"-{current_month:02d}-"
+        query["anniversary"] = {"$regex": month_str}
+
+    # birthday_month (specific month 1-12)
+    if filters.get("birthday_month") and filters["birthday_month"] != "all":
+        try:
+            m = int(filters["birthday_month"])
+            query["dob"] = {"$regex": f"-{m:02d}-"}
+        except (ValueError, TypeError):
+            pass
+
+    # age_bracket (derived from dob year prefix)
+    if filters.get("age_bracket") and filters["age_bracket"] != "all":
+        today = datetime.now(timezone.utc)
+        bracket = filters["age_bracket"]
+        if bracket == "18-25":
+            start_year, end_year = today.year - 25, today.year - 18
+        elif bracket == "26-35":
+            start_year, end_year = today.year - 35, today.year - 26
+        elif bracket == "36-50":
+            start_year, end_year = today.year - 50, today.year - 36
+        elif bracket == "50+":
+            start_year, end_year = today.year - 120, today.year - 50
+        else:
+            start_year, end_year = None, None
+        if start_year is not None:
+            query["dob"] = {"$gte": str(start_year), "$lte": str(end_year + 1)}
+
+    # gender
+    if filters.get("gender") and filters["gender"] != "all":
+        query["gender"] = filters["gender"]
+
+    # created_at_days (signed up in last N days)
+    if filters.get("created_at_days") and filters["created_at_days"] != "all":
+        try:
+            days = int(filters["created_at_days"])
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+            query["created_at"] = {"$gte": cutoff}
+        except (ValueError, TypeError):
+            pass
+
+    # lead_source (single or multi-select)
+    if filters.get("lead_source") and filters["lead_source"] != "all":
+        val = filters["lead_source"]
+        query["lead_source"] = {"$in": val} if isinstance(val, list) else val
+
+    # has_gst
+    if filters.get("has_gst") is not None and filters["has_gst"] != "all":
+        val = filters["has_gst"]
+        if val is True or val == "true":
+            query["gst_number"] = {"$exists": True, "$nin": [None, ""]}
+        else:
+            query["gst_number"] = {"$in": [None, ""]}
+
+    # has_notes
+    if filters.get("has_notes") is not None and filters["has_notes"] != "all":
+        val = filters["has_notes"]
+        if val is True or val == "true":
+            query["notes"] = {"$exists": True, "$nin": [None, ""]}
+        else:
+            query["notes"] = {"$in": [None, ""]}
+
+    # wallet_balance (bucket: "zero", "low", "mid", "high")
+    if filters.get("wallet_balance") and filters["wallet_balance"] != "all":
+        wb = filters["wallet_balance"]
+        if wb == "zero":
+            query["wallet_balance"] = {"$lte": 0}
+        elif wb == "low":
+            query["wallet_balance"] = {"$gt": 0, "$lte": 500}
+        elif wb == "mid":
+            query["wallet_balance"] = {"$gt": 500, "$lte": 2000}
+        elif wb == "high":
+            query["wallet_balance"] = {"$gt": 2000}
+
+    # total_coupon_used (bucket: "0", "1-5", "6+")
+    if filters.get("total_coupon_used") and filters["total_coupon_used"] != "all":
+        tcu = filters["total_coupon_used"]
+        if tcu == "0":
+            query["total_coupon_used"] = 0
+        elif tcu == "1-5":
+            query["total_coupon_used"] = {"$gte": 1, "$lte": 5}
+        elif tcu == "6+":
+            query["total_coupon_used"] = {"$gt": 5}
+
+    # total_points_earned (bucket: "low", "mid", "high", "very_high")
+    if filters.get("total_points_earned") and filters["total_points_earned"] != "all":
+        tpe = filters["total_points_earned"]
+        if tpe == "low":
+            query["total_points_earned"] = {"$lte": 100}
+        elif tpe == "mid":
+            query["total_points_earned"] = {"$gt": 100, "$lte": 500}
+        elif tpe == "high":
+            query["total_points_earned"] = {"$gt": 500, "$lte": 2000}
+        elif tpe == "very_high":
+            query["total_points_earned"] = {"$gt": 2000}
+
+    # ── CR-033 P2: CROSS-COLLECTION JOINS (3 filters, need async DB) ───────
+    # received_campaign_id: customers who received a specific campaign
+    if filters.get("received_campaign_id") and filters["received_campaign_id"] != "all":
+        cid = filters["received_campaign_id"]
+        matched_ids = await _db.whatsapp_message_logs.distinct(
+            "customer_id",
+            {"user_id": user_id, "$or": [{"campaign_id": cid}, {"reference_id": cid}]}
+        )
+        query["id"] = {"$in": matched_ids}
+
+    # whatsapp_status_failed: customers whose WA message failed/rejected
+    if filters.get("whatsapp_status_failed"):
+        failed_ids = await _db.whatsapp_message_logs.distinct(
+            "customer_id",
+            {"user_id": user_id, "status": {"$in": ["failed", "rejected"]}}
+        )
+        query["id"] = {"$in": failed_ids}
+
+    # never_messaged: customers who have never received a WA message
+    if filters.get("never_messaged"):
+        messaged_ids = await _db.whatsapp_message_logs.distinct(
+            "customer_id", {"user_id": user_id}
+        )
+        query["id"] = {"$nin": messaged_ids}
+
     return query
 
 
@@ -332,5 +495,5 @@ async def resolve_audience(db, user_id: str, audience_id: str):
     segment = await db.segments.find_one({"id": audience_id, "user_id": user_id})
     if not segment:
         raise HTTPException(status_code=404, detail="Audience not found")
-    query = build_customer_query(user_id, segment.get("filters", {}))
+    query = await build_customer_query(user_id, segment.get("filters", {}))
     return (query, segment.get("name", ""), segment.get("customer_count", 0))

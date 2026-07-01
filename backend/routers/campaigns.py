@@ -51,7 +51,7 @@ async def _resolve_audience_customers(user_id: str, audience_id: str):
         segment = await db.segments.find_one({"id": audience_id, "user_id": user_id})
         if not segment:
             raise HTTPException(404, "Audience segment not found")
-        query = build_customer_query(user_id, segment.get("filters", {}))
+        query = await build_customer_query(user_id, segment.get("filters", {}))
     return await db.customers.find(query, {"_id": 0}).to_list(10000)
 
 

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Edit2, Eye, Trash2, Users, RefreshCw } from "lucide-react";
+import { Plus, Edit2, Users, RefreshCw, ChevronDown, ChevronUp, X as XIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const AudiencesPageContent = () => {
     const { api } = useAuth();
@@ -27,11 +28,29 @@ const AudiencesPageContent = () => {
     // Create / Edit segment state (CR-024 Phase 4 P4.1)
     const [showCreate, setShowCreate] = useState(false);
     const [editingSeg, setEditingSeg] = useState(null);
-    const DEFAULT_FILTERS = { tier: "all", last_visit_days: "all", total_spent: "all", total_visits: "all", has_birthday_this_month: false, vip_flag: "all", whatsapp_opt_in: "all" };
+    // CR-033: expanded filter set across 4 sections (Tags section added in CR-034)
+    const DEFAULT_FILTERS = {
+        // Section 1: Loyalty & Tier
+        tier: "all", total_visits: "all", total_spent: "all",
+        total_points_earned: "all", wallet_balance: "all", total_coupon_used: "all",
+        // Section 2: Dates & Occasions
+        last_visit_days: "all", has_birthday_this_month: false,
+        has_anniversary_this_month: false, birthday_month: "all",
+        age_bracket: "all", created_at_days: "all",
+        // Section 3: WhatsApp & Engagement
+        whatsapp_opt_in: "all", received_campaign_id: "all",
+        whatsapp_status_failed: false, never_messaged: false,
+        // Section 4: Customer Flags & Profile
+        vip_flag: "all", is_blocked: "all", blacklist_flag: "all",
+        complaint_flag: "all", lead_source: "all", has_gst: "all", gender: "all",
+    };
     const [newName, setNewName] = useState("");
     const [newFilters, setNewFilters] = useState(DEFAULT_FILTERS);
     const [previewCount, setPreviewCount] = useState(null);
     const [saving, setSaving] = useState(false);
+
+    // CR-033: accordion section open/close state
+    const [openSections, setOpenSections] = useState({ loyalty: true, dates: true, engagement: false, flags: false });
 
     // Preview customers
     const [previewSeg, setPreviewSeg] = useState(null);
@@ -75,16 +94,60 @@ const AudiencesPageContent = () => {
         : filter === "used" ? allAudiences.filter(a => usedIds.has(a.id))
         : allAudiences.filter(a => !usedIds.has(a.id));
 
+    // CR-033: maps chip label back to its filter key for dismissal
+    const chipLabelToFilterKey = (label) => {
+        if (label.startsWith("Tier:")) return "tier";
+        if (label.startsWith("Inactive:")) return "last_visit_days";
+        if (label.startsWith("Spent:")) return "total_spent";
+        if (label.startsWith("Visits:")) return "total_visits";
+        if (label === "Birthday: This Month") return "has_birthday_this_month";
+        if (label === "Anniversary: This Month") return "has_anniversary_this_month";
+        if (label.startsWith("Birthday Month:")) return "birthday_month";
+        if (label.startsWith("Age:")) return "age_bracket";
+        if (label.startsWith("Signed up:")) return "created_at_days";
+        if (label === "VIP: Yes") return "vip_flag";
+        if (label === "WA: Opted-In") return "whatsapp_opt_in";
+        if (label === "Blocked") return "is_blocked";
+        if (label === "Blacklisted") return "blacklist_flag";
+        if (label === "Has Complaint") return "complaint_flag";
+        if (label.startsWith("Gender:")) return "gender";
+        if (label.startsWith("Source:")) return "lead_source";
+        if (label === "Has GST") return "has_gst";
+        if (label === "WA Failed") return "whatsapp_status_failed";
+        if (label === "Never WA'd") return "never_messaged";
+        if (label.startsWith("Wallet:")) return "wallet_balance";
+        if (label.startsWith("Coupons:")) return "total_coupon_used";
+        if (label.startsWith("Points:")) return "total_points_earned";
+        if (label.startsWith("Campaign:")) return "received_campaign_id";
+        return null;
+    };
+
     const getFilterTags = (filters) => {
         if (!filters) return [];
         const tags = [];
         if (filters.tier && filters.tier !== "all") tags.push(`Tier: ${Array.isArray(filters.tier) ? filters.tier.join(", ") : filters.tier}`);
-        if (filters.last_visit_days && filters.last_visit_days !== "all") tags.push(`Last Visit: ${filters.last_visit_days}+ days`);
-        if (filters.total_spent && filters.total_spent !== "all") tags.push(`Spent: ${filters.total_spent}`);
+        if (filters.last_visit_days && filters.last_visit_days !== "all") tags.push(`Inactive: ${filters.last_visit_days}+ days`);
+        if (filters.total_spent && filters.total_spent !== "all") tags.push(`Spent: ₹${filters.total_spent}`);
         if (filters.total_visits && filters.total_visits !== "all") tags.push(`Visits: ${filters.total_visits}`);
+        if (filters.total_points_earned && filters.total_points_earned !== "all") tags.push(`Points: ${filters.total_points_earned}`);
+        if (filters.wallet_balance && filters.wallet_balance !== "all") tags.push(`Wallet: ${filters.wallet_balance}`);
+        if (filters.total_coupon_used && filters.total_coupon_used !== "all") tags.push(`Coupons: ${filters.total_coupon_used}`);
         if (filters.has_birthday_this_month) tags.push("Birthday: This Month");
+        if (filters.has_anniversary_this_month) tags.push("Anniversary: This Month");
+        if (filters.birthday_month && filters.birthday_month !== "all") tags.push(`Birthday Month: ${filters.birthday_month}`);
+        if (filters.age_bracket && filters.age_bracket !== "all") tags.push(`Age: ${filters.age_bracket}`);
+        if (filters.created_at_days && filters.created_at_days !== "all") tags.push(`Signed up: last ${filters.created_at_days}d`);
         if (filters.vip_flag && filters.vip_flag !== "all") tags.push("VIP: Yes");
-        if (filters.whatsapp_opt_in && filters.whatsapp_opt_in !== "all") tags.push("Opt-in: Yes");
+        if (filters.whatsapp_opt_in && filters.whatsapp_opt_in !== "all") tags.push("WA: Opted-In");
+        if (filters.is_blocked && filters.is_blocked !== "all") tags.push("Blocked");
+        if (filters.blacklist_flag && filters.blacklist_flag !== "all") tags.push("Blacklisted");
+        if (filters.complaint_flag && filters.complaint_flag !== "all") tags.push("Has Complaint");
+        if (filters.gender && filters.gender !== "all") tags.push(`Gender: ${filters.gender}`);
+        if (filters.lead_source && filters.lead_source !== "all") tags.push(`Source: ${filters.lead_source}`);
+        if (filters.has_gst && filters.has_gst !== "all") tags.push("Has GST");
+        if (filters.whatsapp_status_failed) tags.push("WA Failed");
+        if (filters.never_messaged) tags.push("Never WA'd");
+        if (filters.received_campaign_id && filters.received_campaign_id !== "all") tags.push(`Campaign: ${filters.received_campaign_id}`);
         return tags;
     };
 
@@ -309,90 +372,362 @@ const AudiencesPageContent = () => {
                 </div>
             )}
 
-            {/* Create / Edit Dialog */}
+            {/* Create / Edit Dialog — CR-033: wider dialog with accordion sections */}
             <Dialog open={showCreate} onOpenChange={(o) => { if (!o) closeCreateDialog(); else setShowCreate(true); }}>
-                <DialogContent className="max-w-lg" data-testid="audience-dialog">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="audience-dialog">
                     <DialogHeader>
                         <DialogTitle>{editingSeg ? `Edit Audience: ${editingSeg.name}` : "Create New Audience"}</DialogTitle>
+                        <p className="text-xs text-gray-400 mt-0.5">Filters combine with AND · Multi-select within a filter = OR</p>
                     </DialogHeader>
+
                     {editingSeg && getCampaignCount(editingSeg.id) > 0 && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800" data-testid="audience-in-use-warning">
-                            ⚠ This audience is used in {getCampaignCount(editingSeg.id)} campaign{getCampaignCount(editingSeg.id) > 1 ? "s" : ""}.
-                            Existing scheduled/recurring campaigns will use the updated filter on their next fire.
+                            ⚠ This audience is used in {getCampaignCount(editingSeg.id)} campaign(s). Scheduled campaigns will use updated filters on next run.
                         </div>
                     )}
-                    <div className="space-y-4">
+
+                    <div className="space-y-3">
+                        {/* Audience Name */}
                         <div>
                             <Label className="text-xs font-semibold uppercase">Audience Name</Label>
-                            <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g., Gold Customers" className="mt-1" data-testid="new-audience-name" />
+                            <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g., Gold Regulars — Birthday This Month" className="mt-1" data-testid="new-audience-name" />
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label className="text-xs font-semibold uppercase">Tier</Label>
-                                <Select value={newFilters.tier} onValueChange={v => setNewFilters(p => ({ ...p, tier: v }))}>
-                                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Tiers</SelectItem>
-                                        <SelectItem value="Bronze">Bronze</SelectItem>
-                                        <SelectItem value="Silver">Silver</SelectItem>
-                                        <SelectItem value="Gold">Gold</SelectItem>
-                                        <SelectItem value="Platinum">Platinum</SelectItem>
-                                    </SelectContent>
-                                </Select>
+
+                        {/* Active filter chips — dismissible */}
+                        {getFilterTags(newFilters).length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                {getFilterTags(newFilters).map((t, i) => (
+                                    <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-full text-[11px] text-gray-600">
+                                        {t}
+                                        <button
+                                            onClick={() => {
+                                                const key = chipLabelToFilterKey(t);
+                                                if (key) setNewFilters(p => ({ ...p, [key]: Array.isArray(DEFAULT_FILTERS[key]) ? [] : (typeof DEFAULT_FILTERS[key] === "boolean" ? false : "all") }));
+                                            }}
+                                            className="ml-0.5 text-gray-400 hover:text-gray-700 leading-none"
+                                        >×</button>
+                                    </span>
+                                ))}
+                                <button onClick={() => setNewFilters(DEFAULT_FILTERS)} className="text-[10px] text-gray-400 hover:text-red-500 px-1 ml-1">Clear all</button>
                             </div>
+                        )}
+
+                        {/* ── Section 1: Loyalty & Tier ── */}
+                        <Collapsible open={openSections.loyalty} onOpenChange={v => setOpenSections(p => ({...p, loyalty: v}))}>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 bg-orange-50 border border-orange-100 rounded-lg text-xs font-bold uppercase tracking-wide text-orange-600 hover:bg-orange-100 transition-colors">
+                                <span>Loyalty & Tier</span>
+                                <div className="flex items-center gap-2">
+                                    {[newFilters.tier, newFilters.total_visits, newFilters.total_spent, newFilters.total_points_earned, newFilters.wallet_balance, newFilters.total_coupon_used].filter(v => v && v !== "all").length > 0 && (
+                                        <span className="bg-[#F26B33] text-white rounded-full text-[10px] px-1.5 py-0.5 font-bold">
+                                            {[newFilters.tier, newFilters.total_visits, newFilters.total_spent, newFilters.total_points_earned, newFilters.wallet_balance, newFilters.total_coupon_used].filter(v => v && v !== "all").length}
+                                        </span>
+                                    )}
+                                    {openSections.loyalty ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div className="border border-t-0 border-orange-100 rounded-b-lg p-3 grid grid-cols-2 gap-3 bg-white">
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Tier</Label>
+                                        <Select value={newFilters.tier} onValueChange={v => setNewFilters(p => ({...p, tier: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Tiers</SelectItem>
+                                                <SelectItem value="Bronze">Bronze</SelectItem>
+                                                <SelectItem value="Silver">Silver</SelectItem>
+                                                <SelectItem value="Gold">Gold</SelectItem>
+                                                <SelectItem value="Platinum">Platinum</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Total Visits</Label>
+                                        <Select value={newFilters.total_visits} onValueChange={v => setNewFilters(p => ({...p, total_visits: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any</SelectItem>
+                                                <SelectItem value="0">0 visits</SelectItem>
+                                                <SelectItem value="1-5">1–5</SelectItem>
+                                                <SelectItem value="6-10">6–10</SelectItem>
+                                                <SelectItem value="10+">10+</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Total Spent</Label>
+                                        <Select value={newFilters.total_spent} onValueChange={v => setNewFilters(p => ({...p, total_spent: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any amount</SelectItem>
+                                                <SelectItem value="0-500">Under ₹500</SelectItem>
+                                                <SelectItem value="500-2000">₹500 – 2,000</SelectItem>
+                                                <SelectItem value="2000-5000">₹2,000 – 5,000</SelectItem>
+                                                <SelectItem value="5000-10000">₹5,000 – 10,000</SelectItem>
+                                                <SelectItem value="10000+">₹10,000+</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Points Earned</Label>
+                                        <Select value={newFilters.total_points_earned} onValueChange={v => setNewFilters(p => ({...p, total_points_earned: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any</SelectItem>
+                                                <SelectItem value="low">Low (0–100)</SelectItem>
+                                                <SelectItem value="mid">Mid (101–500)</SelectItem>
+                                                <SelectItem value="high">High (501–2000)</SelectItem>
+                                                <SelectItem value="very_high">Very High (2000+)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Wallet Balance</Label>
+                                        <Select value={newFilters.wallet_balance} onValueChange={v => setNewFilters(p => ({...p, wallet_balance: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any</SelectItem>
+                                                <SelectItem value="zero">Zero (₹0)</SelectItem>
+                                                <SelectItem value="low">Low (₹1–500)</SelectItem>
+                                                <SelectItem value="mid">Mid (₹501–2,000)</SelectItem>
+                                                <SelectItem value="high">High (₹2,000+)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Coupons Used</Label>
+                                        <Select value={newFilters.total_coupon_used} onValueChange={v => setNewFilters(p => ({...p, total_coupon_used: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any</SelectItem>
+                                                <SelectItem value="0">None</SelectItem>
+                                                <SelectItem value="1-5">1–5</SelectItem>
+                                                <SelectItem value="6+">6+</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* ── Section 2: Dates & Occasions ── */}
+                        <Collapsible open={openSections.dates} onOpenChange={v => setOpenSections(p => ({...p, dates: v}))}>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg text-xs font-bold uppercase tracking-wide text-blue-600 hover:bg-blue-100 transition-colors">
+                                <span>Dates & Occasions</span>
+                                <div className="flex items-center gap-2">
+                                    {(() => {
+                                        const count = [newFilters.last_visit_days, newFilters.birthday_month, newFilters.age_bracket, newFilters.created_at_days].filter(v => v && v !== "all").length
+                                            + [newFilters.has_birthday_this_month, newFilters.has_anniversary_this_month].filter(Boolean).length;
+                                        return count > 0 ? <span className="bg-blue-600 text-white rounded-full text-[10px] px-1.5 py-0.5 font-bold">{count}</span> : null;
+                                    })()}
+                                    {openSections.dates ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div className="border border-t-0 border-blue-100 rounded-b-lg p-3 grid grid-cols-2 gap-3 bg-white">
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Last Visit</Label>
+                                        <Select value={newFilters.last_visit_days} onValueChange={v => setNewFilters(p => ({...p, last_visit_days: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any time</SelectItem>
+                                                <SelectItem value="7">7+ days ago</SelectItem>
+                                                <SelectItem value="14">14+ days ago</SelectItem>
+                                                <SelectItem value="30">30+ days ago</SelectItem>
+                                                <SelectItem value="60">60+ days ago</SelectItem>
+                                                <SelectItem value="90">90+ days ago</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Signed Up</Label>
+                                        <Select value={newFilters.created_at_days} onValueChange={v => setNewFilters(p => ({...p, created_at_days: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any time</SelectItem>
+                                                <SelectItem value="7">Last 7 days</SelectItem>
+                                                <SelectItem value="30">Last 30 days</SelectItem>
+                                                <SelectItem value="90">Last 90 days</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Birthday Month</Label>
+                                        <Select value={newFilters.birthday_month} onValueChange={v => setNewFilters(p => ({...p, birthday_month: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any month</SelectItem>
+                                                {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
+                                                    <SelectItem key={i+1} value={String(i+1)}>{m}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Age Bracket</Label>
+                                        <Select value={newFilters.age_bracket} onValueChange={v => setNewFilters(p => ({...p, age_bracket: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any age</SelectItem>
+                                                <SelectItem value="18-25">18–25</SelectItem>
+                                                <SelectItem value="26-35">26–35</SelectItem>
+                                                <SelectItem value="36-50">36–50</SelectItem>
+                                                <SelectItem value="50+">50+</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex items-center gap-2 col-span-1">
+                                        <Checkbox id="bday-month" checked={newFilters.has_birthday_this_month} onCheckedChange={v => setNewFilters(p => ({...p, has_birthday_this_month: v}))} />
+                                        <Label htmlFor="bday-month" className="text-xs cursor-pointer">Birthday this month</Label>
+                                    </div>
+                                    <div className="flex items-center gap-2 col-span-1">
+                                        <Checkbox id="anniv-month" checked={newFilters.has_anniversary_this_month} onCheckedChange={v => setNewFilters(p => ({...p, has_anniversary_this_month: v}))} />
+                                        <Label htmlFor="anniv-month" className="text-xs cursor-pointer">Anniversary this month</Label>
+                                    </div>
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* ── Section 3: WhatsApp & Engagement ── */}
+                        <Collapsible open={openSections.engagement} onOpenChange={v => setOpenSections(p => ({...p, engagement: v}))}>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 bg-green-50 border border-green-100 rounded-lg text-xs font-bold uppercase tracking-wide text-green-700 hover:bg-green-100 transition-colors">
+                                <span>WhatsApp & Engagement</span>
+                                <div className="flex items-center gap-2">
+                                    {(() => {
+                                        const count = [newFilters.whatsapp_opt_in, newFilters.received_campaign_id].filter(v => v && v !== "all").length
+                                            + [newFilters.whatsapp_status_failed, newFilters.never_messaged].filter(Boolean).length;
+                                        return count > 0 ? <span className="bg-green-600 text-white rounded-full text-[10px] px-1.5 py-0.5 font-bold">{count}</span> : null;
+                                    })()}
+                                    {openSections.engagement ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div className="border border-t-0 border-green-100 rounded-b-lg p-3 grid grid-cols-2 gap-3 bg-white">
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">WhatsApp Opted-In</Label>
+                                        <Select value={newFilters.whatsapp_opt_in} onValueChange={v => setNewFilters(p => ({...p, whatsapp_opt_in: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All</SelectItem>
+                                                <SelectItem value="true">Opted In</SelectItem>
+                                                <SelectItem value="false">Not Opted In</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Received Campaign</Label>
+                                        <Select value={newFilters.received_campaign_id} onValueChange={v => setNewFilters(p => ({...p, received_campaign_id: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Any / All</SelectItem>
+                                                {campaigns.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox id="wa-failed" checked={newFilters.whatsapp_status_failed} onCheckedChange={v => setNewFilters(p => ({...p, whatsapp_status_failed: v}))} />
+                                        <Label htmlFor="wa-failed" className="text-xs cursor-pointer">WA message failed recently</Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox id="never-wa" checked={newFilters.never_messaged} onCheckedChange={v => setNewFilters(p => ({...p, never_messaged: v}))} />
+                                        <Label htmlFor="never-wa" className="text-xs cursor-pointer">Never messaged on WhatsApp</Label>
+                                    </div>
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* ── Section 4: Customer Flags & Profile ── */}
+                        <Collapsible open={openSections.flags} onOpenChange={v => setOpenSections(p => ({...p, flags: v}))}>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 bg-purple-50 border border-purple-100 rounded-lg text-xs font-bold uppercase tracking-wide text-purple-700 hover:bg-purple-100 transition-colors">
+                                <span>Customer Flags & Profile</span>
+                                <div className="flex items-center gap-2">
+                                    {[newFilters.vip_flag, newFilters.is_blocked, newFilters.blacklist_flag, newFilters.complaint_flag, newFilters.lead_source, newFilters.has_gst, newFilters.gender].filter(v => v && v !== "all").length > 0 && (
+                                        <span className="bg-purple-600 text-white rounded-full text-[10px] px-1.5 py-0.5 font-bold">
+                                            {[newFilters.vip_flag, newFilters.is_blocked, newFilters.blacklist_flag, newFilters.complaint_flag, newFilters.lead_source, newFilters.has_gst, newFilters.gender].filter(v => v && v !== "all").length}
+                                        </span>
+                                    )}
+                                    {openSections.flags ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div className="border border-t-0 border-purple-100 rounded-b-lg p-3 grid grid-cols-2 gap-3 bg-white">
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">VIP Status</Label>
+                                        <Select value={newFilters.vip_flag} onValueChange={v => setNewFilters(p => ({...p, vip_flag: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All</SelectItem>
+                                                <SelectItem value="true">VIP Only</SelectItem>
+                                                <SelectItem value="false">Non-VIP</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Gender</Label>
+                                        <Select value={newFilters.gender} onValueChange={v => setNewFilters(p => ({...p, gender: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All</SelectItem>
+                                                <SelectItem value="male">Male</SelectItem>
+                                                <SelectItem value="female">Female</SelectItem>
+                                                <SelectItem value="other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Lead Source</Label>
+                                        <Select value={newFilters.lead_source} onValueChange={v => setNewFilters(p => ({...p, lead_source: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Sources</SelectItem>
+                                                {["Walk-in","Swiggy","Zomato","Instagram","Facebook","Google","Referral","Airbnb","WhatsApp","Phone Call"].map(s => (
+                                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold uppercase text-gray-500">Has GST</Label>
+                                        <Select value={newFilters.has_gst} onValueChange={v => setNewFilters(p => ({...p, has_gst: v}))}>
+                                            <SelectTrigger className="mt-1 h-8 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All</SelectItem>
+                                                <SelectItem value="true">Has GST No.</SelectItem>
+                                                <SelectItem value="false">No GST No.</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox id="chk-blocked" checked={newFilters.is_blocked === "true" || newFilters.is_blocked === true} onCheckedChange={v => setNewFilters(p => ({...p, is_blocked: v ? "true" : "all"}))} />
+                                        <Label htmlFor="chk-blocked" className="text-xs cursor-pointer">Blocked</Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox id="chk-blacklist" checked={newFilters.blacklist_flag === "true" || newFilters.blacklist_flag === true} onCheckedChange={v => setNewFilters(p => ({...p, blacklist_flag: v ? "true" : "all"}))} />
+                                        <Label htmlFor="chk-blacklist" className="text-xs cursor-pointer">Blacklisted</Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox id="chk-complaint" checked={newFilters.complaint_flag === "true" || newFilters.complaint_flag === true} onCheckedChange={v => setNewFilters(p => ({...p, complaint_flag: v ? "true" : "all"}))} />
+                                        <Label htmlFor="chk-complaint" className="text-xs cursor-pointer">Has Complaint</Label>
+                                    </div>
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* Preview count + actions */}
+                        <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5">
                             <div>
-                                <Label className="text-xs font-semibold uppercase">Last Visit</Label>
-                                <Select value={newFilters.last_visit_days} onValueChange={v => setNewFilters(p => ({ ...p, last_visit_days: v }))}>
-                                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Any time</SelectItem>
-                                        <SelectItem value="7">7+ days ago</SelectItem>
-                                        <SelectItem value="14">14+ days ago</SelectItem>
-                                        <SelectItem value="30">30+ days ago</SelectItem>
-                                        <SelectItem value="60">60+ days ago</SelectItem>
-                                        <SelectItem value="90">90+ days ago</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                {previewCount !== null ? (
+                                    <span className="text-[#F26B33] font-extrabold text-lg">{previewCount.toLocaleString()}</span>
+                                ) : (
+                                    <span className="text-gray-400 text-sm">—</span>
+                                )}
+                                <span className="text-xs text-gray-500 ml-2">customers match</span>
                             </div>
-                            <div>
-                                <Label className="text-xs font-semibold uppercase">Total Spent</Label>
-                                <Select value={newFilters.total_spent} onValueChange={v => setNewFilters(p => ({ ...p, total_spent: v }))}>
-                                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Any amount</SelectItem>
-                                        <SelectItem value="0-500">Under 500</SelectItem>
-                                        <SelectItem value="500-2000">500 - 2,000</SelectItem>
-                                        <SelectItem value="2000-5000">2,000 - 5,000</SelectItem>
-                                        <SelectItem value="5000-10000">5,000 - 10,000</SelectItem>
-                                        <SelectItem value="10000+">10,000+</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label className="text-xs font-semibold uppercase">Visits</Label>
-                                <Select value={newFilters.total_visits} onValueChange={v => setNewFilters(p => ({ ...p, total_visits: v }))}>
-                                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Any</SelectItem>
-                                        <SelectItem value="0">0 visits</SelectItem>
-                                        <SelectItem value="1-5">1-5</SelectItem>
-                                        <SelectItem value="6-10">6-10</SelectItem>
-                                        <SelectItem value="10+">10+</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <Button variant="outline" onClick={handlePreviewCount} className="rounded-full h-8 text-xs" data-testid="preview-count-btn">Preview Count</Button>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Checkbox checked={newFilters.has_birthday_this_month} onCheckedChange={v => setNewFilters(p => ({ ...p, has_birthday_this_month: v }))} />
-                            <Label className="text-sm">Birthday this month</Label>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button variant="outline" onClick={handlePreviewCount} className="rounded-full" data-testid="preview-count-btn">Preview Count</Button>
-                            {previewCount !== null && <span className="text-sm font-semibold text-[#F26B33]">{previewCount.toLocaleString()} customers match</span>}
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                            <Button variant="outline" onClick={closeCreateDialog}>Cancel</Button>
-                            <Button onClick={handleCreate} disabled={saving} className="bg-[#F26B33] hover:bg-[#D85A2A] text-white" data-testid="save-audience-btn">
+
+                        <div className="flex justify-end gap-2 pt-1">
+                            <Button variant="outline" onClick={closeCreateDialog} className="rounded-full">Cancel</Button>
+                            <Button onClick={handleCreate} disabled={saving} className="bg-[#F26B33] hover:bg-[#D85A2A] text-white rounded-full" data-testid="save-audience-btn">
                                 {saving ? (editingSeg ? "Updating..." : "Creating...") : (editingSeg ? "Update Audience" : "Create Audience")}
                             </Button>
                         </div>

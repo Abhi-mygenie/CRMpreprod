@@ -1339,7 +1339,7 @@ async def register_via_qr(restaurant_id: str, customer_data: CustomerCreate):
 segments_router = APIRouter(prefix="/segments", tags=["Segments"])
 
 async def count_customers_by_filters(user_id: str, filters: dict) -> int:
-    query = build_customer_query(user_id, filters)
+    query = await build_customer_query(user_id, filters)
     return await db.customers.count_documents(query)
 
 @segments_router.post("", response_model=Segment)
@@ -1428,7 +1428,7 @@ async def get_segment_customers(segment_id: str, user: dict = Depends(get_curren
     if not segment:
         raise HTTPException(status_code=404, detail="Segment not found")
     
-    query = build_customer_query(user["id"], segment["filters"])
+    query = await build_customer_query(user["id"], segment["filters"])
     customers = await db.customers.find(query, {"_id": 0}).to_list(1000)
     
     return [Customer(**c) for c in customers]
