@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, AliasChoices, field_validator
 from typing import List, Optional
 import re as _re
+import uuid
+from datetime import datetime, timezone
 
 # CR-001C-C V3-A — shared validators for time-window fields.
 _HHMM_RE = _re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
@@ -1227,3 +1229,45 @@ CRM_EVENTS = [
 
 # All automation events (combined for backward compatibility)
 AUTOMATION_EVENTS = POS_EVENTS + CRM_EVENTS
+
+
+# ── CR-035: Customer Export / Import models ──────────────────────────────────
+
+class ImportRowError(BaseModel):
+    row: int            # 1-based row number from the file
+    reason: str         # Human-readable reason e.g. "Missing phone number"
+
+
+class ImportLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    filename: str
+    format: str                                 # "csv" or "xlsx"
+    total_rows: int
+    imported: int                               # rows created
+    updated: int                                # rows updated (dup phone)
+    failed: int                                 # rows skipped
+    errors: List[ImportRowError] = []           # per-row error details (max 50)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ImportPreviewRow(BaseModel):
+    row: int
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    tags: Optional[str] = None                  # comma-sep string from file
+    status: str                                 # "new" | "update" | "error"
+    reason: Optional[str] = None               # populated when status == "error"
+
+
+class ImportPreviewResponse(BaseModel):
+    filename: str
+    format: str
+    total_rows: int
+    new_count: int
+    update_count: int
+    error_count: int
+    preview_rows: List[ImportPreviewRow]        # first 5 rows only
+    all_errors: List[ImportRowError]            # all error rows for display
+

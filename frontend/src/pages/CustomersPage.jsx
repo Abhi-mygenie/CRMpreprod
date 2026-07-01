@@ -4,16 +4,17 @@ import { toast } from "sonner";
 import TagChip from "@/components/TagChip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from "@/components/ui/command";
-import { 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
     Users, Plus, Search, ChevronRight, Star, TrendingUp, Gift, Phone, User, Check,
     Edit2, Trash2, Building2, Calendar, MapPin, Filter, Clock, ChevronDown, Tag,
     ChevronLeft, Save, Layers, Wallet, Rocket, Cake, Heart, Utensils, MessageCircle,
-    Flag, Crown, Leaf, ChevronUp, Home, Sparkles, X
+    Flag, Crown, Leaf, ChevronUp, Home, Sparkles, X,
+    Upload, Download, FileSpreadsheet, History, AlertCircle, CheckCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -209,6 +210,17 @@ export default function CustomersPage() {
     const [tagPopoverOpen, setTagPopoverOpen] = useState({});
     const [tagSearchInput, setTagSearchInput] = useState({});
 
+    // CR-035: Export / Import state
+    const [showExportDropdown, setShowExportDropdown]   = useState(false);
+    const [showImportModal, setShowImportModal]         = useState(false);
+    const [importStep, setImportStep]                   = useState(1);
+    const [importFile, setImportFile]                   = useState(null);
+    const [importPreview, setImportPreview]             = useState(null);
+    const [importResult, setImportResult]               = useState(null);
+    const [importLoading, setImportLoading]             = useState(false);
+    const [importHistory, setImportHistory]             = useState([]);
+    const [showImportHistory, setShowImportHistory]     = useState(false);
+
     const buildQueryString = () => {
         const params = new URLSearchParams();
         if (search) params.append("search", search);
@@ -325,6 +337,111 @@ export default function CustomersPage() {
     useEffect(() => {
         api.get("/customers/tags").then(r => setAvailableTags(r.data?.tags || [])).catch(() => {});
     }, []);
+
+    // CR-035: fetch import history once on mount
+    useEffect(() => {
+        api.get("/customers/import-history").then(r => setImportHistory(r.data || [])).catch(() => {});
+    }, []);
+
+    // CR-035: close export dropdown on outside click
+    useEffect(() => {
+        if (!showExportDropdown) return;
+        const handler = (e) => {
+            if (!e.target.closest("#export-btn-wrapper")) setShowExportDropdown(false);
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [showExportDropdown]);
+
+    // CR-035: export handler
+    const handleExport = async (format) => {
+        setShowExportDropdown(false);
+        try {
+            const response = await api.get(`/customers/export?format=${format}`, { responseType: "blob" });
+            const url  = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href  = url;
+            const date = new Date().toISOString().slice(0,10).replace(/-/g,"_");
+            link.setAttribute("download", `customers_export_${date}.${format}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success(`Customers exported as ${format.toUpperCase()}`);
+        } catch {
+            toast.error("Export failed. Please try again.");
+        }
+    };
+
+    const handleDownloadTemplate = async (format = "csv") => {
+        try {
+            const response = await api.get(`/customers/sample-import-template?format=${format}`, { responseType: "blob" });
+            const url  = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href  = url;
+            link.setAttribute("download", `import_template.${format}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch {
+            toast.error("Failed to download template.");
+        }
+    };
+
+    const handleFileSelect = async (file) => {
+        if (!file) return;
+        const name = file.name.toLowerCase();
+        if (!name.endsWith(".csv") && !name.endsWith(".xlsx")) {
+            toast.error("Only .csv and .xlsx files are supported.");
+            return;
+        }
+        setImportFile(file);
+        setImportLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await api.post("/customers/import-preview", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            setImportPreview(response.data);
+            setImportStep(2);
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to parse file.");
+        } finally {
+            setImportLoading(false);
+        }
+    };
+
+    const handleConfirmImport = async () => {
+        if (!importFile) return;
+        setImportLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", importFile);
+            const response = await api.post("/customers/import", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            setImportResult(response.data);
+            setImportStep(3);
+            fetchCustomers();
+            fetchSegments();
+            api.get("/customers/import-history").then(r => setImportHistory(r.data || [])).catch(() => {});
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Import failed.");
+        } finally {
+            setImportLoading(false);
+        }
+    };
+
+    const resetImportModal = () => {
+        setShowImportModal(false);
+        setImportStep(1);
+        setImportFile(null);
+        setImportPreview(null);
+        setImportResult(null);
+        setImportLoading(false);
+    };
 
     // Lock body scroll when filter drawer is open
     useEffect(() => {
@@ -606,7 +723,7 @@ export default function CustomersPage() {
                     <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Montserrat']" data-testid="customers-title">
                         Customers
                     </h1>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                         {/* Sync button only shows when no customers exist */}
                         {!loading && customers.length === 0 && (
                             <Button 
@@ -618,6 +735,56 @@ export default function CustomersPage() {
                                 🔄 Sync MyGenie
                             </Button>
                         )}
+
+                        {/* CR-035: Export dropdown */}
+                        <div className="relative" id="export-btn-wrapper">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowExportDropdown(v => !v)}
+                                className="rounded-full h-10 px-4 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                                data-testid="export-customers-btn"
+                            >
+                                <Download className="w-4 h-4 mr-1.5" />
+                                Export
+                                <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                            </Button>
+                            {showExportDropdown && (
+                                <div className="absolute top-full right-0 mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg z-50 min-w-[175px] overflow-hidden">
+                                    <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50">
+                                        Download all customers
+                                    </div>
+                                    <button
+                                        onClick={() => handleExport("csv")}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                        data-testid="export-csv-btn"
+                                    >
+                                        <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                                        Export as CSV
+                                    </button>
+                                    <button
+                                        onClick={() => handleExport("xlsx")}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                        data-testid="export-xlsx-btn"
+                                    >
+                                        <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                                        Export as Excel
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* CR-035: Import button */}
+                        <Button
+                            variant="outline"
+                            onClick={() => { setShowImportModal(true); setImportStep(1); }}
+                            className="rounded-full h-10 px-4 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                            data-testid="import-customers-btn"
+                        >
+                            <Upload className="w-4 h-4 mr-1.5" />
+                            Import
+                        </Button>
+
+                        {/* Existing Add button — unchanged */}
                         <Button 
                             onClick={() => setShowAddModal(true)}
                             className="bg-[#F26B33] hover:bg-[#D85A2A] rounded-full h-10 px-4"
@@ -1070,6 +1237,50 @@ export default function CustomersPage() {
                     </div>
                 )}
 
+                {/* CR-035: Import History (collapsible, shown when history exists) */}
+                {importHistory.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4">
+                        <button
+                            className="flex items-center justify-between w-full px-5 py-3.5 hover:bg-gray-50/50 transition-colors rounded-2xl"
+                            onClick={() => setShowImportHistory(v => !v)}
+                            data-testid="import-history-toggle"
+                        >
+                            <div className="flex items-center gap-2">
+                                <History className="w-4 h-4 text-[#F26B33]" />
+                                <span className="font-semibold text-sm text-gray-800">Import History</span>
+                                <span className="text-xs text-gray-400 ml-1">({importHistory.length} run{importHistory.length > 1 ? "s" : ""})</span>
+                            </div>
+                            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showImportHistory ? "rotate-180" : ""}`} />
+                        </button>
+                        {showImportHistory && (
+                            <div className="border-t border-gray-50 divide-y divide-gray-50">
+                                {importHistory.map((log, idx) => (
+                                    <div key={log.id || idx} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${log.failed === 0 ? "bg-green-100" : log.imported + log.updated > 0 ? "bg-amber-100" : "bg-red-100"}`}>
+                                            {log.failed === 0
+                                                ? <CheckCircle className="w-4 h-4 text-green-600" />
+                                                : <AlertCircle className={`w-4 h-4 ${log.imported + log.updated > 0 ? "text-amber-600" : "text-red-500"}`} />
+                                            }
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-gray-800 truncate">{log.filename}</div>
+                                            <div className="text-xs text-gray-400 mt-0.5">
+                                                {new Date(log.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {log.format?.toUpperCase()}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 text-xs font-semibold flex-shrink-0">
+                                            {log.imported > 0 && <span className="text-green-600">+{log.imported} new</span>}
+                                            {log.updated  > 0 && <span className="text-blue-600">{log.updated} updated</span>}
+                                            {log.failed   > 0 && <span className="text-red-500">{log.failed} failed</span>}
+                                        </div>
+                                        <div className="text-xs text-gray-400 flex-shrink-0">{log.total_rows} rows</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Customer List */}
                 {loading ? (
                     <div className="space-y-3">
@@ -1284,7 +1495,7 @@ export default function CustomersPage() {
                                                                         ))}
                                                                         {(tagSearchInput[customer.id] || "").trim() && !availableTags.includes((tagSearchInput[customer.id] || "").trim()) && (
                                                                             <CommandItem onSelect={() => handleAddTag(customer.id, tagSearchInput[customer.id])} className="text-xs cursor-pointer text-[#F26B33] font-semibold">
-                                                                                + Create "{(tagSearchInput[customer.id] || "").trim()}"
+                                                                                + Create &quot;{(tagSearchInput[customer.id] || "").trim()}&quot;
                                                                             </CommandItem>
                                                                         )}
                                                                     </CommandList>
@@ -2343,6 +2554,198 @@ export default function CustomersPage() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* CR-035: Import Modal */}
+            <Dialog open={showImportModal} onOpenChange={(open) => { if (!open) resetImportModal(); }}>
+                <DialogContent className="max-w-lg rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="font-['Montserrat'] text-lg">
+                            {importStep === 3 ? "Import Complete" : "Import Customers"}
+                        </DialogTitle>
+                        {importStep < 3 && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                                {importStep === 1
+                                    ? "Upload a CSV or Excel file — max 5,000 rows"
+                                    : `${importPreview?.filename} · ${importPreview?.total_rows} rows detected`
+                                }
+                            </p>
+                        )}
+                    </DialogHeader>
+
+                    {/* Step indicator */}
+                    <div className="flex items-center gap-2 my-1">
+                        {[1,2,3].map((s, i) => (
+                            <div key={s} className="flex items-center gap-2 flex-1">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${importStep > s ? "bg-green-500 text-white" : importStep === s ? "bg-[#F26B33] text-white" : "bg-gray-200 text-gray-400"}`}>
+                                    {importStep > s ? <CheckCircle className="w-3.5 h-3.5" /> : s}
+                                </div>
+                                {i < 2 && <div className={`flex-1 h-0.5 transition-colors ${importStep > s ? "bg-green-500" : "bg-gray-200"}`} />}
+                            </div>
+                        ))}
+                        <span className="ml-1 text-xs text-gray-400 flex-shrink-0">Step {importStep} of 3</span>
+                    </div>
+
+                    {/* Step 1: Upload */}
+                    {importStep === 1 && (
+                        <div>
+                            <label
+                                htmlFor="import-file-input"
+                                className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl p-8 cursor-pointer hover:border-[#F26B33] hover:bg-orange-50/30 transition-all mb-4"
+                                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("border-[#F26B33]", "bg-orange-50/30"); }}
+                                onDragLeave={(e) => { e.currentTarget.classList.remove("border-[#F26B33]", "bg-orange-50/30"); }}
+                                onDrop={(e) => { e.preventDefault(); handleFileSelect(e.dataTransfer.files[0]); }}
+                                data-testid="import-dropzone"
+                            >
+                                {importLoading
+                                    ? <div className="flex flex-col items-center gap-2">
+                                        <div className="w-8 h-8 border-2 border-[#F26B33] border-t-transparent rounded-full animate-spin" />
+                                        <p className="text-sm text-gray-500">Parsing file…</p>
+                                      </div>
+                                    : <>
+                                        <Upload className="w-10 h-10 text-gray-300 mb-2" />
+                                        <p className="font-semibold text-gray-700 text-sm">Drop file here, or <span className="text-[#F26B33]">browse</span></p>
+                                        <p className="text-xs text-gray-400 mt-1">Supports .csv and .xlsx — max 5,000 rows</p>
+                                      </>
+                                }
+                                <input id="import-file-input" type="file" accept=".csv,.xlsx" className="hidden" onChange={(e) => handleFileSelect(e.target.files[0])} data-testid="import-file-input" />
+                            </label>
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs text-amber-700">
+                                <span className="font-semibold">Required columns:</span> <code className="bg-amber-100 px-1 rounded">name</code> and <code className="bg-amber-100 px-1 rounded">phone</code>. Optional: email, dob, city, address, tags (comma-separated). Duplicate phone → update existing customer.
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                <span className="text-xs text-gray-600">Not sure of the format?</span>
+                                <button onClick={() => handleDownloadTemplate("csv")} className="text-xs font-semibold text-[#F26B33] hover:underline flex items-center gap-1">
+                                    <Download className="w-3 h-3" /> Download Sample CSV
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 2: Preview */}
+                    {importStep === 2 && importPreview && (
+                        <div>
+                            <div className="grid grid-cols-3 gap-3 mb-4">
+                                <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                                    <div className="text-xl font-bold text-green-700">{importPreview.new_count}</div>
+                                    <div className="text-xs text-green-600 mt-0.5">New</div>
+                                </div>
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+                                    <div className="text-xl font-bold text-blue-700">{importPreview.update_count}</div>
+                                    <div className="text-xs text-blue-600 mt-0.5">Will update</div>
+                                </div>
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+                                    <div className="text-xl font-bold text-red-600">{importPreview.error_count}</div>
+                                    <div className="text-xs text-red-500 mt-0.5">Errors</div>
+                                </div>
+                            </div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Preview — first 5 rows</p>
+                            <div className="rounded-xl border border-gray-100 overflow-hidden mb-4">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                        <thead className="bg-gray-50"><tr>
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500">#</th>
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500">Name</th>
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500">Phone</th>
+                                            <th className="px-3 py-2 text-left font-semibold text-gray-500">Status</th>
+                                        </tr></thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {importPreview.preview_rows.map(row => (
+                                                <tr key={row.row} className={row.status === "error" ? "bg-red-50/60" : ""}>
+                                                    <td className="px-3 py-2 text-gray-400">{row.row}</td>
+                                                    <td className="px-3 py-2 font-medium">{row.name || <span className="text-gray-400 italic">—</span>}</td>
+                                                    <td className="px-3 py-2 text-gray-600">{row.phone || <span className="text-red-500">missing</span>}</td>
+                                                    <td className="px-3 py-2">
+                                                        {row.status === "new"    && <span className="text-green-600 font-medium">New</span>}
+                                                        {row.status === "update" && <span className="text-blue-600 font-medium">Update</span>}
+                                                        {row.status === "error"  && <span className="text-red-500 font-medium text-xs">{row.reason}</span>}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {importPreview.error_count > 0 && (
+                                <div className="bg-red-50 border border-red-100 rounded-xl p-2.5 mb-3 text-xs text-red-600 flex items-start gap-2">
+                                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                                    <span><span className="font-semibold">{importPreview.error_count} row{importPreview.error_count > 1 ? "s" : ""} will be skipped</span> due to errors. Valid rows ({importPreview.new_count + importPreview.update_count}) will still import.</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Step 3: Result */}
+                    {importStep === 3 && importResult && (
+                        <div>
+                            <div className="text-center mb-5">
+                                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <CheckCircle className="w-7 h-7 text-green-600" />
+                                </div>
+                                <h3 className="text-lg font-bold font-['Montserrat'] text-gray-900">Import Successful</h3>
+                                <p className="text-xs text-gray-400 mt-1">{importResult.filename}</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 mb-4">
+                                <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                                    <div className="text-2xl font-bold text-green-700">{importResult.imported}</div>
+                                    <div className="text-xs text-green-600 mt-0.5">Created</div>
+                                </div>
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+                                    <div className="text-2xl font-bold text-blue-700">{importResult.updated}</div>
+                                    <div className="text-xs text-blue-600 mt-0.5">Updated</div>
+                                </div>
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+                                    <div className="text-2xl font-bold text-red-600">{importResult.failed}</div>
+                                    <div className="text-xs text-red-500 mt-0.5">Failed</div>
+                                </div>
+                            </div>
+                            {importResult.errors?.length > 0 && (
+                                <div className="bg-gray-50 rounded-xl border border-gray-100 p-3 mb-3">
+                                    <p className="text-xs font-semibold text-gray-600 mb-2">Failed rows (skipped)</p>
+                                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                                        {importResult.errors.slice(0, 10).map((e, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-xs">
+                                                <span className="bg-red-100 text-red-600 rounded px-1.5 py-0.5 font-mono font-medium">Row {e.row}</span>
+                                                <span className="text-gray-500">{e.reason}</span>
+                                            </div>
+                                        ))}
+                                        {importResult.errors.length > 10 && (
+                                            <p className="text-xs text-gray-400">…and {importResult.errors.length - 10} more</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <DialogFooter className="flex gap-3 mt-2">
+                        {importStep === 1 && (
+                            <Button variant="outline" className="flex-1 rounded-full" onClick={resetImportModal}>Cancel</Button>
+                        )}
+                        {importStep === 2 && (
+                            <>
+                                <Button variant="outline" className="flex-1 rounded-full" onClick={() => { setImportStep(1); setImportPreview(null); }} disabled={importLoading}>← Back</Button>
+                                <Button
+                                    className="flex-1 rounded-full bg-[#F26B33] hover:bg-[#D85A2A] text-white"
+                                    onClick={handleConfirmImport}
+                                    disabled={importLoading || (importPreview?.new_count + importPreview?.update_count === 0)}
+                                    data-testid="confirm-import-btn"
+                                >
+                                    {importLoading
+                                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />Importing…</>
+                                        : `Import ${(importPreview?.new_count || 0) + (importPreview?.update_count || 0)} Customers`
+                                    }
+                                </Button>
+                            </>
+                        )}
+                        {importStep === 3 && (
+                            <>
+                                <Button variant="outline" className="flex-1 rounded-full" onClick={() => { resetImportModal(); setShowImportHistory(true); }}>View History</Button>
+                                <Button className="flex-1 rounded-full bg-[#F26B33] hover:bg-[#D85A2A] text-white" onClick={resetImportModal} data-testid="import-done-btn">Done</Button>
+                            </>
+                        )}
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </ResponsiveLayout>

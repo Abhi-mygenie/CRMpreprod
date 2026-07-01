@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request, UploadFile, File
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta
 import uuid
@@ -6,6 +6,11 @@ import os
 import httpx
 import json
 import logging
+import csv
+import io
+from fastapi.responses import StreamingResponse
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
 
 logger = logging.getLogger("customer_sync")
 
@@ -15,13 +20,107 @@ from core.helpers import generate_qr_code, build_customer_query, _coerce_pos_id,
 from core.loyalty import calculate_tier as _calc_tier
 from models.schemas import (
     Customer, CustomerCreate, CustomerUpdate,
-    Segment, SegmentCreate, SegmentUpdate
+    Segment, SegmentCreate, SegmentUpdate,
+    ImportLog, ImportPreviewResponse, ImportPreviewRow, ImportRowError
 )
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
 # In-memory customer sync status tracking (kept as fast-read cache; F9 persists to DB)
 customer_sync_status = {}
+
+# CR-035: Ordered list of (csv_header, customer_dict_key) for export
+EXPORT_FIELDS = [
+    ("Name",            "name"),
+    ("Phone",           "phone"),
+    ("Email",           "email"),
+    ("Date of Birth",   "dob"),
+    ("Anniversary",     "anniversary"),
+    ("Gender",          "gender"),
+    ("City",            "city"),
+    ("Address",         "address"),
+    ("State",           "state"),
+    ("Pincode",         "pincode"),
+    ("Total Points",    "total_points"),
+    ("Tier",            "tier"),
+    ("Wallet Balance",  "wallet_balance"),
+    ("Total Visits",    "total_visits"),
+    ("Total Spent",     "total_spent"),
+    ("Last Visit",      "last_visit"),
+    ("Tags",            "tags"),
+    ("WhatsApp Opt-in", "whatsapp_opt_in"),
+    ("VIP",             "vip_flag"),
+    ("Lead Source",     "lead_source"),
+    ("Customer Type",   "customer_type"),
+    ("Created At",      "created_at"),
+]
+
+
+def _parse_import_file(content: bytes, filename: str) -> list:
+    """CR-035: Parse CSV or Excel file bytes into list of row dicts with 1-based row index."""
+    rows = []
+    fname = (filename or "").lower()
+    try:
+        if fname.endswith(".xlsx"):
+            wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+            ws = wb.active
+            raw_rows = list(ws.iter_rows(values_only=True))
+            if not raw_rows:
+                raise HTTPException(status_code=400, detail="Excel file is empty")
+            headers = [str(h).strip().lower() if h else "" for h in raw_rows[0]]
+            for i, row in enumerate(raw_rows[1:], start=2):
+                row_dict = {headers[j]: (str(v).strip() if v is not None else "") for j, v in enumerate(row) if j < len(headers)}
+                row_dict["_row"] = i
+                rows.append(row_dict)
+        else:
+            text = content.decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            for i, row in enumerate(reader, start=2):
+                row_dict = {k.strip().lower(): v.strip() for k, v in row.items()}
+                row_dict["_row"] = i
+                rows.append(row_dict)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse file: {str(e)}")
+    return rows
+
+
+def _validate_and_classify_row(row: dict, existing_phones: set) -> dict:
+    """CR-035: Validate a single parsed row. Returns status: new|update|error."""
+    row_num = row.get("_row", 0)
+    name  = row.get("name", "").strip()
+    phone = row.get("phone", "").strip()
+
+    if not name:
+        return {"status": "error", "row": row_num, "reason": "Missing name"}
+    if not phone:
+        return {"status": "error", "row": row_num, "reason": "Missing phone number"}
+
+    clean_phone = phone.replace(" ", "").replace("-", "").lstrip("+")
+    if clean_phone.startswith("91") and len(clean_phone) == 12:
+        clean_phone = clean_phone[2:]
+    if not clean_phone.isdigit():
+        return {"status": "error", "row": row_num, "reason": f"Invalid phone format: '{phone}'"}
+    if len(clean_phone) != 10:
+        return {"status": "error", "row": row_num, "reason": f"Phone must be 10 digits, got {len(clean_phone)}"}
+
+    status = "update" if clean_phone in existing_phones else "new"
+    raw_tags = row.get("tags", "").strip()
+    tags_list = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else []
+
+    return {
+        "status":  status,
+        "row":     row_num,
+        "name":    name,
+        "phone":   clean_phone,
+        "email":   row.get("email", "").strip() or None,
+        "dob":     row.get("dob", "").strip() or None,
+        "city":    row.get("city", "").strip() or None,
+        "address": row.get("address", "").strip() or None,
+        "tags":    tags_list,
+        "reason":  None,
+    }
 
 
 # CR-001B-fix Phase 2A F9 helpers — persistent migration_sync_logs (customer sync side)
@@ -1065,7 +1164,302 @@ async def list_available_tags(user: dict = Depends(get_current_user)):
     return {"tags": tags}
 
 
-@router.post("/{customer_id}/tags")
+# ── CR-035: Export ────────────────────────────────────────────────────────────
+
+@router.get("/export")
+async def export_customers(
+    format: str = "csv",
+    user: dict = Depends(get_current_user)
+):
+    """CR-035: Export ALL customers as CSV or Excel. 22 fields including loyalty + tags."""
+    if format not in ("csv", "xlsx"):
+        raise HTTPException(status_code=400, detail="format must be 'csv' or 'xlsx'")
+
+    cursor = db.customers.find({"user_id": user["id"]}, {"_id": 0})
+    customers = await cursor.to_list(length=None)
+
+    def get_val(c: dict, key: str) -> str:
+        v = c.get(key)
+        if v is None:
+            return ""
+        if key == "tags" and isinstance(v, list):
+            return ", ".join(v)
+        if isinstance(v, bool):
+            return "Yes" if v else "No"
+        return str(v)
+
+    headers = [h for h, _ in EXPORT_FIELDS]
+    keys    = [k for _, k in EXPORT_FIELDS]
+    timestamp = datetime.now(timezone.utc).strftime("%Y_%m_%d")
+
+    if format == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(headers)
+        for c in customers:
+            writer.writerow([get_val(c, k) for k in keys])
+        output.seek(0)
+        filename = f"customers_export_{timestamp}.csv"
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+
+    # xlsx
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Customers"
+    header_fill = PatternFill(start_color="F26B33", end_color="F26B33", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=10)
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.fill      = header_fill
+        cell.font      = header_font
+        cell.alignment = Alignment(horizontal="center")
+    for c in customers:
+        ws.append([get_val(c, k) for k in keys])
+    for col in ws.columns:
+        max_len = max((len(str(cell.value or "")) for cell in col), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"customers_export_{timestamp}.xlsx"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@router.get("/sample-import-template")
+async def download_import_template(
+    format: str = "csv",
+    user: dict = Depends(get_current_user)
+):
+    """CR-035: Download a sample import template with headers + 2 example rows."""
+    if format not in ("csv", "xlsx"):
+        raise HTTPException(status_code=400, detail="format must be 'csv' or 'xlsx'")
+
+    IMPORT_HEADERS = ["name", "phone", "email", "dob", "city", "address", "tags"]
+    SAMPLE_ROWS = [
+        ["Priya Sharma",  "9876543210", "priya@example.com", "1990-05-15", "Mumbai", "123 Main St", "VIP, Regular"],
+        ["Rahul Verma",   "9123456789", "rahul@example.com", "",           "Delhi",  "",             ""],
+    ]
+    timestamp = datetime.now(timezone.utc).strftime("%Y_%m_%d")
+
+    if format == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(IMPORT_HEADERS)
+        writer.writerows(SAMPLE_ROWS)
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="import_template_{timestamp}.csv"'}
+        )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Import Template"
+    header_fill = PatternFill(start_color="F26B33", end_color="F26B33", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    ws.append(IMPORT_HEADERS)
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+    for row in SAMPLE_ROWS:
+        ws.append(row)
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width = 20
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="import_template_{timestamp}.xlsx"'}
+    )
+
+
+# ── CR-035: Import ────────────────────────────────────────────────────────────
+
+@router.post("/import-preview", response_model=ImportPreviewResponse)
+async def preview_import(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """CR-035 Step 2: Parse file and return preview — NO DB writes."""
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB.")
+    fname = (file.filename or "").lower()
+    if not (fname.endswith(".csv") or fname.endswith(".xlsx")):
+        raise HTTPException(status_code=400, detail="Only .csv and .xlsx files are supported.")
+    fmt = "xlsx" if fname.endswith(".xlsx") else "csv"
+
+    rows = _parse_import_file(content, file.filename)
+    if len(rows) > 5000:
+        raise HTTPException(status_code=400, detail=f"File has {len(rows)} rows. Maximum allowed is 5,000.")
+
+    existing_docs = await db.customers.find(
+        {"user_id": user["id"]}, {"phone": 1, "_id": 0}
+    ).to_list(length=None)
+    existing_phones = {doc["phone"] for doc in existing_docs if doc.get("phone")}
+
+    classified   = [_validate_and_classify_row(r, existing_phones) for r in rows]
+    new_count    = sum(1 for r in classified if r["status"] == "new")
+    update_count = sum(1 for r in classified if r["status"] == "update")
+    error_count  = sum(1 for r in classified if r["status"] == "error")
+
+    preview_rows = []
+    for r in classified[:5]:
+        preview_rows.append(ImportPreviewRow(
+            row    = r["row"],
+            name   = r.get("name"),
+            phone  = r.get("phone"),
+            email  = r.get("email"),
+            tags   = ", ".join(r["tags"]) if isinstance(r.get("tags"), list) else r.get("tags"),
+            status = r["status"],
+            reason = r.get("reason"),
+        ))
+
+    all_errors = [
+        ImportRowError(row=r["row"], reason=r["reason"])
+        for r in classified if r["status"] == "error"
+    ]
+
+    return ImportPreviewResponse(
+        filename     = file.filename,
+        format       = fmt,
+        total_rows   = len(rows),
+        new_count    = new_count,
+        update_count = update_count,
+        error_count  = error_count,
+        preview_rows = preview_rows,
+        all_errors   = all_errors,
+    )
+
+
+@router.post("/import")
+async def import_customers(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """CR-035 Step 3: Execute import — upsert customers, update tag catalog, log run."""
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum is 10MB.")
+    fname = (file.filename or "").lower()
+    if not (fname.endswith(".csv") or fname.endswith(".xlsx")):
+        raise HTTPException(status_code=400, detail="Only .csv and .xlsx supported.")
+    fmt = "xlsx" if fname.endswith(".xlsx") else "csv"
+
+    rows = _parse_import_file(content, file.filename)
+    if len(rows) > 5000:
+        raise HTTPException(status_code=400, detail=f"Max 5,000 rows allowed, got {len(rows)}.")
+
+    existing_docs = await db.customers.find(
+        {"user_id": user["id"]}, {"phone": 1, "id": 1, "tags": 1, "_id": 0}
+    ).to_list(length=None)
+    phone_to_doc = {doc["phone"]: doc for doc in existing_docs if doc.get("phone")}
+
+    imported_count = 0
+    updated_count  = 0
+    failed_count   = 0
+    errors         = []
+    new_tags_seen  = set()
+
+    for raw_row in rows:
+        result = _validate_and_classify_row(raw_row, set(phone_to_doc.keys()))
+
+        if result["status"] == "error":
+            failed_count += 1
+            errors.append(ImportRowError(row=result["row"], reason=result["reason"]))
+            continue
+
+        payload = {"name": result["name"], "phone": result["phone"]}
+        for field in ("email", "dob", "city", "address"):
+            if result.get(field):
+                payload[field] = result[field]
+
+        incoming_tags = result.get("tags", [])
+        for t in incoming_tags:
+            new_tags_seen.add(t)
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        if result["status"] == "update":
+            existing_doc  = phone_to_doc[result["phone"]]
+            existing_tags = existing_doc.get("tags", [])
+            merged_tags   = list(set(existing_tags + incoming_tags))
+            update_payload = {**payload, "tags": merged_tags, "updated_at": now}
+            update_payload = {k: v for k, v in update_payload.items() if v is not None and v != ""}
+            await db.customers.update_one(
+                {"user_id": user["id"], "phone": result["phone"]},
+                {"$set": update_payload}
+            )
+            updated_count += 1
+        else:
+            new_doc = {
+                "id":              str(uuid.uuid4()),
+                "user_id":         user["id"],
+                **payload,
+                "tags":            incoming_tags,
+                "tier":            "Bronze",
+                "total_points":    0,
+                "wallet_balance":  0.0,
+                "total_visits":    0,
+                "total_spent":     0.0,
+                "whatsapp_opt_in": False,
+                "created_at":      now,
+                "updated_at":      now,
+            }
+            await db.customers.insert_one(new_doc)
+            imported_count += 1
+
+    if new_tags_seen:
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$addToSet": {"available_tags": {"$each": list(new_tags_seen)}}}
+        )
+
+    log = ImportLog(
+        user_id    = user["id"],
+        filename   = file.filename,
+        format     = fmt,
+        total_rows = len(rows),
+        imported   = imported_count,
+        updated    = updated_count,
+        failed     = failed_count,
+        errors     = errors[:50],
+    )
+    await db.import_logs.insert_one(log.dict())
+
+    return {
+        "id":         log.id,
+        "filename":   log.filename,
+        "total_rows": log.total_rows,
+        "imported":   log.imported,
+        "updated":    log.updated,
+        "failed":     log.failed,
+        "errors":     [e.dict() for e in errors[:50]],
+        "created_at": log.created_at.isoformat(),
+    }
+
+
+@router.get("/import-history")
+async def get_import_history(user: dict = Depends(get_current_user)):
+    """CR-035: Return last 10 import logs for this tenant, newest first."""
+    logs = await db.import_logs.find(
+        {"user_id": user["id"]}, {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    return logs
+
+
+
 async def add_tags_to_customer(customer_id: str, data: dict, user: dict = Depends(get_current_user)):
     """CR-034: Add one or more tags to a customer. Idempotent. Updates tenant catalog."""
     import re
