@@ -325,27 +325,26 @@ AC7 (tenant isolation) is guaranteed by the existing architecture. No extra work
 
 **CR-033:**
 
-| # | Question | Options | Recommendation | Status |
-|---|---|---|---|---|
-| Q1 | Which phases to ship? | P0 only / P0+P1 / P0+P1+cheap-P2 | Ship P0+P1+cheap-P2 (~1.5 days, best ROI) | **OPEN** |
-| Q2 | AND/OR combinator | (a) AND-only · (b) dim-level multi-select = OR, cross-dim = AND · (c) full tree | (b) — already implicit via `$in`; no extra UI needed | **OPEN** |
-| Q3 | UI grouping | Flat list (current) vs Collapsible sections | Collapsible sections (§5 proposal) | **OPEN** |
-| Q4 | Cached fields for expensive P2 (last_order_date, avg_order_value)? | Live aggregate / Cached on order webhook | Cached (add field on POS order webhook) — but P4 is out of this CR | Deferred |
-| Q5 | Any must-have filter not listed? | — | — | **OPEN** |
-| Q6 | Priority bump (any P1→P0 or P2→P1)? | — | — | **OPEN** |
+| # | Question | Owner Answer | Status |
+|---|---|---|---|
+| Q1 | Which phases to ship? | **All together** (P0 + P1 + cheap P2) | ✅ LOCKED |
+| Q2 | AND/OR combinator | **Multi-select within filter = OR, cross-filter = AND** (no toggle UI) | ✅ LOCKED |
+| Q3 | Filter UI design | **Wider Dialog (max-w-2xl) + 5 collapsible accordion sections** | ✅ LOCKED |
+| Q4 | Filter list approved? | **All 20 filters approved** as shown in mockup | ✅ LOCKED |
+| Q5 | Any must-have filter missing? | None raised | ✅ LOCKED |
 
 **CR-034:**
 
-| # | Question | Options | Recommendation | Status |
-|---|---|---|---|---|
-| Q1 | Where is "add tag" UI? | (a) CustomersPage only · (b) Also on Customer Detail modal · (c) Also on OrdersPage | (b) — list row + detail modal | **OPEN** |
-| Q2 | Multi-tag filter semantics | (a) OR default · (b) AND default · (c) User toggle | (a) OR default with optional toggle | **OPEN** |
-| Q3 | When last customer untagged, remove from catalog? | (a) Auto-remove · (b) Keep · (c) Show unused | (b) Keep | **OPEN** |
-| Q4 | Tag name constraints | (a) Free-form · (b) Max 30 chars, alphanum+space · (c) Case-normalised | (b) case-preserving, dedup case-insensitive | **OPEN** |
-| Q5 | Should tier become a tag? | (a) Keep separate · (b) Also as read-only tags | (a) Keep separate | **OPEN** |
-| Q6 | Backfill vip_flag→VIP tag? | (a) Auto-tag on deploy · (b) Leave vip_flag separate · (c) Migrate + deprecate boolean | (a) Auto-tag; keep boolean | **OPEN** |
+| # | Question | Owner Answer | Status |
+|---|---|---|---|
+| Q1 | Tag UI locations | CustomersPage row + Customer Detail modal | ✅ LOCKED (recommendation accepted) |
+| Q2 | Multi-tag filter semantics | OR default with AND toggle | ✅ LOCKED (recommendation accepted) |
+| Q3 | Remove from catalog when last untagged? | Keep in catalog | ✅ LOCKED (recommendation accepted) |
+| Q4 | Tag name constraints | Max 30 chars, alphanumeric+space, case-preserving | ✅ LOCKED (recommendation accepted) |
+| Q5 | Tier as tag? | Keep separate | ✅ LOCKED (recommendation accepted) |
+| Q6 | Backfill vip_flag→VIP tag? | Auto-tag 46 customers on deploy | ✅ LOCKED (recommendation accepted) |
 
-**Recommended path**: Owner accepts all 12 recommended defaults verbatim → skip to IMPLEMENTATION immediately (no second planning round needed). Implementation plan below is pre-built for that case.
+> **All 12 decisions locked. Implementation gate is OPEN for both CRs.**
 
 ---
 
@@ -424,9 +423,13 @@ Files WILL NOT touch:
   core/coupon.py, routers/pos.py, core/whatsapp.py, core/loyalty.py,
   routers/campaigns.py, core/campaign_jobs.py, routers/auth.py,
   services/invoice_generator.py, services/analytics_service.py
-Owner decisions open: CR-033 Q1-Q6, CR-034 Q1-Q6 (12 total — all have recommended defaults)
+Owner decisions: ALL 12 LOCKED (2026-07-01)
+  CR-033: Q1=together Q2=OR-within/AND-across Q3=wider-dialog+accordion Q4=20-filters-approved Q5=none
+  CR-034: Q1=row+modal Q2=OR+toggle Q3=keep-catalog Q4=30chars-case-preserving Q5=tier-separate Q6=auto-backfill
 Docs: memory/crm/crm_roi_sprint/planning/CR_033_CR_034_IMPACT_ANALYSIS.md
-Next: Owner reviews open questions → accepts defaults → IMPLEMENTATION
+      memory/CR_STATUS_DASHBOARD.md (CR-033 + CR-034 rows updated)
+      memory/DECISIONS_LOG.md (4 new rows appended)
+Next: IMPLEMENTATION (gate open — no further approval required)
 ```
 
 ---

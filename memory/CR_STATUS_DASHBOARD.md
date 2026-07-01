@@ -1,0 +1,284 @@
+# CR Status Dashboard — `crm_roi_sprint`
+
+> **Live flat status board.** Update on every phase transition.
+> One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
+> Last updated: **2026-06-18 (Session 6)**
+
+---
+
+## 📌 Latest Session Snapshot
+
+**Session date**: 2026-06-18 (SESSION 6 — Investigation + CR-027 + CR-028/BUG-008 implemented + 6 CRs QA'd)
+**Pod URL**: `https://cc511585-de01-49af-9a9b-3d577b5c408b.preview.emergentagent.com`
+**Branch**: `main`
+**DB**: Remote MongoDB `52.66.232.149:27017/mygenie` (no local DB)
+
+### What happened this session (full chronology)
+
+1. **Repo re-bootstrapped from `main` branch** (`Abhi-mygenie/CRMpreprod`). Wiped `/app`, cloned fresh. Backend `.env` configured with remote MongoDB. Frontend `.env` with preview URL. All deps installed (`pip install` + `yarn install`). Services UP.
+2. **Alpha Agent prompt adopted** — Investigation Agent role per `/app/memory/control/MYGENIE_CRM_AGENT_SYSTEM_PROMPT_ALPHA_v0_1.md`.
+3. **CRM token push-back investigation** — Owner asked how CRM token is pushed to POS on login. Full code trace of `_register_crm_token_with_pos()` in `routers/auth.py`. Key finding: push happens on EVERY login (not just first time as CR-001 spec said). Fire-and-forget, never blocks login.
+4. **Hardcoded config audit** — Owner asked if POS URLs are in `.env`. Investigation found 22 env variables with hardcoded defaults or pure hardcoded strings across 11 files.
+5. **CR-027 registered + implemented** — Hardcoded Config → Environment Variables. Discovery → planning → implementation. All 22 variables added to `.env` (total 25). Hardcoded defaults removed from 11 files. Grep audit: 0 remaining. Crash behavior locked: 18 fail-fast, 7 keep fallbacks.
+6. **CR-024 investigation** — Owner asked if Phase 2-3 is really not built. Code audit confirmed ALL phases (1-4) fully implemented. CR board was stale — updated to 🟢 CLOSED.
+7. **Implementation reports written** — Retroactive impl reports for CR-014 (12 ACs), CR-023 (14 ACs), CR-024 (25 ACs).
+8. **Testing agent re-enabled** — Owner reversed opt-out decision.
+9. **QA Run 1**: CR-027 + CR-024 → **28/28 pass**.
+10. **QA Run 2**: CR-014 + CR-023 → **18/18 pass**.
+11. **BUG-008 registered** — CRM token pushed on every login (should be conditional). `crm_token_registered_with_pos` written but never read. Investigation found: all 24 users already `true`, every push returns 409. Bonus: `regenerate_api_key` doesn't push new key to POS.
+12. **CR-028 registered + bundled with BUG-008** — POS Integration Settings UI. Impact analysis + implementation plan with regression plan (Section 8 high-risk files).
+13. **CR-028 + BUG-008 implemented** — Moved `register_crm_token_with_pos()` to `core/auth.py` (shared). Gated login push. Added regenerate push + flag reset. Built POS Integration card in Settings (masked key, copy, regenerate with AlertDialog). Manual regression R1-R10 passed.
+14. **QA Run 3**: CR-028 + BUG-008 → **9/9 pass** + all frontend elements verified. Old key rejected after regeneration (401).
+15. **Total QA this session: 73/73 tests, 0 issues across 3 runs.**
+
+### 🎯 Next-agent handoff message
+
+```
+You are picking up the MyGenie CRM ROI sprint.
+
+READ FIRST: README.md → CR_STATUS_DASHBOARD.md (this snapshot)
+             → DECISIONS_LOG.md → PRD.md
+
+CURRENT STATE (2026-06-18 session 6 close):
+
+IMPLEMENTED + QA'd THIS SESSION:
+- CR-027: 🟢 CLOSED. 22 env vars → .env, zero hardcoding. QA: iteration_1 (28/28).
+- CR-028 + BUG-008: 🟢 CLOSED. POS Integration Settings card (show key, copy, regenerate).
+  Login push gated by crm_token_registered_with_pos. Regenerate pushes new key.
+  register_crm_token_with_pos() moved to core/auth.py (shared).
+  QA: iteration_3 (9/9).
+
+PREVIOUSLY IMPLEMENTED, QA'd THIS SESSION:
+- CR-024: 🟢 CLOSED. All phases (1-4). QA: iteration_1 (28/28).
+- CR-014: 🟡 QA PASSED (iteration_2, 18/18). Awaiting POS team for hotel folio room_info.
+- CR-023: 🟡 QA PASSED (iteration_2, 18/18). Awaiting owner E2E Meta test.
+
+REMAINING:
+- CR-026: 📋 Registered (P3). Campaign "View Messages" deep-link. ~½ day. Unblocked.
+- CR-025: ⏸ Parked. Virtual Wallet — awaiting owner Q1-Q10.
+- CR-016: ⏸ Deferred to next sprint.
+
+ENV FILES:
+- Backend: /app/backend/.env (25 vars — all config, zero hardcoding)
+- Frontend: /app/frontend/.env (3 vars)
+
+TEST CREDENTIALS: owner@kunafamahal.com / Qplazm@10
+                  owner@palmhouse.com / Qplazm@10
+
+TEST REPORTS: iteration_1.json (CR-027+CR-024), iteration_2.json (CR-014+CR-023),
+              iteration_3.json (CR-028+BUG-008)
+TEST FILES: test_campaigns_api.py, test_cr014_cr023_qa.py,
+            test_cr028_bug008_pos_key_settings.py
+
+DECISIONS THIS SESSION:
+- All 22 env vars must be in .env, zero hardcoding (CR-027)
+- CAMPAIGN_SCHEDULER_ENABLED keeps false safety fallback
+- testing_agent_v3 re-enabled (reversed opt-out)
+- JWT_SECRET keeps current value (rotate in separate security CR)
+
+DO NOT:
+- Re-introduce demo login (CR-015c)
+- Send live WhatsApp without owner approval
+- Run destructive DB operations (real data)
+```
+
+### Active queue (this sprint)
+
+| Order | CR | Status | Next action |
+|---|---|---|---|
+| 1 | **CR-033** | 🔵 IMPL GATE OPEN | Implement 20 filters in `build_customer_query` + AudiencesPage accordion UI |
+| 2 | **CR-034** | 🔵 IMPL GATE OPEN | Implement tag schema + 5 endpoints + tag chips on CustomersPage + AudiencesPage tag filter |
+| 3 | **CR-014** | 🟡 QA passed | Awaiting POS team for hotel folio `room_info` fields |
+| 4 | **CR-023** | 🟡 QA passed | Awaiting owner E2E test (Meta template submission) |
+| 5 | **CR-026** | 📋 Registered | Campaign "View Messages" deep-link (~½ day) |
+| — | ~~CR-024~~ | 🟢 CLOSED | All phases implemented + QA passed |
+| — | ~~CR-027~~ | 🟢 CLOSED | Env variables + QA passed |
+| — | ~~CR-028 + BUG-008~~ | 🟢 CLOSED | POS Integration Settings + login push fix + QA passed |
+| — | ~~CR-022~~ | 🟢 CLOSED | 142/142 QA pass |
+| — | ~~CR-021~~ | 🟢 CLOSED | 142/142 QA pass |
+| — | ~~CR-020~~ | 🟢 CLOSED | QA 18/18 pass |
+| — | ~~CR-015 / CR-015a/b/c / CR-017 / CR-018~~ | 🟢 CLOSED | — |
+| — | ~~CR-016~~ | ⏸ Deferred next sprint | — |
+
+---
+
+## Status legend
+
+| Light | Meaning |
+|---|---|
+| 🟢 | **Closed** — live-test passed, CR done |
+| 🟡 | **In flight** — agent actively working in current session |
+| 🔵 | **Planning approved** — implementation can start any time |
+| ⏸ | **Parked** — discovery (or later phase) complete but waiting on owner answer |
+| 🔴 | **Blocked** — waiting on external dependency or another CR |
+| 📋 | **Registered only** — placeholder, no discovery yet |
+| ❌ | **Cancelled / dropped** |
+
+---
+
+## CR Board
+
+| # | CR | Phase | Status | Effort | Blockers / Owner asks | Last touched |
+|---|---|---|---|---|---|---|
+| 002 | Loyalty engine | Closed | 🟢 | — | — | 2026-05 |
+| 002B | Birthday/Anniversary | Closed | 🟢 | — | — | 2026-05 |
+| 003 | Coupon analytics dashboard | Closed Phase 1 | 🟢 | — | Phase 2 backlog | 2026-05 |
+| **004** | **WhatsApp Utility + Marketing** | **Closed (P3.5)** | **🟢** | — | Optional Commit 8 hardening (IP allowlist) available, not blocking | **2026-05-28** |
+| 005 | (per register) | — | (see register) | — | — | — |
+| 006 | (per register) | — | (see register) | — | — | — |
+| 007 | (per register) | — | (see register) | — | — | — |
+| 008 | (per register) | — | (see register) | — | — | — |
+| 009 | (per register) | — | (see register) | — | — | — |
+| 010 | (per register) | — | (see register) | — | — | — |
+| 011 | Coupon Optimizer | Discovery | ⏸ | — | (see register) | — |
+| 012 | WhatsApp Template Builder | Planning | 🔵 | — | (see register) | — |
+| 013 | Template Gallery | Discovery | 🔴 blocked by CR-012 P1 | — | (see register) | — |
+| **014** | **E-Invoice PDF + Mobile HTML Link** | **Phase 1+2+3 ALL IMPLEMENTED — live test passed (food), hotel folio verified** | **🟡** | ~8-10 days | All 4 buckets from Phase 1+2 implemented + live-tested. **Phase 3 (Hotel Folio Mode C)**: 2 patterns — Pattern A "HOTEL FOLIO" (`room_info` struct, room charges + F&B) + Pattern B "GUEST FOLIO" ("Check In" item, day-grouped F&B folio). Auto-detection in `invoice_generator.py`. Templates: `invoice_hotel_room.html` + `invoice_hotel_folio.html`. Verified with real data: sunildev #000130 + Palm House #006644. POS contract shared (`handoff/CR_014_POS_HOTEL_FOLIO_DATA_CONTRACT.md`) for 7 new `room_info` fields. **Next**: POS team adds P0 fields (`room_number`, `check_in`, `check_out`). | **2026-06-06** |
+| **015** | **WhatsApp Template Variable Mapping Fidelity** | **CLOSED — live test passed** | **🟢** | done | T1-T7 done. T2 skipped. {{6}} mismatch fixed. Full audit passed. Live test: orders 869331+869333, 7/7 slots correct, status=read. | **2026-05-29** |
+| **017** | **/pos/max-redeemable Projected Points Earned** | **CLOSED — implemented + verified** | **🟢** | done | Hot fix. 3 additive fields: `projected_points_earned`, `projected_earn_percent`, `earn_ratio_display`. Curl-verified. POS handoff updated. | **2026-05-29** |
+| **018** | **/pos/max-redeemable Projected Tier Upgrade** | **CLOSED — implemented + verified** | **🟢** | done | 3 additive fields: `projected_tier_after`, `tier_upgrade`, `tier_upgrade_message`. Curl-verified. POS handoff updated. | **2026-05-29** |
+| **015a** | **Preview Sample Data Gap for T5 Variables** | **Implemented & verified** | **🟢** | done | Preview "NA" fixed: 14 T5 sample values in `customers.py` sample-data + frontend registry-`example` fallback. Closeout: `implementation/CR_015A_PREVIEW_SAMPLE_DATA_CLOSEOUT.md`. | **2026-05-29** |
+| **015b** | **Dead Variable-Mapping Code Removal** | **Implemented & verified** | **🟢** | done | Removed orphaned/unreachable mapping modal cluster on WhatsApp Automation page + unused `availableFields`/`getPreviewMessage` on Segments. Mapping is **Templates-page-only**. Closeout: `implementation/CR_015B_DEAD_VARIABLE_MAPPING_CODE_CLOSEOUT.md`. | **2026-05-29** |
+| **015c** | **Remove Demo Login** | **Implemented & verified** | **🟢** | done | Demo login fully removed (was 404). Backend endpoint/constants/`is_demo` + frontend button/banner/context. Tests → real login (11 pass). Closeout: `implementation/CR_015C_REMOVE_DEMO_LOGIN_CLOSEOUT.md`. | **2026-05-29** |
+| **016** | **Dynamic Event Registry + Trigger Configuration UI** | **Discovery Phase 0 done — DEFERRED to next sprint** | **⏸ next-sprint** | ~9-10 days | **Deferred 2026-05-29 by owner**: existing event mapping/firing fidelity (CR-015) takes priority. §7 Q1–Q8 still open. | **2026-05-29** |
+| **019** | **`send_bill` Event-Key Mismatch (UI vs Trigger Code)** | **CANCELLED — owner says not needed** | **❌** | — | Owner closed 2026-06-05: "not needed". | **2026-06-05** |
+| **020** | **Template Variable Picker — Grouped UX + Menu Variable Family** | **CLOSED — QA 18/18 pass, all gates passed** | **🟢** | ~1.5 days | HTML mock approved → planning approved → implemented → QA report written. 40 variables with block field, 7 grouped blocks, Menu Pick mode, reusable VariablePicker component. All V1–V10 backend validations pass. Frontend compiled + screenshots verified. QA: `qa/CR_020_TEMPLATE_VARIABLE_PICKER_QA_REPORT.md`. | **2026-06-05** |
+| **022** | **Coupon POS-side bug fixes: alias, display_title, same_item_required** | **CLOSED — 142/142 QA pass** | **🟢** | ~½ day | 4 owner-reported bugs fixed: (B1) POSCartItem.food_id alias didn't accept `item_id` → NTH/BOGO items not matched in validate; (B2) `category_id: None` hardcoded in order cart_dicts; (B3) `display_title` missing from POS coupon APIs — added `build_display_title()` helper; (B4) `same_item_required` form default/hydration forced true on all BOGO coupons. Files: `models/schemas.py`, `routers/pos.py`, `core/coupon.py`, `pages/CouponsPage.jsx`. | **2026-06-06** |
+| **023** | **WhatsApp Template Builder — Production Readiness** | **Phase 1 + 2 + 3 IMPLEMENTED — awaiting owner E2E test** | **🟡** | ~2 days | **Phase 1**: Meta API v21, en_US locale, image header examples, status check, duplicate check, Meta error detail, full builder UI with WhatsApp preview. **Phase 2**: V1-V10 Meta compliance validations — `validateMetaCompliance()` frontend gate + real-time inline warnings + backend V1-V4 safety net. **Phase 3**: "Add Variable" button (body auto-increment at cursor + header {{1}} with disable), Dynamic URL button (Static/Dynamic toggle, base URL + {{1}} chip, sample URL, backend `example` array). `einvoice_token` variable added to registry (41 total). E2E submission tested: payload correctly formatted with dynamic URL button, reached Meta. Planning: `CR_023_PHASE2_*.md` + `CR_023_PHASE3_*.md`. **Next**: owner E2E with longer body + View Bill button → Meta approval. Then AuthKey button param wiring. | **2026-06-06** |
+| **024** | **Segments & Marketing Campaigns — Production Readiness** | **All Phases (1-4) IMPLEMENTED — gated by `CAMPAIGN_SCHEDULER_ENABLED`** | **🟢** | ~4-5 days (4 phases) | **Phase 1**: CRUD + execution engine + 4 frontend pages + sidebar restructure. Live test: 1 WhatsApp sent. **Phases 2-3 (Scheduled + Recurring)**: BUILT — `core/campaign_jobs.py` (291 LOC): `compute_next_run_at()` for one-time scheduled (date+time) + recurring (daily/weekly/monthly) with end conditions (never/after N occurrences/after date). APScheduler job `process_due_campaigns` every 1 min with atomic claim, stale detection (24h), recurring recomputation. **Phase 4 (Polish)**: Pause/Resume endpoints, edit-while-scheduled guard, `backfill_next_run_at()` startup migration. Frontend wizard has full schedule UI (3 types, frequency selectors, end conditions). Tests: `test_campaign_jobs.py` (168 LOC). **Gated**: `CAMPAIGN_SCHEDULER_ENABLED=false` — flip to `true` to enable auto-fire. | **2026-06-18** |
+| **025** | **Virtual Wallet Management** | **Discovery Phase 0 complete — PARKED awaiting Q1-Q10** | **⏸** | ~11-15 days (4 phases) | Canteen/student/mess/subscription wallet. Current state: placeholder UI, basic credit/debit backend, 0 tenants enabled. 12 gaps identified (G1-G12). 4 phases planned: P0 (dashboard + bulk recharge + ledger + rules), P1 (refund + reports), P2 (meal plans + expiry), P3 (self-recharge via payment gateway). Discovery: `CR_025_VIRTUAL_WALLET_MANAGEMENT_DISCOVERY.md`. **Next**: Owner answers Q1-Q10 → planning doc. | **2026-06-06** |
+| **026** | **Campaign "View Messages" Deep-Link** | **Registered — P3 priority** | **📋** | ~½ day | Add "View Messages" button on each campaign card (CampaignsPage) that navigates to Message Status pre-filtered by `campaign_id`. Requires: (1) route param support on MessageStatusPage (e.g., `/messages?campaign_id=xxx`), (2) button on CampaignsPage campaign rows, (3) auto-apply filter on mount. Depends on BUG-005+BUG-006 being fixed (✅ done 2026-06-17). | **2026-06-17** |
+| **027** | **Hardcoded Config → Environment Variables** | **Part 1 IMPLEMENTED — zero hardcoding verified** | **🟢** | ~½ day | 22 env variables (was 3 in `.env`, now all 25). Full audit: MyGenie POS (4), AuthKey (4), Meta Graph API (1), JWT secret (1), External URLs (3), Campaign scheduler (2), POS request logging (7). All hardcoded defaults removed from production code. Grep audit: 0 remaining hardcoded values. Discovery: `discovery/CR_027_*.md`. Planning: `planning/CR_027_*.md`. Implementation: `implementation/CR_027_*.md`. | **2026-06-18** |
+| **028** | **POS Integration Settings UI + BUG-008 Fix** | **IMPLEMENTED + regression passed** | **🟢** | ~½ day | **BUG-008 FIXED**: Gate login push (skip if `crm_token_registered_with_pos=true`), push new key on regeneration with flag reset. Function moved to `core/auth.py` (shared). **CR-028 BUILT**: Settings page "POS Integration" card — masked API key + show/hide + copy + Regenerate with AlertDialog confirmation. Regression: R1-R10 all pass (login, /me, POS auth, regenerate push, campaign tests 10/10). Planning: `planning/BUG_008_CR_028_POS_KEY_SETTINGS_PLAN.md`. | **2026-06-18** |
+| **029** | **Disable Forgot Password (OTP security)** | **IMPLEMENTED — link hidden** | **🟢** | 5 min | "Forgot password?" link commented out on LoginPage.jsx. Reason: OTP returned in API response (`"otp": otp` on lines 608, 617 of auth.py) — security risk for production. Backend endpoints preserved (not deleted). **Re-enable when**: (1) OTP removed from API response, (2) WhatsApp/SMS delivery confirmed working for all tenants. | **2026-06-18** |
+| **030** | **Freshmarketer Webhook Endpoint (`POST /api/pos/webhook`)** | **🟢 IMPLEMENTED + QA 15/15 passed** | **🟢** | ~2.5 hrs | Freshmarketer sends nested envelope: `{Body: {event, id, data: {contact, event_details, custom_data}}}`. Extract `custom_data` for our params, int→str coercion (event_time as Union[int,str], coerce_numbers_to_str on contact/event_details), contact fallback, idempotency on `Body.id`, new `webhook_logs` collection, reuse DirectSend send logic. 3 Pydantic type bugs found+fixed by QA agent. QA: iteration_6.json (15/15). Discovery: `discovery/CR_030_*.md`. Plan: `planning/CR_030_*.md`. | **2026-06-26** |
+| **031** | **TemplatesPage — Tab restructure (CRM tab + AuthKey tab)** | **Discovery + plan drafted — DEFERRED** | **⏸** | ~70 min | Proposed to split TemplatesPage's stacked CRM + AuthKey sections into two tabs so per-tab filters/counts operate on a homogeneous list, collapsing INV-002's 5 defects. Owner elected to ship CR-032 (feature flag) first — hiding CRM section for 79% of tenants reduces urgency. Revisit when adoption of `features.crm_templates_enabled` grows or INV-002 defects escalate for the 6 enabled tenants. Doc: `discovery/CR_031_TEMPLATES_PAGE_TAB_RESTRUCTURE_DISCOVERY_AND_PLAN.md`. | **2026-07-01** |
+| **032** | **CRM Template Builder — per-tenant feature flag (self-service)** | **🔵 Intake complete — awaits planning approval** | **🔵** | ~2 hrs | Add `features.crm_templates_enabled` bool on `users` (default false). Self-service `<Switch>` on Settings page. When off, hide TemplatesPage CRM section + Add Template button + Set Labels + `/template-builder` route. Backend `PATCH /api/settings/features` endpoint. Backfill script auto-enables the 6 existing tenants with custom_templates. Backend send path (Freshmarketer webhook, DirectSend, campaigns) NOT gated — flag is UI-only. Zero hotspot files. Zero schema migration (Mongo). Intake: `discovery/CR_032_CRM_TEMPLATES_FEATURE_FLAG_INTAKE.md`. | **2026-07-01** |
+| **033** | **Additional Audience Filters — enumerate + wire up** | **🔵 Planning complete — all decisions locked, IMPLEMENTATION GATE OPEN** | **🔵** | ~1.5 days (P0+P1+P2 together) | **All Q1-Q6 locked (2026-07-01):** Q1=ship all phases together, Q2=multi-select OR / cross-filter AND (no toggle needed), Q3=wider Dialog max-w-2xl + 5 accordion sections (Loyalty & Tier / Dates & Occasions / WhatsApp & Engagement / Customer Flags / Tags), Q4=all 20 filters approved. Impact analysis + impl plan: `planning/CR_033_CR_034_IMPACT_ANALYSIS.md`. Mockup: `/cr033_cr034_mockup.html`. Zero hotspot files. | **2026-07-01** |
+| **034** | **Customer Tag System (free-form tags + tag-based audience filter)** | **🔵 Planning complete — all decisions locked, IMPLEMENTATION GATE OPEN** | **🔵** | ~8-10 hrs | **All Q1-Q6 locked (2026-07-01):** Q1=tag UI on CustomersPage row + Customer Detail modal, Q2=OR default with AND toggle, Q3=keep unused tags in catalog, Q4=max 30 chars alphanumeric+space case-preserving, Q5=tier stays separate, Q6=auto-backfill VIP tag to 46 vip_flag=true customers. Approach A (embedded `Customer.tags: List[str]` + `users.available_tags`). 5 new endpoints + `build_customer_query` tags block + backfill migration script. UI: tag chips on CustomersPage rows + bulk-tag action + AudiencesPage tag filter with ANY/ALL toggle. Impact analysis + impl plan: `planning/CR_033_CR_034_IMPACT_ANALYSIS.md`. Zero hotspot files. | **2026-07-01** |
+
+
+> When a row's first column shows a number ≤ 010 with no detail above, look up the full row in `crm/crm_roi_sprint/00_register/ROI_MEASUREMENT_CR_REGISTER.md`.
+
+---
+
+## Active queue (in priority order — recommended sequence)
+
+Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint as of 2026-05-29.**
+
+| Order | CR | Why first |
+|---|---|---|
+| — | ~~**CR-024**~~ | **🟢 CLOSED** — All phases implemented. Gated by `CAMPAIGN_SCHEDULER_ENABLED=false`. Flip to `true` when ready. |
+| 1 | **CR-014** | E-Invoice — Phase 1+2+3 done. Awaiting POS team for hotel folio `room_info` fields (P0: room_number, check_in, check_out). |
+| 2 | **CR-023** | WhatsApp Template Builder — Phase 1+2+3 done. Awaiting owner E2E test + AuthKey button param verification. |
+| — | ~~CR-022~~ | **🟢 CLOSED** (2026-06-06) — POS coupon bug fixes. 142/142 QA pass. |
+| — | ~~CR-021~~ | **🟢 CLOSED** (2026-06-06) — coupon engine distribute-first + POS-zero. 142/142 QA pass. |
+| — | ~~CR-015~~ | **🟢 CLOSED** — live test passed (2026-05-29). |
+| — | ~~CR-016~~ | **Deferred to next sprint** (2026-05-29). |
+
+---
+
+## Out-of-sprint backlog (not yet registered)
+
+| Idea | Source | Notes |
+|---|---|---|
+| Force re-send admin action for stuck-Pending rows | Suggested in CR-004 P3.5 finish summary | Owner declined backfill but per-row manual nudges may be useful |
+| OR / nested condition logic | CR-016 out-of-scope | Would become CR-016b |
+| Custom webhook signals (tenant-defined) | CR-016 out-of-scope | Would become CR-016c |
+| Per-customer event mute / unsubscribe | CR-016 out-of-scope | Privacy / DPDP compliance CR |
+| Event analytics dashboard | CR-016 out-of-scope | Read-side analytics CR |
+| Multi-channel events (SMS, email, push) | CR-016 out-of-scope | Separate channel CR per provider |
+| Credit notes (mutability of invoices) | CR-014 out-of-scope | GST compliance for amendments |
+| Email invoice channel | CR-014 out-of-scope | When email channel exists |
+| AuthKey button URL param wiring | CR-023 Phase 2 of einvoice_token | Pending owner AuthKey curl/docs for button params. Likely `bodyValues` sequential. |
+| Rich text formatting toolbar (Bold/Italic/Strike) | CR-023 reference screenshot | Non-blocking cosmetic enhancement |
+| Template gallery / pre-built restaurant templates | CR-023 future | Reduce template creation friction |
+
+---
+
+## Recent transitions (newest first)
+
+| Date | CR | From → To |
+|---|---|---|
+| 2026-07-01 | **CR-034** | 🔵 Intake complete → **🔵 PLANNING COMPLETE · IMPLEMENTATION GATE OPEN**. All Q1-Q6 locked: Q1=CustomersPage row + Customer Detail modal, Q2=OR default + AND toggle, Q3=keep catalog, Q4=max 30 chars case-preserving, Q5=tier stays separate, Q6=auto-backfill VIP. Impact analysis complete. `planning/CR_033_CR_034_IMPACT_ANALYSIS.md`. |
+| 2026-07-01 | **CR-033** | 🔵 Discovery complete → **🔵 PLANNING COMPLETE · IMPLEMENTATION GATE OPEN**. All Q1-Q6 locked: Q1=all phases together, Q2=multi-select OR / cross-filter AND, Q3=wider Dialog + accordion sections, Q4=20 filters approved. Impact analysis + impl plan: `planning/CR_033_CR_034_IMPACT_ANALYSIS.md`. Mockup: `/cr033_cr034_mockup.html`. |
+| 2026-07-01 | **CR-034** | — → **🔵 INTAKE COMPLETE**. Customer tag system (Approach A: embedded `Customer.tags` + per-tenant `available_tags` catalog). 5 new endpoints + tag filter in `build_customer_query`. UI on CustomersPage (chips + inline input + bulk action) and AudiencesPage (tag filter). Backfill auto-tags 46 `vip_flag=true` customers with `VIP`. Zero hotspot files. Intake: `discovery/CR_034_CUSTOMER_TAG_SYSTEM_INTAKE.md`. Awaits Q1-Q6. |
+| 2026-07-01 | **CR-033** | — → **🔵 DISCOVERY COMPLETE**. 30 additional filter dimensions proposed across 4 tiers (P0=6, P1=11, P2=13, P3=8 deferred). MVP recommended = P0 (fixes BUG-A) + P1 + cheap P2 subset ≈ 1.5 days. Live DB data-density audit informed prioritisation. Discovery: `discovery/CR_033_ADDITIONAL_AUDIENCE_FILTERS_DISCOVERY.md`. Awaits owner priority ranking + Q1-Q6. |
+| 2026-07-01 | **INV-003** | — → **📋 REPORTED**. Investigated audience filter mechanics + customer tag mechanics. Findings: filters are hardcoded end-to-end (7 frontend keys, 14 backend keys); no user-defined tag system exists; "VIP" is a phantom feature (`vip` field never written to any live doc despite extensive UI); 4 latent defects surfaced (BUG-A/B/C/D). Tag system feasibility confirmed at LOW risk (~1-1.5 days). Report: `investigations/INV_003_AUDIENCE_FILTERS_AND_TAGS.md`. |
+| 2026-07-01 | **CR-032** | — → **🔵 INTAKE COMPLETE**. New CR registered — per-tenant feature flag (`features.crm_templates_enabled`) to hide the CRM Template Builder section for 79% of tenants who don't use it. Self-service toggle on Settings page. Backend send path (Freshmarketer, DirectSend, campaigns) unchanged. Auto-enable backfill for the 6 existing tenants with custom_templates. Intake doc: `discovery/CR_032_CRM_TEMPLATES_FEATURE_FLAG_INTAKE.md`. Awaits planning approval + optional Q1-Q4 answers. |
+| 2026-07-01 | **CR-031** | 🔵 Planning drafted → **⏸ DEFERRED**. Tab restructure of TemplatesPage parked in favour of CR-032 (feature flag first). Filter defects (INV-002 BUG-A through BUG-E) will remain for the 6 enabled tenants until adoption grows or defects escalate. |
+| 2026-07-01 | **INV-002** | — → **📋 REPORTED**. Investigation of CRM template filter dropdown bug — 5 defects identified in `TemplatesPage.jsx` filter block (status counters use AuthKey only; section header gated on AuthKey list; mapped/not-mapped counters exclude CRM; mapping toggle no-ops on CRM; Draft/All counts missing). Report: `investigations/INV_002_CRM_TEMPLATE_FILTER_BUG.md`. |
+| 2026-07-01 | **INV-001** | — → **📋 REPORTED**. Investigation of `custom_data` payload freedom, template mapping mechanic, and "Set Labels" vs normal template variable mapping. Confirms Pydantic `extra='allow'` on FreshmarketerCustomData; label-based mapping via `variable_labels`; two independent mapping systems (external DirectSend/webhook uses `variable_labels`, internal events use registry-backed `whatsapp_template_variable_map`). Report: `investigations/INV_001_CUSTOM_DATA_AND_LABEL_MAPPING.md`. |
+| 2026-06-17 | **BUG-005/006/007** | 🔴 OPEN → **✅ FIXED**. BUG-005: Campaign filter queried `db.segments` → fixed to `db.campaigns`. BUG-006: Campaign messages logged with `run_id` as `campaign_id` → fixed to use actual `campaign_id`, backward-compatible `$or` filter added. BUG-007: Template preview literal `\n` → normalized at data load time across 3 frontend files. |
+| 2026-06-18 | **CR-027** | 🔵 Planning approved → **🟢 IMPLEMENTED + CLOSED**. Part 1 implemented: 22 env variables wired to `.env`, zero hardcoding. 11 files modified (`core/auth.py`, `routers/auth.py`, `routers/customers.py`, `routers/migration.py`, `routers/menu.py`, `core/whatsapp.py`, `routers/whatsapp.py`, `core/campaign_jobs.py`, `core/pos_request_logger.py`, `server.py`, `routers/pos.py`). `.env` expanded from 3 to 25 vars. Grep audit: 0 hardcoded URLs/secrets in production code. Backend startup verified, health check passed, scheduler active. Owner decision: `CAMPAIGN_SCHEDULER_ENABLED` keeps `false` safety fallback. |
+| 2026-06-18 | **CR-029** | — → **🟢 IMPLEMENTED**. Forgot Password link disabled on LoginPage.jsx (commented out). Security reason: OTP returned in API response — anyone can read OTP without WhatsApp/SMS. Backend endpoints preserved. Re-enable when OTP removed from response + delivery confirmed. |
+| 2026-06-18 | **CR-024** | 🟡 Phase 1 done, "Phase 2-3 NOT built" → **🟢 CLOSED — All phases (1-4) confirmed BUILT via code investigation**. CR board was stale. Code audit found: `core/campaign_jobs.py` (291 LOC) — `compute_next_run_at()` for scheduled (one-time date+time) + recurring (daily/weekly/monthly, end conditions: never/after N/after date). `process_due_campaigns` APScheduler job every 1 min with atomic claim, stale detection (24h window), recurring recomputation. Pause/Resume endpoints with `next_run_at` recalculation. Edit-while-scheduled guard (Phase 4 P4.9). `backfill_next_run_at()` startup migration. Frontend wizard fully wired (3 schedule types, frequency selectors, end conditions). Tests: `test_campaign_jobs.py` (168 LOC). Gated by `CAMPAIGN_SCHEDULER_ENABLED=false`. |
+| 2026-06-18 | **CR-028** | 📋 Registered → **🟢 IMPLEMENTED**. BUG-008 fixed: login push gated by `crm_token_registered_with_pos` flag. `_register_crm_token_with_pos()` moved to `core/auth.py` (shared). `regenerate_api_key` resets flag + pushes new key. Settings UI: POS Integration card with masked key, copy, regenerate + AlertDialog. Regression: R1-R10 pass (login skip verified, regenerate push verified, 10/10 campaign tests). |
+| 2026-06-18 | **BUG-008** | — → **🔴 OPEN**. CRM token pushed to POS on every login (should be conditional). `_register_crm_token_with_pos()` called unconditionally — CR-001 spec said first-time only. `crm_token_registered_with_pos` field written but never read as gate. No functional harm (POS returns 409) but wasted HTTP call + DB write. Bonus: `regenerate_api_key` doesn't push new key to POS. |
+| 2026-06-18 | **CR-014** | 🟡 Implemented → **🟡 QA PASSED (18/18)**. testing_agent_v3 Run 2: Profile fields persist (GSTIN/PAN/FSSAI), GSTIN regex rejects invalid, bill settings merge correctly, logo upload+serve works, invoice HTML renders (token `67ddd6833bee4f33af2aaa941ee146c9`), invoice PDF downloads, 404 for nonexistent token. Frontend ProfilePage loads. QA: `qa/CR_014_E_INVOICE_QA_REPORT.md`. Still awaiting POS team for hotel folio `room_info` fields. |
+| 2026-06-18 | **CR-023** | 🟡 Implemented → **🟡 QA PASSED (18/18)**. testing_agent_v3 Run 2: Template CRUD (create/list/update/delete), Meta compliance V1 (single-brace rejected), V2 (non-sequential rejected), V3 (footer vars rejected), V4 (header >1 var rejected), template name duplicate check, frontend TemplateBuilderPage + TemplatesPage load. QA: `qa/CR_023_WHATSAPP_TEMPLATE_BUILDER_QA_REPORT.md`. Still awaiting owner E2E Meta test. |
+| 2026-06-18 | **CR-024** | 🟢 Implemented → **🟢 QA PASSED (28/28)**. testing_agent_v3 Run 1: 10/10 pytest unit tests (campaign_jobs) + 18/18 API tests (create/list/get/update/delete/daily-limit/pause/resume/clone/test-send/runs). Frontend CampaignsPage (5 stat cards, filter tabs) + CampaignWizardPage (3-step flow). QA: `qa/CR_024_MARKETING_CAMPAIGNS_QA_REPORT.md`. |
+| 2026-06-18 | **CR-027** | 🟢 Implemented → **🟢 QA PASSED**. testing_agent_v3 Run 1: 25 env vars verified, 0 hardcoded URLs, health endpoint healthy. QA: `qa/CR_027_ENV_VARIABLES_QA_REPORT.md`. |
+| 2026-06-18 | **CR-027** | — → **🔵 Discovery complete, ready to implement**. New CR registered: Hardcoded Config → Environment Variables. Investigation found 22 total env variables (not 11 as initially reported — full audit expanded scope to include Campaign Scheduler + POS Request Logging). Categories: MyGenie POS URLs (4), AuthKey URLs (4), Meta Graph API (1), JWT secret (1), External URLs (3), Campaign scheduler (2), POS request logging (7). All use hardcoded fallbacks or pure hardcoded strings — must be moved to `.env`. Discovery: `CR_027_HARDCODED_CONFIG_ENV_VARIABLES_DISCOVERY.md`. |
+| 2026-06-17 | **CR-026** | — → **📋 Registered (P3)**. Campaign "View Messages" deep-link: add button on CampaignsPage rows to navigate to Message Status pre-filtered by `campaign_id`. ~½ day effort. |
+| 2026-06-06 | **CR-025** | — → **⏸ Discovery Phase 0 complete — PARKED**. New CR registered: Virtual Wallet Management. Current state audit: placeholder frontend, basic credit/debit backend, 0 tenants enabled, 12 transactions (historical sync), 0 orders using wallet. 12 gaps identified. 4 phases planned (P0-P3, ~11-15 days). Primary use case: canteen/student/mess/subscription. Discovery: `CR_025_VIRTUAL_WALLET_MANAGEMENT_DISCOVERY.md`. 10 owner questions (Q1-Q10) block planning. |
+| 2026-06-06 | **CR-014 Phase 3** | ⏸ Code complete → **🟡 Phase 3 (Hotel Folio Mode C) IMPLEMENTED**. Two patterns: (A) "HOTEL FOLIO" — auto-detected via `room_info.room_price > 0`, shows room charges + advance/balance + F&B items. Template: `invoice_hotel_room.html`. Tested with sunildev #000130 (Rs.5,945). (B) "GUEST FOLIO" — auto-detected via "Check In" item at Rs.0, shows day-grouped F&B breakdown with stay summary bar (60 Days / 200 Items / Rs.49,355). Template: `invoice_hotel_folio.html`. Tested with Palm House #006644 (Ms. Jamie Finlayson, 61-day stay). Mode detection + routing added to `invoice_generator.py`. POS data contract shared (`handoff/CR_014_POS_HOTEL_FOLIO_DATA_CONTRACT.md`) requesting 7 new `room_info` fields. Normal food invoices (Mode A/B) unchanged. |
+| 2026-06-06 | **CR-024 Phase 1** | 🔵 Planning approved → **🟡 Phase 1 IMPLEMENTED + live tested**. S1 approved by owner. Backend: `routers/campaigns.py` (CRUD + execution engine + history + daily limit, 7 endpoints, 2 new collections). Frontend: 4 new pages matching approved mock — CampaignsPage (5 stat cards, columnar stats), AudiencesPage (3-col grid with counts + filter tags + "Create New" card), CampaignHistoryPage (table with delivery % bars), CampaignWizardPage (numbered circle steps, 2-col template picker, all schedule options enabled). Sidebar: WhatsApp + Marketing groups. Seed data: 4 segments + 4 campaigns + 3 runs. Live test: 1 msg sent to abhishek jain — AuthKey `Success`. React.Fragment bug fixed. Phase 2-3 (Scheduled/Recurring) not built. |
+| 2026-06-06 | **CR-024** | — → **⏸ Discovery** → **🔵 Mock approved**. New CR registered: Segments & Marketing Campaigns Production Readiness. Deep audit found 13 gaps (4 CRITICAL: "Send Now" doesn't send, no execution engine, no scheduled/recurring). Q1-Q5 answered: Phase 1 first, 1000/day limit, skip opted-out, campaign name required, double confirm >500. Architecture locked: 3 pages (Campaigns/Audiences/History), multi-step wizard, full-page builder, sidebar rename to "Marketing". HTML mock built (`/cr024_mock.html`) with 6 screens — owner approved. Discovery: `CR_024_SEGMENTS_MARKETING_CAMPAIGNS_DISCOVERY.md`. Next: planning doc. |
+| 2026-06-06 | **einvoice_token** | — → **IMPLEMENTED**. New variable `einvoice_token` added to `whatsapp_variables.py` (Order/Bill block, 41 total vars). Raw 32-char hex token for dynamic URL button suffix. Forwarded in `pos.py` send_bill event_data alongside `einvoice_link`. Discovery: token available in invoice_generator return but not forwarded. Phase 2 (AuthKey button param wiring) deferred — owner to verify AuthKey includes button vars in `bodyValues`. |
+| 2026-06-06 | **CR-023 Phase 3** | 🟡 Phase 2 done → **🟡 Phase 2 + 3 IMPLEMENTED**. Two features: (A) "Add Variable" button — orange pill below body textarea, inserts `{{N}}` at cursor position, auto-increments (max+1). Header gets "Add {{1}}" button, disabled after first use (Meta 1-var limit). (B) Dynamic URL button — Static/Dynamic radio toggle on URL buttons. Dynamic: base URL input + `{{1}}` chip + sample URL input (labeled "BASE URL" / "SAMPLE URL (REQUIRED BY META)"). Backend sends `example` array to Meta. V5 validation updated for dynamic URLs. UX fix: clearer labels replaced confusing placeholders. E2E submission test: `invoice_bill_test_2` template with dynamic "View Bill" button — payload correctly formatted, reached Meta (rejected for body length, not our code). Planning: `CR_023_PHASE3_ADD_VARIABLE_DYNAMIC_URL_PLAN.md`. |
+| 2026-06-06 | **CR-023 Phase 2** | 🟡 Phase 1 implemented → **🟡 Phase 1 + Phase 2 IMPLEMENTED**. Investigation: owner's `order_bill_test` template was REJECTED by Meta (`INVALID_FORMAT` — body `{1}` not `{{1}}`). Local status stale (pending, never synced). Root cause: zero frontend validation against Meta standards. **Phase 2 implemented**: `validateMetaCompliance()` function with 10 checks (V1 single-brace, V2 sequential vars, V3 footer no vars, V4 header max 1 var, V5 URL button, V6 phone button, V7 QR text required, V8 media URL, V9 no leading underscore, V10 examples no curly braces). Real-time inline warnings for V1/V3/V4/V9. Full error box on submit attempt. Backend safety net (V1-V4) in `create_meta_template()`. Files: `TemplateBuilderPage.jsx` (validation + inline hints), `routers/whatsapp.py` (backend gate). Verified: 4/4 backend curl pass, 5 frontend screenshots confirmed. Planning doc: `planning/CR_023_PHASE2_META_VALIDATION_V1_V10_PLAN.md`. |
+| 2026-06-06 | **CR-023** | — → **🟡 Discovery** → **🔵 Planning + Mock approved** → **🟡 Phase 1 IMPLEMENTED**. Backend: Meta API v21, en_US locale, image header examples, status check endpoint, duplicate name check, detailed Meta errors. Frontend: new full-page `/template-builder` with name validation, char limits, 5 header types, body variable examples, buttons UI (3 types, max 3), WhatsApp live preview, status tracker with auto-polling, duplicate warning. Access via Templates page → "+ Add Template". All existing modules untouched. 52/52 regression pass. Next: owner E2E test with real Meta submission. |
+| 2026-06-06 | **CR-022** | — → **🟢 CLOSED**. 4 POS-side coupon bugs fixed: (B1) `POSCartItem.food_id` alias now accepts `item_id` — POS validate was not matching items by `eligible_food_ids` because POS sends `item_id` not `food_id`. (B2) Order webhook cart_dicts `category_id` was hardcoded to `None` — now maps from `oi.item_category`. (B3) `display_title` added to `/pos/coupons/available` and `/pos/coupons/validate` — auto-generated descriptive titles (e.g., "Buy 1 Get 2 Free", "Every 3rd Rs.100 off"). (B4) `same_item_required` frontend edit hydration fixed — was defaulting to `true` via `!== false` check, causing BXG coupons to load as same-item BOGO. Changed to `=== true \|\| offer_type === "bogo"`. **QA: 142/142 pass** (all existing suites green). Files: `models/schemas.py`, `routers/pos.py`, `core/coupon.py`, `pages/CouponsPage.jsx`. Decisions: D1-D4 in DECISIONS_LOG.md. |
+| 2026-06-06 | **CR-021** | — → ⏸ discovery → ⏸ planning → 🟡 implemented → **🟢 CLOSED**. Coupon engine: (B1) distribute-first benefit selection across distinct eligible item-lines (was: cheapest greedy single-line) — fixes BOGO/BXG/Nth landing on cheapest item only. (B2) Universal POS-zero CRM safety net — when POS sends `coupon_discount=0` AND CRM computes > 0, CRM records with `discount_mismatch=True` and increments `total_used`. Applies to V1/V2/V3-B/V3-C (no whitelist per owner D3 "if POS sends by mistake CRM shd honour and record drift in log"). Closes silent usage-limit loop. (B3) `per_user_limit` default flipped to Unlimited (was 1); Pydantic + runtime coercions fixed. (Hidden) Runtime `or 1` in `core/coupon.py:1727` + `routers/coupons.py:194` caught during planning audit. **QA: 142/142 pass** (V3-B 49/49 + V3-C 41/41 + new `qa_cr021` 52/52). Files: `core/coupon.py`, `routers/pos.py`, `routers/coupons.py`, `models/schemas.py`, `pages/CouponsPage.jsx`, new `tests/qa_cr021_distribute_and_pos_zero.py`. Docs: discovery/planning/closeout/impl_report. |
+| 2026-06-05 | **CR-014** | 🟡 In flight → **⏸ CODE COMPLETE — live test PARKED**. All 4 buckets implemented: (B1) Profile page expansion — 10 fields + VAT + MyGenie auto-fetch on login; (B2) Bill Settings — 18 configurable fields, logo upload, color pickers; (B3) Invoice generator — Jinja2 HTML template + weasyprint PDF, fully dynamic from bill_settings, Mode A (food GST) + receipt fallback; (B4) Invoice public routes — `/api/invoices/{token}` (HTML) + `/pdf`, invoices collection with dedup; (B5) POS webhook hook — invoice generated inline before send_bill trigger, einvoice_link injected, failure-safe. Test invoice KM/010585 verified live (HTML + PDF). **PARKED**: POS + AuthKey webhooks not pointed at this pod. |
+| 2026-06-05 | **CR-019** | ⏸ Plan drafted → **❌ CANCELLED**. Owner: "not needed". |
+| 2026-06-05 | **CR-014** | ⏸ Discovery parked → **🟡 Phase 1 discovery in progress**. Owner answered C1=a (replace address with 4-field split), C2=a (allow blank GSTIN/FSSAI). Profile page fields from login API. Phase 1 = Profile page expansion. |
+| 2026-06-05 | **CR-020** | 🟢 IMPLEMENTED → **🟢 CLOSED — QA report written, 18/18 ACs pass, owner confirmed all gates passed**. QA doc: `qa/CR_020_TEMPLATE_VARIABLE_PICKER_QA_REPORT.md`. Backend V6–V10 curl pass. Frontend S1–S5 screenshots verified. |
+| 2026-06-05 | **CR-020** | ⏸ Planning → **🟢 IMPLEMENTED + VERIFIED**. S1–S5 sign-off approved → full implementation. Backend: `block` field on 40 vars (7 blocks), 3 menu vars, `menu_pick` mode validation + resolution, menu sample data. Frontend: `<VariablePicker />` reusable grouped popover (search, suggested, recently-used, alphabetical sort, green/amber dots), `<MenuPickModal />` (Items/Categories tabs), TemplatesPage rewired (wider modal). V1–V10 curl pass. Screenshots verified. Post-fix: alphabetical sort + wider modal per owner feedback. |
+| 2026-06-05 | **CR-020** | ⏸ Discovery → ⏸ **Planning drafted**. HTML mock approved. Q1–Q9 answered (Q1=static menu from POS API, Q3=POS sync, Q6=menu last, Q8=reusable). Planning doc: 7 files, 18 ACs, mandatory live API validation protocol. S1–S5 sign-off approved. Doc: `planning/CR_020_TEMPLATE_VARIABLE_PICKER_PHASE_1_PLAN.md` |
+| 2026-06-05 | **CR-020** | — → ⏸ **Discovery drafted**. UX restructure: flat 37-var dropdown → single intelligent popover w/ 7 grouped blocks + Menu variable family. Doc: `discovery/CR_020_TEMPLATE_VARIABLE_PICKER_GROUPED_UX_DISCOVERY.md` |
+| 2026-06-05 | **CR-019** | — → ⏸ **Planning drafted**. Root cause: UI exposes `send_bill_manual`/`auto`, trigger code only reads `send_bill` after hard-coded collapse. 3 tenants silently broken (Mygenie Dev / Mayur's Kitchen / Jeh's Nest = 2,388 unsent bills). Plan: remove dead UI keys, move `send_bill` from CRM_EVENTS → POS_EVENTS, migration script (idempotent, dry-run mandatory), loud-log skip. Awaiting Q1/Q2/Q3. Docs: `discovery/CR_019_*.md` + `planning/CR_019_*.md` |
+| 2026-06-05 | live debug | Owner repointed POS → orders 000457 (Mygenie Dev) + 010585 (Kunafa) landed @ 04:20 UTC. `send_bill` fired E2E both tenants. Kunafa delivered+read in 8s. Mygenie Dev customer received WhatsApp but DB stuck at `pending` — AuthKey delivery webhook URL on Mygenie Dev's AuthKey account points elsewhere. Owner deferred fix. |
+| 2026-06-05 | Mygenie Dev | Owner added missing `send_bill` mapping via CRM tab (template 36320 `payment_bill`, enabled, 2026-06-05 04:03:40 UTC) — workaround for CR-019 bug until proper fix lands. |
+| 2026-06-05 | repo | Re-bootstrapped from `main` (HEAD `18e879d`, 2026-05-29). First clone went to `dev` (repo default) — caught and re-cloned with `-b main`. memory/ folder on main preserved (8 docs). Pod URL: `63c9eabd-…`. |
+| 2026-05-29 | **CR-018** | ⏸ discovery → **🟢 CLOSED**. Approved, implemented, verified in single session. 3 fields added to `/pos/max-redeemable`: tier upgrade projection. POS handoff updated. |
+| 2026-05-29 | **CR-018** | — → ⏸ **REGISTERED + Discovery complete**. Feature: projected tier upgrade on `/pos/max-redeemable`. Awaiting owner approval. |
+| 2026-05-29 | **CR-017** | — → ⏸ → **🟢 CLOSED**. Registered, discovered, approved, implemented, verified in single session. 3 fields added to `/pos/max-redeemable`. POS handoff updated. |
+| 2026-05-29 | **CR-015** | 🟡 code complete + data clean → **🟢 CLOSED — live test passed**. Orders 869331 (009577, Rs.409, abhi123, points_balance=70) and 869333 (009579, Rs.2571, abhishek jain, points_balance=128) — both WhatsApp sent + read, all 7 slots correct. |
+| 2026-05-29 | CR-015 | 🟡 Code complete, live test parked → 🟡 **CODE COMPLETE + DATA CLEAN**. POS repointed to preview. Order 869329 received (WhatsApp sent+read). {{6}} semantic mismatch found (`points_earned` mapped where template says "Loyalty Points Used") → fixed to `loyalty_points_used`. Full audit across all 4 R689 templates (18 slots): **0 remaining mismatches**. Awaiting 1 clean order for formal closure. |
+| 2026-05-29 | CR-015 | 🟡 Day 3 done, T7 pending → 🟡 **CODE COMPLETE, live test parked**. T7 committed ({{7}} `points_earned`→`points_balance`; {{4}}/{{5}} were already fixed via UI). T2 skipped (owner: resolver handles int→str). Live test parked (POS at prod, order 009573 didn't land on preview). |
+| 2026-05-29 | CR-015a | ⏸ frozen spec → 🟢 **IMPLEMENTED** (backend: 14 T5 sample values in `customers.py` sample-data — curl-verified 37 keys; frontend: registry-example fallback in `WhatsAppAutomationContent.jsx` + `TemplatesPage.jsx`; preview shows values, no "NA"). Doc: `planning/CR_015A_PREVIEW_SAMPLE_DATA_FROZEN_SPEC.md` |
+| 2026-05-29 | CR-015c | — → 🟢 **Demo login FULLY REMOVED** (owner-approved). Backend `/demo-login` endpoint + constants + `is_demo` schema field; frontend Demo Login button + AuthContext demo code + DemoModeBanner (deleted) + CustomersPage `isDemoMode`. Tests switched to real login (11 passed). demo-login now 404. Doc: `discovery/CR_015C_REMOVE_DEMO_LOGIN_DISCOVERY.md` |
+| 2026-05-29 | CR-015b | — → 🟢 **Dead variable-mapping code REMOVED** (owner-approved B2 + Segments leftovers; orphaned mapping modal cluster on WhatsApp Automation page + unused `availableFields`/`getPreviewMessage` on Segments deleted; lint/compile clean, zero residual refs). Doc: `discovery/CR_015B_DEAD_VARIABLE_MAPPING_CODE_DISCOVERY.md` |
+| 2026-05-29 | CR-015a | — → ⏸ **Frozen spec written** (`planning/CR_015A_PREVIEW_SAMPLE_DATA_FROZEN_SPEC.md`, Option A + partial B); awaiting impl after CR-015b |
+| 2026-05-29 | CR-015 | 🟡 Day 3 frozen → 🟡 **Day 3 DONE — T4+T6 landed, T7 dry-run complete, awaiting owner commit** (119/119 tests, 5/5 smoke probes, frontend compiles) |
+| 2026-05-29 | CR-015 | 🟡 Day 2 done → 🟡 **Day 3 spec FROZEN** (T6+T7+T4 freeze doc at `planning/CR_015_DAY_3_FROZEN_SPEC.md`, 17 acceptance checks) |
+| 2026-05-29 | CR-015 | 🟡 Day 2 frozen → 🟡 **Day 2 DONE — T3 landed** (`build_order_event_context` + 3 pos.py callsites refactored, 119/119 tests, lint clean) |
+| 2026-05-29 | CR-015 | 🟡 Day 1 done → 🟡 **Day 2 spec FROZEN, T3 ready for implementation** (freeze doc at `planning/CR_015_DAY_2_FROZEN_SPEC.md`) |
+| 2026-05-29 | CR-015 | 🟡 Phase 1 plan approved → 🟡 **Day 1 DONE** (T1 resolver hardening + T5 registry expansion landed, 109/109 tests, live smoke confirmed Bug #1 resolved) |
+| 2026-05-29 | CR-015 | ⏸ discovery parked → 🟡 **Phase 1 plan drafted, awaiting sign-off** (Q1–Q8 all answered `a`) |
+| 2026-05-29 | CR-016 | ⏸ discovery parked → ⏸ **deferred to next sprint** (owner: "we have almost definate event we used need to ensure they map and fire correctly") |
+| 2026-05-29 | sprint queue | reaffirmed: CR-015 (P1) → CR-014 (P2); CR-016 out of this sprint |
+| 2026-05-29 | pod URL | rotated to `a28cb9e3-…` (AuthKey webhook updated by owner) |
+| 2026-05-28 evening | CR-016 | created → ⏸ discovery parked (cooldown removed per owner) |
+| 2026-05-28 evening | CR-015 | created → ⏸ discovery parked |
+| 2026-05-28 evening | CR-014 | discovery parked → discovery parked + Profile fields appendix added |
+| 2026-05-28 evening | **CR-004 P3.5** | parked → **🟢 closed (Option A live test passed; 17/17 ACs)** |
+| 2026-05-28 afternoon | CR-004 P3.5 | implementation complete → ⏸ parked awaiting Option A live test |
+| 2026-05-28 afternoon | CR-004 P3.5 | receive-side hotfix applied (form-urlencoded parser) |
+| 2026-05-28 morning | CR-014 | created → ⏸ discovery parked |
+| 2026-05-26 | CRM 1.0 baseline | closed |
+
+---
+
+## How to update this dashboard
+
+1. After any CR phase transition, edit the row's `Phase` + `Status` + `Last touched` cells.
+2. Append a row to "Recent transitions" with date + CR + from→to.
+3. If a brand-new CR is registered, add a new row above the relevant section and reference its discovery doc.
+4. If a CR is closed, change light to 🟢 and clear "Blockers / Owner asks" column.
+
+---
+
+**End of dashboard.**
