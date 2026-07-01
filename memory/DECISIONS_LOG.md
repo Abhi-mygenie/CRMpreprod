@@ -596,4 +596,44 @@
 
 ---
 
+## 2026-07-01 — Session decisions
+
+### 2026-07-01 [CR-032] §scope — Introduce CRM Template Builder feature flag (self-service)
+**Decision**: Add a per-tenant boolean `features.crm_templates_enabled` on the `users` collection. Default `false` for new tenants. When off, hide the CRM Templates section on TemplatesPage, the "Add Template" button, the "Set Labels" affordance, and the `/template-builder` route.
+**Source**: Owner: "in which restaurant CRM template will come shd be configuartion , in setting by default for every one ... coz CRM template is used by only 1 restuarnt right now"
+**Rationale**: 22 of 28 tenants (79%) have no custom_templates and don't need to see the CRM section. Hiding it removes visual noise for the majority and reduces exposure to the 5 filter defects documented in INV-002. Backend send path (Freshmarketer webhook, DirectSend) stays flag-independent so no service disruption for existing users.
+**Locks**: New field on `users` collection (schema-less, MongoDB). Zero hotspot files touched. Send pipeline unchanged.
+
+### 2026-07-01 [CR-032] §governance — Flag is self-service via Settings page
+**Decision**: Each restaurant owner can toggle the flag themselves from Settings — no admin-only gate, no support ticket flow.
+**Source**: Owner: "(a) Any restaurant owner can toggle it in their own Settings page (self-service)"
+**Rationale**: Marginal build cost over admin-only (~1 hour); eliminates future enablement support burden; Settings placement also acts as feature discovery.
+**Locks**: `PATCH /api/settings/features` endpoint accepts self-mutation of the caller's own tenant flag only (must filter by `user_id` from JWT).
+
+### 2026-07-01 [CR-032] §rollout — Auto-enable existing 6 tenants during backfill
+**Decision**: All 6 tenants that already have at least one document in `custom_templates` will be set `features.crm_templates_enabled=true` as part of the deploy backfill. New tenants receive `false`.
+**Source**: Agent recommendation accepted implicitly by owner focusing on "no user impact" outcome.
+**Rationale**: Zero regression for the 6 users currently building templates. Removes need for support tickets on day one.
+**Locks**: One-time idempotent script against remote MongoDB. Must be logged in the release report.
+
+### 2026-07-01 [CR-031] §scope — Defer TemplatesPage tab restructure
+**Decision**: The tab-based restructure of TemplatesPage (CR-031, planned in `discovery/CR_031_TEMPLATES_PAGE_TAB_RESTRUCTURE_DISCOVERY_AND_PLAN.md`) is parked. Revisit when adoption of the feature flag grows past the current 6 tenants, or when the filter defects (INV-002 BUG-A through BUG-E) escalate for those users.
+**Source**: Owner: "if we do this then cr 31 can be done later coz CRM template is used by only 1 restuarnt right now"
+**Rationale**: CR-032 hides the buggy view from 79% of tenants; the tab work becomes a nice-to-have refinement instead of urgent bug fix.
+**Locks**: CR-031 stays registered but status changes to `⏸ Deferred — awaits CR-032 ship + adoption`. INV-002 findings remain valid documentation.
+
+### 2026-07-01 [CR-033] §scope — Enumerate additional audience filters as its own CR
+**Decision**: Split "more filters" and "tag system" into two independent CRs. CR-033 = additional filter dimensions on top of today's 14. CR-034 = free-form user-defined tag system with tag-based audience filter. Both run in parallel; neither blocks the other.
+**Source**: Owner: "these are two different CRs probably" (2026-07-01 chat after INV-003 review).
+**Rationale**: Filter additions are read-side-only work in `build_customer_query` + UI. Tag system requires new schema field, new endpoints, bulk actions, and a new UI pattern. Different risk profile and different owners on each PR.
+**Locks**: CR-033 scope = filter dimension additions only. CR-034 scope = tag system only.
+
+### 2026-07-01 [CR-034] §scope — Use INV-003 Approach A (embedded tags + per-tenant catalog)
+**Decision**: Customer tags will be stored as `Customer.tags: List[str]` (free-form strings) with a per-tenant catalog in `users.available_tags: List[str]`. Approach B (normalised `customer_tags` collection with colour/metadata) deferred.
+**Source**: Owner: "we need a way to add a tag, and then tag can be attached to any customer" (2026-07-01 chat) — accepted the simpler shipping model implicitly by focusing on the MVP outcome.
+**Rationale**: Faster ship (~8-10 hrs vs ~2 days for B), no new collection, uses MongoDB's schema-less flexibility. Metadata (colours) can be added later without breaking migration.
+**Locks**: Data model shape is now A. Any future colour/description feature will migrate to B in a follow-up CR.
+
+---
+
 **End of decisions log.**
