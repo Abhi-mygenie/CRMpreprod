@@ -1459,7 +1459,7 @@ async def get_import_history(user: dict = Depends(get_current_user)):
     return logs
 
 
-
+@router.post("/{customer_id}/tags")
 async def add_tags_to_customer(customer_id: str, data: dict, user: dict = Depends(get_current_user)):
     """CR-034: Add one or more tags to a customer. Idempotent. Updates tenant catalog."""
     import re
