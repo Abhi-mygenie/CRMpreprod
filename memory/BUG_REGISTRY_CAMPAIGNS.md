@@ -174,6 +174,7 @@ Good Morning! Today's menu at Mygenie Dev are:
 | **BUG-006** | — | **✅ Campaign msgs invisible** | **✅** | — | — | **✅ FIXED** |
 | **BUG-007** | — | **✅ Preview unreadable** | **✅** | — | — | **✅ FIXED** |
 | **BUG-008** | **✅ Wasted POS call every login** | — | — | — | — | **✅ FIXED** |
+| **BUG-009** | — | **✅ Details button on Marketing > History dead** | **✅** | — | — | **🔴 OPEN** |
 
 ---
 
@@ -228,3 +229,46 @@ if not existing_user.get("crm_token_registered_with_pos"):
 BUG-005 + BUG-006 → Must both be fixed for campaign filter to work end-to-end
 BUG-007          → Independent, can be fixed in parallel
 ```
+
+---
+
+## BUG-009: "Details" button on Marketing > History does nothing
+
+**Severity**: P2 (dead UX element; discoverability broken; no data / financial impact)
+**Status**: 🔴 OPEN
+**Component**: Frontend — `frontend/src/pages/CampaignHistoryPage.jsx` lines 164-166
+**Date Registered**: 2026-07-03
+**Reporter**: Owner (verbal report)
+**Intake doc**: `crm/crm_roi_sprint/discovery/SESSION_2026_07_03_BATCH_INTAKE.md` § Item 2
+
+**Description**: On page **Marketing > History** (route `/marketing/history`), each row in the campaign runs table has a "Details" button that produces no reaction on click.
+
+**Root cause (code-confirmed)**: The button element has no `onClick` handler:
+```jsx
+// CampaignHistoryPage.jsx line 164-166
+<Button variant="outline" size="sm" className="text-xs rounded-full" data-testid="history-details-btn">
+    Details
+</Button>
+```
+No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" button (line 168+) IS correctly wired, so this is an isolated missing wire, not a broader break.
+
+**Reproduction**:
+1. Log in as `owner@jehsnest.com`
+2. Navigate to Marketing > History
+3. Click **Details** on any campaign run row → nothing happens (no navigation, no modal, no console error)
+
+**Affected Users**: Every tenant with at least 1 campaign run
+
+**Awaiting owner Q1**: what should the button show?
+- (a) Deep-link to Messages filtered by this specific run (extends CR-026 URL param scheme)
+- (b) Inline modal with run stats
+- (c) Both
+- (d) Dedicated `CampaignRunDetailPage`
+
+**Proposed default (pending Q1)**: Option (a) — cheapest, reuses CR-026 plumbing, ~15 min.
+
+**Related**: CR-026 (already implemented "View Messages" button on **CampaignsPage** — different page; that button IS working).
+
+---
+
+## Cross-Reference Matrix (updated)
