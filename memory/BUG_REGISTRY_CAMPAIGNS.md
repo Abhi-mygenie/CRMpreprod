@@ -259,15 +259,17 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 
 **Affected Users**: Every tenant with at least 1 campaign run
 
-**Awaiting owner Q1**: what should the button show?
-- (a) Deep-link to Messages filtered by this specific run (extends CR-026 URL param scheme)
-- (b) Inline modal with run stats
-- (c) Both
-- (d) Dedicated `CampaignRunDetailPage`
+**Owner ask (2026-07-03)**: "suggest, why it was planned"
 
-**Proposed default (pending Q1)**: Option (a) — cheapest, reuses CR-026 plumbing, ~15 min.
+**Recommendation on file (option a — deep-link to filtered Messages)**:
+- Wire onClick to `navigate(\`/messages?campaign_id=\${row.campaign_id}&run_id=\${row.run_id}\`)`
+- Reuses CR-026 URL-param filter scheme
+- ~15 LOC in `CampaignHistoryPage.jsx`
+- May need +1 hr backend work to verify `run_id` is a filter dimension on `whatsapp_message_logs` (Planning to confirm)
 
-**Related**: CR-026 (already implemented "View Messages" button on **CampaignsPage** — different page; that button IS working).
+**Design intent (archaeology)**: Details is the standard drill-down pattern for a summary row — jump from aggregate stats (recipient count, delivery donuts, delivery %) to the per-recipient log entries produced by that specific run. Sibling "Resend" already reuses the same row identity to trigger action; only "Details" was left unwired.
+
+**Awaiting**: Planning agent invocation → dispatch to Bug Fix role.
 
 ---
 

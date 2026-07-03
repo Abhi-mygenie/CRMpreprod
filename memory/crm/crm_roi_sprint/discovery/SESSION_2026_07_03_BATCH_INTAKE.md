@@ -263,3 +263,108 @@ CR-036 still awaits owner Q1-Q3 (media types, max file size, permanent vs pass-t
 ---
 
 *End of batch intake — 2026-07-03. No code changes. Handing back to owner for questions on CR-042, BUG-009, CR-043, and (still-open) CR-036.*
+
+---
+
+## Addendum — 2026-07-03 (later same session): Owner answers received
+
+Owner's verbatim response:
+> **CR-042** — Q1 both, Q2 both, Q3 show proposed field, Q4 5000
+> **BUG-009** — "suggest, why it was planned"
+> **CR-043** — Q1 customer. we might need to re do this pop up (attached screenshot). rest in future CR register
+> **CR-036** — as per meta standard we have been following that in template builder
+> **Directive**: dont start impact until i call planning agent
+
+Attached screenshot: showed the Marketing > History row with "Details" button highlighted (same context as BUG-009). Did NOT show a customer tag popup — noted as flag; visual spec for CR-043 popup UX rework is TBD from owner at Planning time.
+
+### CR-042 · answers locked
+
+- **Q1 (entry-point)**: BOTH — button on **MessageStatusPage** (uses current filter state → campaign, event, date range, status) AND button on **CampaignHistoryPage** (per-run scope, one download per row).
+- **Q2 (format)**: BOTH — CSV and Excel (`.xlsx`). Follow the CR-035 dropdown pattern (`Export ▼` → CSV / XLSX).
+- **Q3 (fields)**: Owner said "show proposed field" → intake-proposed field list is accepted:
+  ```
+  sent_at, customer_phone, customer_name, event_type_or_campaign_name,
+  template_name, status, delivered_at, read_at, rejected_at,
+  error_reason, message_id, is_test
+  ```
+- **Q4 (row limit)**: **5000** (matches CR-035).
+
+**Status transition**: 📋 Registered → 📋 **Intake complete · ALL Q answered · ready for Planning agent**
+**Effort estimate remains**: ~3-5 hrs (2 backend endpoints — one filtered, one per-run — + 2 frontend buttons + dropdown, reusing openpyxl + io from CR-035)
+
+### BUG-009 · owner asked for my recommendation + rationale
+
+Owner asked: *"suggest, why it was planned"*. Interpreting as: recommend what the button should do, and explain the design intent behind the button being there in the first place.
+
+**Original intent (design archaeology)**:
+The Details button lives on a per-campaign-run row in Marketing > History. Each row already summarizes the run at glance (recipient count, delivered / read / rejected donuts, delivery rate %, timestamp). A "Details" affordance is the standard CRM pattern for *"give me the row-level drill-down that the summary aggregates over"* — in this case, the individual message log entries produced by that specific run.
+
+The button was almost certainly planned so an owner viewing a run's aggregate stats can immediately jump to the per-recipient log (who got it, who didn't, why it failed, when it delivered). The plumbing to do this already exists: CR-026 shipped a URL-param filter on the Message Status page (`?campaign_id=X&run_id=Y`). "Resend" on the same row uses the same underlying campaign identity to trigger a re-send. Only "Details" was left unwired.
+
+**My recommendation (proposed default, awaiting Planning confirmation)**:
+
+**Option (a) — Deep-link to Messages page pre-filtered by run**
+- Cheapest fix: ~15 LOC in `CampaignHistoryPage.jsx`
+- `onClick={() => navigate(`/messages?campaign_id=${row.campaign_id}&run_id=${row.run_id}`)}`
+- Requires MessageStatusPage to accept and respect `run_id` param (verify at Planning; may need +1 hr of backend filter work if `run_id` isn't already a filter dimension on `whatsapp_message_logs`).
+- Consistent with existing CR-026 UX pattern.
+- No new modal / route to design or maintain.
+
+**Why not (b) inline modal**: Modal would duplicate summary already visible in the row; only added value is a small error breakdown, and that's better served on the full Messages page which owner can already filter and export (CR-042). Modal = more code, more design, more maintenance, less benefit.
+
+**Why not (d) dedicated CampaignRunDetailPage**: Overkill — no unique data lives at that URL that isn't already served by pre-filtered Messages page.
+
+**Recommendation summary**: **Go with (a)** unless Planning agent finds a specific reason for (b) or (c).
+
+**Status transition**: 🔴 OPEN · awaits Q1 → 🔴 OPEN · **recommendation on file (option a), awaits Planning to confirm and dispatch to Bug Fix role**
+
+### CR-043 · scope narrowed + parked follow-ups
+
+- **Q1**: Customers page only in this CR.
+- **Additional owner ask**: The existing tag add/edit popover on the Customers page needs a UX rework ("we might need to redo this popup"). Attached screenshot did NOT show that popup — it showed the Marketing > History row (BUG-009 context). **Flag**: visual spec for the popover rework is TBD; Planning agent should request a fresh screenshot / description at planning time.
+- **Deferred to future CR** (per owner's "rest in future CR register"):
+  - Tag filter on **MessageStatusPage** (will register as new CR when owner raises it)
+  - Any tag filter on other surfaces (Coupons, Feedback, Analytics)
+  - These are NOT registered now — INTAKE captures the deferral only.
+
+**Scope of CR-043 as of now**:
+1. Add a **Tags filter dimension** to the CustomersPage filter block (dropdown or multi-select using tenant's `available_tags` catalog).
+2. Rework the **inline tag popover** on the CustomersPage (UX spec TBD at Planning).
+
+**Status transition**: 📋 Registered · awaits Q1 → 📋 **Intake complete · scope locked (Customers page only) · UX spec for popover pending at Planning**
+**Effort estimate revision**: ~3-5 hrs (filter is trivial since backend already filters by `tags`; popover rework depends on new UX spec)
+
+### CR-036 · owner answer interpretation
+
+Owner said: *"as per meta standard we have been following that in template builder"*.
+
+**My interpretation**: resolve open Q1-Q3 by matching Meta WhatsApp Cloud API's official media-header spec. Locking these as **defaults pending Planning confirmation**:
+
+- **Q1 (media types supported)**: image, video, document, audio (Meta v21 supports all four for header media).
+- **Q2 (max file size per Meta caps)**:
+  - Image: 5 MB (JPEG, PNG)
+  - Video: 16 MB (MP4, 3GPP)
+  - Document: 100 MB (PDF)
+  - Audio: 16 MB (AAC, M4A, AMR, MP3, OGG opus)
+- **Q3 (storage strategy)**: **Meta pass-through pattern** — for each template that has a media header, upload the asset via `POST /v21.0/{WABA_ID}/uploads` to obtain a media `handle`, then pass that handle in the template's `header_handle`. No permanent CRM-side hosting required; Meta handles storage.
+  - Note: media handles from `/uploads` are valid for ~30 days for template creation, then Meta persists the media associated with the approved template.
+
+**If owner meant something different** (e.g., "our template builder already follows Meta spec — why is this in the discovery backlog?"): note that INV-004 (2026-07-01) code-audit found we currently send raw URLs as `header_handle`, which Meta rejects. So implementation gap remains regardless of stated intent. Planning agent will confirm.
+
+**Status transition**: 📋 Registered · awaits Q1-Q3 → 📋 **Intake complete · defaults locked per Meta spec · ready for Planning to validate + implementation**
+
+### CR-035 · dashboard drift flag (unchanged)
+
+Recommendation stands: CR-035 dashboard row shows "Discovery complete" but code is fully shipped. Not touching in this INTAKE (out of scope). Planning / Closure agent should refresh.
+
+### Owner directive respected
+
+- No impact analysis performed.
+- No planning performed.
+- No code changes.
+- Awaits owner invoking Planning agent to proceed.
+
+---
+
+*Addendum end. INTAKE role formally closes for this session unless owner reports new items.*
+
