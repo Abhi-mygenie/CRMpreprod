@@ -710,15 +710,25 @@ async def sync_authkey_templates(user: dict = Depends(get_current_user)):
 
             # Match against local custom_templates
             local_templates = await db.custom_templates.find(
-                {"user_id": user["id"]}, {"_id": 0, "id": 1, "template_name": 1}
+                {"user_id": user["id"]}, {"_id": 0, "id": 1, "template_name": 1, "status": 1}
             ).to_list(None)
             for ct in local_templates:
                 norm_ct = (ct.get("template_name") or "").strip().lower().replace(" ", "_")
                 wid = authkey_by_name.get(norm_ct)
                 if wid:
+                    # CR-037: Preserve authoritative "rejected" status set by
+                    # Meta status check (Path A at check_template_status).
+                    # Only overwrite to "approved" when current status is not
+                    # already "rejected". authkey_wid is always back-filled so
+                    # that AuthKey WID discovery remains functional even on
+                    # rejected templates (owner may fix + resubmit).
+                    current_status = ct.get("status", "draft")
+                    update_set = {"authkey_wid": wid}
+                    if current_status != "rejected":
+                        update_set["status"] = "approved"
                     await db.custom_templates.update_one(
                         {"id": ct["id"]},
-                        {"$set": {"authkey_wid": wid, "status": "approved"}}
+                        {"$set": update_set}
                     )
                     wid_updates += 1
         except Exception as wid_err:
