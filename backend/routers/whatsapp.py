@@ -1395,8 +1395,22 @@ async def message_status_callback(request: Request):
                 f"webhook time parse failed: {time_raw!r}, falling back to received_at"
             )
 
-    # ---- 6. Row lookup ----
-    row = await db.whatsapp_message_logs.find_one({"message_id": logid}, {"_id": 0})
+    # ---- 6. Row lookup (CR-039: composite (message_id, customer_phone) with fallback) ----
+    # AuthKey may return duplicate LogIDs for concurrent single-mobile sends, so
+    # message_id alone is not unique. Try composite lookup first to disambiguate;
+    # fall back to message_id-only for legacy rows without matching mobile.
+    webhook_mobile = str(payload.get("mobile") or "")
+    row = None
+    if webhook_mobile and len(webhook_mobile) >= 10:
+        # AuthKey sends mobile with country code (e.g. 919035133228);
+        # CRM stores customer_phone as last 10 digits (e.g. 9035133228).
+        mobile_last_10 = webhook_mobile[-10:]
+        row = await db.whatsapp_message_logs.find_one(
+            {"message_id": logid, "customer_phone": mobile_last_10},
+            {"_id": 0},
+        )
+    if not row:
+        row = await db.whatsapp_message_logs.find_one({"message_id": logid}, {"_id": 0})
     if not row:
         return await _persist_callback_and_return(
             "no_matching_row",
@@ -1408,7 +1422,6 @@ async def message_status_callback(request: Request):
     new_status = next_status(row.get("status"), mapped_status)
 
     # ---- 8. Recipient sanity check ----
-    webhook_mobile = str(payload.get("mobile") or "")
     expected_mobile = f"{row.get('country_code', '')}{row.get('customer_phone', '')}"
     mobile_mismatch = bool(webhook_mobile and expected_mobile and webhook_mobile != expected_mobile)
 
@@ -1424,9 +1437,17 @@ async def message_status_callback(request: Request):
     if payload.get("channel"):
         set_fields["channel"] = payload["channel"]
     if mobile_mismatch:
-        set_fields["mobile_mismatch"] = True
+        # CR-039: Composite lookup already attempted above. A persistent mismatch
+        # means the correct row cannot be identified — refuse to update rather
+        # than corrupt data on the wrong row.
         logger.warning(
-            f"webhook mobile mismatch: payload={webhook_mobile!r} row={expected_mobile!r} logid={logid}"
+            f"CR-039 webhook mobile mismatch after composite lookup: "
+            f"payload={webhook_mobile!r} row={expected_mobile!r} logid={logid}"
+        )
+        return await _persist_callback_and_return(
+            "ambiguous_row",
+            f"mobile_mismatch payload={webhook_mobile} row={expected_mobile}",
+            {"success": True, "logid": logid, "updated": False},
         )
 
     # Dispatch time -> status-specific timestamp field
