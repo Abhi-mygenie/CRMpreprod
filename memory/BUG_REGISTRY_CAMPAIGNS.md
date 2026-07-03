@@ -269,7 +269,9 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 
 **Design intent (archaeology)**: Details is the standard drill-down pattern for a summary row — jump from aggregate stats (recipient count, delivery donuts, delivery %) to the per-recipient log entries produced by that specific run. Sibling "Resend" already reuses the same row identity to trigger action; only "Details" was left unwired.
 
-**Awaiting**: Planning agent invocation → dispatch to Bug Fix role.
+**Awaiting**: Owner confirms option (a) at gate → Bug Fix role dispatch.
+
+**Planning status (2026-07-03)**: 🔵 Impact Analysis complete. LOW risk. ~23 LOC across 3 files (`whatsapp.py` +10 LOC coordinated with CR-042; `CampaignHistoryPage.jsx` +5 LOC onClick+import; `MessageStatusPage.jsx` +8 LOC extend CR-026 URL reader to accept `run_id`). Coordinate backend commit with CR-042. Impact doc: `crm_roi_sprint/planning/BATCH_2026_07_03_IMPACT.md`.
 
 ---
 
