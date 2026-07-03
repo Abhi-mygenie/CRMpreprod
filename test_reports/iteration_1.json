@@ -1,0 +1,60 @@
+{
+  "summary": "Backend regression testing of CR-039 WhatsApp status-callback webhook fix (composite lookup + ambiguous_row). Created /app/backend/tests/test_cr039_webhook.py with 11 pytest tests covering all scenarios listed in the review request. Ran against LIVE production DB (mygenie on 52.66.232.149) via public preview URL. Result: 10/11 PASS. All CR-039 critical behavior verified: composite (message_id, customer_phone) lookup correctly routes updates to the right row, ambiguous_row verdict is written when mobile mismatches, no unrelated rows are mutated. 1 FAIL flags a pre-existing bug (outside CR-039 scope but violates the review request's explicit acceptance criterion): delivered_at/read_at/rejected_at timestamps are unconditionally overwritten on transition_ignored events because set_fields is populated BEFORE the state machine check (whatsapp.py lines 1454-1459 vs 1472-1476). Login regression passes.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/whatsapp/status-callback",
+        "issue": "delivered_at (and read_at, rejected_at) is overwritten by later webhooks even when verdict='transition_ignored'. In whatsapp.py, set_fields['delivered_at'] = ts_utc_iso is set at line ~1455 BEFORE the state-machine check at line ~1472; the update_one at line 1489 always runs. Verified in prod DB: row for 9035133228 had delivered_at bumped from 2026-01-15 to 2026-01-16 on a duplicate delivered webhook that (correctly) returned transition_ignored. Also row for 7505242126 (status=rejected) had delivered_at overwritten to 2026-07-03T15:12:30 on the fallback test (delivered event, transition ignored). This violates the review-request acceptance criterion: 'verify state machine correctly no-ops (verdict=transition_ignored) and does not overwrite delivered_at timestamp'. Fix: guard the timestamp assignments behind `if new_status:` or wrap the entire timestamp block after the state-machine check.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr039_webhook.py",
+    "/app/test_reports/pytest/cr039_results.xml"
+  ],
+  "action_items": [
+    "Fix delivered_at/read_at/rejected_at overwrite bug: move the `if mapped_status == 'delivered': set_fields['delivered_at'] = ts_utc_iso` block (whatsapp.py lines ~1454-1469) to AFTER the `if new_status:` check at line 1472, or gate them behind `if applied:`. This is a pre-existing bug (not introduced by CR-039) but was called out explicitly in the review request as an acceptance criterion.",
+    "Consider adding a MongoDB unique compound index on (message_id, customer_phone) for whatsapp_message_logs to make the CR-039 composite lookup deterministic and enforceable at DB layer.",
+    "Optional: clean up 8 INVALID_TEST_LOGID_* rows in whatsapp_callback_logs created by this test run (harmless; audit-log collection)."
+  ],
+  "critical_code_review_comments": [
+    "whatsapp.py:1454-1469 timestamp assignment happens BEFORE state-machine gate; causes silent data corruption on out-of-order/duplicate events. See critical bug above.",
+    "whatsapp.py file is 1631 lines — exceeds recommended 700-line threshold. Consider splitting webhook handler + resend logic into separate modules (routers/whatsapp_webhook.py, routers/whatsapp_resend.py).",
+    "whatsapp.py:1408 composite lookup uses last-10 digits of webhook_mobile. This is correct for Indian numbers but implicitly assumes 10-digit customer_phone convention. If tenants outside India onboard later, this will silently break. Consider documenting or making the strip logic country-code aware.",
+    "whatsapp.py:1489 update_one is always called even when set_fields contains no new information (e.g. transition_ignored with empty time_raw). Not a bug but wasteful; consider skipping the DB write when applied=False and no timestamp fields need updating.",
+    "The webhook handler is a public unauthenticated endpoint. HMAC verification (line 1332-1346) is dormant until AUTHKEY_WEBHOOK_SECRET env var is set. Recommend prioritising enabling this in production before the next incident window."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr039_webhook.py (new — 11 pytest test methods across 10 test classes)",
+    "/app/backend/tests/__init__.py (new — empty package marker)"
+  ],
+  "success_rate": {
+    "backend": "10/11 = 91%",
+    "frontend": "N/A (skipped per review request)"
+  },
+  "test_credentials": "owner@jehsnest.com / Qplazm@10 (login regression PASSED, returns access_token)",
+  "seed_data_creation": "No new customer/campaign/order data created. 8 synthetic INVALID_TEST_LOGID_* rows added to whatsapp_callback_logs (audit collection, harmless). One real-data mutation as explicitly requested by CR-039 test matrix: whatsapp_message_logs row for logid=d1cbdc206ce89f7f794575bbd862a27b, phone=9035133228 transitioned pending -> delivered (delivered_at set). This is the intended outcome of the critical composite-lookup test.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "CR-039 composite lookup + ambiguous_row skip is WORKING correctly — verified via /app/backend/tests/test_cr039_webhook.py (run with `cd /app/backend && python3 -m pytest tests/test_cr039_webhook.py -n 0 -v`; pytest.ini pins -n 2 --dist loadscope by default, use -n 0 to serialize because tests share state on live DB and the same REAL_LOGID). If retesting, note that row phone=9035133228 for logid=d1cbdc206ce89f7f794575bbd862a27b is now in 'delivered' state (not 'pending' any more). TestCompositeLookupCorrectRow will then expect verdict='transition_ignored' instead of 'applied' — code already handles this branch. The one FAIL (TestDuplicateDelivered) reflects a real pre-existing bug in whatsapp.py timestamp assignment ordering; do NOT mask it. If the bug is fixed by moving the timestamp block after the state-machine check, this test will pass. Do NOT run against xdist parallel — use -n 0.",
+  "rca_of_the_issue": {
+    "summary": "delivered_at/read_at/rejected_at timestamps get overwritten by later webhooks even when the state-machine correctly returns transition_ignored.",
+    "reproduction_steps": [
+      "1. Ensure a whatsapp_message_logs row exists with status='delivered' and delivered_at=T1.",
+      "2. POST /api/whatsapp/status-callback with logid, mobile matching that row, status='delivered', time=T2 (T2>T1).",
+      "3. Response returns success:true, applied:false (CORRECT — state-machine blocks delivered->delivered).",
+      "4. Callback log records verdict='transition_ignored' with reason \"'delivered'->'delivered' not allowed\" (CORRECT).",
+      "5. BUT: DB row now has delivered_at=T2. Original T1 is lost."
+    ],
+    "root_cause": "In /app/backend/routers/whatsapp.py, lines 1454-1469 (dispatch time -> status-specific timestamp) execute BEFORE the state-machine check at lines 1472-1476. The unconditional `update_one` at line 1489 then applies set_fields including the timestamp overwrite regardless of whether the transition was allowed.",
+    "mitigation": "Move the `if mapped_status == 'delivered': set_fields['delivered_at'] = ts_utc_iso` (and read/rejected equivalents) to AFTER the `if new_status:` block, OR gate them behind `if applied:`. Also consider gating the entire update_one call behind `if applied or has_side_channel_fields:` to avoid writing set_fields that contain only updated_at + time_raw on transition_ignored events.",
+    "scope": "Pre-existing bug, not introduced by CR-039. CR-039 fixes are correct and effective. This bug is orthogonal but was flagged by the review request's acceptance criteria."
+  }
+}
