@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";      // BUG-009: deep-link to MessageStatus
 import { toast } from "sonner";
-import { History, CheckCircle2, XCircle, Clock, Send, Users, BarChart3 } from "lucide-react";
+import { History, CheckCircle2, XCircle, Clock, Send, Users, BarChart3, Download, ChevronDown, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +17,11 @@ const STATUS_BADGE = {
 
 const CampaignHistoryContent = () => {
     const { api } = useAuth();
+    const navigate = useNavigate();                       // BUG-009
     const [runs, setRuns] = useState([]);
     const [loading, setLoading] = useState(true);
     const [days, setDays] = useState("30");
+    const [openExportRunId, setOpenExportRunId] = useState(null);  // CR-042 per-row dropdown
 
     const fetchRuns = async () => {
         setLoading(true);
@@ -33,6 +36,39 @@ const CampaignHistoryContent = () => {
     };
 
     useEffect(() => { fetchRuns(); }, [days]);
+
+    // CR-042: close per-row export dropdown on outside click
+    useEffect(() => {
+        if (!openExportRunId) return;
+        const handler = (e) => {
+            if (!e.target.closest("[data-history-export-wrapper]")) setOpenExportRunId(null);
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [openExportRunId]);
+
+    // CR-042: per-run export handler
+    const handleRunExport = async (run, format) => {
+        setOpenExportRunId(null);
+        try {
+            const params = new URLSearchParams({ format, run_id: run.id });
+            if (run.campaign_id) params.append("campaign_id", run.campaign_id);
+            const response = await api.get(`/whatsapp/message-logs/export?${params.toString()}`, { responseType: "blob" });
+            const rowCount = response.headers["x-row-count"];
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            const slug = (run.campaign_name || "run").replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 32);
+            link.setAttribute("download", `run_${slug}_${run.id.slice(0, 8)}.${format}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success(`Exported ${rowCount || "0"} row${rowCount === "1" ? "" : "s"}`);
+        } catch (err) {
+            toast.error("Export failed. Please try again.");
+        }
+    };
 
     const totalSent = runs.reduce((s, r) => s + (r.total_sent || 0), 0);
     const totalDelivered = runs.reduce((s, r) => s + (r.total_delivered || 0), 0);
@@ -160,8 +196,16 @@ const CampaignHistoryContent = () => {
                                                 {new Date(run.started_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                             </td>
                                             <td className="px-3 py-3.5">
-                                                <div className="flex gap-1.5">
-                                                    <Button variant="outline" size="sm" className="text-xs rounded-full" data-testid="history-details-btn">
+                                                <div className="flex gap-1.5 items-center">
+                                                    {/* BUG-009: deep-link to Messages page pre-filtered by this run */}
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-xs rounded-full"
+                                                        data-testid={`history-details-btn-${run.id}`}
+                                                        onClick={() => navigate(`/messages?campaign_id=${run.campaign_id}&run_id=${run.id}`)}
+                                                        disabled={!run.campaign_id || !run.id}
+                                                    >
                                                         Details
                                                     </Button>
                                                     {run.total_failed > 0 && (
@@ -183,6 +227,40 @@ const CampaignHistoryContent = () => {
                                                             Resend {run.total_failed}
                                                         </Button>
                                                     )}
+                                                    {/* CR-042: per-run export dropdown */}
+                                                    <div className="relative" data-history-export-wrapper>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-xs rounded-full"
+                                                            data-testid={`history-export-btn-${run.id}`}
+                                                            onClick={() => setOpenExportRunId(openExportRunId === run.id ? null : run.id)}
+                                                        >
+                                                            <Download className="w-3 h-3 mr-1" />
+                                                            Export
+                                                            <ChevronDown className="w-3 h-3 ml-0.5" />
+                                                        </Button>
+                                                        {openExportRunId === run.id && (
+                                                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg z-50 min-w-[150px] overflow-hidden">
+                                                                <button
+                                                                    onClick={() => handleRunExport(run, "csv")}
+                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                                                    data-testid={`history-export-csv-${run.id}`}
+                                                                >
+                                                                    <FileSpreadsheet className="w-3.5 h-3.5 text-green-600" />
+                                                                    CSV
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRunExport(run, "xlsx")}
+                                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                                                    data-testid={`history-export-xlsx-${run.id}`}
+                                                                >
+                                                                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                                                                    Excel (.xlsx)
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>

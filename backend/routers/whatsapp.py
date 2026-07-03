@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from fastapi.responses import StreamingResponse   # CR-042: message report streaming download
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
@@ -1122,27 +1123,23 @@ async def get_message_stats(
     return stats
 
 
-@router.get("/message-logs")
-async def get_message_logs(
-    user: dict = Depends(get_current_user),
+# CR-042 + BUG-009: shared query builder for message-logs list + export.
+# Extracted from the original inline construction in get_message_logs so that
+# GET /message-logs and GET /message-logs/export produce byte-identical filter
+# semantics against the whatsapp_message_logs collection.
+def _build_message_log_query(
+    user_id: str,
     status: Optional[str] = None,
     event_type: Optional[str] = None,
     campaign_id: Optional[str] = None,
+    run_id: Optional[str] = None,          # CR-042 + BUG-009: new dimension
     template_name: Optional[str] = None,
     search: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     include_test: bool = False,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, le=200)
-):
-    """Get paginated message logs with filters.
-
-    CR-004 P3.5 Commit 6:
-      - `include_test` (default False) excludes is_test=True rows.
-      - `search` matches BOTH customer_phone and customer_name (regex-escaped).
-    """
-    query: Dict[str, Any] = {"user_id": user["id"]}
+) -> Dict[str, Any]:
+    query: Dict[str, Any] = {"user_id": user_id}
 
     if not include_test:
         query["is_test"] = {"$ne": True}
@@ -1159,6 +1156,17 @@ async def get_message_logs(
         query["$and"].append({"$or": [
             {"campaign_id": campaign_id},
             {"reference_id": campaign_id},
+        ]})
+    if run_id and run_id != "all":
+        # CR-042 + BUG-009: same $or shape as campaign_id — captures legacy
+        # logs (which stored run_id in campaign_id) and current logs
+        # (reference_id = run_id). Combined with campaign_id filter, this
+        # narrows to the exact run of the exact campaign.
+        if "$and" not in query:
+            query["$and"] = []
+        query["$and"].append({"$or": [
+            {"campaign_id": run_id},
+            {"reference_id": run_id},
         ]})
     if template_name and template_name != "all":
         query["template_name"] = template_name
@@ -1179,21 +1187,194 @@ async def get_message_logs(
             query["created_at"]["$lte"] = date_to
         else:
             query["created_at"] = {"$lte": date_to}
-    
+    return query
+
+
+@router.get("/message-logs")
+async def get_message_logs(
+    user: dict = Depends(get_current_user),
+    status: Optional[str] = None,
+    event_type: Optional[str] = None,
+    campaign_id: Optional[str] = None,
+    run_id: Optional[str] = None,          # CR-042 + BUG-009: new filter dimension
+    template_name: Optional[str] = None,
+    search: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    include_test: bool = False,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, le=200)
+):
+    """Get paginated message logs with filters.
+
+    CR-004 P3.5 Commit 6:
+      - `include_test` (default False) excludes is_test=True rows.
+      - `search` matches BOTH customer_phone and customer_name (regex-escaped).
+
+    CR-042 + BUG-009: adds `run_id` filter — narrows to messages of a specific
+    campaign run via the same $or pattern used for campaign_id (BUG-006 compat).
+    """
+    query = _build_message_log_query(
+        user_id=user["id"],
+        status=status, event_type=event_type,
+        campaign_id=campaign_id, run_id=run_id,
+        template_name=template_name, search=search,
+        date_from=date_from, date_to=date_to,
+        include_test=include_test,
+    )
+
     # Get total count
     total = await db.whatsapp_message_logs.count_documents(query)
-    
+
     # Get logs
     logs = await db.whatsapp_message_logs.find(
         query, {"_id": 0}
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
-    
+
     return {
         "total": total,
         "logs": logs,
         "skip": skip,
         "limit": limit
     }
+
+
+# CR-042: Message report download — CSV + XLSX with 5000-row cap.
+# Reuses _build_message_log_query() so filter semantics stay identical to the
+# list endpoint. Filter-aware (MessageStatusPage export button) + run-scoped
+# (CampaignHistoryPage per-row export button) share this single endpoint.
+_EXPORT_HEADERS = [
+    ("Sent At", "created_at"),
+    ("Phone", "customer_phone"),
+    ("Name", "customer_name"),
+    ("Event / Campaign", "_event_or_campaign"),
+    ("Template", "template_name"),
+    ("Status", "status"),
+    ("Delivered At", "delivered_at"),
+    ("Read At", "read_at"),
+    ("Rejected At", "rejected_at"),
+    ("Error Reason", "failure_reason"),
+    ("Message ID", "message_id"),
+    ("Test Send", "is_test"),
+]
+_EXPORT_ROW_CAP = 5000
+_EXPORT_BRAND_COLOR = "F26B33"  # match CR-035 XLSX styling
+
+
+def _resolve_event_or_campaign(log: dict) -> str:
+    """Human-readable dimension for the report column."""
+    if log.get("event_type"):
+        return log["event_type"]
+    if log.get("campaign_name"):
+        return log["campaign_name"]
+    if log.get("campaign_id"):
+        return f"campaign:{log['campaign_id']}"
+    return ""
+
+
+def _row_from_log(log: dict) -> List[str]:
+    row = []
+    for _, key in _EXPORT_HEADERS:
+        if key == "_event_or_campaign":
+            row.append(_resolve_event_or_campaign(log))
+        elif key == "is_test":
+            row.append("Yes" if log.get("is_test") else "No")
+        else:
+            v = log.get(key, "")
+            row.append("" if v is None else str(v))
+    return row
+
+
+@router.get("/message-logs/export")
+async def export_message_logs(
+    user: dict = Depends(get_current_user),
+    format: str = "csv",                          # 'csv' or 'xlsx'
+    status: Optional[str] = None,
+    event_type: Optional[str] = None,
+    campaign_id: Optional[str] = None,
+    run_id: Optional[str] = None,
+    template_name: Optional[str] = None,
+    search: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    include_test: bool = False,
+):
+    """CR-042: Stream WhatsApp message logs as CSV or XLSX.
+
+    Honours the same filter dimensions as /message-logs. Caps output at
+    _EXPORT_ROW_CAP rows (5000, owner-locked) — surfaces via X-Row-Count and
+    X-Row-Cap response headers so frontend can toast when the cap is reached.
+    """
+    if format not in ("csv", "xlsx"):
+        raise HTTPException(status_code=400, detail="format must be 'csv' or 'xlsx'")
+
+    query = _build_message_log_query(
+        user_id=user["id"],
+        status=status, event_type=event_type,
+        campaign_id=campaign_id, run_id=run_id,
+        template_name=template_name, search=search,
+        date_from=date_from, date_to=date_to,
+        include_test=include_test,
+    )
+    cursor = db.whatsapp_message_logs.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).limit(_EXPORT_ROW_CAP)
+    logs = await cursor.to_list(length=_EXPORT_ROW_CAP)
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    tenant_slug = (user.get("business_name") or user.get("id") or "tenant")
+    tenant_slug = re.sub(r"[^A-Za-z0-9_-]+", "_", tenant_slug)[:32]
+    filename_base = f"message_report_{tenant_slug}_{ts}"
+
+    common_headers = {
+        "X-Row-Count": str(len(logs)),
+        "X-Row-Cap": str(_EXPORT_ROW_CAP),
+    }
+
+    if format == "csv":
+        import csv as _csv
+        import io as _io
+        buf = _io.StringIO()
+        writer = _csv.writer(buf)
+        writer.writerow([h for h, _ in _EXPORT_HEADERS])
+        for log in logs:
+            writer.writerow(_row_from_log(log))
+        buf.seek(0)
+        return StreamingResponse(
+            iter([buf.getvalue()]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename_base}.csv"',
+                **common_headers,
+            },
+        )
+
+    # xlsx branch
+    import io as _io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Message Report"
+    ws.append([h for h, _ in _EXPORT_HEADERS])
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill("solid", fgColor=_EXPORT_BRAND_COLOR)
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+    for log in logs:
+        ws.append(_row_from_log(log))
+    buf = _io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename_base}.xlsx"',
+            **common_headers,
+        },
+    )
 
 
 @router.get("/message-filters")

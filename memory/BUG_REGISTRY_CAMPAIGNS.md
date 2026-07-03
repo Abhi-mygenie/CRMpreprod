@@ -273,6 +273,8 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 
 **Planning status (2026-07-03)**: 🔵 Impact Analysis complete. LOW risk. ~23 LOC across 3 files (`whatsapp.py` +10 LOC coordinated with CR-042; `CampaignHistoryPage.jsx` +5 LOC onClick+import; `MessageStatusPage.jsx` +8 LOC extend CR-026 URL reader to accept `run_id`). Coordinate backend commit with CR-042. Impact doc: `crm_roi_sprint/planning/BATCH_2026_07_03_IMPACT.md`.
 
+**Implementation status (2026-07-03)**: ✅ **FIXED**. Details button now navigates to `/messages?campaign_id=X&run_id=Y`. MessageStatusPage reads both URL params + shows green emerald "🎯 Filtered to run" banner with Clear-run-filter button. Backend `run_id` filter added to `/message-logs` via shared `_build_message_log_query()` helper (co-shipped with CR-042). Verified: pytest 11/11 PASS regression, curl B1-B9 all pass. Impl plan: `crm_roi_sprint/planning/BUG_009_CR_042_MESSAGE_EXPORT_AND_DEEP_LINK_IMPL_PLAN.md`. QA handover: `crm_roi_sprint/qa/BUG_009_CR_042_QA_HANDOVER.md`.
+
 ---
 
 ## Cross-Reference Matrix (updated)

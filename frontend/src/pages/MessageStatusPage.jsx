@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { 
     MessageSquare, CheckCircle, Clock, XCircle, Eye, 
-    RefreshCw, Filter, Calendar, Search, ChevronDown
+    RefreshCw, Filter, Calendar, Search, ChevronDown,
+    Download, FileSpreadsheet, Target,        // CR-042 + BUG-009
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +84,7 @@ export function MessageStatusContent({ embedded = false }) {
         status: "all",
         event_type: "all",
         campaign_id: "all",
+        run_id: "all",                                 // BUG-009 + CR-042: run-scoped filter
         template_name: "all",
         search: "",
         include_test: false,   // CR-004 P3.5 Commit 7: hide owner test sends by default
@@ -99,15 +101,21 @@ export function MessageStatusContent({ embedded = false }) {
     const [resending, setResending] = useState(false);
     const [pagination, setPagination] = useState({ skip: 0, limit: 50, total: 0 });
     const [expandedRow, setExpandedRow] = useState(null);
+    const [showExportDropdown, setShowExportDropdown] = useState(false);   // CR-042
 
     // CR-026: URL params for campaign deep-link
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // CR-026: pre-filter by campaign_id from URL on mount
+    // CR-026 + BUG-009: pre-filter by campaign_id + run_id from URL on mount
     useEffect(() => {
         const urlCampaignId = searchParams.get("campaign_id");
-        if (urlCampaignId && urlCampaignId !== filters.campaign_id) {
-            setFilters(prev => ({ ...prev, campaign_id: urlCampaignId }));
+        const urlRunId = searchParams.get("run_id");                    // BUG-009
+        if (urlCampaignId || urlRunId) {
+            setFilters(prev => ({
+                ...prev,
+                campaign_id: urlCampaignId || prev.campaign_id,
+                run_id: urlRunId || prev.run_id,
+            }));
             setPagination(prev => ({ ...prev, skip: 0 }));
         }
     }, []);
@@ -146,6 +154,7 @@ export function MessageStatusContent({ embedded = false }) {
             if (filters.status !== "all") params.append("status", filters.status);
             if (filters.event_type !== "all") params.append("event_type", filters.event_type);
             if (filters.campaign_id !== "all") params.append("campaign_id", filters.campaign_id);
+            if (filters.run_id !== "all" && filters.run_id) params.append("run_id", filters.run_id);   // BUG-009 + CR-042
             if (filters.template_name !== "all") params.append("template_name", filters.template_name);
             if (filters.search) params.append("search", filters.search);
             // CR-004 P3.5 Commit 7
@@ -176,6 +185,52 @@ export function MessageStatusContent({ embedded = false }) {
         fetchLogs();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters, pagination.skip]);
+    // CR-042: close export dropdown on outside click
+    useEffect(() => {
+        if (!showExportDropdown) return;
+        const handler = (e) => {
+            if (!e.target.closest("#messages-export-wrapper")) setShowExportDropdown(false);
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [showExportDropdown]);
+
+    // CR-042: filter-aware export from Message Status page
+    const handleExport = async (format) => {
+        setShowExportDropdown(false);
+        try {
+            const params = new URLSearchParams({ format });
+            if (filters.status !== "all") params.append("status", filters.status);
+            if (filters.event_type !== "all") params.append("event_type", filters.event_type);
+            if (filters.campaign_id !== "all") params.append("campaign_id", filters.campaign_id);
+            if (filters.run_id !== "all" && filters.run_id) params.append("run_id", filters.run_id);
+            if (filters.template_name !== "all") params.append("template_name", filters.template_name);
+            if (filters.search) params.append("search", filters.search);
+            if (filters.include_test) params.append("include_test", "true");
+            if (filters.date_from) params.append("date_from", filters.date_from);
+            if (filters.date_to) params.append("date_to", filters.date_to);
+            const response = await api.get(`/whatsapp/message-logs/export?${params.toString()}`, { responseType: "blob" });
+            const rowCount = response.headers["x-row-count"];
+            const rowCap = response.headers["x-row-cap"];
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            const date = new Date().toISOString().slice(0,10).replace(/-/g,"_");
+            link.setAttribute("download", `message_report_${date}.${format}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            if (rowCount && rowCap && parseInt(rowCount) >= parseInt(rowCap)) {
+                toast.warning(`Showing first ${rowCap} rows. Refine filters for a smaller export.`);
+            } else {
+                toast.success(`Exported ${rowCount || "0"} row${rowCount === "1" ? "" : "s"}`);
+            }
+        } catch {
+            toast.error("Export failed. Please try again.");
+        }
+    };
+
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
         setPagination(prev => ({ ...prev, skip: 0 }));
@@ -253,20 +308,91 @@ export function MessageStatusContent({ embedded = false }) {
                     <h1 className="text-2xl lg:text-3xl font-bold text-[#1A1A1A] font-['Georgia']" data-testid="message-status-title">
                         Message Status
                     </h1>
-                    <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => { fetchStats(); fetchLogs(); }}
-                        data-testid="refresh-btn"
-                    >
-                        <RefreshCw className="w-4 h-4 mr-1" /> Refresh
-                    </Button>
+                    <div className="flex gap-2 items-center">
+                        {/* CR-042: Export dropdown */}
+                        <div className="relative" id="messages-export-wrapper">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowExportDropdown(v => !v)}
+                                data-testid="messages-export-btn"
+                            >
+                                <Download className="w-4 h-4 mr-1" />
+                                Export
+                                <ChevronDown className="w-3 h-3 ml-0.5" />
+                            </Button>
+                            {showExportDropdown && (
+                                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg z-50 min-w-[175px] overflow-hidden">
+                                    <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50">
+                                        Download filtered messages
+                                    </div>
+                                    <button
+                                        onClick={() => handleExport("csv")}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                                        data-testid="messages-export-csv"
+                                    >
+                                        <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                                        Export as CSV
+                                    </button>
+                                    <button
+                                        onClick={() => handleExport("xlsx")}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                                        data-testid="messages-export-xlsx"
+                                    >
+                                        <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                                        Export as Excel
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => { fetchStats(); fetchLogs(); }}
+                            data-testid="refresh-btn"
+                        >
+                            <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+                        </Button>
+                    </div>
                 </div>
             )}
             
             {/* Refresh button for embedded mode */}
             {embedded && (
-                <div className="flex justify-end mb-4">
+                <div className="flex justify-end mb-4 gap-2">
+                    {/* CR-042: Export dropdown (embedded) */}
+                    <div className="relative" id="messages-export-wrapper">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowExportDropdown(v => !v)}
+                            data-testid="messages-export-btn-embedded"
+                        >
+                            <Download className="w-4 h-4 mr-1" />
+                            Export
+                            <ChevronDown className="w-3 h-3 ml-0.5" />
+                        </Button>
+                        {showExportDropdown && (
+                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg z-50 min-w-[175px] overflow-hidden">
+                                <button
+                                    onClick={() => handleExport("csv")}
+                                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                                    data-testid="messages-export-csv-embedded"
+                                >
+                                    <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                                    CSV
+                                </button>
+                                <button
+                                    onClick={() => handleExport("xlsx")}
+                                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                                    data-testid="messages-export-xlsx-embedded"
+                                >
+                                    <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                                    Excel
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <Button 
                         variant="outline" 
                         size="sm"
@@ -310,6 +436,36 @@ export function MessageStatusContent({ embedded = false }) {
                             data-testid="campaign-filter-clear"
                         >
                             Clear
+                        </Button>
+                    </div>
+                )}
+
+                {/* BUG-009: contextual banner when landing with a specific run scope */}
+                {filters.run_id && filters.run_id !== "all" && (
+                    <div
+                        className="mb-3 flex items-center justify-between rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm"
+                        data-testid="filtered-to-run-banner"
+                    >
+                        <span className="text-emerald-900 flex items-center gap-2">
+                            <Target className="w-4 h-4" aria-hidden="true" />
+                            <span>
+                                Filtered to run: <span className="font-mono text-xs">{filters.run_id}</span>
+                            </span>
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-emerald-700 hover:text-emerald-900 text-xs"
+                            onClick={() => {
+                                handleFilterChange("run_id", "all");
+                                // Preserve campaign_id filter — only drop the run scope
+                                const params = new URLSearchParams(searchParams);
+                                params.delete("run_id");
+                                setSearchParams(params);
+                            }}
+                            data-testid="clear-run-filter-btn"
+                        >
+                            Clear run filter
                         </Button>
                     </div>
                 )}
