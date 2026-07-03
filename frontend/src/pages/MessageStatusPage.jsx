@@ -189,7 +189,10 @@ export function MessageStatusContent({ embedded = false }) {
     useEffect(() => {
         if (!showExportDropdown) return;
         const handler = (e) => {
-            if (!e.target.closest("#messages-export-wrapper")) setShowExportDropdown(false);
+            if (!e.target.closest("#messages-export-wrapper") &&
+                !e.target.closest("#messages-export-wrapper-embedded")) {
+                setShowExportDropdown(false);
+            }
         };
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
@@ -361,7 +364,7 @@ export function MessageStatusContent({ embedded = false }) {
             {embedded && (
                 <div className="flex justify-end mb-4 gap-2">
                     {/* CR-042: Export dropdown (embedded) */}
-                    <div className="relative" id="messages-export-wrapper">
+                    <div className="relative" id="messages-export-wrapper-embedded">
                         <Button
                             variant="outline"
                             size="sm"

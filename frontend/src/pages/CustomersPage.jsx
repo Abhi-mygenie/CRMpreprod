@@ -963,7 +963,7 @@ export default function CustomersPage() {
                                         }`}
                                     >
                                         {isActive ? "✓" : "+"}
-                                        <span>{tag}</span>
+                                        <span className="ml-1">{tag}</span>
                                         <span className={`text-[10px] ${isActive ? "text-white/80" : "text-gray-400"}`}>
                                             ({count})
                                         </span>

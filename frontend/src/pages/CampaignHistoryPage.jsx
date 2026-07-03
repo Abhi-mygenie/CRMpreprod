@@ -37,11 +37,16 @@ const CampaignHistoryContent = () => {
 
     useEffect(() => { fetchRuns(); }, [days]);
 
-    // CR-042: close per-row export dropdown on outside click
+    // CR-042: close per-row export dropdown on outside click.
+    // BUG-fix (2026-07-03): scope 'inside' detection to THIS row's wrapper only —
+    // wrapper carries `data-history-export-wrapper={run.id}` so we can compare.
     useEffect(() => {
         if (!openExportRunId) return;
         const handler = (e) => {
-            if (!e.target.closest("[data-history-export-wrapper]")) setOpenExportRunId(null);
+            const wrapper = e.target.closest("[data-history-export-wrapper]");
+            if (!wrapper || wrapper.getAttribute("data-history-export-wrapper") !== openExportRunId) {
+                setOpenExportRunId(null);
+            }
         };
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
@@ -203,7 +208,7 @@ const CampaignHistoryContent = () => {
                                                         size="sm"
                                                         className="text-xs rounded-full"
                                                         data-testid={`history-details-btn-${run.id}`}
-                                                        onClick={() => navigate(`/messages?campaign_id=${run.campaign_id}&run_id=${run.id}`)}
+                                                        onClick={() => navigate(`/message-status?campaign_id=${run.campaign_id}&run_id=${run.id}`)}
                                                         disabled={!run.campaign_id || !run.id}
                                                     >
                                                         Details
@@ -228,7 +233,7 @@ const CampaignHistoryContent = () => {
                                                         </Button>
                                                     )}
                                                     {/* CR-042: per-run export dropdown */}
-                                                    <div className="relative" data-history-export-wrapper>
+                                                    <div className="relative" data-history-export-wrapper={run.id}>
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
