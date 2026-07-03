@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Send, Clock, CheckCircle2, AlertCircle, MoreVertical, Trash2, Eye, Megaphone, Pause, Edit2, BarChart3, Copy } from "lucide-react";
+import { Plus, Send, Clock, CheckCircle2, AlertCircle, MoreVertical, Trash2, Eye, Megaphone, Pause, Edit2, BarChart3, Copy, MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -301,6 +301,19 @@ const CampaignsPageContent = () => {
                                     {cfg.label}
                                 </Badge>
 
+                                {/* CR-026: Inline "Messages" deep-link */}
+                                {(campaign.total_sent > 0 || ds === "completed" || ds === "active") && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs rounded-full"
+                                        onClick={() => navigate(`/message-status?campaign_id=${campaign.id}`)}
+                                        data-testid="campaign-messages-btn"
+                                    >
+                                        <MessageSquare className="w-3 h-3 mr-1" /> Messages
+                                    </Button>
+                                )}
+
                                 {/* Action button */}
                                 <Button
                                     variant="outline"
@@ -326,6 +339,15 @@ const CampaignsPageContent = () => {
                                         <DropdownMenuItem onClick={() => handleClone(campaign.id)} data-testid="campaign-clone">
                                             <Copy className="w-4 h-4 mr-2" /> Clone as new draft
                                         </DropdownMenuItem>
+                                        {/* CR-026: View Messages deep-link (dropdown) */}
+                                        {(campaign.total_sent > 0 || ds === "completed" || ds === "active") && (
+                                            <DropdownMenuItem
+                                                onClick={() => navigate(`/message-status?campaign_id=${campaign.id}`)}
+                                                data-testid="campaign-view-messages"
+                                            >
+                                                <MessageSquare className="w-4 h-4 mr-2" /> View Messages
+                                            </DropdownMenuItem>
+                                        )}
                                         {(ds === "scheduled" || ds === "active") && (
                                             <DropdownMenuItem onClick={() => handlePause(campaign.id)} data-testid="campaign-pause">
                                                 <Pause className="w-4 h-4 mr-2" /> Pause

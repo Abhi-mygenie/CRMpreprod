@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { 
     MessageSquare, CheckCircle, Clock, XCircle, Eye, 
@@ -98,6 +99,18 @@ export function MessageStatusContent({ embedded = false }) {
     const [resending, setResending] = useState(false);
     const [pagination, setPagination] = useState({ skip: 0, limit: 50, total: 0 });
     const [expandedRow, setExpandedRow] = useState(null);
+
+    // CR-026: URL params for campaign deep-link
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // CR-026: pre-filter by campaign_id from URL on mount
+    useEffect(() => {
+        const urlCampaignId = searchParams.get("campaign_id");
+        if (urlCampaignId && urlCampaignId !== filters.campaign_id) {
+            setFilters(prev => ({ ...prev, campaign_id: urlCampaignId }));
+            setPagination(prev => ({ ...prev, skip: 0 }));
+        }
+    }, []);
     
     // Fetch stats
     const fetchStats = useCallback(async () => {
@@ -274,6 +287,33 @@ export function MessageStatusContent({ embedded = false }) {
                     <StatsCard icon={XCircle} label="Failed" value={stats.rejected} color="bg-red-500" />
                 </div>
                 
+                {/* CR-026: campaign filter banner */}
+                {filters.campaign_id !== "all" && (
+                    <div
+                        className="mb-3 flex items-center justify-between rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm"
+                        data-testid="campaign-filter-banner"
+                    >
+                        <span className="text-blue-800">
+                            Filtered by campaign:{" "}
+                            <strong>
+                                {filterOptions.campaigns.find(c => c.id === filters.campaign_id)?.name || filters.campaign_id}
+                            </strong>
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-700 hover:text-blue-900 text-xs"
+                            onClick={() => {
+                                handleFilterChange("campaign_id", "all");
+                                setSearchParams({});
+                            }}
+                            data-testid="campaign-filter-clear"
+                        >
+                            Clear
+                        </Button>
+                    </div>
+                )}
+
                 {/* Filters */}
                 <Card className="mb-4 shadow-sm border border-gray-100">
                     <CardContent className="p-3">
