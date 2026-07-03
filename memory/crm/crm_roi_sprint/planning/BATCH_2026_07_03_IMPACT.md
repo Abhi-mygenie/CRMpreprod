@@ -404,6 +404,16 @@ Meta accepts → template goes into APPROVAL_PENDING
 - No overlap with CR-042, BUG-009, CR-043.
 - No overlap with CR-041 (webhook fix touched only status transition code).
 
+> **⚠️ CORRECTION 2026-07-03 (INV-005)**: This planning section previously
+> asserted "Scenario 1 · SENDING already-approved template → NO IMPACT".
+> **That assertion is wrong**. See `discovery/INV_005_CAMPAIGN_MEDIA_SEND_GAP.md`.
+> Approved templates with media headers DO fail (silently drop the media)
+> when sent via campaigns because `routers/campaigns.py` never passes
+> `media_url` to `WhatsAppMessage()`. CR-036 is re-scoped to include a
+> Part 2 (send-time media delivery). All numbers below (~5.5 hr, MEDIUM risk,
+> LOC estimates, files-will-change list) are the ORIGINAL Part 1 scope
+> only. Updated scope = Part 1 + Part 2 covered in INV-005 §6.
+
 ### 4.5 Risk classification — **MEDIUM**
 - Touches `routers/whatsapp.py` — HIGH-risk file.
 - Involves live Meta API call (network side effects).
