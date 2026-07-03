@@ -660,4 +660,88 @@
 
 ---
 
+## 2026-07-03 — Session decisions (batch intake → planning → INV-005 → planning)
+
+### 2026-07-03 [CR-042] §scope — Message report download · scope frozen
+**Decision**: Ship both entry-points (MessageStatusPage filter-aware + CampaignHistoryPage per-run row), both formats (CSV + XLSX using CR-035 dropdown pattern), 12 fields (sent_at, phone, name, event_or_campaign, template, status, delivered_at, read_at, rejected_at, error_reason, message_id, is_test), 5000-row cap matching CR-035.
+**Source**: Owner: "q1 both / q2 both / q3 show proposed field / q4 5000" (2026-07-03 intake answers). Later "1 freeze" (mockup review).
+**Rationale**: Owner needs reconciliation and stakeholder reporting; both entry-points cover both mental models (per-run drill-down + full filter export). Row cap matches existing pattern.
+**Locks**: 12 columns and 5000 row cap frozen; changes require new CR.
+
+### 2026-07-03 [BUG-009] §fix — Details button uses deep-link (option a)
+**Decision**: Details button on CampaignHistoryPage navigates to `/messages?campaign_id=X&run_id=Y` extending CR-026 URL scheme. MessageStatusPage shows a contextual green banner "🎯 Filtered to run: <name>" when landing with `run_id`. No modal, no dedicated CampaignRunDetailPage.
+**Source**: Owner: "2 ok" (2026-07-03 mockup review, accepting Planning recommendation of option (a) with banner).
+**Rationale**: Cheapest fix, reuses CR-026 plumbing, matches existing UX. Banner makes run-scope explicit without cluttering the base page.
+**Locks**: Details button = deep-link only. Modal / dedicated page options rejected.
+
+### 2026-07-03 [CR-043-A] §scope — Filter for Customer tags = Option C (hybrid chip strip + panel)
+**Decision**: Add a compact tag chip strip above the existing filter block on CustomersPage. Chips show top-6 tags by customer count (e.g. `[+ VIP (156)]`), with "More ▾" expanding to full catalog. Active tags shown as dismissible chips + ANY/ALL toggle mirroring AudiencesPage. Backend `/customers` list endpoint gains `tags` (comma-sep) + `tags_mode` (any|all) query params. New `GET /customers/tags?with_counts=true` returns tenant's catalog sorted by customer count.
+**Source**: Owner: "1 C" (2026-07-03 CR-043 option review). Recommended by Planning as best UX × functionality combo.
+**Rationale**: Hybrid gives both discovery (visible chip strip) and completeness (multi-select in panel). Usage counts turn the strip into a decision-support tool.
+**Locks**: CustomersPage only in this CR. Tag filter on MessageStatusPage / other surfaces deferred to future CR (still not registered).
+
+### 2026-07-03 [CR-043-B] §ux — Popover UX = Option C (polished multi-select + autosave, no bulk-apply)
+**Decision**: Rework the inline `+ tag` popover on CustomersPage to be a 280px-wide, multi-select popover with autosave per checkbox toggle. Shows customer's current tags as dismissible chips at top; available tags listed with checkboxes + customer counts; inline "Create new tag" affordance appears when search input matches nothing. Single dismiss button ("Done"). Bulk-apply-to-multiple-rows is EXPLICITLY OUT of scope for CR-043 — will be tracked as CR-045 (parked).
+**Source**: Owner: "2 ok" (2026-07-03 CR-043 option review). Recommended by Planning as best UX × functionality without scope creep.
+**Rationale**: Multi-select is a huge productivity win. Autosave eliminates "did it save?" anxiety. Bulk-apply requires row-selection column which doesn't exist — belongs in its own CR.
+**Locks**: Bulk-apply excluded from CR-043; belongs to CR-045.
+
+### 2026-07-03 [CR-045] §register — Parked
+**Decision**: Register CR-045 "Bulk actions on customers (bulk-tag, bulk-delete, bulk-export, bulk-message)" in the dashboard with status `⏸ PARKED — pending owner promotion`. Not active work; no discovery / planning until owner promotes.
+**Source**: Owner asked "CR-045 register-now or park" as an open question; Planning recommendation: park (safest default — preserves the option cleanly without adding backlog noise). Owner directive was "just update decisions and docs" which I'm reading as "make the call and record it".
+**Rationale**: Bulk-apply requires row-selection UI + backend bulk endpoints + confirmation dialogs — a whole feature, not a follow-up. Parking (not deleting) preserves the traceability that this scope was consciously split off from CR-043.
+**Locks**: CR-045 dormant; can be promoted at any time with a "please activate CR-045" message.
+
+### 2026-07-03 [INV-005] §finding — Approved media templates fail at send-time (not just approval)
+**Decision**: Owner's report is confirmed by code trace. `routers/campaigns.py` never passes `media_url` to `WhatsAppMessage()` in any of 3 send paths (lines 274, 512, 796). AuthKey `sendBulkSMS.php` requires `headerValues.headerData` per-send; without it, message accepted by AuthKey but dropped by Meta at fulfilment. Explains the `premium_lunch_menu_new1` symptom (2 sent, 0 delivered, 0 failed, 0.0% delivery rate).
+**Source**: Owner: "CR-036 but exported templates are failing coz header is not going is that case investigated" (2026-07-03).
+**Rationale**: Two independent gaps: (a) template approval broken because we send URL where Meta wants opaque handle, (b) template delivery broken because campaigns don't attach media per-send. Both must be fixed for media templates to work end-to-end.
+**Locks**: CR-036 scope expanded to Part 1 (approval, original) + Part 2 (delivery, new). Report: `discovery/INV_005_CAMPAIGN_MEDIA_SEND_GAP.md`.
+
+### 2026-07-03 [CR-036] §scope — Expanded to Part 1 + Part 2
+**Decision**: CR-036 now covers both template approval fix and send-time media delivery. Part 1 = original scope (new `POST /whatsapp/upload-media-header` endpoint + file picker in Template Builder + Meta `header_handle` in template submission). Part 2 = INV-005 fix (persist a delivery URL per template + campaign send paths look it up + fallback logging). Estimated effort revised from ~5.5 hr → ~10-12 hr. Risk revised from MEDIUM → MEDIUM-HIGH.
+**Source**: INV-005 owner directive to fix delivery gap alongside approval gap.
+**Locks**: CR-036 ships as single change covering approval + delivery. Splitting into two separate CRs rejected.
+
+### 2026-07-03 [CR-036] §q1 — Media types supported = image + video + document + audio
+**Decision**: Template Builder supports all four Meta v21 header media types.
+**Source**: Owner: "as per meta standard we have been following that in template builder" (2026-07-03) — Planning interpreted as "match Meta v21 spec". Planning also recommended YES for audio inclusion.
+**Locks**: Header type dropdown includes 4 media options + text + none.
+
+### 2026-07-03 [CR-036] §q2 — File size caps = Meta v21 defaults
+**Decision**: Image 5MB, Video 16MB, Document 100MB, Audio 16MB (enforced client-side + server-side).
+**Source**: Owner "meta standard" answer + Meta v21 published caps.
+**Locks**: Any change requires new CR.
+
+### 2026-07-03 [CR-036] §q3 — Meta submission uses pass-through handle
+**Decision**: For template SUBMISSION to Meta, we upload the file to Meta `/v21.0/{WABA_ID}/uploads`, receive an opaque `handle` string (~30d validity), pass it in `example.header_handle`. No permanent Meta-side storage on CRM.
+**Source**: Owner "meta standard" answer.
+**Locks**: `header_handle` field on `custom_templates` stores the Meta handle; used ONLY for template approval, NOT for delivery.
+
+### 2026-07-03 [CR-036] §q5 — Missing Meta credentials → block-early UX
+**Decision**: If tenant lacks `meta_waba_id` or `meta_access_token`, the Template Builder blocks the file picker with a banner "Configure Meta API first (Settings > WhatsApp > Meta API)". No inline toast after-the-fact.
+**Source**: Owner "block early" answer to Planning Q5.
+**Locks**: File picker on TemplateBuilderPage checks credential presence before enabling.
+
+### 2026-07-03 [CR-036] §q6 — Delivery URL storage = Amazon S3
+**Decision**: The publicly accessible delivery URL for media header assets is served from Amazon S3. Upload flow uploads once to (a) Meta `/uploads` (for approval handle) AND (b) S3 (for delivery URL); both are stored on the `custom_templates` record as `header_handle` and `send_media_url` respectively.
+**Source**: Owner: "we will use amazon s3" (2026-07-03).
+**Rationale**: S3 provides scalable, durable, publicly-accessible HTTPS URLs with valid certs — meets Meta's fetch requirements. Owner explicitly chose S3 over GridFS / disk-PV / Meta-download options. `boto3` is already in `requirements.txt`.
+**Locks**: Object storage = Amazon S3. Not GridFS. Not local disk. New CR required to change.
+**Follow-up needed**: S3 bucket name, AWS access key ID, AWS secret access key, AWS region — owner to supply at Implementation gate. Bucket must allow public-read on uploaded objects (or use signed URLs with sufficient TTL for Meta's fetch window).
+
+### 2026-07-03 [CR-036] §q7 — Missing send_media_url = silent-degrade + log warning
+**Decision**: When a campaign sends a media template that lacks `send_media_url` on the template record (e.g. legacy imported templates before tenant re-uploads), send proceeds with text-only payload (no `headerValues`) AND `whatsapp_message_logs` row is tagged with a warning (e.g. `status_note: "media_missing"` or extra logs field). Templates page shows a "re-upload required" banner on affected templates.
+**Source**: Owner: "q7 a" (2026-07-03) — chose silent-degrade + log warning option.
+**Locks**: No hard-blocking of sends. No auto-fetch-from-Meta fallback.
+
+### 2026-07-03 [CR-036] §q8 — Hotspot approval APPROVED for both files
+**Decision**: Owner explicitly approves modifying `routers/whatsapp.py` (template creation section, ~460-540 + new upload endpoint) AND `routers/campaigns.py` (all 3 send paths — normal, test, resend-failed — additive `media_url` argument to `WhatsAppMessage()` constructor). Send semantics NOT changed for text-only templates.
+**Source**: Owner: "q8 approved" (2026-07-03).
+**Rationale**: Both files are on the CRM HIGH-risk list per §5. Change is additive (opt-in field); text-only sends behave identically; regression risk limited to media templates.
+**Locks**: Owner-approval-on-file entry for both files, scoped to CR-036. Any subsequent CR touching these files still needs its own approval per §CRM-SPECIFIC OWNER APPROVAL.
+**Timing**: Owner clarified "to be flaged after detailed implementation planning" — approval is granted now, formal hotspot flag will appear in the detailed Implementation Plan doc when it's authored.
+
+---
+
 **End of decisions log.**

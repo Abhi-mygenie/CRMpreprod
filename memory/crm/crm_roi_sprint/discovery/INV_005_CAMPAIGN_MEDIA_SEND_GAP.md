@@ -276,3 +276,16 @@ Awaiting your call on scope + object storage choice + hotspot approval for `rout
 ---
 
 *End of INV-005. No code changes. Read-only investigation.*
+
+---
+
+## Owner decisions received 2026-07-03 (post-INV-005 planning round)
+
+- **Q6** — Object storage: **Amazon S3** (explicit choice). GridFS / disk-PV / Meta-download rejected. `boto3` already in requirements.txt. Owner to supply bucket name + AWS access key + AWS secret + region at Implementation gate.
+- **Q7** — Missing `send_media_url` fallback: **silent-degrade + log warning** (option a). Campaign send proceeds text-only; log row tagged with media-missing note; Templates page shows re-upload banner on affected records.
+- **Q8** — Hotspot approval: **APPROVED** for both `routers/whatsapp.py` (template creation section + new upload endpoint) AND `routers/campaigns.py` (all 3 send paths — normal, test, resend-failed — additive `media_url` argument). Formal hotspot flag will appear in the detailed Implementation Plan when authored.
+- **CR-045** (bulk actions on customers): PARKED — registered in dashboard, no discovery/planning until owner promotes.
+
+Full audit trail: `DECISIONS_LOG.md § 2026-07-03 [CR-036] Q6/Q7/Q8` and `§ 2026-07-03 [CR-045]`.
+
+**Locks CR-036 for Implementation Plan authoring.** Next PLANNING pass will produce the detailed Implementation Plan doc.
