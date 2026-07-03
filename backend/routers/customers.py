@@ -921,6 +921,9 @@ async def list_customers(
     most_loyal: Optional[bool] = None,
     # Feedback filter
     has_feedback: Optional[str] = None,
+    # CR-043-A: filter by customer tags (any/all mode)
+    tags: Optional[str] = None,
+    tags_mode: Optional[str] = "any",
     # Sort options
     sort_by: str = "created_at",
     sort_order: str = "desc",
@@ -1073,7 +1076,16 @@ async def list_customers(
             query["feedback_count"] = {"$gt": 0}
         else:
             query["$or"] = [{"feedback_count": {"$exists": False}}, {"feedback_count": 0}]
-    
+
+    # CR-043-A: tag filter — $in (any) or $all — reuses existing customers.tags array
+    if tags:
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+        if tag_list:
+            if tags_mode == "all":
+                query["tags"] = {"$all": tag_list}
+            else:
+                query["tags"] = {"$in": tag_list}
+
     if and_conditions:
         query["$and"] = and_conditions
     
@@ -1157,11 +1169,39 @@ async def get_customer_segments(user: dict = Depends(get_current_user)):
     }
 
 @router.get("/tags")
-async def list_available_tags(user: dict = Depends(get_current_user)):
-    """CR-034: Return the tenant's tag catalog (available_tags) sorted alphabetically."""
-    user_doc = await db.users.find_one({"id": user["id"]}, {"available_tags": 1, "_id": 0})
-    tags = sorted(user_doc.get("available_tags", []) if user_doc else [])
-    return {"tags": tags}
+async def list_available_tags(
+    with_counts: bool = False,             # CR-043-A: return usage counts
+    user: dict = Depends(get_current_user),
+):
+    """CR-034 + CR-043-A: Return the tenant's tag catalog.
+
+    Default (backward-compat): {"tags": ["VIP", "Regular", ...]} sorted alphabetically.
+    with_counts=true: {"tags": [{"tag": "VIP", "count": 156}, ...]} sorted by count desc.
+    """
+    tenant_id = user["id"]
+    user_doc = await db.users.find_one({"id": tenant_id}, {"available_tags": 1, "_id": 0})
+    catalog = user_doc.get("available_tags", []) if user_doc else []
+
+    if not with_counts:
+        return {"tags": sorted(catalog)}
+
+    # CR-043-A: aggregate customer counts per tag
+    pipeline = [
+        {"$match": {"user_id": tenant_id, "tags": {"$exists": True, "$ne": []}}},
+        {"$unwind": "$tags"},
+        {"$group": {"_id": "$tags", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+    ]
+    counts = await db.customers.aggregate(pipeline).to_list(length=1000)
+    counts_map = {c["_id"]: c["count"] for c in counts}
+
+    merged = [{"tag": t, "count": counts_map.get(t, 0)} for t in catalog]
+    # Include tags used on customers but not in catalog (safety net)
+    for tag, count in counts_map.items():
+        if tag not in catalog:
+            merged.append({"tag": tag, "count": count})
+    merged.sort(key=lambda x: x["count"], reverse=True)
+    return {"tags": merged}
 
 
 # ── CR-035: Export ────────────────────────────────────────────────────────────

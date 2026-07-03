@@ -68,6 +68,13 @@ async def lifespan(app: FastAPI):
         )
     except Exception as e:
         logging.getLogger(__name__).warning(f"WhatsApp log indexes skipped: {e}")
+    # CR-043-A: composite index for tag-filter queries on customers list
+    try:
+        await db.customers.create_index(
+            [("user_id", 1), ("tags", 1)], name="idx_customers_user_tags"
+        )
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"CR-043-A customers.tags index skipped: {e}")
     # CR-002: create indexes for pos_request_logs only when logging is enabled
     if POS_LOG_CONFIG["enabled"]:
         await ensure_pos_request_logs_indexes(db, POS_LOG_CONFIG["ttl_days"])

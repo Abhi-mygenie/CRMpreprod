@@ -210,6 +210,13 @@ export default function CustomersPage() {
     const [tagPopoverOpen, setTagPopoverOpen] = useState({});
     const [tagSearchInput, setTagSearchInput] = useState({});
 
+    // CR-043-A: tag filter state (chip strip + multi-select popover)
+    const [activeTagFilters, setActiveTagFilters] = useState(new Set());
+    const [tagFilterMode, setTagFilterMode] = useState("any");
+    const [tagsWithCounts, setTagsWithCounts] = useState([]);
+    const [tagRefreshCounter, setTagRefreshCounter] = useState(0);
+    const [showAllTagChips, setShowAllTagChips] = useState(false);
+
     // CR-035: Export / Import state
     const [showExportDropdown, setShowExportDropdown]   = useState(false);
     const [showImportModal, setShowImportModal]         = useState(false);
@@ -247,10 +254,16 @@ export default function CustomersPage() {
         if (filters.total_spent && filters.total_spent !== "all") params.append("total_spent", filters.total_spent);
         if (filters.is_blocked && filters.is_blocked !== "all") params.append("is_blocked", filters.is_blocked);
         if (filters.has_feedback && filters.has_feedback !== "all") params.append("has_feedback", filters.has_feedback);
+        // CR-043-A: tag filter
+        if (activeTagFilters.size > 0) {
+            params.append("tags", [...activeTagFilters].join(","));
+            params.append("tags_mode", tagFilterMode);
+        }
         return params.toString();
     };
 
-    // CR-034: tag handlers
+    // CR-034 + CR-043-B: add tag — keeps popover open for multi-select
+    // autosave, bumps refresh counter so chip strip counts update.
     const handleAddTag = async (customerId, tag) => {
         const t = tag.trim();
         if (!t) return;
@@ -261,8 +274,10 @@ export default function CustomersPage() {
                 : c
             ));
             if (!availableTags.includes(t)) setAvailableTags(prev => [...prev, t].sort());
-            setTagPopoverOpen(p => ({ ...p, [customerId]: false }));
+            // CR-043-B: clear the search input so user can search for the next
+            // tag without having to delete the previous one — but keep popover OPEN.
             setTagSearchInput(p => ({ ...p, [customerId]: "" }));
+            setTagRefreshCounter(c => c + 1);   // CR-043-A: refresh strip counts
         } catch { toast.error("Failed to add tag"); }
     };
 
@@ -273,8 +288,20 @@ export default function CustomersPage() {
                 ? { ...c, tags: (c.tags || []).filter(t => t !== tag) }
                 : c
             ));
+            setTagRefreshCounter(c => c + 1);   // CR-043-A: refresh strip counts
         } catch { toast.error("Failed to remove tag"); }
     };
+
+    // CR-043-A: chip-strip handlers
+    const handleToggleTagFilter = (tag) => {
+        setActiveTagFilters(prev => {
+            const next = new Set(prev);
+            if (next.has(tag)) next.delete(tag);
+            else next.add(tag);
+            return next;
+        });
+    };
+    const handleClearTagFilters = () => setActiveTagFilters(new Set());
 
     const fetchCustomers = async () => {
         try {
@@ -331,12 +358,19 @@ export default function CustomersPage() {
     useEffect(() => {
         fetchCustomers();
         fetchSegments();
-    }, [search, filters]);
+    }, [search, filters, activeTagFilters, tagFilterMode]);   // CR-043-A: react to tag filter changes
 
     // CR-034: fetch tag catalog once on mount
     useEffect(() => {
         api.get("/customers/tags").then(r => setAvailableTags(r.data?.tags || [])).catch(() => {});
     }, []);
+
+    // CR-043-A: fetch tag catalog WITH counts — refreshes when tags added/removed
+    useEffect(() => {
+        api.get("/customers/tags?with_counts=true")
+            .then(r => setTagsWithCounts(r.data?.tags || []))
+            .catch(() => setTagsWithCounts([]));
+    }, [tagRefreshCounter]);
 
     // CR-035: fetch import history once on mount
     useEffect(() => {
@@ -871,6 +905,104 @@ export default function CustomersPage() {
                         </div>
                     )}
                 </div>
+
+                {/* CR-043-A: Tag chip strip — quick tag filters, top-6 by usage, More ▾ to expand */}
+                {tagsWithCounts.length > 0 && (
+                    <div
+                        className="mb-4 rounded-lg border border-gray-200 bg-white p-3"
+                        data-testid="tag-chip-strip"
+                    >
+                        <div className="mb-2 flex items-center justify-between">
+                            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                Filter by tag
+                            </span>
+                            {activeTagFilters.size > 0 && (
+                                <div className="flex items-center gap-3 text-xs">
+                                    <label className="flex items-center gap-1 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="tag-filter-mode"
+                                            checked={tagFilterMode === "any"}
+                                            onChange={() => setTagFilterMode("any")}
+                                            data-testid="tag-filter-mode-any"
+                                        />
+                                        Any
+                                    </label>
+                                    <label className="flex items-center gap-1 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="tag-filter-mode"
+                                            checked={tagFilterMode === "all"}
+                                            onChange={() => setTagFilterMode("all")}
+                                            data-testid="tag-filter-mode-all"
+                                        />
+                                        All
+                                    </label>
+                                    <button
+                                        onClick={handleClearTagFilters}
+                                        className="text-gray-500 underline hover:text-gray-700"
+                                        data-testid="tag-filter-clear"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {(showAllTagChips ? tagsWithCounts : tagsWithCounts.slice(0, 6)).map(({ tag, count }) => {
+                                const isActive = activeTagFilters.has(tag);
+                                return (
+                                    <button
+                                        key={tag}
+                                        onClick={() => handleToggleTagFilter(tag)}
+                                        data-testid={`tag-chip-${tag}`}
+                                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                                            isActive
+                                                ? "bg-[#F26B33] text-white"
+                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                    >
+                                        {isActive ? "✓" : "+"}
+                                        <span>{tag}</span>
+                                        <span className={`text-[10px] ${isActive ? "text-white/80" : "text-gray-400"}`}>
+                                            ({count})
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                            {tagsWithCounts.length > 6 && (
+                                <button
+                                    onClick={() => setShowAllTagChips(s => !s)}
+                                    className="text-xs text-gray-600 underline hover:text-[#F26B33]"
+                                    data-testid="tag-chip-more"
+                                >
+                                    {showAllTagChips ? "Less ▴" : `More (${tagsWithCounts.length - 6}) ▾`}
+                                </button>
+                            )}
+                        </div>
+                        {activeTagFilters.size > 0 && (
+                            <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-1.5">
+                                <span className="text-xs text-gray-500 mr-1 self-center">Active:</span>
+                                {[...activeTagFilters].map(tag => (
+                                    <span
+                                        key={tag}
+                                        className="inline-flex items-center gap-1 rounded-full bg-[#F26B33]/10 px-2 py-0.5 text-xs text-[#F26B33]"
+                                        data-testid={`active-tag-filter-${tag}`}
+                                    >
+                                        {tag}
+                                        <button
+                                            onClick={() => handleToggleTagFilter(tag)}
+                                            className="hover:opacity-70"
+                                            aria-label={`Remove ${tag}`}
+                                        >
+                                            ✕
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Compact Filter Drawer */}
                 {showFilters && (
@@ -1470,36 +1602,124 @@ export default function CustomersPage() {
                                                             <PopoverTrigger asChild>
                                                                 <button
                                                                     onClick={e => e.stopPropagation()}
-                                                                    className="px-2 py-0.5 border border-dashed border-gray-300 rounded-full text-[10px] text-gray-400 hover:border-[#F26B33] hover:text-[#F26B33] transition-colors whitespace-nowrap">
+                                                                    className="px-2 py-0.5 border border-dashed border-gray-300 rounded-full text-[10px] text-gray-400 hover:border-[#F26B33] hover:text-[#F26B33] transition-colors whitespace-nowrap"
+                                                                    data-testid={`open-tag-popover-${customer.id}`}
+                                                                >
                                                                     + tag
                                                                 </button>
                                                             </PopoverTrigger>
+                                                            {/* CR-043-B: multi-select autosave popover — check to add,
+                                                                uncheck to remove. Search filters catalog; if the search
+                                                                string doesn't match any existing tag, a "Create ..." row
+                                                                appears. Popover stays open until user clicks Done. */}
                                                             <PopoverContent
-                                                                className="w-52 p-1"
+                                                                className="w-[280px] p-3"
                                                                 align="start"
                                                                 onClick={e => e.stopPropagation()}
                                                                 onPointerDown={e => e.stopPropagation()}
+                                                                data-testid={`tag-popover-${customer.id}`}
                                                             >
-                                                                <Command>
-                                                                    <CommandInput
-                                                                        placeholder="Search or type tag..."
-                                                                        className="text-xs h-7"
-                                                                        value={tagSearchInput[customer.id] || ""}
-                                                                        onValueChange={v => setTagSearchInput(p => ({ ...p, [customer.id]: v }))}
-                                                                    />
-                                                                    <CommandList>
-                                                                        {availableTags.filter(t => !(customer.tags || []).includes(t) && t.toLowerCase().includes((tagSearchInput[customer.id] || "").toLowerCase())).map(t => (
-                                                                            <CommandItem key={t} onSelect={() => handleAddTag(customer.id, t)} className="text-xs cursor-pointer">
-                                                                                <TagChip tag={t} className="pointer-events-none" />
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                        {(tagSearchInput[customer.id] || "").trim() && !availableTags.includes((tagSearchInput[customer.id] || "").trim()) && (
-                                                                            <CommandItem onSelect={() => handleAddTag(customer.id, tagSearchInput[customer.id])} className="text-xs cursor-pointer text-[#F26B33] font-semibold">
-                                                                                + Create &quot;{(tagSearchInput[customer.id] || "").trim()}&quot;
-                                                                            </CommandItem>
-                                                                        )}
-                                                                    </CommandList>
-                                                                </Command>
+                                                                <div className="mb-2 text-sm font-semibold text-[#1A1A1A]">
+                                                                    Tags for {customer.name || "customer"}
+                                                                </div>
+
+                                                                {(customer.tags || []).length > 0 && (
+                                                                    <>
+                                                                        <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">Current</div>
+                                                                        <div className="mb-3 flex flex-wrap gap-1">
+                                                                            {(customer.tags || []).map(t => (
+                                                                                <span
+                                                                                    key={t}
+                                                                                    className="inline-flex items-center gap-1 rounded-full bg-[#F26B33]/10 px-2 py-0.5 text-xs text-[#F26B33]"
+                                                                                    data-testid={`popover-current-tag-${customer.id}-${t}`}
+                                                                                >
+                                                                                    {t}
+                                                                                    <button
+                                                                                        onClick={() => handleRemoveTag(customer.id, t)}
+                                                                                        className="hover:opacity-70"
+                                                                                        aria-label={`Remove ${t}`}
+                                                                                    >
+                                                                                        ✕
+                                                                                    </button>
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </>
+                                                                )}
+
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Search or type a new tag…"
+                                                                    value={tagSearchInput[customer.id] || ""}
+                                                                    onChange={e => setTagSearchInput(p => ({ ...p, [customer.id]: e.target.value }))}
+                                                                    className="mb-2 w-full text-xs px-2 py-1.5 border border-gray-200 rounded focus:outline-none focus:border-[#F26B33]"
+                                                                    data-testid={`tag-search-input-${customer.id}`}
+                                                                />
+
+                                                                {(() => {
+                                                                    const q = (tagSearchInput[customer.id] || "").toLowerCase();
+                                                                    const catalog = tagsWithCounts.length > 0
+                                                                        ? tagsWithCounts
+                                                                        : availableTags.map(t => ({ tag: t, count: 0 }));
+                                                                    const filtered = catalog.filter(({ tag }) => tag.toLowerCase().includes(q));
+                                                                    const trimmed = (tagSearchInput[customer.id] || "").trim();
+                                                                    const exactMatch = catalog.some(({ tag }) => tag.toLowerCase() === trimmed.toLowerCase());
+                                                                    return (
+                                                                        <>
+                                                                            <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">Available</div>
+                                                                            <div className="mb-2 max-h-48 overflow-y-auto">
+                                                                                {filtered.length === 0 && !trimmed && (
+                                                                                    <div className="text-xs text-gray-400 px-2 py-1">No tags yet — type to create one.</div>
+                                                                                )}
+                                                                                {filtered.map(({ tag, count }) => {
+                                                                                    const isApplied = (customer.tags || []).includes(tag);
+                                                                                    return (
+                                                                                        <label
+                                                                                            key={tag}
+                                                                                            className="flex items-center justify-between rounded px-2 py-1.5 hover:bg-gray-50 cursor-pointer"
+                                                                                            data-testid={`tag-option-${customer.id}-${tag}`}
+                                                                                        >
+                                                                                            <span className="flex items-center gap-2 text-xs text-[#1A1A1A]">
+                                                                                                <input
+                                                                                                    type="checkbox"
+                                                                                                    checked={isApplied}
+                                                                                                    onChange={() => {
+                                                                                                        if (isApplied) handleRemoveTag(customer.id, tag);
+                                                                                                        else handleAddTag(customer.id, tag);
+                                                                                                    }}
+                                                                                                    data-testid={`tag-checkbox-${customer.id}-${tag}`}
+                                                                                                />
+                                                                                                <span>{tag}</span>
+                                                                                            </span>
+                                                                                            {count > 0 && (
+                                                                                                <span className="text-[10px] text-gray-400">({count})</span>
+                                                                                            )}
+                                                                                        </label>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                            {trimmed && !exactMatch && (
+                                                                                <button
+                                                                                    onClick={() => handleAddTag(customer.id, trimmed)}
+                                                                                    className="w-full mb-2 rounded-md bg-[#F26B33] px-3 py-2 text-xs font-medium text-white hover:bg-[#F26B33]/90"
+                                                                                    data-testid={`popover-create-tag-${customer.id}`}
+                                                                                >
+                                                                                    + Create &quot;{trimmed}&quot;
+                                                                                </button>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                })()}
+
+                                                                <div className="flex justify-end pt-2 border-t border-gray-100">
+                                                                    <button
+                                                                        onClick={() => setTagPopoverOpen(p => ({ ...p, [customer.id]: false }))}
+                                                                        className="text-xs font-medium text-[#F26B33] hover:opacity-70"
+                                                                        data-testid={`popover-done-${customer.id}`}
+                                                                    >
+                                                                        Done
+                                                                    </button>
+                                                                </div>
                                                             </PopoverContent>
                                                         </Popover>
                                                     </div>
