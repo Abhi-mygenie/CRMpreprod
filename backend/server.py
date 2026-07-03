@@ -23,45 +23,51 @@ POS_LOG_CONFIG = _load_pos_log_config()
 async def lifespan(app: FastAPI):
     # Startup
     start_scheduler()
-    # Create indexes for order_items collection (AI query performance)
-    await db.order_items.create_index("customer_id")
-    await db.order_items.create_index("item_name")
-    await db.order_items.create_index("order_id")
-    # POS-CRM Cross-Sell: compound indexes for order suggestions performance
-    await db.orders.create_index([("user_id", 1), ("customer_id", 1)], name="idx_user_customer")
-    await db.orders.create_index([("user_id", 1), ("created_at", -1)], name="idx_user_created")
-    await db.order_items.create_index([("user_id", 1), ("customer_id", 1)], name="idx_oi_user_customer")
-    # CR-001B-fix Phase 2A F9: persistent migration_sync_logs collection
-    # Composite index for "latest log per user per sync_type" lookups (status endpoint fallback)
-    await db.migration_sync_logs.create_index(
-        [("user_id", 1), ("sync_type", 1), ("started_at", -1)],
-        name="user_synctype_started_idx",
-    )
-    # CR-001C-C V1: ensure coupon_usage idempotency + scan indexes exist.
-    await ensure_coupon_indexes(db)
-
-    # CR-004 P3.5: WhatsApp message logs + callback logs indexes (additive, sparse-safe).
-    await db.whatsapp_message_logs.create_index(
-        [("user_id", 1), ("created_at", -1)], name="idx_wml_user_created"
-    )
-    await db.whatsapp_message_logs.create_index(
-        [("user_id", 1), ("status", 1)], name="idx_wml_user_status"
-    )
-    await db.whatsapp_message_logs.create_index(
-        "message_id", sparse=True, name="idx_wml_message_id"
-    )
-    await db.whatsapp_message_logs.create_index(
-        [("user_id", 1), ("idempotency_key", 1)],
-        unique=True,
-        partialFilterExpression={"idempotency_key": {"$exists": True, "$type": "string"}},
-        name="idx_wml_user_idem",
-    )
-    await db.whatsapp_callback_logs.create_index(
-        [("received_at", -1)], name="idx_wcl_received"
-    )
-    await db.whatsapp_callback_logs.create_index(
-        "logid", sparse=True, name="idx_wcl_logid"
-    )
+    # Create indexes (wrapped — read-only Atlas users skip gracefully)
+    try:
+        await db.order_items.create_index("customer_id")
+        await db.order_items.create_index("item_name")
+        await db.order_items.create_index("order_id")
+        await db.orders.create_index([("user_id", 1), ("customer_id", 1)], name="idx_user_customer")
+        await db.orders.create_index([("user_id", 1), ("created_at", -1)], name="idx_user_created")
+        await db.order_items.create_index([("user_id", 1), ("customer_id", 1)], name="idx_oi_user_customer")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Index creation skipped (insufficient permissions): {e}")
+    try:
+        await db.migration_sync_logs.create_index(
+            [("user_id", 1), ("sync_type", 1), ("started_at", -1)],
+            name="user_synctype_started_idx",
+        )
+    except Exception:
+        pass
+    try:
+        await ensure_coupon_indexes(db)
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Coupon indexes skipped: {e}")
+    try:
+        await db.whatsapp_message_logs.create_index(
+            [("user_id", 1), ("created_at", -1)], name="idx_wml_user_created"
+        )
+        await db.whatsapp_message_logs.create_index(
+            [("user_id", 1), ("status", 1)], name="idx_wml_user_status"
+        )
+        await db.whatsapp_message_logs.create_index(
+            "message_id", sparse=True, name="idx_wml_message_id"
+        )
+        await db.whatsapp_message_logs.create_index(
+            [("user_id", 1), ("idempotency_key", 1)],
+            unique=True,
+            partialFilterExpression={"idempotency_key": {"$exists": True, "$type": "string"}},
+            name="idx_wml_user_idem",
+        )
+        await db.whatsapp_callback_logs.create_index(
+            [("received_at", -1)], name="idx_wcl_received"
+        )
+        await db.whatsapp_callback_logs.create_index(
+            "logid", sparse=True, name="idx_wcl_logid"
+        )
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"WhatsApp log indexes skipped: {e}")
     # CR-002: create indexes for pos_request_logs only when logging is enabled
     if POS_LOG_CONFIG["enabled"]:
         await ensure_pos_request_logs_indexes(db, POS_LOG_CONFIG["ttl_days"])
