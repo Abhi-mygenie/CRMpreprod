@@ -1450,23 +1450,15 @@ async def message_status_callback(request: Request):
             {"success": True, "logid": logid, "updated": False},
         )
 
-    # Dispatch time -> status-specific timestamp field
-    if mapped_status == "delivered":
-        set_fields["delivered_at"] = ts_utc_iso
-    elif mapped_status == "read":
-        set_fields["read_at"] = ts_utc_iso
-    elif mapped_status == "rejected":
-        set_fields["rejected_at"] = ts_utc_iso
-        set_fields["failure_reason"] = (
-            payload.get("reason")
-            or payload.get("Reason")
-            or payload.get("error")
-            or payload.get("Error")
-            or payload.get("description")
-            or payload.get("Message")
-            or payload.get("message")
-            or raw_status
-        )
+    # Dispatch time -> status-specific timestamp field (CR-041)
+    # Timestamps and failure_reason are the AUTHORITATIVE record of when the
+    # transition ACTUALLY happened. On a state-machine-rejected duplicate/late
+    # webhook (transition_ignored), leave them untouched to preserve the
+    # original event time. Only apply when the state machine allowed the
+    # transition. Metadata fields above (meta_message_id, keypress,
+    # button_param_value, channel) remain ungated because they may legitimately
+    # arrive on a late webhook (e.g. button-press response) even if the status
+    # transition itself is blocked.
 
     # ---- 10. Apply status only if transition is valid ----
     if new_status:
@@ -1474,6 +1466,24 @@ async def message_status_callback(request: Request):
         applied = True
     else:
         applied = False
+
+    if applied:
+        if mapped_status == "delivered":
+            set_fields["delivered_at"] = ts_utc_iso
+        elif mapped_status == "read":
+            set_fields["read_at"] = ts_utc_iso
+        elif mapped_status == "rejected":
+            set_fields["rejected_at"] = ts_utc_iso
+            set_fields["failure_reason"] = (
+                payload.get("reason")
+                or payload.get("Reason")
+                or payload.get("error")
+                or payload.get("Error")
+                or payload.get("description")
+                or payload.get("Message")
+                or payload.get("message")
+                or raw_status
+            )
 
     # ---- 11. Always push to status_history (audit) ----
     history_entry = {
