@@ -742,6 +742,39 @@
 **Locks**: Owner-approval-on-file entry for both files, scoped to CR-036. Any subsequent CR touching these files still needs its own approval per §CRM-SPECIFIC OWNER APPROVAL.
 **Timing**: Owner clarified "to be flaged after detailed implementation planning" — approval is granted now, formal hotspot flag will appear in the detailed Implementation Plan doc when it's authored.
 
+### 2026-07-04 [CR-036] §scope-amendment — Bundle bill-logo + invoices into CR-036
+**Decision**: Following INV-006 file-upload surface audit, owner chose to ship all 3 S3-migration surfaces as ONE big CR (not 3 separate CRs). CR-036 scope expands from `media headers only` → `media headers + bill logo + invoice HTML/PDF`. Amendment naming: **keep CR-036 number** with a scope-amendment addendum doc (not new CR-048).
+**Source**: Owner: "1 ship as one big CR" + "1 a" (2026-07-04, in response to INV-006 §6 Q1 + amendment-naming Q1).
+**Rationale**: All 3 surfaces share the same S3 client (`core/s3.py`), same bucket, same IAM credentials, same env vars. Splitting into 3 CRs would triple documentation overhead. Single CR gives owner one review cycle. Effort estimate ~10-12 hr → ~16-20 hr.
+**Locks**: CR-036 amended. CR-046 and CR-047 (proposed in INV-006 §3) NOT registered — they are folded into CR-036. Amendment doc: `planning/CR_036_SCOPE_AMENDMENT_2026_07_04.md`.
+
+### 2026-07-04 [CR-036] §q9 — Existing bill logos on disk = dual-mode, no backfill
+**Decision**: When CR-036 ships, existing bill logos in `/app/data/logos/{user_id}.*` STAY served via the current `GET /api/auth/profile/logo/{user_id}` fallback endpoint. Only NEW uploads go to S3. Tenants must voluntarily re-upload to move their logo to S3. No migration script.
+**Source**: Owner: "9. no back fill needed we will have to keep showing from local disk also until client re uploads" (2026-07-04).
+**Rationale**: Zero-risk rollout — existing tenants see no change. Ephemeral-disk risk (pod-restart wipes logos) accepted as trade-off; tenants can re-upload if their logo disappears.
+**Locks**: `serve_profile_logo` endpoint at `routers/auth.py:280-292` REMAINS in codebase indefinitely. `bill_logo_url` field on `users` is dual-format: either `"/api/auth/profile/logo/{user_id}"` (legacy) or `"https://{bucket}.s3.{region}.amazonaws.com/bill-logos/{user_id}.{ext}"` (new). Both must be rendered correctly by any consumer (invoice HTML template, ProfilePage preview).
+
+### 2026-07-04 [CR-036] §q10 — Existing invoices on disk = no backfill, accept 404 risk
+**Decision**: Invoices already written to `/app/data/invoices/{token}/` STAY on local disk. `GET /api/invoices/{token}` and `GET /api/invoices/{token}/pdf` endpoints continue to read from local disk as fallback. Any pod restart WILL 404 old invoice WhatsApp links — owner accepts this risk. New invoices (post-ship) write to S3.
+**Source**: Owner: "10. no backfill" (2026-07-04).
+**Rationale**: Backfill for invoices is expensive (re-render PDFs, upload thousands of tokens, potential GST-audit-trail confusion). Owner explicitly accepts 404 risk on legacy invoices. New invoices are durable.
+**Locks**: Serve endpoints in `routers/invoices.py` use dual-mode: (1) HEAD S3 for token → if 200, 302 redirect to public S3 URL; (2) else read from local disk; (3) else 404. `services/invoice_generator.py` write points all switch to S3.
+
+### 2026-07-04 [CR-036] §q11 — WeasyPrint base_url = HTTPS S3 approved
+**Decision**: When PDF is generated on-the-fly at `services/invoice_generator.py:658`, the `base_url` passed to WeasyPrint changes from `str(invoice_dir)` (local path) → the full HTTPS S3 URL for the invoice folder (`https://{bucket}.s3.{region}.amazonaws.com/invoices/{token}/`). WeasyPrint will fetch the bill logo and any relative CSS/assets over HTTPS on each PDF generation.
+**Source**: Owner: "11 ok" (2026-07-04).
+**Rationale**: When bill logo migrates to S3 (Q9 for new re-uploads), the invoice HTML template references an absolute HTTPS URL that WeasyPrint must be able to fetch. HTTPS `base_url` is the cleanest solution. Marginal PDF-generation latency (~200ms one-time fetch, then cached by WeasyPrint).
+**Locks**: WeasyPrint may fetch external HTTPS assets during PDF generation. If S3 unreachable during PDF gen, PDF will fail — acceptable failure mode (return 503 to client).
+
+### 2026-07-04 [CR-036] §q12 — Hotspot approval APPROVED for 3 additional files
+**Decision**: Owner approves modifying (in addition to already-approved `routers/whatsapp.py` and `routers/campaigns.py` from Q8):
+- `routers/auth.py` — upload endpoint switches to S3 (line 262-278, ~30 LOC), serve endpoint kept as fallback (line 280-292, unchanged).
+- `services/invoice_generator.py` — 3 write points switched to S3 (line 380, 564, 633) + WeasyPrint base_url change (line 658). ~40 LOC.
+- `routers/invoices.py` — 2 serve endpoints get dual-mode S3-first-then-local fallback (line 18, 38). ~25 LOC.
+**Source**: Owner: "A" (2026-07-04, in response to Q12 spelled-out change matrix).
+**Rationale**: All 3 files are on the CRM HIGH-risk list. Changes are additive/dual-mode; legacy behavior preserved for backwards compat (Q9 + Q10). No schema migration.
+**Locks**: Owner-approval-on-file entry for `routers/auth.py`, `services/invoice_generator.py`, `routers/invoices.py`, scoped to CR-036 only. Any subsequent CR touching these files needs its own approval. Amendment doc `planning/CR_036_SCOPE_AMENDMENT_2026_07_04.md` is the authoritative reference for hotspot line-ranges.
+
 ---
 
 **End of decisions log.**
