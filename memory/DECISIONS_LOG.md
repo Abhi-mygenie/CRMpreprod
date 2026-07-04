@@ -811,11 +811,17 @@
 **Rationale**: Sending audio to Meta as a header would either (a) fail template approval or (b) approve then silently drop, wasting owner time. Truthful UX beats fake features.
 **Locks**: TemplateBuilder file-picker supports 3 header types (IMAGE/VIDEO/DOCUMENT) not 4. `header_type` enum on `custom_templates` should not accept AUDIO. Documentation: any earlier Q1 references to "4 media types" are amended to "3 media types (image/video/document)".
 
-### 2026-07-04 [CR-036] §q14 — Meta APP_ID = shared env var + optional per-tenant override
-**Decision**: Meta `/uploads` resumable-upload endpoint requires an APP_ID (Meta app ID from Business Manager), which is a NEW config surface not previously stored in CRM. Discovery finding via Batch B.0 verification: all existing tenants use AuthKey-managed system-user tokens whose backing Meta app is AuthKey's own (revealed via `GET /me` → `"AuthkeyK System User"`). Tenant tokens LACK `business_management` permission → we cannot programmatically discover app_id via `/debug_token` or `/business/{id}/owned_apps` (8 verification probes attempted, all failed except benign ones). Solution: **`META_APP_ID` env var** in `backend/.env` (AuthKey's Meta app ID, single shared value, obtained from AuthKey support once and pasted in) + **optional per-tenant field** `meta_app_id` on `users` collection for future bring-your-own-Meta tenants who aren't using AuthKey. `core/meta_media.py` resolution order: `user.meta_app_id` if set, else `os.environ['META_APP_ID']`.
-**Source**: Owner: "14 b first verify else option a" → verification failed → owner: "14 approved" for env-first+override hybrid (2026-07-04, this session).
-**Rationale**: Zero UX burden on current AuthKey tenants. Future-proof for direct-Meta tenants. ~5 LOC. Env var absence = fail-fast with clear error "Meta APP_ID not configured — contact AuthKey for their app ID".
-**Locks**: Placeholder `META_APP_ID=""` added to `backend/.env` this session. Owner action item: obtain AuthKey's Meta APP_ID from AuthKey support/dashboard and populate. Until populated, Batch B.1 upload endpoints will 503 with clear message. Adding `META_APP_ID` env var is not a hotspot approval concern — it's additive config.
+### 2026-07-04 [CR-036] §q14 — Meta APP_ID = per-tenant Settings field (revised)
+**Decision**: Meta `/uploads` resumable-upload endpoint requires an APP_ID. Owner confirmed 2026-07-04 that **each client will have their own Meta APP_ID** — despite the initial data suggesting all AuthKey tenants share the same underlying app. Solution: **`meta_app_id` field on `users` collection** + new input field on Settings page ("Meta App ID") next to existing WABA ID + Meta Access Token. Owner must obtain each tenant's Meta APP_ID from that tenant's AuthKey / Meta setup and enter it via Settings. NO env var, NO shared default — per-tenant is authoritative.
+**Source**: Owner: "confirmed each client will have meta id so we need to put in settings" (2026-07-04, this session, superseding the earlier "shared env var" proposal). Prior probe evidence: 6 tenants surfaced 2 different System Users (`AuthkeyK` x5, `AuthkeyP` x1) via `GET /me` — supports the per-tenant model (each tenant may live under a different Meta app).
+**Rationale**: Cleanest single-source-of-truth. Simpler `core/meta_media.py` resolution (read `user.meta_app_id` directly, 503 if empty). No fallback complexity. Handles heterogeneous fleets (AuthKey + direct-Meta + other BSPs) uniformly.
+**Locks**:
+- Backend `GET /api/whatsapp/api-key` returns `meta_app_id` (added).
+- Backend `PUT /api/whatsapp/api-key` accepts + persists `meta_app_id` (added).
+- Frontend Settings page has "Meta App ID" input under "WhatsApp Configuration" card (data-testid `meta-app-id-input`).
+- `META_APP_ID` env var REMOVED from `backend/.env` (no longer relevant).
+- Batch B.1 `core/meta_media.py` must read `user.meta_app_id`; if empty → 503 with clear "Meta App ID not configured — enter it in Settings" message. NO env fallback.
+- Owner action (per tenant): fetch each tenant's Meta APP_ID from their AuthKey / Meta setup and enter on Settings page. Blocker for CR-036 Batch B.1 media-upload flow on that specific tenant.
 
 ---
 

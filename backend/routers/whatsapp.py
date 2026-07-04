@@ -102,15 +102,16 @@ async def get_automation_events():
 async def get_whatsapp_api_key(user: dict = Depends(get_current_user)):
     user_doc = await db.users.find_one(
         {"id": user["id"]}, 
-        {"_id": 0, "authkey_api_key": 1, "brand_number": 1, "meta_waba_id": 1, "meta_access_token": 1}
+        {"_id": 0, "authkey_api_key": 1, "brand_number": 1, "meta_waba_id": 1, "meta_access_token": 1, "meta_app_id": 1}
     )
     if not user_doc:
-        return {"authkey_api_key": "", "brand_number": "", "meta_waba_id": "", "meta_access_token": ""}
+        return {"authkey_api_key": "", "brand_number": "", "meta_waba_id": "", "meta_access_token": "", "meta_app_id": ""}
     return {
         "authkey_api_key": user_doc.get("authkey_api_key", ""),
         "brand_number": user_doc.get("brand_number", ""),
         "meta_waba_id": user_doc.get("meta_waba_id", ""),
-        "meta_access_token": user_doc.get("meta_access_token", "")
+        "meta_access_token": user_doc.get("meta_access_token", ""),
+        "meta_app_id": user_doc.get("meta_app_id", "")  # CR-036 Q14 (per-tenant)
     }
 
 @router.put("/api-key")
@@ -124,6 +125,9 @@ async def save_whatsapp_api_key(payload: dict, user: dict = Depends(get_current_
         update_fields["meta_waba_id"] = payload.get("meta_waba_id", "")
     if "meta_access_token" in payload:
         update_fields["meta_access_token"] = payload.get("meta_access_token", "")
+    # CR-036 Q14 · per-tenant Meta APP_ID for /uploads endpoint (Batch B.1)
+    if "meta_app_id" in payload:
+        update_fields["meta_app_id"] = payload.get("meta_app_id", "").strip()
     
     if update_fields:
         await db.users.update_one(

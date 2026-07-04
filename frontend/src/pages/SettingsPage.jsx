@@ -15,6 +15,7 @@ export default function SettingsPage() {
     const [brandNumber, setBrandNumber] = useState("");
     const [metaWabaId, setMetaWabaId] = useState("");
     const [metaAccessToken, setMetaAccessToken] = useState("");
+    const [metaAppId, setMetaAppId] = useState("");
     const [savingApiKey, setSavingApiKey] = useState(false);
     const [showAuthKey, setShowAuthKey] = useState(false);
     const [showMetaToken, setShowMetaToken] = useState(false);
@@ -30,6 +31,7 @@ export default function SettingsPage() {
                 setBrandNumber(res.data.brand_number || "");
                 setMetaWabaId(res.data.meta_waba_id || "");
                 setMetaAccessToken(res.data.meta_access_token || "");
+                setMetaAppId(res.data.meta_app_id || "");
             } catch (_) {}
         };
         fetchWhatsAppConfig();
@@ -49,7 +51,8 @@ export default function SettingsPage() {
                 authkey_api_key: whatsappApiKey,
                 brand_number: brandNumber,
                 meta_waba_id: metaWabaId,
-                meta_access_token: metaAccessToken
+                meta_access_token: metaAccessToken,
+                meta_app_id: metaAppId
             });
             toast.success("WhatsApp settings saved!");
         } catch (_) {
@@ -126,6 +129,11 @@ export default function SettingsPage() {
                                     </button>
                                 </div>
                                 <p className="text-xs text-gray-400 mt-1">Permanent access token from Meta Business</p>
+                            </div>
+                            <div>
+                                <Label className="form-label">Meta App ID</Label>
+                                <Input value={metaAppId} onChange={(e) => setMetaAppId(e.target.value)} placeholder="e.g., 1234567890123456" className="h-12 rounded-xl font-mono" data-testid="meta-app-id-input" />
+                                <p className="text-xs text-gray-400 mt-1">Meta developer App ID that issues your access token (required for template media uploads — CR-036)</p>
                             </div>
                         </div>
                         <Button onClick={handleSaveApiKey} disabled={savingApiKey} className="w-full h-12 rounded-xl bg-[#25D366] hover:bg-[#1da851] text-white" data-testid="save-whatsapp-settings-btn">
