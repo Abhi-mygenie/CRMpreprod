@@ -805,6 +805,18 @@
 **Rationale**: Real regression risk for prod tenants who set a bill logo before CR-036 ships. Preview escapes (test tenant had no logo). Surgical 10-LOC fix.
 **Locks**: New env var `PUBLIC_BACKEND_URL` added to `backend/.env` (populated with preview URL in preview, must be set to prod URL in prod). Fix is idempotent: absolute HTTPS URLs pass through unchanged. This decision is a Batch A hotfix; no new hotspot approval needed.
 
+### 2026-07-04 [CR-036] §q13 — Audio dropped from header media support (Q1 conflict resolved)
+**Decision**: Original Q1 (2026-07-03) locked "all 4 media types (image/video/document/audio)" for template media header support. Batch B.0 playbook re-check surfaced that Meta does NOT support AUDIO as a template header format — supported formats are IMAGE, VIDEO, DOCUMENT only. Q13 supersedes Q1: **template media header support is IMAGE + VIDEO + DOCUMENT only**. Audio media is out of scope for CR-036 and any subsequent header-media CR (Meta constraint, not our choice).
+**Source**: Owner: "13 a" (2026-07-04, in response to playbook conflict raised in Batch B.0 prep). Playbook citations: Meta template components doc (1) + 360dialog template elements doc (4) + Whatchimp format doc (9) — all list header formats as text/image/video/document/location; audio is explicitly send-time-only.
+**Rationale**: Sending audio to Meta as a header would either (a) fail template approval or (b) approve then silently drop, wasting owner time. Truthful UX beats fake features.
+**Locks**: TemplateBuilder file-picker supports 3 header types (IMAGE/VIDEO/DOCUMENT) not 4. `header_type` enum on `custom_templates` should not accept AUDIO. Documentation: any earlier Q1 references to "4 media types" are amended to "3 media types (image/video/document)".
+
+### 2026-07-04 [CR-036] §q14 — Meta APP_ID = shared env var + optional per-tenant override
+**Decision**: Meta `/uploads` resumable-upload endpoint requires an APP_ID (Meta app ID from Business Manager), which is a NEW config surface not previously stored in CRM. Discovery finding via Batch B.0 verification: all existing tenants use AuthKey-managed system-user tokens whose backing Meta app is AuthKey's own (revealed via `GET /me` → `"AuthkeyK System User"`). Tenant tokens LACK `business_management` permission → we cannot programmatically discover app_id via `/debug_token` or `/business/{id}/owned_apps` (8 verification probes attempted, all failed except benign ones). Solution: **`META_APP_ID` env var** in `backend/.env` (AuthKey's Meta app ID, single shared value, obtained from AuthKey support once and pasted in) + **optional per-tenant field** `meta_app_id` on `users` collection for future bring-your-own-Meta tenants who aren't using AuthKey. `core/meta_media.py` resolution order: `user.meta_app_id` if set, else `os.environ['META_APP_ID']`.
+**Source**: Owner: "14 b first verify else option a" → verification failed → owner: "14 approved" for env-first+override hybrid (2026-07-04, this session).
+**Rationale**: Zero UX burden on current AuthKey tenants. Future-proof for direct-Meta tenants. ~5 LOC. Env var absence = fail-fast with clear error "Meta APP_ID not configured — contact AuthKey for their app ID".
+**Locks**: Placeholder `META_APP_ID=""` added to `backend/.env` this session. Owner action item: obtain AuthKey's Meta APP_ID from AuthKey support/dashboard and populate. Until populated, Batch B.1 upload endpoints will 503 with clear message. Adding `META_APP_ID` env var is not a hotspot approval concern — it's additive config.
+
 ---
 
 **End of decisions log.**
