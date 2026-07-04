@@ -2,17 +2,50 @@
 CR-014 Phase 2: Invoice generator service.
 Renders food invoices (Mode A / GST Tax Invoice) from order data + user bill_settings.
 Produces HTML (Jinja2) and PDF (weasyprint).
+
+CR-036 Part 4 (2026-07-04): dual-write to S3 alongside local disk. See core/s3.py.
+Legacy tokens (pre-CR-036) stay served from local disk. See INV-006 §4 for full spec.
 """
+import logging
 import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 from jinja2 import Environment, FileSystemLoader
+
+from core import s3 as _s3
+
+logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 DATA_DIR = Path("/app/data/invoices")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 _jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=True)
+
+
+def _write_invoice_html(token: str, html: str) -> Path:
+    """CR-036 Part 4: dual-write invoice HTML to S3 (best-effort) + local disk (always).
+
+    Returns the local Path for legacy callers that need it. Serve endpoints in
+    routers/invoices.py check S3 first, then fall back to local.
+    """
+    # Best-effort S3 write
+    if _s3.S3_CONFIGURED:
+        s3_url = _s3.put_public_object(
+            key=f"invoices/{token}/invoice.html",
+            body=html.encode("utf-8"),
+            content_type="text/html; charset=utf-8",
+        )
+        if s3_url:
+            logger.info("CR-036/invoice-html → S3 OK token=%s", token)
+        else:
+            logger.warning("CR-036/invoice-html → S3 FAILED token=%s (local disk still written)", token)
+    # Always write local disk too (Q10 no-backfill + safe rollout)
+    invoice_dir = DATA_DIR / token
+    invoice_dir.mkdir(parents=True, exist_ok=True)
+    html_path = invoice_dir / "invoice.html"
+    html_path.write_text(html, encoding="utf-8")
+    return html_path
 
 
 def _fmt(value, decimals=2):
@@ -373,11 +406,9 @@ def generate_invoice_html(order: dict, user: dict, customer: dict = None, event_
     template = _jinja_env.get_template("invoice_food.html")
     html = template.render(**ctx)
 
-    # Save HTML to disk
-    invoice_dir = DATA_DIR / token
-    invoice_dir.mkdir(parents=True, exist_ok=True)
-    html_path = invoice_dir / "invoice.html"
-    html_path.write_text(html, encoding="utf-8")
+    # CR-036 Part 4: dual-write to S3 + local disk
+    html_path = _write_invoice_html(token, html)
+    invoice_dir = html_path.parent
 
     return {
         "token": token,
@@ -559,13 +590,13 @@ def generate_hotel_room_html(order, user, customer=None, event_data=None):
     template = _jinja_env.get_template("invoice_hotel_room.html")
     html = template.render(**ctx)
 
-    invoice_dir = DATA_DIR / token
-    invoice_dir.mkdir(parents=True, exist_ok=True)
-    (invoice_dir / "invoice.html").write_text(html, encoding="utf-8")
+    # CR-036 Part 4: dual-write to S3 + local disk
+    html_path = _write_invoice_html(token, html)
+    invoice_dir = html_path.parent
 
     return {
         "token": token, "html": html,
-        "html_path": str(invoice_dir / "invoice.html"),
+        "html_path": str(html_path),
         "invoice_number": ctx["invoice_number"],
         "invoice_dir": str(invoice_dir),
         "mode": "hotel_room",
@@ -628,13 +659,13 @@ def generate_hotel_folio_html(order, user, customer=None, event_data=None):
     template = _jinja_env.get_template("invoice_hotel_folio.html")
     html = template.render(**ctx)
 
-    invoice_dir = DATA_DIR / token
-    invoice_dir.mkdir(parents=True, exist_ok=True)
-    (invoice_dir / "invoice.html").write_text(html, encoding="utf-8")
+    # CR-036 Part 4: dual-write to S3 + local disk
+    html_path = _write_invoice_html(token, html)
+    invoice_dir = html_path.parent
 
     return {
         "token": token, "html": html,
-        "html_path": str(invoice_dir / "invoice.html"),
+        "html_path": str(html_path),
         "invoice_number": ctx["invoice_number"],
         "invoice_dir": str(invoice_dir),
         "mode": "hotel_folio",
@@ -642,21 +673,56 @@ def generate_hotel_folio_html(order, user, customer=None, event_data=None):
 
 
 def generate_invoice_pdf(token: str, html: str = None) -> str:
-    """Generate PDF from invoice HTML using weasyprint. Returns pdf_path."""
+    """Generate PDF from invoice HTML using weasyprint. Returns pdf_path.
+
+    CR-036 Part 4 (2026-07-04):
+    - If HTML not provided, try S3 first then local disk (dual-mode read per Q10).
+    - WeasyPrint base_url uses HTTPS S3 folder when S3-configured (Q11) so relative
+      assets (bill logo etc) resolve over HTTPS. Falls back to local dir otherwise.
+    - PDF bytes are ALSO uploaded to S3 alongside the local write.
+    """
     import weasyprint
 
     invoice_dir = DATA_DIR / token
     pdf_path = invoice_dir / "invoice.pdf"
 
     if not html:
-        html_path = invoice_dir / "invoice.html"
-        if html_path.exists():
-            html = html_path.read_text(encoding="utf-8")
-        else:
-            raise FileNotFoundError(f"No HTML found for token {token}")
+        # Try S3 first
+        if _s3.S3_CONFIGURED and _s3.object_exists(f"invoices/{token}/invoice.html"):
+            html_bytes = _s3.get_object_bytes(f"invoices/{token}/invoice.html")
+            if html_bytes:
+                html = html_bytes.decode("utf-8")
+        # Fall back to local disk
+        if not html:
+            html_path = invoice_dir / "invoice.html"
+            if html_path.exists():
+                html = html_path.read_text(encoding="utf-8")
+            else:
+                raise FileNotFoundError(f"No HTML found for token {token} (S3 + local both empty)")
 
-    wp = weasyprint.HTML(string=html, base_url=str(invoice_dir))
-    wp.write_pdf(str(pdf_path))
+    # Q11: HTTPS S3 base_url when configured, else local dir
+    if _s3.S3_CONFIGURED:
+        base_url = f"https://{_s3.AWS_S3_BUCKET}.s3.{_s3.AWS_S3_REGION}.amazonaws.com/invoices/{token}/"
+    else:
+        base_url = str(invoice_dir)
+
+    wp = weasyprint.HTML(string=html, base_url=base_url)
+    pdf_bytes = wp.write_pdf()
+
+    # CR-036 Part 4: dual-write PDF to S3 + local
+    if _s3.S3_CONFIGURED:
+        s3_url = _s3.put_public_object(
+            key=f"invoices/{token}/invoice.pdf",
+            body=pdf_bytes,
+            content_type="application/pdf",
+        )
+        if s3_url:
+            logger.info("CR-036/invoice-pdf → S3 OK token=%s", token)
+        else:
+            logger.warning("CR-036/invoice-pdf → S3 FAILED token=%s (local disk still written)", token)
+
+    invoice_dir.mkdir(parents=True, exist_ok=True)
+    pdf_path.write_bytes(pdf_bytes)
     return str(pdf_path)
 
 

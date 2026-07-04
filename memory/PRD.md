@@ -123,7 +123,7 @@ Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git (main branch), wip
 - [x] **CR-042 / BUG-009 / CR-043**: COMPLETE (2026-07-03). Export Message Logs (CSV/XLSX) · Details deep-link · Customer Tag Filter + Popover. 38/38 pytest · Playwright verified. Owner UAT ready.
 - [x] **CR-035**: ✅ QA PASS 2026-07-04 (iteration_4). 19/19 backend pytest + all frontend flows. Test file: `test_cr035_customer_export_import.py`. Owner UAT ready.
 - [ ] **CR-040**: REGISTERED (2026-07-04). AuthKey duplicate-LogID upstream escalation — 0 CRM dev hours, owner-side vendor ticket. Intake: `crm/crm_roi_sprint/discovery/CR_040_*`.
-- [ ] **CR-036**: BLOCKED on AWS S3 credentials. Plan ready.
+- [ ] **CR-036**: 🟢 **Batch A shipped 2026-07-04** — `core/s3.py` + Part 3 (bill logo → S3) + Part 4 (invoices → S3), all dual-mode/non-regressive. Smoke-tested against `mygenie-prod` in `ap-south-1`. **Batch B pending**: Parts 1+2 (media header upload endpoint + Meta `/uploads` + campaign delivery + Template Builder file picker). Plan ready.
 - [ ] **CR-032**: Intake complete — awaits owner planning approval (~2 hrs).
 
 ### P1 — Known issues from previous sessions

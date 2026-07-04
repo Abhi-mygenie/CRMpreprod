@@ -10,6 +10,9 @@ from core.database import db
 from core.auth import hash_password, verify_password, create_token, generate_api_key, get_current_user, register_crm_token_with_pos
 from core.loyalty import default_loyalty_settings
 from models.schemas import UserCreate, UserLogin, UserResponse, TokenResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -256,22 +259,51 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
 from fastapi import UploadFile, File
 from pathlib import Path as _Path
 
+# CR-036 Part 3 — S3 migration with dual-mode fallback per Q9 (no backfill).
+# New uploads → S3 (bill-logos/<user_id>.<ext>). Legacy files stay served from
+# _LOGO_DIR via /profile/logo/{user_id} until owner re-uploads.
+from core import s3 as _s3
+
 _LOGO_DIR = _Path("/app/data/logos")
 _LOGO_DIR.mkdir(parents=True, exist_ok=True)
 
 @router.post("/profile/logo")
 async def upload_profile_logo(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
-    """Upload a bill logo image (PNG/JPG/WEBP, max 500KB)."""
+    """Upload a bill logo image (PNG/JPG/WEBP, max 500KB).
+
+    CR-036 Part 3: new uploads go to S3 when configured; falls back to local
+    disk if S3 is not configured OR the S3 put fails (defensive dual-mode).
+    """
     if file.content_type not in ("image/png", "image/jpeg", "image/webp"):
         raise HTTPException(status_code=400, detail="Only PNG, JPG, WEBP images are accepted")
     content = await file.read()
     if len(content) > 512_000:
         raise HTTPException(status_code=400, detail="Image must be under 500KB")
     ext = file.content_type.split("/")[-1].replace("jpeg", "jpg")
-    logo_path = _LOGO_DIR / f"{user['id']}.{ext}"
-    logo_path.write_bytes(content)
-    logo_url = f"/api/auth/profile/logo/{user['id']}"
-    # Store in bill_settings
+
+    # CR-036 Part 3 · S3 path (preferred)
+    logo_url = None
+    if _s3.S3_CONFIGURED:
+        s3_key = f"bill-logos/{user['id']}.{ext}"
+        logo_url = _s3.put_public_object(
+            key=s3_key,
+            body=content,
+            content_type=file.content_type,
+            cache_control="public, max-age=86400",
+        )
+        if logo_url:
+            logger.info("CR-036/logo → S3 OK user=%s key=%s", user["id"], s3_key)
+        else:
+            logger.warning("CR-036/logo → S3 FAILED, falling back to local disk user=%s", user["id"])
+
+    # Local-disk write (fallback OR when S3 not configured)
+    if not logo_url:
+        logo_path = _LOGO_DIR / f"{user['id']}.{ext}"
+        logo_path.write_bytes(content)
+        logo_url = f"/api/auth/profile/logo/{user['id']}"
+
+    # Store in bill_settings — value is either full HTTPS S3 URL (new) or
+    # relative /api/... path (legacy fallback). Consumers must handle both.
     bs = user.get("bill_settings") or {}
     bs["bill_logo_url"] = logo_url
     await db.users.update_one({"id": user["id"]}, {"$set": {"bill_settings": bs}})
@@ -279,7 +311,12 @@ async def upload_profile_logo(file: UploadFile = File(...), user: dict = Depends
 
 @router.get("/profile/logo/{user_id}")
 async def serve_profile_logo(user_id: str):
-    """Serve uploaded logo image (public — used on customer-facing invoices)."""
+    """Serve uploaded logo image (public — used on customer-facing invoices).
+
+    CR-036 Part 3 (Q9): this endpoint STAYS as a dual-mode fallback for tenants
+    whose bill_logo_url still points to /api/auth/profile/logo/... . Tenants who
+    re-upload after CR-036 ship get an S3 URL and bypass this endpoint entirely.
+    """
     from fastapi.responses import FileResponse
     for ext in ("png", "jpg", "webp"):
         path = _LOGO_DIR / f"{user_id}.{ext}"
