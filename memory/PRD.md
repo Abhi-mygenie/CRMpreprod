@@ -120,6 +120,11 @@ Pull code from https://github.com/Abhi-mygenie/CRMpreprod.git (main branch), wip
 
 ### P1 — Registered CRs
 - [x] **CR-DIRECT-SEND**: COMPLETE (2026-06-26). New `POST /api/pos/send` endpoint — accepts flat JSON, maps via `variable_labels`, fires via AuthKey, logs to `whatsapp_message_logs`. Also: `GET /api/pos/templates` listing, `PATCH /api/whatsapp/custom-templates/{id}/labels` for label config, sync endpoint back-fills `authkey_wid`.
+- [x] **CR-042 / BUG-009 / CR-043**: COMPLETE (2026-07-03). Export Message Logs (CSV/XLSX) · Details deep-link · Customer Tag Filter + Popover. 38/38 pytest · Playwright verified. Owner UAT ready.
+- [x] **CR-035**: IMPLEMENTED (dashboard drift corrected 2026-07-04). Customer export/import endpoints all live in `routers/customers.py`. Needs micro-QA pass before UAT sign-off.
+- [ ] **CR-040**: REGISTERED (2026-07-04). AuthKey duplicate-LogID upstream escalation — 0 CRM dev hours, owner-side vendor ticket. Intake: `crm/crm_roi_sprint/discovery/CR_040_*`.
+- [ ] **CR-036**: BLOCKED on AWS S3 credentials. Plan ready.
+- [ ] **CR-032**: Intake complete — awaits owner planning approval (~2 hrs).
 
 ### P1 — Known issues from previous sessions
 - [ ] AUTHKEY_WEBHOOK_SECRET not set (webhook unauthenticated)
