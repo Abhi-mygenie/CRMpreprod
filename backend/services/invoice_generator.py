@@ -7,6 +7,7 @@ CR-036 Part 4 (2026-07-04): dual-write to S3 alongside local disk. See core/s3.p
 Legacy tokens (pre-CR-036) stay served from local disk. See INV-006 §4 for full spec.
 """
 import logging
+import os
 import uuid
 from pathlib import Path
 from datetime import datetime, timezone
@@ -21,6 +22,32 @@ DATA_DIR = Path("/app/data/invoices")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 _jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=True)
+
+
+def _resolve_logo_url(bill_logo_url: str) -> str:
+    """CR-036 Batch A.1 fix — resolve any relative `/api/...` path to full HTTPS URL.
+
+    Reason: `_generate_pdf` uses HTTPS S3 `base_url` (per Q11). Legacy tenants whose
+    `bill_logo_url` is `/api/auth/profile/logo/{user_id}` would have WeasyPrint
+    resolve that as absolute-to-host relative to the S3 URL → 404 → logo missing
+    in PDF. New tenants (already-HTTPS S3 URLs) pass through unchanged. HTML view
+    served same-origin via backend is unaffected (browser resolves correctly).
+
+    Requires env var `PUBLIC_BACKEND_URL` set to the CRM backend's public HTTPS URL.
+    """
+    if not bill_logo_url:
+        return ""
+    if bill_logo_url.startswith(("http://", "https://")):
+        return bill_logo_url
+    backend_url = os.environ.get("PUBLIC_BACKEND_URL", "").rstrip("/")
+    if not backend_url:
+        # No backend URL configured — return as-is (HTML view still works, PDF logo may be missing)
+        logger.warning(
+            "CR-036 Batch A.1: PUBLIC_BACKEND_URL not set; legacy bill_logo_url "
+            "'%s' will not resolve in generated PDFs.", bill_logo_url
+        )
+        return bill_logo_url
+    return f"{backend_url}{bill_logo_url}"
 
 
 def _write_invoice_html(token: str, html: str) -> Path:
@@ -193,7 +220,7 @@ def generate_invoice_html(order: dict, user: dict, customer: dict = None, event_
     # Restaurant info
     restaurant_name = user.get("restaurant_name", "")
     restaurant_initials = restaurant_name[:2].upper() if restaurant_name else "?"
-    logo_url = bs.get("bill_logo_url", "")
+    logo_url = _resolve_logo_url(bs.get("bill_logo_url", ""))
 
     # Date formatting
     date_format = bs.get("date_format", "DD MMM YYYY")
@@ -458,7 +485,7 @@ def _build_common_ctx(order, user, customer=None, event_data=None):
 
     return {
         "header_color": header_color, "accent_color": accent_color,
-        "logo_url": bs.get("bill_logo_url", ""),
+        "logo_url": _resolve_logo_url(bs.get("bill_logo_url", "")),
         "restaurant_initials": restaurant_name[:2].upper() if restaurant_name else "?",
         "restaurant_name": restaurant_name,
         "tagline": bs.get("tagline", ""),

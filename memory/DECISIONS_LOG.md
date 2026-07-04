@@ -775,6 +775,36 @@
 **Rationale**: All 3 files are on the CRM HIGH-risk list. Changes are additive/dual-mode; legacy behavior preserved for backwards compat (Q9 + Q10). No schema migration.
 **Locks**: Owner-approval-on-file entry for `routers/auth.py`, `services/invoice_generator.py`, `routers/invoices.py`, scoped to CR-036 only. Any subsequent CR touching these files needs its own approval. Amendment doc `planning/CR_036_SCOPE_AMENDMENT_2026_07_04.md` is the authoritative reference for hotspot line-ranges.
 
+### 2026-07-04 [CR-036] §g2 — Meta handle expiry: auto-re-upload once on 400
+**Decision**: If a template's `header_handle` expires while pending Meta review (Meta 400 with expiry-related error code), the CRM automatically re-uploads the media from S3 to Meta `/uploads` and retries the template submission once. Second failure surfaces the error to the tenant with a clear message. NOT a silent infinite retry.
+**Source**: Owner approved suggestion (b) on 2026-07-04 in response to Planning RCA §4.1 G2. Suggestion rationale: alternative (a) accept-400 = cryptic error to tenant, +support tickets; auto-retry is invisible to tenant since S3 still has the media.
+**Rationale**: Meta handles expire after 30 days. Templates rarely take that long, but when they do the tenant sees "rejected" with no clear cause. Auto-retry (~5 LOC in Part 1 template creation) is cheap insurance. Second failure is loud so we don't hide chronic issues.
+**Locks**: Part 1 template-creation endpoint MUST catch `MetaHandleExpired` (or equivalent Meta error code from `/message_templates` response) and re-invoke `_upload_media_to_meta(s3_key)` once before final failure. Log every retry to backend logs for debug.
+
+### 2026-07-04 [CR-036] §g5 — Legacy templates (send_media_url IS NULL): silent-degrade = MARK FAILED
+**Decision**: When a campaign send attempts to use a template where `send_media_url IS NULL` but `header_type IN (IMAGE, VIDEO, DOCUMENT, AUDIO)`, the row in `whatsapp_message_logs` is written with `status="failed"`, `status_note="media_missing"`, and the AuthKey send call is NOT made (no cost incurred). Tenant sees a loud persistent UI banner on Templates page: "N templates need media re-upload before use". Legacy templates are effectively DEAD until re-uploaded.
+**Source**: Owner approved suggestion (a) on 2026-07-04 in response to Planning RCA §4.2 G5. Suggestion rationale: (b) send-text-only likely causes Meta to reject at delivery (shape mismatch with approved template) = same failure, more cost; (c) send-with-old-URL is unpredictable, old URLs often 404 now.
+**Rationale**: Least-surprise for tenants. Fails BEFORE AuthKey call so no cost. Clear failure reason in message logs. UI banner drives self-service fix over time. Prevents random Meta-side rejections from confusing the tenant.
+**Locks**: All 3 send paths in `routers/campaigns.py` (274, 512, 796) MUST check `template.send_media_url IS NOT NULL OR header_type NOT IN (IMAGE, VIDEO, DOCUMENT, AUDIO)` before invoking `WhatsAppMessage(...)`. Optional stretch (not required for MVP): block campaign creation for stale templates upfront in the campaign create endpoint.
+
+### 2026-07-04 [CR-036] §g6 — status_note column on whatsapp_message_logs
+**Decision**: The `status_note` string field is added to `whatsapp_message_logs` if not already present. Owned values so far: `media_missing` (G5 legacy templates), other status_notes may be added by later CRs. Field is optional (`None` allowed) and does not participate in indexes.
+**Source**: Derived from G5 decision. No standalone owner Q — logically required to implement §g5.
+**Rationale**: Existing `status` field is enum-like (pending / delivered / failed / etc). We need a free-text disambiguator. Simplest schema addition (single string field on existing collection).
+**Locks**: Schema change is additive-only. `models/schemas.py` `MessageLog` model gets an `Optional[str] status_note = None` field. No migration script needed (Mongo forgives missing fields). Export to CSV/XLSX (CR-042) auto-includes new column.
+
+### 2026-07-04 [CR-036] §g10 — Template cloning: duplicate media per tenant
+**Decision**: When Tenant B clones Tenant A's template that has media (`send_media_url`, `header_handle`), the CRM performs `s3.copy_object` from Tenant A's S3 prefix to Tenant B's own prefix (`media-headers/<tenant_b_id>/<new_uuid>.<ext>`). Tenant B also re-uploads the media to Meta under Tenant B's own WABA credentials to get a fresh `header_handle`. NO cross-tenant references.
+**Source**: Owner approved suggestion (b) on 2026-07-04 in response to Planning RCA §4.4 G10. Suggestion rationale: shared references violate prefix-per-tenant isolation; storage cost is negligible (~$0.02/month per 1000 clones on ap-south-1); if Tenant A deletes template + we clean up S3 (G11), Tenant B's clone would break.
+**Rationale**: Clean multi-tenant isolation. Safer default. Cost implication is trivial for CRM scale.
+**Locks**: Template clone flow MUST call `_clone_media_to_tenant(source_key, target_user_id)` = single `s3.copy_object` call (~5 LOC) + re-upload to Meta for fresh handle. `header_handle` is NEVER shared across tenants (Meta handles are WABA-scoped anyway).
+
+### 2026-07-04 [CR-036] §batch-a-gap — Legacy `bill_logo_url` breaks PDF for existing tenants (patch A.1)
+**Decision**: Batch A shipped a latent bug: `_generate_pdf` uses HTTPS S3 `base_url` (per Q11) but legacy tenants' `bill_logo_url = "/api/auth/profile/logo/{user_id}"` resolves relative to S3 host → 404 → logo missing in PDFs. Patch A.1 adds `_resolve_logo_url()` helper in `services/invoice_generator.py` that pre-resolves any `/api/...` path to a full HTTPS URL using new env var `PUBLIC_BACKEND_URL`. New tenants (already-HTTPS S3 URLs) unaffected. HTML view unaffected (served same-origin via backend). Only PDFs generated for legacy tenants were at risk.
+**Source**: Planning Agent RCA 2026-07-04 §3 self-audit. Owner instruction: "option C" = ship A.1 only, pause Batch B.
+**Rationale**: Real regression risk for prod tenants who set a bill logo before CR-036 ships. Preview escapes (test tenant had no logo). Surgical 10-LOC fix.
+**Locks**: New env var `PUBLIC_BACKEND_URL` added to `backend/.env` (populated with preview URL in preview, must be set to prod URL in prod). Fix is idempotent: absolute HTTPS URLs pass through unchanged. This decision is a Batch A hotfix; no new hotspot approval needed.
+
 ---
 
 **End of decisions log.**
