@@ -890,4 +890,21 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 ---
 
+### 2026-07-11 [CR-036] §b1-impl — Batch B.1 implementation complete
+**Decision**: CR-036 Batch B.1 implementation shipped in a single session. All 11 build steps executed per `CR_036_BATCH_B1_IMPL_PLAN_FINAL_2026_07_11.md`. 10 files touched (4 new + 6 modified), ~550 LOC.
+**Source**: Owner approved all steps ("go ahead with all steps no need for interim approval").
+**Locks**: Code is live on preview pod. Migration ran (0 templates flagged). Backend healthy. Frontend compiles clean.
+
+### 2026-07-11 [CR-036] §b1-bugfix-1 — UserResponse missing Meta credential fields
+**Decision**: `UserResponse` model and `/auth/me` endpoint updated to include `meta_waba_id`, `meta_access_token`, `meta_app_id`. Without these, frontend `MediaHeaderUpload` component always showed "Configure Meta API first" banner — users could never upload.
+**Source**: Owner reported file picker not visible during testing (screenshot). Root cause: fields not in API response.
+**Locks**: `/auth/me` now exposes Meta creds to frontend. These are per-tenant credentials stored in `users` collection.
+
+### 2026-07-11 [CR-036] §b1-bugfix-2 — Q16 over-blocking: approved templates can't re-upload media
+**Decision**: `PUT /custom-templates/{id}` Q16 block amended. Approved templates now allow **media-only updates** (header_handle, send_media_url, send_media_filename, header_media_mime, needs_media_reupload) while still blocking full content edits. Status remains "approved" after media re-upload. This enables the Q15-c re-upload flow for legacy templates that got approved before B.1 shipped.
+**Source**: Owner reported "Template media missing — re-upload header file before test send" error during campaign test-send. Root cause: template `sampletestlogo` was approved via old URL flow, had no `send_media_url`, and Q16 blocked the PUT to update it.
+**Locks**: Media-re-upload on approved templates is allowed. Content edits on approved templates remain blocked with 400.
+
+---
+
 **End of decisions log.**
