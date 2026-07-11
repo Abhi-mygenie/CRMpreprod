@@ -825,4 +825,69 @@
 
 ---
 
+### 2026-07-11 [CR-036] §q14-revert — Meta APP_ID = shared ENV + optional per-tenant override
+**Decision**: Q14 (revised 2026-07-04) is superseded. Owner reasoning: "since we are integrating with AuthKey, there will be only a single Meta ID of AuthKey which needs to be used — go via ENV route, no different Meta IDs per tenant." Adopted architecture is the **hybrid** first surfaced in the morning 2026-07-04 proposal (before the same-day revert): **shared `META_APP_ID` env var is authoritative**; existing `users.meta_app_id` field (shipped in Batch B.0.1) is retained as an **OPTIONAL override** for future direct-Meta tenants or the `AuthkeyP` outlier if AuthKey confirms it runs on a different Meta app.
+**Source**: Owner: "I will put common env in env file please create placeholder" (2026-07-11, INVESTIGATION → PLANNING pivot). Owner then supplied `META_APP_ID=874516431301713` inline.
+**Rationale**: All 6 current tenants use AuthKey. AuthKey is the only party calling Meta directly. The APP_ID Meta `/uploads` requires belongs to AuthKey's Meta app, not the tenant's Meta app. One env var covers 5-of-6 (AuthkeyK System User) with zero per-tenant onboarding friction. Per-tenant override safety-net preserves flexibility for AuthkeyP + future direct-Meta clients without any code un-ship.
+**Locks**:
+- `META_APP_ID=874516431301713` set in `/app/backend/.env` (owner-supplied 2026-07-11).
+- Resolver spec for Batch B.1 `core/meta_media.py`: `app_id = user.meta_app_id or os.environ.get('META_APP_ID')`; if both empty/None → raise 503 "Meta App ID not configured (contact admin or set in Settings)".
+- Frontend Settings "Meta App ID" input (Batch B.0.1) label to change to **"Meta App ID (optional override)"** and helper text: *"Leave empty to use the system default. Fill only if this tenant uses its own Meta Business app."*
+- `GET/PUT /api/whatsapp/api-key` endpoints (Batch B.0.1) remain unchanged — persistence layer already tolerates empty string / null.
+- Test tenant added to `memory/test_credentials.md`: `owner@jehsnes.com / Qplazm@10` (Jeh's Nest) — used for Batch B.1 end-to-end verification.
+**Follow-up needed**: If AuthKey later confirms `AuthkeyP System User` runs on a different Meta app than `AuthkeyK`, that single tenant fills the per-tenant override on the Settings page. No code change needed.
+**Source**: Owner: "I will put common env in env file please create placeholder" (2026-07-11, INVESTIGATION → PLANNING pivot).
+**Rationale**: All 6 current tenants use AuthKey. AuthKey is the only party calling Meta directly. The APP_ID Meta `/uploads` requires belongs to AuthKey's Meta app, not the tenant's Meta app. One env var covers 5-of-6 (AuthkeyK System User) with zero per-tenant onboarding friction. Per-tenant override safety-net preserves flexibility for AuthkeyP + future direct-Meta clients without any code un-ship.
+**Locks**:
+- `META_APP_ID=""` placeholder added to `/app/backend/.env` (empty string until owner supplies AuthKey's Meta APP_ID).
+- Resolver spec for Batch B.1 `core/meta_media.py`: `app_id = user.meta_app_id or os.environ.get('META_APP_ID')`; if both empty/None → raise 503 "Meta App ID not configured (contact admin or set in Settings)".
+- Frontend Settings "Meta App ID" input (Batch B.0.1) label to change to **"Meta App ID (optional override)"** and helper text: *"Leave empty to use the system default. Fill only if this tenant uses its own Meta Business app."*
+- `GET/PUT /api/whatsapp/api-key` endpoints (Batch B.0.1) remain unchanged — persistence layer already tolerates empty string / null.
+- Owner action pending: obtain AuthKey's Meta APP_ID from AuthKey support (single value); paste into `META_APP_ID=` in `/app/backend/.env` and restart backend.
+- Test tenant added to `memory/test_credentials.md`: `owner@jehsnes.com / Qplazm@10` (Jeh's Nest) — used for Batch B.1 end-to-end verification.
+**Follow-up needed**: If AuthKey later confirms `AuthkeyP System User` runs on a different Meta app than `AuthkeyK`, that single tenant fills the per-tenant override on the Settings page. No code change needed.
+
+**PROBE OUTCOME (2026-07-11, same day)**: Live-probed 3/6 tenants against Meta's `/v21.0/{META_APP_ID}/uploads`:
+- `owner@jehsnest.com` (AuthkeyK) → 200 OK
+- `owner@kunafamahal.com` (AuthkeyK) → 200 OK
+- `owner@mayur.com` (AuthkeyP outlier) → 200 OK
+Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same Meta App (`874516431301713`). Zero per-tenant overrides needed for any of the 6 current tenants. Q14-revert rationale strengthened; original 2026-07-04 revision was based on a mis-interpretation of System User names as separate apps. Env-route is definitively confirmed.
+
+---
+
+### 2026-07-11 [CR-036] §q15-through-q19 — Batch B.1 gap-resolution locks (post-Impact-Analysis)
+**Decision block**: Owner answered 5 open questions surfaced during the 2026-07-11 Impact Analysis of Batch B.1 delta scope. Locks below.
+
+**Q15 · Import-from-AuthKey / direct-Meta-creation UX** → **(a) + (c)** ACCEPTED.
+- (a) Templates arriving via `POST /whatsapp/authkey/sync-templates` OR any external Meta-side creation land without `send_media_url` → G5 fail-loud at campaign/event/test send with `status_note='media_missing'` remains authoritative.
+- (c) Add inline **"Re-upload media"** button on each affected row in `TemplatesPage.jsx` (opens a lightweight file picker → calls `POST /whatsapp/upload-media-header` → populates `send_media_url` on that template). Bypasses forcing user back into full Template Builder.
+- (b) Auto-fetch from Meta `/message_templates?fields=components` is explicitly REJECTED — unreliable due to 30-day handle expiry + AuthKey-managed templates typically lacking media URL in their response.
+
+**Q16 · Editing media on an APPROVED template** → **(a)** ACCEPTED.
+- `PUT /custom-templates/{id}` when `status='approved'` AND payload contains a changed `header_type` OR `send_media_url` OR `header_content` (for media header types) → return **HTTP 400** with message: *"Cannot edit media on an approved template. Meta approvals are immutable — clone this template and create a new version instead."*
+- Text-only edits (body/footer/buttons) on approved templates are ALSO immutable per Meta policy → apply same 400 behavior. (Extension of Q16 lock — surfacing the truth uniformly.)
+- Draft / rejected / pending status → edits proceed as today.
+
+**Q17 · Test-send behavior when template has `send_media_url`** → **(a)** ACCEPTED.
+- `POST /whatsapp/test-template` (currently line 1000 in `routers/whatsapp.py`) — when the template being tested has `header_type` in {IMAGE, VIDEO, DOCUMENT} AND `send_media_url` is populated → auto-inject `media_url=template.send_media_url` into the AuthKey payload. Frontend test-send modal drops the media picker for media templates (shows read-only preview thumbnail of stored media instead).
+- When `send_media_url` is NULL on a media template → block test-send with 400 "media missing — re-upload first" (matches Q15-c re-upload flow).
+
+**Q18 · Dynamic-header variable `{{1}}` support** → **(a)** ACCEPTED.
+- OUT OF SCOPE for CR-036 Batch B.1. Only static-media header (fixed file at template-create-time) supported.
+- Note: this closes the door on future integrations that wanted per-recipient media URLs (e.g., personalized coupons with barcode image). To be re-opened via a new CR when concrete need emerges.
+- Template Builder must reject `{{n}}` patterns in `header_content` for IMAGE/VIDEO/DOCUMENT header types with a client-side validation error.
+
+**Q19 · Hotspot approval for `core/whatsapp.py::send_event_message`** → **APPROVED**.
+- Additive-only change: ~5 LOC inside `send_event_message` to fallback `media_url = event_map.media_url or template.send_media_url` when the event-template map does not carry an explicit media URL.
+- Zero impact on `send_bulk_messages` core payload construction. Zero risk to text-only event sends. Fully unit-testable in isolation.
+- Verified: no financial logic in this function; no auth/POS/loyalty/coupon coupling.
+
+**Combined impact**:
+- Batch B.1 delta impl plan can now be finalized against these 5 locks.
+- Impact analysis document: `crm/crm_roi_sprint/planning/CR_036_BATCH_B1_IMPACT_ANALYSIS_2026_07_11.md` (creation triggered by this decision).
+- No new blockers introduced.
+- CR-036 row on dashboard updated with Batch B.1 scope-locked marker.
+
+---
+
 **End of decisions log.**
