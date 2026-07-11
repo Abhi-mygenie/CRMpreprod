@@ -456,7 +456,7 @@ export default function TemplateBuilderPage() {
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Header (optional)</p>
             <div className="flex gap-2 mb-3">
               {HEADER_TYPES.map(ht => (
-                <button key={ht.id} type="button" onClick={() => setTpl(p => ({ ...p, header_type: ht.id, header_content: "", header_examples: [], media_url: "" }))}
+                <button key={ht.id} type="button" onClick={() => { setTpl(p => ({ ...p, header_type: ht.id, header_content: "", header_examples: [], media_url: "", header_handle: null, send_media_url: null, send_media_filename: null, header_media_mime: null })); setMetaErrors([]); }}
                   className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all ${tpl.header_type === ht.id ? "bg-[#F26B33] text-white border-[#F26B33]" : "bg-white text-gray-500 border-gray-200 hover:border-[#F26B33]"}`}
                   data-testid={`builder-header-${ht.id}`}>{ht.label}</button>
               ))}
@@ -486,10 +486,26 @@ export default function TemplateBuilderPage() {
             )}
             {["image", "video", "document"].includes(tpl.header_type) && (
               <div>
-                <Label className="text-sm font-medium text-gray-700">Media URL</Label>
-                <Input value={tpl.media_url} onChange={e => updateField("media_url", e.target.value)}
-                  placeholder="https://example.com/image.jpg" className="mt-1 rounded-lg" data-testid="builder-media-url-input" />
-                <p className="text-xs text-gray-400 mt-1">Publicly accessible URL. Required for Meta approval.</p>
+                <Label className="text-sm font-medium text-gray-700">Header Media</Label>
+                <div className="mt-1">
+                  <MediaHeaderUpload
+                    headerType={tpl.header_type}
+                    currentHandle={tpl.header_handle}
+                    currentSendMediaUrl={tpl.send_media_url}
+                    currentFilename={tpl.send_media_filename}
+                    onUploaded={({ handle, send_media_url, filename, mime }) => {
+                      setTpl(p => ({
+                        ...p,
+                        header_handle: handle,
+                        send_media_url,
+                        send_media_filename: filename,
+                        header_media_mime: mime,
+                        media_url: send_media_url,
+                      }));
+                      setMetaErrors([]);
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>

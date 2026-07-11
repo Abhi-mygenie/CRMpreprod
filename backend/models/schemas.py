@@ -214,6 +214,10 @@ class UserResponse(BaseModel):
     vat_number: str = ""
     # CR-014 Phase 2: bill settings sub-document
     bill_settings: Optional[dict] = None
+    # CR-036 B.1: Meta WhatsApp credentials (needed for MediaHeaderUpload frontend check)
+    meta_waba_id: Optional[str] = None
+    meta_access_token: Optional[str] = None
+    meta_app_id: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str

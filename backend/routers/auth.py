@@ -181,6 +181,10 @@ async def get_me(user: dict = Depends(get_current_user)):
         pan=user.get("pan", ""),
         vat_number=user.get("vat_number", ""),
         bill_settings=user.get("bill_settings"),
+        # CR-036 B.1: Meta creds for frontend media upload check
+        meta_waba_id=user.get("meta_waba_id"),
+        meta_access_token=user.get("meta_access_token"),
+        meta_app_id=user.get("meta_app_id"),
     )
 
 import re as _re_auth
