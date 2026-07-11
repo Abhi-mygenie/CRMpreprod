@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { MessageSquare, Settings, Plus, Edit2, Trash2, Eye, EyeOff, Filter, Clock, Tag, Save, Wallet, KeyRound, Send, Loader2, Lock } from "lucide-react";
+import { MessageSquare, Settings, Plus, Edit2, Trash2, Eye, EyeOff, Filter, Clock, Tag, Save, Wallet, KeyRound, Send, Loader2, Lock, AlertTriangle, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -482,6 +482,19 @@ export default function TemplatesPage() {
                                         </div>
                                     </div>
                                     <div className="border-b border-gray-200 mb-4"></div>
+
+                                    {/* CR-036 B.1: media re-upload banner */}
+                                    {customTemplates.filter(t => t.needs_media_reupload).length > 0 && (
+                                        <div
+                                            className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 flex items-center gap-2 text-sm text-amber-900"
+                                            data-testid="media-reupload-banner"
+                                        >
+                                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                                            <span>
+                                                <strong>{customTemplates.filter(t => t.needs_media_reupload).length}</strong> template(s) need media re-upload before they can send with media headers.
+                                            </span>
+                                        </div>
+                                    )}
                                     
                                     {/* Draft Templates */}
                                     {displayDrafts.length > 0 && (
@@ -531,6 +544,15 @@ export default function TemplatesPage() {
                                                                         onClick={() => navigate(`/template-builder/${ct.id}`)}
                                                                         data-testid={`edit-resubmit-${ct.id}`}>
                                                                         <Edit2 className="w-3 h-3 mr-1" /> Edit & Resubmit
+                                                                    </Button>
+                                                                )}
+                                                                {/* CR-036 B.1 Q15-c: Re-upload media button */}
+                                                                {ct.needs_media_reupload && (
+                                                                    <Button size="sm" variant="outline"
+                                                                        className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                                                                        onClick={() => navigate(`/template-builder/${ct.id}`)}
+                                                                        data-testid={`media-reupload-btn-${ct.id}`}>
+                                                                        <Upload className="w-3 h-3 mr-1" /> Re-upload Media
                                                                     </Button>
                                                                 )}
                                                                 {/* CR-DIRECT-SEND: Labels button — shown for all statuses so users can configure before Meta approval */}

@@ -28,6 +28,28 @@ router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
 DAILY_LIMIT = 1000
 
 
+# CR-036 B.1: template media lookup for campaign sends
+async def _get_template_send_media(user_id: str, template_id: str):
+    """Return (send_media_url, send_media_filename, header_type) for a template."""
+    tpl = await db.custom_templates.find_one(
+        {"user_id": user_id, "authkey_wid": template_id},
+        {"send_media_url": 1, "send_media_filename": 1, "header_type": 1, "needs_media_reupload": 1},
+    )
+    if not tpl:
+        tpl = await db.custom_templates.find_one(
+            {"user_id": user_id, "id": template_id},
+            {"send_media_url": 1, "send_media_filename": 1, "header_type": 1, "needs_media_reupload": 1},
+        )
+    if not tpl:
+        return None, None, None
+    ht = tpl.get("header_type")
+    if ht not in ("image", "video", "document"):
+        return None, None, None
+    url = tpl.get("send_media_url")
+    fname = tpl.get("send_media_filename") or "file"
+    return url, fname, ht
+
+
 # ── helpers ──────────────────────────────────────────────────────────────
 
 async def _get_daily_send_count(user_id: str) -> int:
@@ -255,10 +277,28 @@ async def _execute_campaign_send(campaign_id: str, user_id: str):
         messages = []
         customer_map = {}  # phone -> customer for logging
 
+        # CR-036 B.1: fetch template media once before the loop
+        _media_url, _media_fname, _media_ht = await _get_template_send_media(user_id, template_id)
+
         for cust in eligible:
             phone = (cust.get("phone") or "").replace(" ", "").replace("-", "")
             country_code = (cust.get("country_code") or "+91").replace("+", "")
             if not phone:
+                continue
+
+            # CR-036 B.1 G5: fail-loud for media templates missing send_media_url
+            if _media_ht and not _media_url:
+                await db.whatsapp_message_logs.insert_one({
+                    "user_id": user_id,
+                    "customer_id": cust.get("id"),
+                    "customer_phone": phone,
+                    "template_id": template_id,
+                    "campaign_id": campaign_id,
+                    "status": "failed",
+                    "status_note": "media_missing",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "is_test": False,
+                })
                 continue
 
             body_values = build_body_values(
@@ -277,6 +317,8 @@ async def _execute_campaign_send(campaign_id: str, user_id: str):
                 template_id=template_id,
                 body_values=body_values,
                 customer_id=cust.get("id"),
+                media_url=_media_url,          # CR-036 B.1
+                media_filename=_media_fname,   # CR-036 B.1
             )
             messages.append(msg)
             customer_map[phone] = cust
@@ -509,12 +551,19 @@ async def test_send_campaign(
         menu_pick_resolved=menu_pick_resolved,
     )
 
+    # CR-036 B.1: attach media for test send
+    _media_url, _media_fname, _media_ht = await _get_template_send_media(user["id"], template_id)
+    if _media_ht and not _media_url:
+        raise HTTPException(status_code=400, detail="Template media missing — re-upload header file before test send.")
+
     msg = WhatsAppMessage(
         phone=phone,
         country_code=country_code,
         template_id=template_id,
         body_values=body_values,
         customer_id="test-recipient",
+        media_url=_media_url,          # CR-036 B.1
+        media_filename=_media_fname,   # CR-036 B.1
     )
     bulk_result = await send_bulk_messages(api_key, [msg])
     result = (bulk_result.get("results") or [{}])[0]
@@ -782,11 +831,31 @@ async def _execute_resend_subset(campaign_id: str, parent_run_id: str, targets: 
 
         messages = []
         customer_map = {}
+
+        # CR-036 B.1: fetch template media once before the loop
+        _media_url, _media_fname, _media_ht = await _get_template_send_media(user["id"], template_id)
+
         for t in targets:
             phone = (t.get("phone") or "").replace(" ", "").replace("-", "")
             country_code = (t.get("country_code") or "91").replace("+", "")
             if not phone:
                 continue
+
+            # CR-036 B.1 G5: fail-loud for media templates missing send_media_url
+            if _media_ht and not _media_url:
+                await db.whatsapp_message_logs.insert_one({
+                    "user_id": user["id"],
+                    "customer_id": t.get("customer_id"),
+                    "customer_phone": phone,
+                    "template_id": template_id,
+                    "campaign_id": campaign_id,
+                    "status": "failed",
+                    "status_note": "media_missing",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "is_test": False,
+                })
+                continue
+
             cust = cust_by_phone.get(phone, {"name": "", "phone": phone})
             body_values = build_body_values(
                 template_variables, variable_mappings, cust, {},
@@ -797,6 +866,8 @@ async def _execute_resend_subset(campaign_id: str, parent_run_id: str, targets: 
                 phone=phone, country_code=country_code,
                 template_id=template_id, body_values=body_values,
                 customer_id=cust.get("id"),
+                media_url=_media_url,          # CR-036 B.1
+                media_filename=_media_fname,   # CR-036 B.1
             ))
             customer_map[phone] = cust
 

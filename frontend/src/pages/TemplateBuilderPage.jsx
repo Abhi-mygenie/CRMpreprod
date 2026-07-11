@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
+import { MediaHeaderUpload } from "@/components/templates/MediaHeaderUpload";
 
 const NAME_REGEX = /^[a-z0-9_]*$/;
 const LIMITS = { name: 512, body: 1024, footer: 60, header_text: 60, button_text: 25 };
@@ -77,9 +78,14 @@ function validateMetaCompliance(tpl) {
     if (btn.type === "QUICK_REPLY" && !(btn.text || "").trim()) errors.push(`Button ${n}: Quick Reply text is required`);
   });
 
-  // V8: Media URL required for media headers
-  if (["image", "video", "document"].includes(tpl.header_type) && !URL_RE.test(tpl.media_url || "")) {
-    errors.push(`Media URL is required for ${tpl.header_type} header. Must be a publicly accessible https:// URL`);
+  // V8: Media — must have uploaded file (CR-036 B.1)
+  if (["image", "video", "document"].includes(tpl.header_type) && !tpl.header_handle && !tpl.send_media_url) {
+    errors.push(`Please upload a media file for the ${tpl.header_type} header.`);
+  }
+
+  // CR-036 B.1 Q18: block {{n}} in media header content
+  if (["image", "video", "document"].includes(tpl.header_type) && /\{\{\d+\}\}/.test(tpl.header_content || "")) {
+    errors.push("Dynamic variables {{n}} are not supported in media header content.");
   }
 
   // V10: Example values cannot contain {{
@@ -156,6 +162,7 @@ export default function TemplateBuilderPage() {
   const [tpl, setTpl] = useState({
     template_name: "", category: "utility", language: "en_US",
     header_type: "none", header_content: "", media_url: "",
+    header_handle: null, send_media_url: null, send_media_filename: null, header_media_mime: null,
     body: "", footer: "", buttons: [],
     body_examples: [], header_examples: [],
   });
@@ -184,6 +191,10 @@ export default function TemplateBuilderPage() {
             header_type: found.header_type || "none",
             header_content: found.header_content || "",
             media_url: found.media_url || "",
+            header_handle: found.header_handle || null,
+            send_media_url: found.send_media_url || null,
+            send_media_filename: found.send_media_filename || null,
+            header_media_mime: found.header_media_mime || null,
             body: found.body || "",
             footer: found.footer || "",
             buttons: found.buttons || [],

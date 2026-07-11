@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from fastapi import APIRouter, HTTPException, Depends, Query, Request, UploadFile, File, Form
 from fastapi.responses import StreamingResponse   # CR-042: message report streaming download
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -10,7 +10,9 @@ import json
 import logging
 import os
 import re
+import time
 import uuid
+from io import BytesIO
 from urllib.parse import parse_qs
 import httpx
 
@@ -19,6 +21,8 @@ from core.auth import get_current_user
 from core.whatsapp import send_single_message, WhatsAppMessage, log_message_attempt
 from core.whatsapp_status import next_status
 from core.whatsapp_variables import WHATSAPP_VARIABLES
+from core.meta_media import upload_to_meta_uploads
+from core.s3 import put_public_object, get_public_url, S3_CONFIGURED
 from models.schemas import (
     AUTOMATION_EVENTS, POS_EVENTS, CRM_EVENTS
 )
@@ -182,6 +186,13 @@ async def create_custom_template(payload: dict, user: dict = Depends(get_current
         "footer": payload.get("footer", ""),
         "buttons": payload.get("buttons", []),
         "media_url": payload.get("media_url", ""),
+        # CR-036 B.1: Meta opaque handle for approval submission
+        "header_handle": payload.get("header_handle") or None,
+        # CR-036 B.1: public S3 URL for send-time delivery
+        "send_media_url": payload.get("send_media_url") or None,
+        "send_media_filename": payload.get("send_media_filename") or None,
+        "header_media_mime": payload.get("header_media_mime") or None,
+        "needs_media_reupload": False,
         "variables": variables,
         "status": "draft",
         "created_at": now,
@@ -191,6 +202,79 @@ async def create_custom_template(payload: dict, user: dict = Depends(get_current
     await db.custom_templates.insert_one(doc)
     doc.pop("_id", None)
     return doc
+
+
+# CR-036 Batch B.1: Dual upload (Meta /uploads + S3) for media header files
+_MEDIA_CAPS = {
+    "image":    {"max_bytes": 5 * 1024 * 1024,   "mimes": {"image/jpeg", "image/png"}},
+    "video":    {"max_bytes": 16 * 1024 * 1024,   "mimes": {"video/mp4", "video/3gpp"}},
+    "document": {"max_bytes": 100 * 1024 * 1024,  "mimes": {"application/pdf"}},
+}
+
+def _classify_mime(mime: str) -> Optional[str]:
+    for kind, cfg in _MEDIA_CAPS.items():
+        if mime in cfg["mimes"]:
+            return kind
+    return None
+
+
+@router.post("/upload-media-header")
+async def upload_media_header(
+    file: UploadFile = File(...),
+    template_slug: str = Form("template"),
+    user: dict = Depends(get_current_user),
+):
+    """CR-036 B.1: Upload a media file to both Meta /uploads (for approval handle)
+    and S3 (for send-time delivery URL). Returns both artifacts."""
+
+    # 1. Fetch user's Meta creds
+    user_doc = await db.users.find_one(
+        {"id": user["id"]},
+        {"meta_waba_id": 1, "meta_access_token": 1, "meta_app_id": 1},
+    )
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    waba_id = (user_doc.get("meta_waba_id") or "").strip()
+    access_token = (user_doc.get("meta_access_token") or "").strip()
+    if not waba_id or not access_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Meta credentials missing — configure Settings > WhatsApp > Meta API.",
+        )
+
+    # 2. Validate MIME + size
+    mime = file.content_type or ""
+    kind = _classify_mime(mime)
+    if not kind:
+        raise HTTPException(status_code=400, detail=f"Unsupported media type: {mime}")
+    cap = _MEDIA_CAPS[kind]["max_bytes"]
+
+    contents = await file.read()
+    if len(contents) > cap:
+        max_mb = cap // (1024 * 1024)
+        raise HTTPException(status_code=413, detail=f"File too large. Max for {kind}: {max_mb} MB.")
+
+    # 3. Upload to Meta /uploads (Part 1 — approval handle)
+    user_for_meta = {**user_doc, "meta_access_token": access_token}
+    handle = await upload_to_meta_uploads(user_for_meta, contents, mime, file.filename or "media")
+
+    # 4. Upload to S3 (Part 2 — delivery URL)
+    if not S3_CONFIGURED:
+        raise HTTPException(status_code=503, detail="S3 not configured — cannot store delivery media.")
+    def _slug(s, mx=40):
+        return re.sub(r"[^A-Za-z0-9._-]+", "_", (s or ""))[:mx]
+    ts = int(time.time())
+    s3_key = f"media-headers/{_slug(user['id'])}/{_slug(template_slug)}/{ts}_{_slug(file.filename or 'media')}"
+    put_public_object(s3_key, contents, mime)
+    send_media_url = get_public_url(s3_key)
+
+    return {
+        "handle": handle,
+        "send_media_url": send_media_url,
+        "mime": mime,
+        "filename": file.filename or "media",
+        "kind": kind,
+    }
 
 
 @router.get("/custom-templates")
@@ -221,6 +305,12 @@ async def update_custom_template(template_id: str, payload: dict, user: dict = D
         "footer": payload.get("footer", ""),
         "buttons": payload.get("buttons", []),
         "media_url": payload.get("media_url", ""),
+        # CR-036 B.1: persist media fields on update
+        "header_handle": payload.get("header_handle") or None,
+        "send_media_url": payload.get("send_media_url") or None,
+        "send_media_filename": payload.get("send_media_filename") or None,
+        "header_media_mime": payload.get("header_media_mime") or None,
+        "needs_media_reupload": False,
         "variables": variables,
         "status": "draft",
         "updated_at": now
@@ -466,6 +556,11 @@ async def create_meta_template(payload: dict, user: dict = Depends(get_current_u
         elif len(header_var_nums) == 1 and header_var_nums[0] != 1:
             validation_errors.append("Header variable must be {{1}}")
 
+    # CR-036 B.1 Q18: reject {{n}} variables in media header content
+    if header_type_raw in ("image", "video", "document"):
+        if _re.search(r'\{\{\d+\}\}', header_content_raw):
+            validation_errors.append("Dynamic variables {{n}} are not supported in media header content. Only static media headers are supported.")
+
     if validation_errors:
         raise HTTPException(status_code=400, detail=" | ".join(validation_errors))
     
@@ -485,11 +580,16 @@ async def create_meta_template(payload: dict, user: dict = Depends(get_current_u
             header_examples = payload.get("header_examples", [])
             if "{{" in header_text and header_examples:
                 header_component["example"] = {"header_text": header_examples}
+        # CR-036 B.1: send Meta's opaque handle, NOT the URL (Q3, Q13 — no audio)
         elif header_type in ("image", "video", "document"):
-            # G4 fix: media headers need example handle for Meta approval
-            media_url = payload.get("media_url", "")
-            if media_url:
-                header_component["example"] = {"header_handle": [media_url]}
+            handle = payload.get("header_handle")
+            if handle:
+                header_component["example"] = {"header_handle": [handle]}
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Media header template missing header_handle. Re-upload the header file first.",
+                )
         components.append(header_component)
     
     # Body component (required)
@@ -1016,6 +1116,29 @@ async def test_template(request: TestTemplateRequest, user: dict = Depends(get_c
     phone = request.phone.replace(" ", "").replace("-", "")
     if not phone or len(phone) < 10:
         raise HTTPException(status_code=400, detail="Invalid phone number")
+
+    # CR-036 B.1 Q17: auto-inject stored send_media_url for media templates
+    effective_media_url = request.media_url
+    effective_media_filename = request.media_filename
+    if not effective_media_url and request.template_id:
+        _tpl_lookup = await db.custom_templates.find_one(
+            {"user_id": user["id"], "authkey_wid": request.template_id},
+            {"header_type": 1, "send_media_url": 1, "send_media_filename": 1},
+        )
+        if not _tpl_lookup:
+            _tpl_lookup = await db.custom_templates.find_one(
+                {"user_id": user["id"], "id": request.template_id},
+                {"header_type": 1, "send_media_url": 1, "send_media_filename": 1},
+            )
+        if _tpl_lookup and _tpl_lookup.get("header_type") in ("image", "video", "document"):
+            if _tpl_lookup.get("send_media_url"):
+                effective_media_url = _tpl_lookup["send_media_url"]
+                effective_media_filename = _tpl_lookup.get("send_media_filename") or "file"
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Media template missing send_media_url — re-upload the header file first.",
+                )
     
     # Build message
     message = WhatsAppMessage(
@@ -1023,8 +1146,8 @@ async def test_template(request: TestTemplateRequest, user: dict = Depends(get_c
         country_code=request.country_code.replace("+", ""),
         template_id=request.template_id,
         body_values=request.body_values,
-        media_url=request.media_url,
-        media_filename=request.media_filename,
+        media_url=effective_media_url,
+        media_filename=effective_media_filename,
         customer_id=None
     )
     

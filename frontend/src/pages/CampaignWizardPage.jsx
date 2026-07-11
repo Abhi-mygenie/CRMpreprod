@@ -424,6 +424,12 @@ const CampaignWizardContent = () => {
                                         to set defaults, then return here.
                                     </div>
                                 )}
+                                {/* CR-036 B.1: warn if selected template needs media re-upload */}
+                                {templateId && currentTemplate && currentTemplate.needs_media_reupload && (
+                                    <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800" data-testid="campaign-media-warning">
+                                        ⚠ This template needs media re-upload before it can send with a media header. Messages will be marked as failed.
+                                    </div>
+                                )}
                                 <p className="text-[11px] text-gray-500 mt-1">Only approved and mapped templates are shown</p>
                                 {templateId && currentTemplate && (() => {
                                     const SAFE = new Set(["customer_name","restaurant_name","points_balance","tier","total_visits","total_spent","wallet_balance","instagram_link","google_review_link","feedback_link","points_redeemed"]);

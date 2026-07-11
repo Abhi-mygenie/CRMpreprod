@@ -802,13 +802,27 @@ async def trigger_whatsapp_event(
         if not phone:
             logger.warning(f"Customer {customer.get('id')} has no phone number")
             return None
-        
+
+        # CR-036 B.1 Q19: fallback media_url from template if event_data doesn't carry one
+        _evt_media = (event_data or {}).get("media_url")
+        _evt_fname = (event_data or {}).get("media_filename")
+        if not _evt_media:
+            _tpl = await db.custom_templates.find_one(
+                {"user_id": user_id, "authkey_wid": template_id},
+                {"send_media_url": 1, "send_media_filename": 1, "header_type": 1},
+            )
+            if _tpl and _tpl.get("header_type") in ("image", "video", "document") and _tpl.get("send_media_url"):
+                _evt_media = _tpl["send_media_url"]
+                _evt_fname = _tpl.get("send_media_filename") or "file"
+
         message = WhatsAppMessage(
             phone=phone,
             country_code=country_code,
             template_id=template_id,
             body_values=body_values,
-            customer_id=customer.get("id")
+            customer_id=customer.get("id"),
+            media_url=_evt_media,          # CR-036 B.1 Q19
+            media_filename=_evt_fname,     # CR-036 B.1 Q19
         )
         
         # 6. Send message

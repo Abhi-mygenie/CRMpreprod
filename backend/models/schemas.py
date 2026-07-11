@@ -4,6 +4,12 @@ import re as _re
 import uuid
 from datetime import datetime, timezone
 
+# CR-036 Batch B.1 — Additive fields on existing collections:
+#   custom_templates: header_handle (str|None), send_media_url (str|None),
+#                     send_media_filename (str|None), header_media_mime (str|None),
+#                     needs_media_reupload (bool, default False)
+#   whatsapp_message_logs: status_note (str|None) — e.g. "media_missing"
+
 # CR-001C-C V3-A — shared validators for time-window fields.
 _HHMM_RE = _re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
