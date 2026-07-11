@@ -1,0 +1,107 @@
+{
+  "summary": "Report-only regression on BUG-009 + CR-042 (message report export) + CR-043 (tag chip strip + multi-select autosave popover). Created /app/backend/tests/test_bug009_cr042_cr043.py — 27 pytest tests, all 27 PASS. Ran the pre-existing /app/backend/tests/test_cr039_webhook.py — 11/11 PASS (regression clean). Frontend UI verified via Playwright with JWT injection. CRITICAL finding: BUG-009 Details deep-link is BROKEN — CampaignHistoryPage.jsx line 206 navigates to '/messages?...' but the actual React route is '/message-status'. There is no '/messages' route in App.js, so the catch-all `<Route path='*' element={<Navigate to=\"/\"/> />}` (App.js line 77) redirects the user to the Dashboard. This defeats the entire BUG-009 fix. The green emerald 'Filtered to run' banner and clear-run-filter button both work correctly when the URL is /message-status?campaign_id=X&run_id=Y (verified by direct navigation) — the only defect is the wrong path in the onClick handler. CR-042 backend + frontend export flows are solid; CR-043 A/B behaviour matches spec.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "CampaignHistoryPage — Details button (BUG-009 CORE FIX)",
+        "issue": "CRITICAL — the onClick handler navigates to `/messages?campaign_id=X&run_id=Y` but that route does not exist in App.js. The React Router catch-all (`<Route path='*' element={<Navigate to='/'/>} />` at App.js line 77) redirects the browser to the Dashboard. Verified by clicking Details on the first row of Marketing > History: URL became `https://.../` and the Dashboard rendered. Expected: navigate to `/message-status?campaign_id=X&run_id=Y`. Fix: change `navigate('/messages?...')` to `navigate('/message-status?...')` on line 206. (CampaignsPage.jsx lines 310 and 345 already use `/message-status` correctly.) This bug alone regresses BUG-009 to its original state — Details button is functionally still 'dead' from the user's perspective.",
+        "selector": "[data-testid^='history-details-btn-']",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "CampaignHistoryPage — per-row Export dropdown",
+        "issue": "All 13 export-wrapper divs share the same attribute `data-history-export-wrapper` (no unique key). The outside-click handler (`e.target.closest('[data-history-export-wrapper]')`) treats ALL wrappers as 'inside', so clicking another row's Export button doesn't fire the outside-click cleanup. In practice: while dropdown A is open, its absolute-positioned menu (right-0 top-full, ~175px wide, ~90px tall) overlays the row immediately below and can intercept pointer events on that row's Export button (playwright reproduced this — click on second Export got intercepted by the first row's <tr>). Result: the 'clicking another row's Export → first closes, second opens' behaviour works only when the two rows are far enough apart that the open menu doesn't overlap the next trigger. On dense tables users must click twice (once to close, once to open) for adjacent rows.",
+        "selector": "[data-testid^='history-export-btn-']",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "MessageStatusPage — Export wrapper duplicate id",
+        "issue": "Both the non-embedded and embedded Export dropdown wrappers use `id=\"messages-export-wrapper\"` (MessageStatusPage.jsx lines 313 and 364). Only one is rendered at a time based on the `embedded` prop, so it works today, but duplicate id in JSX is invalid HTML and a foot-gun if the page is ever rendered in both modes simultaneously.",
+        "selector": "#messages-export-wrapper",
+        "priority": "LOW"
+      },
+      {
+        "component": "CustomersPage — Tag chip label spacing (CR-043-A)",
+        "issue": "Owner-locked spec says chip label is `+ Lunch (5)` (space between prefix and tag). Actual rendered label is `+Lunch (5)` (no space between the `+` glyph and the tag name — see JSX line 965 where `{isActive ? '✓' : '+'}` is followed immediately by `<span>{tag}</span>`). Cosmetic-only, but a spec deviation.",
+        "selector": "[data-testid^='tag-chip-']",
+        "priority": "LOW"
+      },
+      {
+        "component": "CustomersPage — leaked test tag in catalog",
+        "issue": "Post-test the catalog contains `TESTTAG_85fe9f (0)` (created and then removed from the customer during the regression run of TestTagRowEndpoints). DELETE /customers/{id}/tags/{tag} intentionally keeps the tag in the tenant's available_tags catalog (documented as 'Catalog entry kept per Q3 decision'). This is expected but means every automated regression run seeds one more zero-count chip in the strip. Consider a dedicated cleanup endpoint or filter zero-count TEST_/TESTTAG_ prefixed tags from the chip strip in non-prod.",
+        "selector": "[data-testid='tag-chip-TESTTAG_85fe9f']",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Marketing > History → Details → Message Status (BUG-009 end-to-end)",
+        "issue": "Broken. Details click lands on Dashboard because of the `/messages` vs `/message-status` mismatch (see CRITICAL UI bug above). Everything downstream on MessageStatusPage (green banner, Clear-run-filter, CR-026 blue banner co-existence) is correct — verified by direct URL navigation to `/message-status?campaign_id=X&run_id=Y`.",
+        "affected_selectors": ["[data-testid='filtered-to-run-banner']", "[data-testid='clear-run-filter-btn']", "[data-testid^='history-details-btn-']"]
+      }
+    ],
+    "design_issues": []
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_bug009_cr042_cr043.py",
+    "/app/backend/tests/test_cr039_webhook.py",
+    "/app/test_reports/pytest/bug009_cr042_cr043.xml"
+  ],
+
+  "action_items": [
+    "CRITICAL: Fix /app/frontend/src/pages/CampaignHistoryPage.jsx line 206 — change `navigate(`/messages?campaign_id=${run.campaign_id}&run_id=${run.id}`)` to `navigate(`/message-status?campaign_id=${run.campaign_id}&run_id=${run.id}`)`. Without this, BUG-009 remains functionally broken end-to-end.",
+    "MEDIUM: Give each per-row export wrapper in CampaignHistoryPage.jsx a unique data attribute (e.g. `data-history-export-wrapper={run.id}`) or scope the outside-click handler to close when clicking a different row's Export button.",
+    "LOW: De-duplicate the `id=\"messages-export-wrapper\"` on MessageStatusPage.jsx (rename embedded variant to `messages-export-wrapper-embedded`).",
+    "LOW: Add a space in the chip label to match spec (`{isActive ? '✓' : '+'} {tag}` — insert a literal space between the prefix and the tag name)."
+  ],
+
+  "critical_code_review_comments": [
+    "CampaignHistoryPage.jsx L206 — hardcoded route `/messages` mismatches the App.js route `/message-status` — this is the CRITICAL BUG-009 regression flagged above.",
+    "CampaignHistoryPage.jsx L231 — all rows share the same `data-history-export-wrapper` attribute; outside-click handler cannot differentiate between wrappers, so clicking a second row's Export won't close the first row's dropdown via the outside-click path (the toggle only works via the primary click if the second button is reachable).",
+    "MessageStatusPage.jsx L313 & L364 — duplicate `id` attribute for embedded vs non-embedded modes.",
+    "backend/routers/whatsapp.py L1327 — export filename uses tenant business_name / user id, not the spec's `message_report_YYYY_MM_DD` format. Frontend overrides Content-Disposition with its own filename (MessageStatusPage.jsx L219 and CampaignHistoryPage.jsx L62), so the backend value is effectively dead code. Recommend simplifying and dropping the tenant slug from backend filename, or documenting that frontend always overrides.",
+    "backend/routers/whatsapp.py L1319 — export cursor uses `.limit(_EXPORT_ROW_CAP)` (5000) but does NOT skip; there is no way to fetch rows beyond 5000 even for reporting/paging. On tenants with >5000 messages, the report is silently truncated to the newest 5000. Frontend surfaces this via the yellow toast (verified in code path). Could not physically hit the cap on Jeh's Nest (only 442 rows). Cap logic verified by code inspection only.",
+    "backend/routers/customers.py L1080-1087 — `tags` filter is added to top-level `query` dict, but earlier at L1078 `has_feedback == 'false'` sets `query[\"$or\"] = ...`. The tags filter uses `query[\"tags\"] = {\"$in\": ...}` which is safe, but multiple mutually-orthogonal filters that touch $or could clobber each other. Not a bug for CR-043 specifically but worth watching.",
+    "backend/routers/customers.py L1171-1204 — /tags?with_counts=true response merges catalog + observed tags; tag names used by customers but NOT in catalog get added with their counts. This means orphaned tags (typo tags on individual customers) will appear as chips even if the owner never intended them. Consider hiding chips for tags not in the catalog, or adding a warning.",
+    "frontend/src/pages/CustomersPage.jsx L1707 — Create button HTML uses `&quot;` HTML entity inside JSX ({`+ Create &quot;wknd&quot;`}); this renders literally as `+ Create \"wknd\"` (works) but stylistically JSX prefers `{`+ Create \"${trimmed}\"`}` or backticks. Non-issue functionally.",
+    "backend/routers/whatsapp.py — file is 1832 lines, well beyond the 700-line guideline. Consider splitting the export block into a submodule (routers/whatsapp_export.py)."
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_bug009_cr042_cr043.py (new — 27 pytest tests, all pass)"
+  ],
+
+  "success_rate": {
+    "backend": "27/27 (100%) new + 11/11 (100%) CR-039 regression",
+    "frontend": "10/12 flows PASS. Two flows FAIL: (1) BUG-009 Details deep-link — CRITICAL routing bug (see above). (2) CampaignHistoryPage per-row Export dropdown 'switch between rows' — intercepted by open dropdown overlay."
+  },
+
+  "test_credentials": "Used the pre-baked JWT for tenant pos_0001_restaurant_635 (Jeh's Nest) supplied by main agent. MyGenie SSO login endpoint (POST /api/auth/login) does time out from this preview env — confirmed. No /app/memory/test_credentials.md file exists; owner credentials from previous iteration (owner@jehsnest.com / Qplazm@10) worked via SSO but only when MyGenie backend was reachable.",
+
+  "seed_data_creation": "One catalog-side leak: `TESTTAG_85fe9f` remains in Jeh's Nest available_tags (with count=0). This is intentional per remove_tag_from_customer's design decision to keep catalog entries. No customer/message/campaign data mutated by this run. The CR-039 regression run does bump one existing row (phone 9035133228 for logid d1cbdc206ce89f7f794575bbd862a27b) — but that's expected behaviour of that test suite.",
+
+  "retest_needed": true,
+
+  "should_main_agent_self_test": true,
+
+  "context_for_next_testing_agent": "1. Use the JWT from the review request — MyGenie SSO login times out from this preview env. Inject into localStorage under both `token` and `access_token` keys BEFORE navigating. 2. `/campaign-history` (not `/campaigns/history`) is the correct route for the Campaign History page. 3. `/message-status` (not `/messages`) is the correct route for the Message Status page — the critical BUG-009 regression stems from this exact mismatch. 4. Run `cd /app/backend && python3 -m pytest tests/test_bug009_cr042_cr043.py --override-ini='addopts=' -v` for the new suite. 5. Chip strip on CustomersPage will show `TESTTAG_85fe9f (0)` — this is a harmless leaked catalog entry from the roundtrip test. 6. After main agent fixes the `/messages` → `/message-status` route in CampaignHistoryPage.jsx, re-run the Playwright Details flow to confirm end-to-end BUG-009. 7. The 5000-row cap cannot be exercised on Jeh's Nest (only 442 messages) — verified by code path only.",
+
+  "rca_of_the_issue": {
+    "summary": "BUG-009 Details deep-link navigates to a non-existent React route, causing the fallback catch-all to redirect users to the Dashboard instead of the Message Status page.",
+    "reproduction_steps": [
+      "1. Log in (or inject JWT) and go to /campaign-history.",
+      "2. Click the Details button on any row.",
+      "3. Observe the URL becomes '/' and the Dashboard renders — NOT '/message-status?campaign_id=X&run_id=Y' with the green 'Filtered to run' banner."
+    ],
+    "root_cause": "/app/frontend/src/pages/CampaignHistoryPage.jsx line 206 hard-codes `navigate(`/messages?campaign_id=${run.campaign_id}&run_id=${run.id}`)`. React Router has no matching route for `/messages` (see App.js L45-L77 — the actual route is `/message-status` at L68). The catch-all at App.js L77 (`<Route path='*' element={<Navigate to='/' />} />`) then redirects the user to the Dashboard.",
+    "mitigation": "Change `/messages` to `/message-status` on that single line. All other pages (CampaignsPage.jsx L310, L345) already use `/message-status` correctly, so consistency confirms the fix. After the change, retest the end-to-end flow — the green emerald banner, Clear-run-filter button, and CR-026 blue banner co-existence all render correctly when the URL is `/message-status?campaign_id=X&run_id=Y` (verified by direct navigation in this iteration).",
+    "scope": "Only affects the Details button on Marketing > Campaign History. Every other new CR-042/CR-043 surface works correctly."
+  }
+}

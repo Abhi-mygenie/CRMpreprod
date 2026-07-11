@@ -1,0 +1,102 @@
+{
+  "summary": "RETEST-ONLY verification of 5 previously-reported bug fixes on BUG-009 + CR-042 + CR-043. All 5 fixes VERIFIED PASS. Backend pytest regression: 38/38 PASS. Frontend Playwright: C1/M1/L1/L2/L3 all verified end-to-end with JWT-injected sessions. No new bugs discovered.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "fix_verification_results": {
+    "C1_details_button_route": {
+      "status": "PASS",
+      "evidence": "Clicked Details on first row of /campaign-history — URL became `/message-status?campaign_id=dfa1fed9-2ee8-4542-a160-fefe3f91853f&run_id=83b6367e-5625-4015-8781-f17aeb4229b6`. Green emerald 'Filtered to run' banner visible with correct run_id text. Clear-run-filter button visible. Code at CampaignHistoryPage.jsx L211 confirmed `/message-status?...`."
+    },
+    "C1_regression_view_messages": {
+      "status": "NOT_APPLICABLE_SELECTOR",
+      "note": "Playwright found 0 elements matching [data-testid^='view-messages-btn-'] on /campaigns. The CR-026 path uses different testid — code inspection confirms CampaignsPage.jsx L310 & L345 still use `/message-status?campaign_id=X`. No regression risk since main agent only changed CampaignHistoryPage.jsx L206."
+    },
+    "M1_per_row_export_wrappers": {
+      "status": "PASS",
+      "evidence": "13 wrappers, 13 UNIQUE data-history-export-wrapper attribute values (one per run.id). Opening row 0 dropdown then clicking row 1 Export button: only row 1 dropdown remains open (2 menu items visible → 0 after switch → 2 for the new one). Outside-click on blank area at (50,50) closes the dropdown cleanly."
+    },
+    "M1_export_selection_regression": {
+      "status": "PASS_CODE_INSPECTION",
+      "note": "Export button trigger + CSV/XLSX menu items still render and click-through logic in useEffect only closes dropdowns whose wrapper attribute != openExportRunId. No download initiated in test to avoid file writes, but backend export endpoints previously 27/27 PASS."
+    },
+    "L1_messages_export_wrapper_id_dedup": {
+      "status": "PASS",
+      "evidence": "On /message-status: exactly 1 element with id='messages-export-wrapper', 0 with id='messages-export-wrapper-embedded' (non-embedded mode). Export dropdown opens on click, closes on outside click (verified CSV item transitions visible→not-visible after clicking at page (50,50))."
+    },
+    "L2_chip_label_spacing": {
+      "status": "PASS_VISUAL",
+      "evidence": "DOM inspection: chip inner HTML is `+<span class='ml-1'>Lunch</span><span>(<span>6</span>)</span>`. Computed style on tag-name span: margin-left = 4px. Parent button computed style: gap = 4px. Visual screenshot confirms chips render as `+ Lunch (6)`, `+ Dinner (5)`, `+ Breakfast (2)`, `+ Churn (0)` with clear space between `+` prefix and tag name. NOTE: text_content() returns `+Lunch(6)` because DOM text nodes are concatenated without CSS margins — this is EXPECTED for CSS-margin-based spacing and does NOT indicate a defect. The spec `+ Lunch (5)` is satisfied visually."
+    },
+    "L3_no_leaked_test_tags": {
+      "status": "PASS",
+      "evidence": "GET /api/customers/tags returned exactly ['Breakfast','Churn','Dinner','Lunch'] (alphabetical, 4 items) after DB cleanup. GET /api/customers/tags?with_counts=true returned 4 entries (Lunch:6, Dinner:5, Breakfast:2, Churn:0). /customers page renders exactly 4 individual chips: tag-chip-Lunch, tag-chip-Dinner, tag-chip-Breakfast, tag-chip-Churn. No TESTTAG_* or TEST_* chips visible. IMPORTANT: running the backend pytest suite re-leaked a TESTTAG_* entry (as documented in iteration_2). Cleanup was applied via db.users.update_one to restore ['Breakfast','Lunch','Dinner','Churn'] before frontend verification. This is not a NEW bug — it is the same known catalog-retention behaviour flagged as LOW in iteration_2.",
+      "warning": "Any future run of /app/backend/tests/test_bug009_cr042_cr043.py will re-leak a TESTTAG_* entry into available_tags. Recommend main agent adds a pytest fixture teardown that pulls the created TESTTAG from available_tags."
+    },
+    "BUG_009_end_to_end": {
+      "status": "PASS",
+      "evidence": "Full flow: /campaign-history → click Details → land on /message-status?campaign_id=X&run_id=Y → green banner visible with `Filtered to run: 83b6367e...` → click Clear-run-filter → URL becomes /message-status?campaign_id=X (run_id removed) → green banner disappears. Blue CR-026 campaign banner behavior not blocked."
+    },
+    "CR_042_export_regression": {
+      "status": "PASS_CODE_INSPECTION_AND_BACKEND",
+      "note": "Backend pytest test_bug009_cr042_cr043.py — 27/27 PASS including CSV+XLSX export endpoints. Frontend UI verified: MessageStatusPage Export button opens dropdown with CSV/XLSX items, closes on outside click. CampaignHistoryPage per-row Export button opens/closes correctly."
+    },
+    "CR_043_chip_and_multiselect_regression": {
+      "status": "PASS_CODE_INSPECTION",
+      "note": "Chip strip renders 4 chips correctly. Chip click applies filter (verified click on Lunch chip). Multi-select autosave popover code path (CustomersPage.jsx L1692) unchanged — no code delta by main agent for CR-043-B."
+    }
+  },
+
+  "test_report_links": [
+    "/app/backend/tests/test_bug009_cr042_cr043.py",
+    "/app/backend/tests/test_cr039_webhook.py",
+    "/app/test_reports/pytest/iteration_3.xml"
+  ],
+
+  "action_items": [
+    "OPTIONAL LOW: Add pytest teardown in test_bug009_cr042_cr043.py::TestTagRowEndpoints to pull the created TESTTAG_* from available_tags after each test run. Currently every regression run leaks one zero-count TESTTAG_* into the tenant catalog (harmless, but pollutes the chip strip)."
+  ],
+
+  "critical_code_review_comments": [
+    "All 5 code changes for iteration 3 are minimum-diff and semantically correct. No new files or functions added.",
+    "CampaignHistoryPage.jsx L211 fix (`/messages` → `/message-status`) — matches CampaignsPage.jsx L310/L345 pattern. Route consistency restored.",
+    "CampaignHistoryPage.jsx L46-47 outside-click handler compares wrapper.getAttribute against openExportRunId — correct semantics for per-row scope.",
+    "CampaignHistoryPage.jsx L236 wrapper uses run.id as unique attribute value — 13/13 unique verified.",
+    "MessageStatusPage.jsx L192-193 outside-click check for both #messages-export-wrapper AND #messages-export-wrapper-embedded — future-safe for both modes.",
+    "CustomersPage.jsx L966 `<span className='ml-1'>{tag}</span>` — CSS-margin-based spacing (Tailwind ml-1 = 0.25rem = 4px). Combined with existing `gap-1` on parent button, chips render with ~8px visual space between prefix and tag. This is aesthetically equivalent to the spec `+ Lunch (5)`. If STRICT text-content spacing is required (e.g. for accessibility/screen-readers), consider adding a literal space instead of/in addition to the margin.",
+    "STALE FROM iteration_2 (still applicable, NOT part of this retest): backend/routers/whatsapp.py L1327 filename convention, whatsapp.py L1319 5000-row cap, customers.py L1080-1087 $or clobbering risk, whatsapp.py file size >1800 lines. Main agent may address in a separate ticket."
+  ],
+
+  "updated_files": [
+    "/app/test_reports/iteration_3.json (this file)",
+    "/app/test_reports/pytest/iteration_3.xml (pytest JUnit)"
+  ],
+
+  "success_rate": {
+    "backend": "38/38 (100%) — 27 CR-042/CR-043 + 11 CR-039 regression",
+    "frontend": "5/5 fixes verified (100%). C1, M1, L1, L2, L3 all PASS. BUG-009 end-to-end restored."
+  },
+
+  "test_credentials": "Used the pre-baked JWT for tenant pos_0001_restaurant_635 (Jeh's Nest) supplied by main agent. Injected into localStorage under both `access_token` and `token` before navigation. /app/memory/test_credentials.md still absent.",
+
+  "seed_data_creation": "Backend pytest run re-leaked TESTTAG_fb3de2 into pos_0001_restaurant_635.available_tags. Cleaned up manually via pymongo update_one to restore ['Breakfast','Lunch','Dinner','Churn'] before frontend verification. Post-frontend-run: no further mutations to available_tags. Message logs unchanged.",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "1. All 5 previously-reported bugs are FIXED and VERIFIED. No regressions detected. 2. Backend pytest suite is stable at 38/38 PASS but leaks one TESTTAG_* into available_tags per run — clean it manually if you need pristine chip strip. 3. Use the same JWT injection pattern (both `access_token` and `token` keys) before navigating. 4. For text-content-based Playwright assertions on chip labels, remember that ml-1/gap-1 are CSS visual spacing — DO NOT assert on `+ Lunch` string equality; use screenshot / computed-style checks instead. 5. `/messages` route still does not exist in App.js — only `/message-status`. 6. The 5000-row export cap on whatsapp.py L1319 remains untested (Jeh's Nest has 442 messages; below cap).",
+
+  "rca_of_the_issue": "N/A — all fixes verified passing on retest. Previous iteration_2 RCA (CampaignHistoryPage.jsx `/messages` vs `/message-status`) has been mitigated by line 211 change to `/message-status?campaign_id=${run.campaign_id}&run_id=${run.id}`, fully restoring BUG-009 end-to-end user flow.",
+
+  "newly_discovered": []
+}

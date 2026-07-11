@@ -1,0 +1,53 @@
+{
+  "summary": "Sprint-closure QA complete for CR-033 (Audience Filters BUG-A fix), CR-034 (Customer Tags), CR-037 (Template Status Sync fix). 14/14 backend tests PASSED (serial run) and frontend UI smoke PASSED for the critical surfaces: Create Audience dialog renders all 5 accordion sections with correct default open/collapsed state, Customers page shows working '+ tag' buttons on every row and existing tag chips render correctly, Marketing → Audiences navigation works, tag catalog (VIP + QA-Tag-*) is populated. CR-037 status-sync guard verified end-to-end against a real preprod custom_templates doc (forced rejected → sync called → status stayed rejected → reverted).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr033_034_037_sprint_closure.py",
+    "/app/test_reports/pytest/cr033_034_037_results.xml"
+  ],
+  "test_matrix": {
+    "CR033_T01_dialog_5_accordions": "PASS (Loyalty & Tier + Dates & Occasions open by default; WhatsApp/Customer Flags/Tags collapsed) — verified in UI screenshot",
+    "CR033_T02_birthday_this_month_BUG_A": "PASS — count is proper subset of total (337 tenant customers), not returning ALL",
+    "CR033_T03_vip_only_BUG_A": "PASS — vip_flag filter honoured. Tenant cafe103 has 0 vip_flag=True customers so count=0 (correct behaviour); the anti-regression assertion (count < total) holds. Cross-checked via Mongo: cafe103 vip_flag=True→0, kunafa vip_flag=True→2.",
+    "CR033_T04_whatsapp_opt_in_BUG_A": "PASS — filter honoured, proper subset returned",
+    "CR033_T08_combined_gold_lastvisit30_AND_logic": "PASS — combined_count <= gold_only_count",
+    "CR033_T10_save_new_audience_QA_Smoke": "PASS — POST /api/segments returns Segment with name+filters+count; GET verified persistence; DELETE cleanup succeeded",
+    "CR034_T12_T13_add_tag_to_customer": "PASS — POST /api/customers/{id}/tags with QA-Tag-* returned tag in list; tag catalog GET /api/customers/tags contains new tag (users.available_tags $addToSet worked)",
+    "CR034_T14_remove_tag": "PASS — DELETE /api/customers/{id}/tags/{tag} removes tag from list",
+    "CR034_T15_tag_persists_on_customer_GET": "PASS — GET /api/customers/{id} shows tag after add",
+    "CR034_T16_tags_audience_filter": "PASS — POST /api/segments/preview-count with filters.tags=[QA-Tag-*] returned 1 match; VIP tag preview returned 0 which is CORRECT because tenant has 0 vip_flag=True customers (nothing to auto-backfill)",
+    "CR034_T17_tags_any_vs_all": "PASS — ANY count >= ALL count with 2-tag payload",
+    "CR034_UI_customers_page_add_tag_button": "PASS — screenshot shows '+ tag' button on every customer row and existing tag chips (TestTag123, sss) rendering with × dismiss",
+    "CR037_backend_guard_code_present": "PASS — /app/backend/routers/whatsapp.py lines 720-737 contain CR-037 marker + `if current_status != \"rejected\"` guard + `status: 1` in projection",
+    "CR037_frontend_submit_button_enabled_for_rejected": "PASS — TemplateBuilderPage.jsx line 391: `disabled={submitting || status === \"approved\"}` — rejected leaves button enabled",
+    "CR037_direct_write_sync_preserves_rejected": "PASS — used fallback tenant owner@kunafamahal.com (cafe103 has 0 custom_templates). Forced one custom_templates doc to status='rejected' → POST /api/whatsapp/authkey/sync-templates → re-read: status still 'rejected'. Reverted to original snapshot. Verified `authkey_wid` back-fill still allowed on rejected templates.",
+    "CR037_authkey_templates_endpoint_reachable": "PASS"
+  },
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GOOD: CR-037 backend fix at whatsapp.py:720-737 is minimally invasive — projection now includes `status`, guard only skips overwrite when current is 'rejected', authkey_wid is still back-filled unconditionally (so owner can fix + resubmit rejected templates without breaking WID discovery).",
+    "GOOD: CR-033 build_customer_query (core/helpers.py:322-352) — the 6 BUG-A filters (vip_flag, whatsapp_opt_in, has_birthday_this_month, is_blocked, blacklist_flag, complaint_flag) are all wired with an explicit `!= 'all'` guard and a proper truthy coercion. Regression test on preprod DB shows they no longer silently pass through.",
+    "GOOD: CR-034 tag endpoints use $addToSet (idempotent) on both customers.tags and users.available_tags, correct 30-char + regex validation.",
+    "MINOR: /app/backend/routers/customers.py is now ~2262 lines — code-review guideline says >700 should be split. Segments router + CR-034 tag endpoints + CR-035 import/export are all bundled here. Suggest extracting to customer_tags.py, customer_segments.py, customer_import_export.py. NON-BLOCKING for this sprint.",
+    "MINOR: The class-scoped fixture `sample_customer_id` in test file triggers a PytestRemovedIn10Warning. If you plan to keep this file long-term, convert to @classmethod or use @pytest.fixture(scope='class') at module level. Cosmetic only — tests still pass.",
+    "OBSERVATION: CAFE 103 tenant currently has 0 vip_flag=True customers (out of 337). The CR-034 VIP-auto-backfill migration would have had nothing to tag for this tenant. For QA parity with the smoke-test guide (which promises '≥2 VIPs after backfill'), the guide's phrasing should be tenant-agnostic ('all vip_flag=True customers were tagged with VIP', which may be 0 for some tenants). Not a code bug."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr033_034_037_sprint_closure.py (created — 14 tests, exercises audience preview, tag CRUD, segment save/delete, CR-037 direct-write with revert)"
+  ],
+  "success_rate": {"backend": "100% (14/14 serial)", "frontend": "UI-smoke PASS — dialog + all 5 accordion sections + '+ tag' buttons + tag catalog verified"},
+  "test_credentials": "owner@cafe103.com / Qplazm@10 (primary — CAFE 103 tenant, user_id=pos_0001_restaurant_644, 337 customers, 0 custom_templates). owner@kunafamahal.com / Qplazm@10 (fallback for CR-037 — 2 VIPs and 2 custom_templates in preprod).",
+  "seed_data_creation": "Created QA-Tag-<ts> and QA-Tag-<ts>-B on 1 sample customer (add/remove flows) — cleaned up per-test. Created 1 QA-Smoke-<ts> audience — deleted at end of T10. users.available_tags accumulates catalog entries (per Q3 CR-034 decision, catalog entries are kept even after tag removal from customers) — this is expected. CR-037 test flipped exactly 1 custom_templates doc's status field temporarily and reverted in `finally` — DB left in original state.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Test file /app/backend/tests/test_cr033_034_037_sprint_closure.py is self-contained and self-cleaning. Run with `pytest ... -o addopts=` to force serial (pytest.ini enables xdist -n 2 by default and parallel MyGenie SSO login has been known to 500). CAFE 103 has 337 customers but zero VIP-flagged ones — VIP-dependent assertions in this file already handle that. For anything that needs custom_templates data, use owner@kunafamahal.com. Do NOT rely on customer phone prefixes for cleanup regex (see iteration_4 QA-incident RCA).",
+  "rca_of_the_issue": "N/A — no bugs found. Both CR-033 BUG-A fix and CR-037 status-preservation guard verified working against live preprod DB."
+}
