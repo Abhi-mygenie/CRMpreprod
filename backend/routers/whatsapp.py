@@ -291,6 +291,34 @@ async def update_custom_template(template_id: str, payload: dict, user: dict = D
     """Update a custom template. Sets status back to 'draft' on edit."""
     import re
     now = datetime.now(timezone.utc).isoformat()
+
+    # CR-036 B.1 Q16: block content edits on approved templates, but allow media re-upload
+    existing = await db.custom_templates.find_one(
+        {"id": template_id, "user_id": user["id"]}, {"status": 1}
+    )
+    if existing and existing.get("status") == "approved":
+        has_media_update = payload.get("header_handle") or payload.get("send_media_url")
+        if has_media_update:
+            media_update = {
+                "header_handle": payload.get("header_handle") or None,
+                "send_media_url": payload.get("send_media_url") or None,
+                "send_media_filename": payload.get("send_media_filename") or None,
+                "header_media_mime": payload.get("header_media_mime") or None,
+                "media_url": payload.get("media_url") or payload.get("send_media_url") or None,
+                "needs_media_reupload": False,
+                "updated_at": now,
+            }
+            await db.custom_templates.update_one(
+                {"id": template_id, "user_id": user["id"]},
+                {"$set": media_update}
+            )
+            return {"message": "Media updated on approved template", "id": template_id}
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot edit an approved template. Clone and create a new version instead.",
+            )
+
     body = payload.get("body", "")
     variables = list(set(re.findall(r'\{\{\d+\}\}', body)))
     variables.sort(key=lambda v: int(v.strip('{}') or 0))
