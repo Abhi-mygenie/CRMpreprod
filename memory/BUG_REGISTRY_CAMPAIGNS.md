@@ -281,7 +281,7 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 
 | Bug | Affects Send | Affects Display | Code Bug | Design Gap | UX Gap | Status |
 |---|---|---|---|---|---|---|
-| BUG-010 | — | ✅ WhatsApp opt-in lost on import | — | ✅ | — | 🔴 OPEN |
+| BUG-010 | — | ✅ WhatsApp opt-in lost on import | — | ✅ | — | ✅ FIXED |
 
 ---
 
@@ -312,3 +312,9 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 **Investigation doc**: Inline in session (2026-07-11). Evidence: lines 89-123, 1415-1461, 1221-1229 of `customers.py`.
 
 **Awaiting**: Owner approval → Bug Fix role dispatch.
+
+**Implementation status (2026-07-14)**: ✅ **FIXED**. 3 edits in `backend/routers/customers.py`:
+1. `_validate_and_classify_row` (line ~108-134): Now extracts `whatsapp_opt_in` (Yes/No → bool), `gender`, `anniversary`, `state`, `pincode`, `lead_source`, `customer_type`, `vip_flag`, and fixes `date of birth` header mismatch.
+2. Import update path (line ~1433-1441): Writes all new fields to existing customer. `whatsapp_opt_in` and `vip_flag` handled as explicit booleans (not filtered by empty-string check).
+3. Import new-customer path (line ~1466): Uses imported `whatsapp_opt_in` value instead of hardcoded `False`.
+Self-test: NEW customer with `whatsapp_opt_in=Yes` → DB shows `True` ✅. UPDATE same customer with `No` → DB shows `False` ✅. Gender/city also propagate correctly ✅.

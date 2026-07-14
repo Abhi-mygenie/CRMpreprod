@@ -109,16 +109,33 @@ def _validate_and_classify_row(row: dict, existing_phones: set) -> dict:
     raw_tags = row.get("tags", "").strip()
     tags_list = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else []
 
+    # BUG-010: parse whatsapp opt-in (exported as "Yes"/"No", case-insensitive)
+    wa_raw = row.get("whatsapp opt-in", "").strip().lower()
+    wa_opt_in = True if wa_raw in ("yes", "true", "1") else (False if wa_raw in ("no", "false", "0") else None)
+
+    # BUG-010: parse vip flag
+    vip_raw = row.get("vip", "").strip().lower()
+    vip_flag = True if vip_raw in ("yes", "true", "1") else (False if vip_raw in ("no", "false", "0") else None)
+
     return {
         "status":  status,
         "row":     row_num,
         "name":    name,
         "phone":   clean_phone,
         "email":   row.get("email", "").strip() or None,
-        "dob":     row.get("dob", "").strip() or None,
+        "dob":     row.get("date of birth", row.get("dob", "")).strip() or None,
         "city":    row.get("city", "").strip() or None,
         "address": row.get("address", "").strip() or None,
         "tags":    tags_list,
+        # BUG-010: fields previously missing from import
+        "whatsapp_opt_in": wa_opt_in,
+        "gender":        row.get("gender", "").strip() or None,
+        "anniversary":   row.get("anniversary", "").strip() or None,
+        "state":         row.get("state", "").strip() or None,
+        "pincode":       row.get("pincode", "").strip() or None,
+        "lead_source":   row.get("lead source", "").strip() or None,
+        "customer_type": row.get("customer type", "").strip() or None,
+        "vip_flag":      vip_flag,
         "reason":  None,
     }
 
@@ -1421,9 +1438,16 @@ async def import_customers(
             continue
 
         payload = {"name": result["name"], "phone": result["phone"]}
-        for field in ("email", "dob", "city", "address"):
+        # BUG-010: import all exported fields, not just 4
+        for field in ("email", "dob", "city", "address", "gender", "anniversary",
+                      "state", "pincode", "lead_source", "customer_type"):
             if result.get(field):
                 payload[field] = result[field]
+        # BUG-010: whatsapp_opt_in — explicit True/False from Excel, skip if None
+        if result.get("whatsapp_opt_in") is not None:
+            payload["whatsapp_opt_in"] = result["whatsapp_opt_in"]
+        if result.get("vip_flag") is not None:
+            payload["vip_flag"] = result["vip_flag"]
 
         incoming_tags = result.get("tags", [])
         for t in incoming_tags:
@@ -1453,7 +1477,7 @@ async def import_customers(
                 "wallet_balance":  0.0,
                 "total_visits":    0,
                 "total_spent":     0.0,
-                "whatsapp_opt_in": False,
+                "whatsapp_opt_in": result.get("whatsapp_opt_in") if result.get("whatsapp_opt_in") is not None else False,
                 "created_at":      now,
                 "updated_at":      now,
             }
