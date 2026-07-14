@@ -905,6 +905,11 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner reported "Template media missing — re-upload header file before test send" error during campaign test-send. Root cause: template `sampletestlogo` was approved via old URL flow, had no `send_media_url`, and Q16 blocked the PUT to update it.
 **Locks**: Media-re-upload on approved templates is allowed. Content edits on approved templates remain blocked with 400.
 
+### 2026-07-11 [BUG-010] §intake — Customer import drops WhatsApp opt-in + 9 other fields
+**Decision**: Registered as BUG-010 (P2, MEDIUM risk). Root cause: CR-035 import implementation maps only 7 of 22 exported fields. `whatsapp_opt_in`, `gender`, `anniversary`, `state`, `pincode`, `lead_source`, `customer_type`, `vip_flag`, `date of birth` (header mismatch) are all exported but silently dropped on import. Fix is 3 edits in `customers.py` (~20 LOC). No schema change, no new collection, no API contract change.
+**Source**: Owner reported 2026-07-11 ("when i download customer excel and upload it back making whatsapp opt in column yes, after uploading customer still shows whatsapp opt in no").
+**Locks**: BUG-010 registered. Fix scoped to `_validate_and_classify_row` + import update path + import new-customer path. No other files touched.
+
 ---
 
 **End of decisions log.**

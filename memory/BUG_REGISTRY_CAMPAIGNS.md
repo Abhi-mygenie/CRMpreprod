@@ -278,3 +278,37 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 ---
 
 ## Cross-Reference Matrix (updated)
+
+| Bug | Affects Send | Affects Display | Code Bug | Design Gap | UX Gap | Status |
+|---|---|---|---|---|---|---|
+| BUG-010 | — | ✅ WhatsApp opt-in lost on import | — | ✅ | — | 🔴 OPEN |
+
+---
+
+## BUG-010: Customer Excel import silently drops WhatsApp opt-in (and other fields)
+
+**Reported**: 2026-07-11 (owner)
+**Severity**: P2 (important — workaround: manually toggle opt-in per customer)
+**Risk**: MEDIUM (customer data field, no financial/auth/POS impact)
+**Classification**: PLAN_GAP (CR-035 import implementation missed mapping 10+ export fields)
+**Blast radius**: MEDIUM — affects all tenants who use Excel import to bulk-update customer preferences
+
+**Symptom**: Owner downloads customer Excel → changes "WhatsApp Opt-in" column to "Yes" → uploads back → customer still shows opt-in as "No" → re-download shows blank/unchanged.
+
+**Root cause** (confirmed via Investigation, HIGH confidence):
+
+1. **`_validate_and_classify_row()` (line 112-123)**: Only extracts 7 fields (`name`, `phone`, `email`, `dob`, `city`, `address`, `tags`). The parsed row contains `"whatsapp opt-in"` key (lowercased from header `"WhatsApp Opt-in"`) but it is **never read**. Silently dropped.
+
+2. **Import update path (line 1423-1426)**: `for field in ("email", "dob", "city", "address")` — even if the value were extracted, it's not in the write list.
+
+3. **Import new-customer path (line 1456)**: `whatsapp_opt_in` hardcoded to `False`, ignoring any imported value.
+
+4. **Additional missing fields**: `gender`, `anniversary`, `state`, `pincode`, `lead_source`, `customer_type`, `vip_flag` — all exported but never imported back.
+
+**Files affected**: `backend/routers/customers.py` (1 file, 3 locations)
+
+**Fix scope**: ~20 LOC net change. 3 edits in `_validate_and_classify_row`, update path, new-customer path.
+
+**Investigation doc**: Inline in session (2026-07-11). Evidence: lines 89-123, 1415-1461, 1221-1229 of `customers.py`.
+
+**Awaiting**: Owner approval → Bug Fix role dispatch.
