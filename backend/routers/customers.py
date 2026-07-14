@@ -11,6 +11,7 @@ import io
 from fastapi.responses import StreamingResponse
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
+from pymongo import UpdateOne, InsertOne
 
 logger = logging.getLogger("customer_sync")
 
@@ -1428,6 +1429,7 @@ async def import_customers(
     failed_count   = 0
     errors         = []
     new_tags_seen  = set()
+    bulk_ops       = []  # BUG-010 perf: collect ops for bulk_write
 
     for raw_row in rows:
         result = _validate_and_classify_row(raw_row, set(phone_to_doc.keys()))
@@ -1461,10 +1463,10 @@ async def import_customers(
             merged_tags   = list(set(existing_tags + incoming_tags))
             update_payload = {**payload, "tags": merged_tags, "updated_at": now}
             update_payload = {k: v for k, v in update_payload.items() if v is not None and v != ""}
-            await db.customers.update_one(
+            bulk_ops.append(UpdateOne(
                 {"user_id": user["id"], "phone": result["phone"]},
                 {"$set": update_payload}
-            )
+            ))
             updated_count += 1
         else:
             new_doc = {
@@ -1481,8 +1483,12 @@ async def import_customers(
                 "created_at":      now,
                 "updated_at":      now,
             }
-            await db.customers.insert_one(new_doc)
+            bulk_ops.append(InsertOne(new_doc))
             imported_count += 1
+
+    # BUG-010 perf: single bulk_write instead of 345 sequential calls
+    if bulk_ops:
+        await db.customers.bulk_write(bulk_ops, ordered=False)
 
     if new_tags_seen:
         await db.users.update_one(
