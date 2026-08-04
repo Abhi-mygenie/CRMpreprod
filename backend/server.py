@@ -106,6 +106,18 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # CR-072: customer_documents indexes (document capture)
+    try:
+        await db.customer_documents.create_index(
+            [("user_id", 1), ("customer_id", 1), ("doc_type", 1), ("uploaded_at", -1)],
+            name="idx_custdocs_user_cust_type_date",
+        )
+        await db.customer_documents.create_index(
+            "customer_id", name="idx_custdocs_customer",
+        )
+    except Exception:
+        pass
+
     # CR-030: webhook_logs indexes for idempotency and audit queries
     try:
         await db.webhook_logs.create_index(

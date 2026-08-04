@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, ChevronRight, ArrowUpRight, ArrowDownRight, Gift, Phone, Mail, Edit2, Save, Wallet, ChevronLeft, TrendingUp, TrendingDown, Clock, CalendarDays, Utensils, Sparkles, MessageCircle, Ticket } from "lucide-react";
+import { Plus, ChevronRight, ArrowUpRight, ArrowDownRight, Gift, Phone, Mail, Edit2, Save, Wallet, ChevronLeft, TrendingUp, TrendingDown, Clock, CalendarDays, Utensils, Sparkles, MessageCircle, Ticket, FileText, Download, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,10 @@ export default function CustomerDetailPage() {
     const [availableTags, setAvailableTags] = useState([]);
     const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
     const [tagSearch, setTagSearch] = useState("");
+
+    // CR-072: customer documents state
+    const [documents, setDocuments] = useState({});
+    const [docsLoading, setDocsLoading] = useState(false);
 
     // CR-034: tag handlers for detail page
     const handleAddTagDetail = async (tag) => {
@@ -119,6 +123,11 @@ export default function CustomerDetailPage() {
         api.get("/loyalty/settings").then(res => setLoyaltySettings(res.data)).catch(() => {});
         // CR-034: fetch tag catalog
         api.get("/customers/tags").then(r => setAvailableTags(r.data?.tags || [])).catch(() => {});
+        // CR-072: fetch customer documents
+        setDocsLoading(true);
+        api.get(`/customers/${id}/documents`).then(r => {
+            setDocuments(r.data?.documents || {});
+        }).catch(() => {}).finally(() => setDocsLoading(false));
     }, [id]);
 
     const handlePointsTransaction = async (e) => {
@@ -722,6 +731,59 @@ export default function CustomerDetailPage() {
                         )}
                     </TabsContent>
                 </Tabs>
+            </div>
+
+            {/* CR-072: Documents Section */}
+            <div className="px-4 mb-4" data-testid="documents-section">
+                <Card className="rounded-xl border-0 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 border-b bg-gray-50/50">
+                        <h3 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> Documents
+                        </h3>
+                    </div>
+                    <CardContent className="p-4">
+                        {docsLoading ? (
+                            <p className="text-sm text-gray-400">Loading documents...</p>
+                        ) : Object.keys(documents).length === 0 ? (
+                            <p className="text-sm text-gray-400" data-testid="no-documents">No documents uploaded yet</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {Object.entries(documents).map(([docType, docs]) => {
+                                    const labels = { license: "License", passport: "Passport", aadhaar: "Aadhaar Card", pan_card: "PAN Card", voter_id: "Voter ID", other: "Other" };
+                                    return (
+                                        <div key={docType} data-testid={`doc-card-${docType}`}>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{labels[docType] || docType}</p>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                {docs.map((doc) => (
+                                                    <a
+                                                        key={doc.id}
+                                                        href={doc.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="group block border rounded-lg p-2 hover:border-[#F26B33] hover:shadow-sm transition-all"
+                                                        data-testid={`doc-download-${doc.id}`}
+                                                    >
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            {doc.content_type?.startsWith("image/") ? (
+                                                                <Eye className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#F26B33]" />
+                                                            ) : (
+                                                                <Download className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#F26B33]" />
+                                                            )}
+                                                            <span className="text-xs text-gray-600 truncate">{doc.file_name}</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-400">
+                                                            {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : ""}
+                                                        </p>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Points Modal */}

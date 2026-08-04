@@ -614,6 +614,29 @@ WHATSAPP_VARIABLES = [
         "fills_on_events": ALL_EVENTS,
         "formatter": None,
     },
+    # CR-071: B2B/GST WhatsApp variables
+    {
+        "key": "customer_gst_name",
+        "label": "Customer GST Business Name",
+        "example": "ABC Pvt Ltd",
+        "description": "Registered business name for B2B/corporate customers.",
+        "category": "general",
+        "block": "customer",
+        "sources": [{"from": "customer", "field": "gst_name"}],
+        "fills_on_events": ALL_EVENTS,
+        "formatter": None,
+    },
+    {
+        "key": "customer_gst_number",
+        "label": "Customer GSTIN",
+        "example": "27XXXXX1234Z5",
+        "description": "GST identification number for B2B/corporate customers.",
+        "category": "general",
+        "block": "customer",
+        "sources": [{"from": "customer", "field": "gst_number"}],
+        "fills_on_events": ALL_EVENTS,
+        "formatter": None,
+    },
 ]
 
 VARIABLES_BY_KEY = {v["key"]: v for v in WHATSAPP_VARIABLES}

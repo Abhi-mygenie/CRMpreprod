@@ -160,6 +160,57 @@ def put_public_object(
         return None
 
 
+# --- CR-072: Private upload (no public ACL) ---------------------------------
+
+
+def put_private_object(
+    key: str,
+    body: bytes,
+    content_type: str,
+) -> bool:
+    """Upload `body` to `s3://<bucket>/<key>` WITHOUT public-read ACL.
+
+    Used for PII documents (Aadhaar, PAN, etc.) that must only be
+    accessed via pre-signed URLs. Returns True on success.
+    """
+    s3 = get_s3_client()
+    if s3 is None:
+        logger.debug("put_private_object skipped (S3 not configured) key=%s", key)
+        return False
+    try:
+        s3.put_object(
+            Bucket=AWS_S3_BUCKET,
+            Key=key,
+            Body=body,
+            ContentType=content_type,
+        )
+        return True
+    except (ClientError, BotoCoreError) as e:
+        _log_client_error("put_object(private)", key, e)
+        return False
+
+
+def generate_presigned_url(key: str, expires_in: int = 900) -> Optional[str]:
+    """Return a pre-signed GET URL for `key`, valid for `expires_in` seconds.
+
+    Returns None if S3 is not configured or signing fails.
+    Used for PII document access (CR-072).
+    """
+    s3 = get_s3_client()
+    if s3 is None:
+        return None
+    try:
+        url = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": AWS_S3_BUCKET, "Key": key},
+            ExpiresIn=expires_in,
+        )
+        return url
+    except (ClientError, BotoCoreError) as e:
+        _log_client_error("generate_presigned_url", key, e)
+        return None
+
+
 # --- Existence check ------------------------------------------------------
 
 

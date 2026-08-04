@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.aliases import AliasChoices
 from typing import Optional, List, Dict, Any, Union
@@ -13,6 +13,7 @@ from core.auth import get_current_user, generate_api_key, verify_pos_auth
 from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_peak_bonus, get_redemption_value_for_tier
 from core.loyalty import build_pos_loyalty_blob, redeem_loyalty_points, compute_max_redeemable, calculate_points, default_loyalty_settings
 from core.whatsapp import trigger_whatsapp_event, build_order_event_context
+from core.s3 import S3_CONFIGURED, put_private_object, generate_presigned_url  # CR-072
 from models.schemas import (
     POSPaymentWebhook, POSCustomerLookup, POSResponse,
     MessageRequest, POS_EVENTS,
@@ -92,6 +93,7 @@ class POSCustomerCreate(BaseModel):
     # GST Details
     gst_name: Optional[str] = None
     gst_number: Optional[str] = None
+    is_b2b: Optional[bool] = None  # CR-071: auto-derived from gst_number
     billing_address: Optional[str] = None
     credit_limit: Optional[float] = None
     payment_terms: Optional[str] = None
@@ -178,6 +180,7 @@ class POSCustomerUpdate(BaseModel):
     # GST Details
     gst_name: Optional[str] = None
     gst_number: Optional[str] = None
+    is_b2b: Optional[bool] = None  # CR-071: auto-derived from gst_number
     billing_address: Optional[str] = None
     credit_limit: Optional[float] = None
     payment_terms: Optional[str] = None
@@ -1186,6 +1189,10 @@ class POSOrderWebhook(BaseModel):
     cust_email: Optional[str] = None
     user_id: Optional[str] = None  # Maps to pos_customer_id
     
+    # CR-071: B2B/GST pass-through from order
+    gst_name: Optional[str] = None      # customer's company/business name
+    gst_number: Optional[str] = None    # customer's GSTIN
+    
     # Amounts
     order_amount: float = Field(
         ...,
@@ -1475,6 +1482,14 @@ async def pos_order_webhook(
             customer_update_set["name"] = order_data.cust_name
         if order_data.cust_email:
             customer_update_set["email"] = order_data.cust_email
+        # CR-071: B2B field pass-through from order
+        # Guard: only update when non-empty; never downgrade corporate→normal or is_b2b→False
+        if order_data.gst_name:
+            customer_update_set["gst_name"] = order_data.gst_name
+        if order_data.gst_number:
+            customer_update_set["gst_number"] = order_data.gst_number
+            customer_update_set["is_b2b"] = True
+            customer_update_set["customer_type"] = "corporate"
         customer_update_doc: Dict[str, Any] = {"$set": customer_update_set}
         if loyalty_enabled and points_earned > 0:
             customer_update_doc["$inc"] = {"total_points_earned": points_earned}
@@ -2046,6 +2061,27 @@ async def pos_customer_lookup(
     # CR-001C-LX-A: tier-aware points_value via shared helper.
     blob = build_pos_loyalty_blob(customer, settings)
     
+    # CR-072: include documents in lookup (all per type, newest first)
+    doc_cursor = db.customer_documents.find(
+        {"user_id": user["id"], "customer_id": customer["id"]},
+        {"_id": 0, "id": 1, "doc_type": 1, "s3_key": 1, "file_name": 1,
+         "content_type": 1, "uploaded_at": 1},
+        sort=[("uploaded_at", -1)],
+    )
+    raw_docs = await doc_cursor.to_list(length=100)
+    doc_grouped = {}
+    for d in raw_docs:
+        dt = d["doc_type"]
+        if dt not in doc_grouped:
+            doc_grouped[dt] = []
+        doc_grouped[dt].append({
+            "id": d["id"],
+            "file_name": d["file_name"],
+            "content_type": d.get("content_type", ""),
+            "url": generate_presigned_url(d["s3_key"]) or "",
+            "uploaded_at": d["uploaded_at"],
+        })
+
     return POSResponse(
         success=True,
         message="Customer found",
@@ -2063,9 +2099,160 @@ async def pos_customer_lookup(
             "allergies": customer.get("allergies", []),
             "favorites": customer.get("favorites", []),
             "last_visit": customer.get("last_visit"),
-            "addresses": customer.get("addresses", [])
+            "addresses": customer.get("addresses", []),
+            # CR-071: B2B fields in lookup response (Q3: flat, top-level)
+            "customer_type": customer.get("customer_type", "normal"),
+            "gst_name": customer.get("gst_name"),
+            "gst_number": customer.get("gst_number"),
+            "is_b2b": customer.get("is_b2b", False),
+            # CR-072: documents grouped by type, newest first
+            "documents": doc_grouped,
         }
     )
+
+
+# ── CR-072 · Customer Document Capture ──────────────────────────────────
+
+_CR072_ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "voter_id", "other"]
+_CR072_MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+_CR072_ALLOWED_MIMES = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+_CR072_MAX_DOCS_PER_TYPE = 5
+
+
+@router.post("/customers/{customer_id}/documents", response_model=POSResponse)
+async def pos_upload_document(
+    customer_id: str,
+    doc_type: str = Form(...),
+    file: UploadFile = File(...),
+    user: dict = Depends(verify_pos_auth),
+):
+    """CR-072: POS uploads a customer identity document (Aadhaar, PAN, etc.) to S3."""
+    # 1. S3 availability check
+    if not S3_CONFIGURED:
+        raise HTTPException(status_code=503, detail="AWS S3 not configured")
+
+    # 2. Validate doc_type
+    if doc_type not in _CR072_ALLOWED_DOC_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid doc_type '{doc_type}'. Allowed: {_CR072_ALLOWED_DOC_TYPES}",
+        )
+
+    # 3. Validate MIME type
+    if file.content_type not in _CR072_ALLOWED_MIMES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{file.content_type}'. Allowed: {sorted(_CR072_ALLOWED_MIMES)}",
+        )
+
+    # 4. Verify customer exists + tenant isolation
+    customer = await db.customers.find_one(
+        {"id": customer_id, "user_id": user["id"]}, {"_id": 0, "id": 1}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # 5. Read + validate file size
+    file_bytes = await file.read()
+    if len(file_bytes) > _CR072_MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large ({len(file_bytes)} bytes). Max: {_CR072_MAX_FILE_SIZE} bytes (5MB)",
+        )
+
+    # 6. Build S3 key
+    ext = (file.filename or "").rsplit(".", 1)[-1] if file.filename and "." in file.filename else "bin"
+    s3_key = f"customers/{customer_id}/docs/{doc_type}/{uuid.uuid4().hex}.{ext}"
+
+    # 7. Upload to S3 (private — no public ACL)
+    ok = put_private_object(s3_key, file_bytes, file.content_type)
+    if not ok:
+        raise HTTPException(status_code=502, detail="S3 upload failed")
+
+    # 8. Store metadata
+    now = datetime.now(timezone.utc).isoformat()
+    doc_record = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "customer_id": customer_id,
+        "doc_type": doc_type,
+        "s3_key": s3_key,
+        "file_name": file.filename or f"{doc_type}.{ext}",
+        "content_type": file.content_type,
+        "file_size": len(file_bytes),
+        "uploaded_at": now,
+        "uploaded_by": "pos",
+    }
+    await db.customer_documents.insert_one(doc_record)
+
+    # 9. Enforce max docs per type (Q6: max 5, prune oldest)
+    existing = await db.customer_documents.count_documents(
+        {"user_id": user["id"], "customer_id": customer_id, "doc_type": doc_type}
+    )
+    if existing > _CR072_MAX_DOCS_PER_TYPE:
+        oldest_cursor = db.customer_documents.find(
+            {"user_id": user["id"], "customer_id": customer_id, "doc_type": doc_type},
+            sort=[("uploaded_at", 1)],
+        ).limit(existing - _CR072_MAX_DOCS_PER_TYPE)
+        async for old_doc in oldest_cursor:
+            await db.customer_documents.delete_one({"id": old_doc["id"]})
+
+    # 10. Return signed URL for immediate use
+    signed_url = generate_presigned_url(s3_key)
+
+    return POSResponse(
+        success=True,
+        message="Document uploaded successfully",
+        data={
+            "document_id": doc_record["id"],
+            "doc_type": doc_type,
+            "file_name": doc_record["file_name"],
+            "url": signed_url,
+            "uploaded_at": now,
+        },
+    )
+
+
+@router.get("/customers/{customer_id}/documents", response_model=POSResponse)
+async def pos_get_documents(
+    customer_id: str,
+    user: dict = Depends(verify_pos_auth),
+):
+    """CR-072: Fetch all documents for a customer, grouped by doc_type, newest first."""
+    customer = await db.customers.find_one(
+        {"id": customer_id, "user_id": user["id"]}, {"_id": 0, "id": 1}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    cursor = db.customer_documents.find(
+        {"user_id": user["id"], "customer_id": customer_id},
+        {"_id": 0, "id": 1, "doc_type": 1, "s3_key": 1, "file_name": 1,
+         "content_type": 1, "file_size": 1, "uploaded_at": 1},
+        sort=[("uploaded_at", -1)],
+    )
+    docs = await cursor.to_list(length=100)
+
+    grouped = {}
+    for d in docs:
+        dt = d["doc_type"]
+        if dt not in grouped:
+            grouped[dt] = []
+        grouped[dt].append({
+            "id": d["id"],
+            "file_name": d["file_name"],
+            "content_type": d.get("content_type", ""),
+            "file_size": d.get("file_size", 0),
+            "url": generate_presigned_url(d["s3_key"]) or "",
+            "uploaded_at": d["uploaded_at"],
+        })
+
+    return POSResponse(
+        success=True,
+        message="Documents retrieved",
+        data={"documents": grouped},
+    )
+
 
 @router.get("/api-key")
 async def get_api_key(user: dict = Depends(get_current_user)):

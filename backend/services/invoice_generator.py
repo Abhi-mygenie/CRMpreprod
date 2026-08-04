@@ -302,8 +302,10 @@ def generate_invoice_html(order: dict, user: dict, customer: dict = None, event_
         cust_phone = f"+91 {cust_phone}"
 
     customer_gstin = ""
+    customer_gst_name = ""  # CR-071: read gst_name for B2B invoice
     if customer:
         customer_gstin = customer.get("gst_number", "")
+        customer_gst_name = customer.get("gst_name", "")
 
     # Delivery address
     delivery_address = ""
@@ -358,6 +360,7 @@ def generate_invoice_html(order: dict, user: dict, customer: dict = None, event_
         "table_id": order.get("table_id", ""),
         "show_customer_gstin": bs.get("show_customer_gstin", True),
         "customer_gstin": customer_gstin,
+        "customer_gst_name": customer_gst_name,  # CR-071
         "delivery_address": delivery_address,
 
         # Items
@@ -498,6 +501,8 @@ def _build_common_ctx(order, user, customer=None, event_data=None):
         "show_gstin": bs.get("show_gstin", True), "gstin": user.get("gstin", ""),
         "show_fssai": bs.get("show_fssai", True), "fssai_license": user.get("fssai_license", ""),
         "customer_name": cust_name, "customer_phone": cust_phone,
+        "customer_gst_name": customer.get("gst_name", "") if customer else "",  # CR-071
+        "customer_gstin": customer.get("gst_number", "") if customer else "",  # CR-071
         "show_veg_dots": bs.get("show_veg_dots", True),
         "cs": cs,
         "delivery_charge": delivery_charge, "delivery_charge_display": _fmt(delivery_charge),

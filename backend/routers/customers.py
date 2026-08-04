@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from pymongo import UpdateOne, InsertOne  # BUG-013
+from core.s3 import generate_presigned_url  # CR-072
 
 logger = logging.getLogger("customer_sync")
 
@@ -2320,4 +2321,43 @@ async def get_customer_insights(customer_id: str, user: dict = Depends(get_curre
 
     return insights
 
+
+
+
+# ── CR-072 · Customer Documents (CRM view) ─────────────────────────────
+
+@router.get("/{customer_id}/documents")
+async def get_customer_documents(customer_id: str, user: dict = Depends(get_current_user)):
+    """CR-072: Fetch all documents for a customer (CRM staff view).
+    Returns signed URLs grouped by doc_type, newest first.
+    """
+    customer = await db.customers.find_one(
+        {"id": customer_id, "user_id": user["id"]}, {"_id": 0, "id": 1}
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    cursor = db.customer_documents.find(
+        {"user_id": user["id"], "customer_id": customer_id},
+        {"_id": 0, "id": 1, "doc_type": 1, "s3_key": 1, "file_name": 1,
+         "content_type": 1, "file_size": 1, "uploaded_at": 1},
+        sort=[("uploaded_at", -1)],
+    )
+    docs = await cursor.to_list(length=100)
+
+    grouped = {}
+    for d in docs:
+        dt = d["doc_type"]
+        if dt not in grouped:
+            grouped[dt] = []
+        grouped[dt].append({
+            "id": d["id"],
+            "file_name": d["file_name"],
+            "content_type": d.get("content_type", ""),
+            "file_size": d.get("file_size", 0),
+            "url": generate_presigned_url(d["s3_key"]) or "",
+            "uploaded_at": d["uploaded_at"],
+        })
+
+    return {"documents": grouped}
 

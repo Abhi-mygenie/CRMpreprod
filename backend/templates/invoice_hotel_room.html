@@ -131,7 +131,12 @@
   <div class="meta">
     <h3>Guest Details</h3>
     <div class="meta-grid">
+      {% if customer_gst_name %}
+      <div><div class="lbl">Bill To</div><div class="val">{{ customer_gst_name }}</div></div>
       <div><div class="lbl">Guest</div><div class="val">{{ customer_name }}</div></div>
+      {% else %}
+      <div><div class="lbl">Guest</div><div class="val">{{ customer_name }}</div></div>
+      {% endif %}
       <div><div class="lbl">Phone</div><div class="val">{{ customer_phone }}</div></div>
       <div><div class="lbl">Room</div><div class="val">{{ room_number }}</div></div>
       {% if room_type %}<div><div class="lbl">Room Type</div><div class="val">{{ room_type }}</div></div>{% endif %}
@@ -139,6 +144,9 @@
       <div><div class="lbl">Check-out</div><div class="val">{{ check_out_display }}</div></div>
       {% if nights %}<div><div class="lbl">Duration</div><div class="val">{{ nights }} Night{{ 's' if nights != 1 else '' }}</div></div>{% endif %}
     </div>
+    {% if customer_gstin %}
+    <div style="margin-top:6px"><div class="lbl">GSTIN</div><div class="val">{{ customer_gstin }}</div></div>
+    {% endif %}
   </div>
 
   <!-- Room Charges -->

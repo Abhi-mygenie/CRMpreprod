@@ -129,11 +129,16 @@
   </div>
   {% endif %}
 
-  <!-- Customer -->
+  <!-- Customer — CR-071: B2B Bill To layout -->
   <div class="meta">
     <h3>Customer</h3>
     <div class="meta-grid">
+      {% if customer_gst_name %}
+      <div><div class="lbl">Bill To</div><div class="val">{{ customer_gst_name }}</div></div>
+      <div><div class="lbl">Contact</div><div class="val">{{ customer_name }}</div></div>
+      {% else %}
       <div><div class="lbl">Name</div><div class="val">{{ customer_name }}</div></div>
+      {% endif %}
       <div><div class="lbl">Phone</div><div class="val">{{ customer_phone }}</div></div>
       {% if order_type == 'dinein' and table_id %}
       <div><div class="lbl">Table</div><div class="val">{{ table_id }}</div></div>

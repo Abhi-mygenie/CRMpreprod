@@ -127,12 +127,21 @@
   <div class="meta">
     <h3>Guest Details</h3>
     <div class="meta-grid">
+      {% if customer_gst_name %}
+      <div><div class="lbl">Bill To</div><div class="val">{{ customer_gst_name }}</div></div>
       <div><div class="lbl">Guest</div><div class="val">{{ customer_name }}</div></div>
+      {% else %}
+      <div><div class="lbl">Guest</div><div class="val">{{ customer_name }}</div></div>
+      {% endif %}
       <div><div class="lbl">Phone</div><div class="val">{{ customer_phone }}</div></div>
       {% if room_number %}<div><div class="lbl">Room</div><div class="val">{{ room_number }}</div></div>{% endif %}
       <div><div class="lbl">Check-in</div><div class="val">{{ check_in_display }}</div></div>
       <div><div class="lbl">Check-out</div><div class="val">{{ check_out_display }}</div></div>
       <div><div class="lbl">Duration</div><div class="val">{{ stay_days }} Day{{ 's' if stay_days != 1 else '' }}</div></div>
+    </div>
+    {% if customer_gstin %}
+    <div style="margin-top:6px"><div class="lbl">GSTIN</div><div class="val">{{ customer_gstin }}</div></div>
+    {% endif %}
     </div>
   </div>
 
