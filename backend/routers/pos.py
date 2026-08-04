@@ -255,7 +255,7 @@ async def pos_create_customer(
         "preferred_language": customer_data.preferred_language,
         
         # Customer Type
-        "customer_type": customer_data.customer_type,
+        "customer_type": "corporate" if customer_data.gst_number else customer_data.customer_type,  # CR-071: auto-derive
         "segment_tags": customer_data.segment_tags or [],
         
         # Contact & Marketing Permissions
@@ -304,6 +304,8 @@ async def pos_create_customer(
         # GST Details
         "gst_name": customer_data.gst_name,
         "gst_number": customer_data.gst_number,
+        # CR-071: auto-derive is_b2b + customer_type from gst_number on create
+        "is_b2b": True if customer_data.gst_number else customer_data.is_b2b,
         "billing_address": customer_data.billing_address,
         "credit_limit": customer_data.credit_limit,
         "payment_terms": customer_data.payment_terms,
@@ -412,6 +414,10 @@ async def pos_update_customer(
     now = datetime.now(timezone.utc).isoformat()
     
     if update_dict:
+        # CR-071: auto-derive is_b2b + customer_type from gst_number
+        if update_dict.get("gst_number"):
+            update_dict.setdefault("is_b2b", True)
+            update_dict.setdefault("customer_type", "corporate")
         update_dict["pos_synced"] = True
         update_dict["pos_synced_at"] = now
         await db.customers.update_one({"id": customer_id}, {"$set": update_dict})
@@ -2138,21 +2144,21 @@ async def pos_upload_document(
             detail=f"Invalid doc_type '{doc_type}'. Allowed: {_CR072_ALLOWED_DOC_TYPES}",
         )
 
-    # 3. Validate MIME type
+    # 4. Validate MIME type
     if file.content_type not in _CR072_ALLOWED_MIMES:
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported file type '{file.content_type}'. Allowed: {sorted(_CR072_ALLOWED_MIMES)}",
         )
 
-    # 4. Verify customer exists + tenant isolation
+    # 5. Verify customer exists + tenant isolation
     customer = await db.customers.find_one(
         {"id": customer_id, "user_id": user["id"]}, {"_id": 0, "id": 1}
     )
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    # 5. Read + validate file size
+    # 6. Read + validate file size
     file_bytes = await file.read()
     if len(file_bytes) > _CR072_MAX_FILE_SIZE:
         raise HTTPException(
@@ -2164,12 +2170,12 @@ async def pos_upload_document(
     ext = (file.filename or "").rsplit(".", 1)[-1] if file.filename and "." in file.filename else "bin"
     s3_key = f"customers/{customer_id}/docs/{doc_type}/{uuid.uuid4().hex}.{ext}"
 
-    # 7. Upload to S3 (private — no public ACL)
+    # 8. Upload to S3 (private — no public ACL)
     ok = put_private_object(s3_key, file_bytes, file.content_type)
     if not ok:
         raise HTTPException(status_code=502, detail="S3 upload failed")
 
-    # 8. Store metadata
+    # 9. Store metadata
     now = datetime.now(timezone.utc).isoformat()
     doc_record = {
         "id": str(uuid.uuid4()),
@@ -2185,7 +2191,7 @@ async def pos_upload_document(
     }
     await db.customer_documents.insert_one(doc_record)
 
-    # 9. Enforce max docs per type (Q6: max 5, prune oldest)
+    # 10. Enforce max docs per type (Q6: max 5, prune oldest)
     existing = await db.customer_documents.count_documents(
         {"user_id": user["id"], "customer_id": customer_id, "doc_type": doc_type}
     )
@@ -2197,7 +2203,7 @@ async def pos_upload_document(
         async for old_doc in oldest_cursor:
             await db.customer_documents.delete_one({"id": old_doc["id"]})
 
-    # 10. Return signed URL for immediate use
+    # 11. Return signed URL for immediate use
     signed_url = generate_presigned_url(s3_key)
 
     return POSResponse(
@@ -2551,7 +2557,8 @@ async def pos_search_customers(
     }
     customers = await db.customers.find(
         query,
-        {"_id": 0, "id": 1, "name": 1, "phone": 1, "tier": 1, "total_points": 1, "wallet_balance": 1, "last_visit": 1}
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "tier": 1, "total_points": 1, "wallet_balance": 1, "last_visit": 1,
+         "customer_type": 1, "is_b2b": 1, "gst_name": 1, "gst_number": 1}  # CR-071: B2B fields
     ).sort("last_visit", -1).limit(min(limit, 50)).to_list(min(limit, 50))
 
     return POSResponse(
