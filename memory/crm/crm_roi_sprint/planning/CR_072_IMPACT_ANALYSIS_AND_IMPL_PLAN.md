@@ -267,7 +267,7 @@ New "Documents" card below existing cards. Grid of document thumbnails with:
 | **Q7** | Upload-only. No delete. | Owner 2026-08-04 |
 
 ```python
-ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "other"]
+ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "voter_id", "other"]
 ```
 
 ---

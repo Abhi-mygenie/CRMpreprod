@@ -23,7 +23,7 @@
 
 | Q | Decision | Status |
 |---|---|---|
-| **Q1 — Document types** | **5 types from POS dropdown**: `license`, `passport`, `aadhaar`, `pan_card`, `other`. No front/back split — each upload is a single file tagged with one type. Source: POS screenshot 2026-08-04. | ✅ Locked |
+| **Q1 — Document types** | **6 types confirmed with POS team**: `license`, `passport`, `aadhaar`, `pan_card`, `voter_id`, `other`. No front/back split at CRM level — POS uses naming convention `{doc_type}_{side}_{guest_slot}.{ext}` (e.g., `aadhaar_front_primary.jpg`). Source: POS screenshot 2026-08-04 + POS P5 reply. | ✅ Locked (updated) |
 | **Q2 — S3 access** | **Signed URL** — private S3, pre-signed URLs with expiry. Appropriate for Aadhaar/PII. | ✅ Locked |
 | **Q3 — Upload format** | **Multipart upload to CRM API** (option b). CRM accepts file + doc_type, uploads to S3. Currently POS stores on local filesystem — this CR is the integration. | ✅ Locked |
 | **Q4 — POS lookup** | **REVISED (2026-08-04)**: All documents per doc type, newest first. NOT latest-only. When customer returns, POS sees full document history grouped by type, most recent upload shown first. | ✅ Locked (revised) |

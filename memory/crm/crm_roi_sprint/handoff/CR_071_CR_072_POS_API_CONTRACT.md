@@ -348,7 +348,12 @@ GET /api/pos/customers/{customer_id}/documents
 | Passport | `passport` | Passport |
 | Aadhar card | `aadhaar` | Aadhaar card (front or back — separate uploads) |
 | PAN card | `pan_card` | PAN card |
+| Voter ID | `voter_id` | Voter ID card (added per POS P5 reply) |
 | Other | `other` | Any other identity document |
+
+**File naming convention** (POS-side, agreed in P5):  
+`{doc_type}_{side}_{guest_slot}.{ext}` — e.g., `aadhaar_front_primary.jpg`, `passport_front_adult2.pdf`  
+CRM stores whatever filename POS sends.
 
 ---
 
@@ -375,25 +380,18 @@ GET /api/pos/customers/{customer_id}/documents
 
 ---
 
-## Part 6 — Questions for POS Team
+## Part 6 — POS Team Replies (2026-08-04)
 
-| # | Question | Context |
-|---|---|---|
-| P1 | **Confirm field names**: Are `gst_name` and `gst_number` the exact field names POS will send on orders? Or does POS use different names (e.g., `gst_customer_name`, `gstin`)? CRM can add `AliasChoices` for backward compat. | CR-071 |
-| P2 | **Order webhook timing**: Will POS send `gst_name`/`gst_number` on every order for a B2B customer, or only on the first order? CRM guards against blank-overwrite either way. | CR-071 |
-| P3 | **Document upload trigger**: When does POS upload documents — at check-in only, or can hotel staff upload later during the stay? | CR-072 |
-| P4 | **Signed URL caching**: POS should NOT cache signed URLs beyond 15 minutes. Does POS have a mechanism to refresh URLs when displaying documents? | CR-072 |
-| P5 | **File naming**: Does POS send a meaningful `filename` in the multipart upload (e.g., `aadhaar_front.jpg`), or a generic name (e.g., `upload.jpg`)? CRM stores whatever POS sends. | CR-072 |
+| # | Question | POS Answer | CRM Action |
+|---|---|---|---|
+| P1 | Field names for `gst_name`/`gst_number` | ✅ Confirmed as-is for POS FE → CRM. POS Backend remaps `custGST`/`custGSTName` internally — not a CRM blocker. | None needed |
+| P2 | Every order or first only? | ✅ Only when cashier manually fills it. CRM "never blank-overwrite" guard confirmed correct. | None needed |
+| P3 | Upload timing | ✅ Phase 1: check-in only. Phase 2: mid-stay (same endpoint, no CRM change). | None needed |
+| P4 | Signed URL caching | ✅ Phase 1: fetch-on-open. Phase 2: timestamp guard (re-fetch if >13min). No CRM change. | None needed |
+| P5 | File naming | ✅ Convention: `{doc_type}_{side}_{guest_slot}.{ext}`. **One ask: add `voter_id` to enum.** | ✅ Done — `voter_id` added to `ALLOWED_DOC_TYPES` |
 
----
-
-**Please validate this contract and respond with:**
-1. ✅ Approved as-is, OR
-2. 🔄 Changes needed (list field name changes, type changes, or missing fields)
-3. Answers to P1–P5
-
-CRM will not begin implementation until POS confirms.
+**Contract status**: ✅ ALL CONFIRMED — CRM implementation gate open.
 
 ---
 
-*Contract authored: 2026-08-04 | CRM Planning Agent | CR-071 + CR-072*
+*Contract authored: 2026-08-04 | POS validated: 2026-08-04 | CR-071 + CR-072*

@@ -22,7 +22,7 @@
 ## Constants
 
 ```python
-ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "other"]
+ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "voter_id", "other"]
 MAX_DOCS_PER_TYPE = 5
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
 ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
@@ -125,7 +125,7 @@ Note: `UploadFile`, `File`, `Form` may already be partially imported — check a
 
 # ── CR-072 · Customer Document Capture ──────────────────────────────────
 
-_CR072_ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "other"]
+_CR072_ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "voter_id", "other"]
 _CR072_MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 _CR072_ALLOWED_MIMES = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
 _CR072_MAX_DOCS_PER_TYPE = 5

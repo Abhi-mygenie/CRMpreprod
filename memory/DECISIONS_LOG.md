@@ -1223,3 +1223,13 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: No delete capability. POS and CRM staff cannot delete documents. New upload pushes to top (newest-first sort).
 **Source**: Owner: "only upload"
 **Locks**: No DELETE endpoint will be built.
+
+### 2026-08-04 [CR-072] §q1-updated — voter_id added per POS P5 reply
+**Decision**: `voter_id` added to `ALLOWED_DOC_TYPES` enum. Final list: `["license", "passport", "aadhaar", "pan_card", "voter_id", "other"]` (6 types).
+**Source**: POS team P5 reply — file naming convention agreed as `{doc_type}_{side}_{guest_slot}.{ext}`.
+**Locks**: Enum is now frozen for Phase 1.
+
+### 2026-08-04 [CR-071+CR-072] §pos-contract-validated — POS team confirmed all P1–P5
+**Decision**: POS API contract validated. All 5 questions answered. One change applied (P5: `voter_id`). CRM implementation gate is now OPEN for both CR-071 and CR-072.
+**Source**: POS team reply 2026-08-04. Contract doc: `handoff/CR_071_CR_072_POS_API_CONTRACT.md`.
+**Key confirmations**: (P1) field names confirmed as-is; (P2) only on manual fill, never-blank guard correct; (P3) check-in only Phase 1, mid-stay Phase 2 same endpoint; (P4) fetch-on-open, no CRM change; (P5) `voter_id` added, filename convention agreed.
