@@ -4,7 +4,7 @@
 **Reported**: 2026-08-04  
 **Reporter**: Owner (Abhishek)  
 **Role**: Intake Agent  
-**Status**: 🔵 Q2–Q5 LOCKED — Q1 (doc types) locked during impact analysis when POS payload shared
+**Status**: 🔵 ALL DECISIONS LOCKED (Q1–Q7) — Ready for Implementation
 
 ---
 
@@ -23,11 +23,13 @@
 
 | Q | Decision | Status |
 |---|---|---|
-| **Q1 — Document types** | Deferred — owner will share actual POS payload during impact analysis | ⏳ Pending |
+| **Q1 — Document types** | **5 types from POS dropdown**: `license`, `passport`, `aadhaar`, `pan_card`, `other`. No front/back split — each upload is a single file tagged with one type. Source: POS screenshot 2026-08-04. | ✅ Locked |
 | **Q2 — S3 access** | **Signed URL** — private S3, pre-signed URLs with expiry. Appropriate for Aadhaar/PII. | ✅ Locked |
 | **Q3 — Upload format** | **Multipart upload to CRM API** (option b). CRM accepts file + doc_type, uploads to S3. Currently POS stores on local filesystem — this CR is the integration. | ✅ Locked |
-| **Q4 — POS lookup** | **Latest per doc type only** — latest Aadhaar front, latest Aadhaar back, etc. Full history in DB, not exposed in lookup. | ✅ Locked |
+| **Q4 — POS lookup** | **REVISED (2026-08-04)**: All documents per doc type, newest first. NOT latest-only. When customer returns, POS sees full document history grouped by type, most recent upload shown first. | ✅ Locked (revised) |
 | **Q5 — Scope** | **No CRM feature flag** — API available to all tenants. POS team decides which properties use it. | ✅ Locked |
+| **Q6 — Max files per doc_type** | **5** — max 5 files stored per doc_type per customer. Oldest auto-dropped when 6th is uploaded. | ✅ Locked |
+| **Q7 — Delete capability** | **Upload-only, no delete**. POS and CRM staff cannot delete documents. New upload replaces visibility (sorted newest-first). | ✅ Locked |
 
 ---
 
@@ -108,11 +110,13 @@ CRM  CustomerDetailPage                    ← Documents section (view + downloa
 
 | # | Question | Options |
 |---|---|---|
-| **Q1** | What document types should be supported at launch? | (a) Aadhaar only (front + back) (b) Aadhaar + Passport + Driving Licence (c) Custom free-form type |
-| **Q2** | Should documents be publicly accessible (open S3 URL) or private (signed URLs that expire)? | (a) Public — anyone with URL can view (b) Private — signed URLs, expire after N minutes (c) Private — serve through CRM backend only |
-| **Q3** | Which upload format does POS send? | (a) Base64 encoded image in JSON body (b) Multipart form data (file upload) (c) POS uploads to S3 directly and sends URL to CRM |
-| **Q4** | Document visibility in POS lookup — should ALL documents show, or only the latest per type? | (a) All documents (full history) (b) Latest per document type only |
-| **Q5** | Is this for ALL hotels using the CRM, or specific tenants? Should there be a feature flag? | (a) All tenants (b) Hotel tenants only (c) Feature flag per tenant |
+| **Q1** | What document types should be supported at launch? | **ANSWERED**: 5 types from POS: `license`, `passport`, `aadhaar`, `pan_card`, `other` |
+| **Q2** | Should documents be publicly accessible (open S3 URL) or private (signed URLs that expire)? | **ANSWERED**: Private — signed URLs with expiry |
+| **Q3** | Which upload format does POS send? | **ANSWERED**: Multipart form data (file upload) |
+| **Q4** | Document visibility in POS lookup — should ALL documents show, or only the latest per type? | **ANSWERED (revised)**: All documents per type, newest first |
+| **Q5** | Is this for ALL hotels using the CRM, or specific tenants? Should there be a feature flag? | **ANSWERED**: All tenants, no feature flag |
+| **Q6** | Max files per doc_type per customer? | **ANSWERED**: 5 max. Oldest auto-dropped on 6th upload. |
+| **Q7** | Can POS/CRM staff delete documents? | **ANSWERED**: No. Upload-only, no delete. |
 
 ---
 
@@ -152,7 +156,7 @@ Risk: HIGH (POS API contract + PII document storage)
 Duplicate check: DISTINCT
 Evidence: Code audit — 0 existing document endpoints, 0 doc collections, S3 available
 Blast radius: MEDIUM (hotel tenants; non-hotel unaffected)
-Owner decisions: Q1–Q5 must be answered before planning can begin
+Owner decisions: ALL LOCKED (Q1–Q7, 2026-08-04)
 Docs: discovery/CR_072_HOTEL_CUSTOMER_DOCUMENT_CAPTURE_INTAKE.md
-Next: Owner answers Q1–Q5 → Planning Agent
+Next: Owner approval → Implementation Agent
 ```

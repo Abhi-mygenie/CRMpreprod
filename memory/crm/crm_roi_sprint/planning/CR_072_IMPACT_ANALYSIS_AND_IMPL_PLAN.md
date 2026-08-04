@@ -3,7 +3,7 @@
 **CR ID**: CR-072  
 **Date**: 2026-08-04  
 **Role**: Planning Agent  
-**Status**: Impact Analysis Complete — Q1 (doc types) PENDING, architecture is doc-type-agnostic  
+**Status**: Impact Analysis Complete — ALL QUESTIONS LOCKED (Q1–Q7)  
 **Risk**: HIGH (PII document storage + new S3 surface + POS API contract)
 
 ---
@@ -21,7 +21,7 @@
     "id": str (uuid),
     "user_id": str,           # restaurant tenant (multi-tenant isolation)
     "customer_id": str,       # links to customers.id
-    "doc_type": str,          # e.g. "aadhaar_front", "aadhaar_back", "passport", etc.
+    "doc_type": str,          # "license", "passport", "aadhaar", "pan_card", "other"
     "s3_key": str,            # S3 object key for private access
     "file_name": str,         # original file name
     "content_type": str,      # MIME type (image/jpeg, image/png, application/pdf)
@@ -74,32 +74,39 @@ customers/{customer_id}/docs/{doc_type}/{uuid}.{ext}
 **Validation rules**:
 - File size: max 5MB (Aadhaar images are typically <2MB)
 - Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`, `application/pdf`
-- `doc_type`: validated against allowed enum (populated when Q1 is answered)
+- `doc_type`: validated against allowed enum: `license`, `passport`, `aadhaar`, `pan_card`, `other` (Q1 locked)
 - Customer must exist and belong to the tenant (`user_id` check)
+- Max 5 files per doc_type per customer (Q6). On 6th upload, oldest is auto-dropped from DB (S3 object retained for audit).
+- Upload-only, no delete endpoint (Q7).
 
 ### S4 — New endpoint `GET /api/pos/customers/{id}/documents`: ❌ DOES NOT EXIST
 
 **Auth**: `X-API-Key` (POS auth)  
-**Q4 decision**: Return **latest per doc_type only**. Full history in DB but not exposed in this endpoint.
+**Q4 decision (REVISED)**: Return **all documents per doc_type, newest first**. Max 5 per type (Q6). No delete (Q7).
 
 **Response shape**:
 ```json
 {
     "success": true,
     "data": {
-        "documents": [
-            {
-                "doc_type": "aadhaar_front",
-                "url": "https://...presigned...",
-                "file_name": "aadhaar_front.jpg",
-                "uploaded_at": "2026-08-04T10:00:00Z"
-            },
-            {
-                "doc_type": "aadhaar_back",
-                "url": "https://...presigned...",
-                ...
-            }
-        ]
+        "documents": {
+            "aadhaar": [
+                {
+                    "id": "doc_uuid",
+                    "url": "https://...presigned...",
+                    "file_name": "aadhaar_front.jpg",
+                    "uploaded_at": "2026-08-05T10:00:00Z"
+                },
+                {
+                    "url": "https://...presigned...",
+                    "file_name": "aadhaar_back.jpg",
+                    "uploaded_at": "2026-08-04T09:00:00Z"
+                }
+            ],
+            "pan_card": [
+                { "url": "...", "file_name": "pan.jpg", "uploaded_at": "..." }
+            ]
+        }
     }
 }
 ```
@@ -224,15 +231,17 @@ New "Documents" card below existing cards. Grid of document thumbnails with:
 | V1 | Upload Aadhaar front via POS endpoint → S3 object created (private) | S3 upload works | E-A, E-B |
 | V2 | Upload returns document ID + signed URL | Upload response correct | E-B |
 | V3 | Signed URL expires after configured time | PII protection | E-A |
-| V4 | GET documents endpoint returns latest per doc_type | Q4 decision | E-C |
-| V5 | customer-lookup includes documents array | Auto-recall on return | E-D |
+| V4 | GET documents endpoint returns all docs per type, newest first | Q4 revised | E-C |
+| V5 | customer-lookup includes documents grouped by type | Auto-recall on return | E-D |
 | V6 | CRM CustomerDetailPage shows uploaded documents | CRM visibility | E-F |
 | V7 | Upload rejects files >5MB | File validation | E-B |
 | V8 | Upload rejects non-image/PDF MIME types | File validation | E-B |
 | V9 | Upload requires valid customer + tenant isolation | Security | E-B |
 | V10 | S3 not configured → 503 "S3 not configured" | Fail-fast per CR-036 pattern | E-B |
-| V11 | Multiple uploads same doc_type → GET returns only latest | Q4 latest-only | E-C |
-| V12 | Existing customer flows unaffected | Zero regression | ALL |
+| V11 | 6th upload same doc_type → oldest auto-dropped, 5 remain | Q6 cap | E-B |
+| V12 | No delete endpoint exists | Q7 upload-only | — |
+| V13 | doc_type validated against enum (license/passport/aadhaar/pan_card/other) | Q1 | E-B |
+| V14 | Existing customer flows unaffected | Zero regression | ALL |
 
 ## Regression Checklist
 
@@ -245,24 +254,21 @@ New "Documents" card below existing cards. Grid of document thumbnails with:
 
 ---
 
-## ⚠️ Open Question — Q1 (Document Types)
+## ✅ All Questions Locked (Q1–Q7)
 
-**Status**: ⏳ PENDING — owner to share POS payload  
-**Impact on implementation**: LOW — architecture is **doc-type-agnostic** (free-form string). The `doc_type` field accepts any string value. A validation enum can be added later when Q1 is answered.
+| Q | Decision | Source |
+|---|---|---|
+| **Q1** | 5 types: `license`, `passport`, `aadhaar`, `pan_card`, `other` (from POS dropdown) | Owner screenshot 2026-08-04 |
+| **Q2** | Private S3, pre-signed URLs with expiry | Owner 2026-08-04 |
+| **Q3** | Multipart upload to CRM API | Owner 2026-08-04 |
+| **Q4 (revised)** | All documents per doc_type, newest first. NOT latest-only. | Owner 2026-08-04 |
+| **Q5** | All tenants, no feature flag | Owner 2026-08-04 |
+| **Q6** | Max 5 files per doc_type per customer. Oldest auto-dropped on 6th upload. | Owner 2026-08-04 |
+| **Q7** | Upload-only. No delete. | Owner 2026-08-04 |
 
-**Suggested default enum** (can ship without Q1 answer):
 ```python
-ALLOWED_DOC_TYPES = [
-    "aadhaar_front",
-    "aadhaar_back",
-    "passport",
-    "driving_licence",
-    "voter_id",
-    "other"
-]
+ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "other"]
 ```
-
-**Recommendation**: Proceed with implementation using a configurable list. Owner can add/remove types without code change (env var or DB config).
 
 ---
 
@@ -287,7 +293,7 @@ Code reality: FULL (all 6 surfaces verified)
 Risk: HIGH (PII storage + S3 upload + POS API contract)
 Files WILL change: core/s3.py, routers/pos.py, routers/customers.py, CustomerDetailPage.jsx, server.py
 Files WILL NOT touch: core/whatsapp.py, core/loyalty.py, core/coupon.py, models/schemas.py, invoice templates
-Owner decisions: Q1 (doc types) PENDING — does NOT block implementation (architecture is type-agnostic)
+Owner decisions: ALL LOCKED (Q1–Q7)
 Docs: planning/CR_072_IMPACT_ANALYSIS_AND_IMPL_PLAN.md
 Next: Owner answers Q1 (optional) → Owner approval → Implementation
 ```

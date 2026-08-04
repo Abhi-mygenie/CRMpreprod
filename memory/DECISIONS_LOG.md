@@ -1203,3 +1203,23 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: Q1 (document types at launch — Aadhaar, Passport, etc.) to be answered by owner when sharing actual POS payload. Will be locked during impact analysis phase, not intake.
 **Source**: "I will share actual payload which POS used — Q1 during impact analysis"
 **Locks**: `doc_type` field values to be defined once POS payload is shared.
+
+### 2026-08-04 [CR-072] §q1-locked — Document types LOCKED from POS screenshot
+**Decision**: 5 document types confirmed from POS dropdown: `license`, `passport`, `aadhaar`, `pan_card`, `other`. No front/back split — each upload is a single file tagged with one type.
+**Source**: Owner shared POS "Select document type" dropdown screenshot (2026-08-04).
+**Locks**: `ALLOWED_DOC_TYPES = ["license", "passport", "aadhaar", "pan_card", "other"]`
+
+### 2026-08-04 [CR-072] §q4-revised — All documents shown, not latest-only
+**Decision**: Q4 REVISED. POS lookup returns ALL documents per doc_type, sorted newest first. Not latest-only. When customer returns, POS sees full document history grouped by type with most recent upload shown first.
+**Source**: Owner clarification: "all docs under license needs to be shown and user will select, if any time user send selected or new doc that will be always shown first"
+**Locks**: GET documents + customer-lookup return all docs per type, `sort: { uploaded_at: -1 }`.
+
+### 2026-08-04 [CR-072] §q6-locked — Max 5 files per doc_type
+**Decision**: Max 5 files stored per doc_type per customer. When 6th file is uploaded for the same type, oldest is auto-dropped from DB.
+**Source**: Owner: "5"
+**Locks**: Upload endpoint enforces cap; oldest auto-pruned.
+
+### 2026-08-04 [CR-072] §q7-locked — Upload-only, no delete
+**Decision**: No delete capability. POS and CRM staff cannot delete documents. New upload pushes to top (newest-first sort).
+**Source**: Owner: "only upload"
+**Locks**: No DELETE endpoint will be built.
