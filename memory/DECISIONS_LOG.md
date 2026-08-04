@@ -1158,3 +1158,48 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision Q2**: Only import (with full button data from Meta) for tenants who have `meta_waba_id` + `meta_access_token` configured. Skip tenants without WABA — they cannot use Meta API anyway. No stub-only entries.
 **Source**: "2b fetch for whom its configured, it will be always there"
 **Locks**: `sync_authkey_templates()` import block runs ONLY when `user.meta_waba_id` and `user.meta_access_token` are both set. Tenants without WABA: their externally-created templates remain invisible until WABA is configured.
+
+### 2026-08-04 [CR-071] §q1-is_b2b-auto-derive — is_b2b auto-sets when gst_number populated
+**Decision**: `is_b2b` flag automatically set to `True` when `gst_number` is non-empty. No explicit POS send required. If gst_number is cleared, `is_b2b` reverts to `False`.
+**Source**: "is_b2b automatically set to True - if gst number is there"
+**Locks**: All update paths (POS order, POS customer update, CRM edit) — whenever `gst_number` is written as non-empty, `is_b2b` is coerced to `True`.
+
+### 2026-08-04 [CR-071] §q2-customer-type-sync — is_b2b syncs to customer_type + invoice on business name
+**Decision**: When `is_b2b=True`: (1) `customer_type` auto-updates to `"corporate"`. (2) Invoice is addressed to the business name (`gst_name`). Customer `name` field remains the individual contact person. Invoice shows both: "Bill To: {gst_name}" and "Contact: {name}".
+**Source**: "yes it will be B2B invoice, gst customer name will be business name and will also have name which is actual user, invoice will be on business name"
+**Locks**: Invoice template must render `gst_name` as Bill To line and `name` as contact/person line when `is_b2b=True`.
+
+### 2026-08-04 [CR-071] §q3-flat-response — POS customer-lookup returns GST fields flat
+**Decision**: GST fields in POS customer-lookup response are flat (not nested): `gst_name`, `gst_number`, `is_b2b` at top level — consistent with all other customer fields.
+**Source**: "Recommendation: Flat ok" (owner agreed with flat recommendation)
+**Locks**: `POST /api/pos/customer-lookup` response shape: flat `gst_name`, `gst_number`, `is_b2b` at top level.
+
+### 2026-08-04 [CR-071] §q4-invoice-layout — B2B invoice shows "Bill To: {business name}"
+**Decision**: On the invoice, `gst_name` appears as `Bill To: ABC Pvt Ltd`. GSTIN (`gst_number`) appears on the same line or directly below. Individual contact name (`customers.name`) appears as "Contact:" line.
+**Source**: "appear as 'Bill To: ABC Pvt Ltd'"
+**Locks**: Invoice HTML templates must render B2B section when `customer.is_b2b=True` or `customer.gst_number` is set.
+
+### 2026-08-04 [CR-072] §q2-signed-url — Documents stored with signed S3 URLs
+**Decision**: Document images are stored on S3 with **private access** (not public). URLs returned to POS are pre-signed (temporary, expire after N minutes). Appropriate for Aadhaar/PII identity documents.
+**Source**: "signed right accessible from pos"
+**Locks**: S3 object ACL = private. All document URL generation uses `s3.generate_presigned_url()` with configurable expiry.
+
+### 2026-08-04 [CR-072] §q3-upload-path — POS sends file to CRM which uploads to S3
+**Decision**: CRM receives the document file from POS via multipart upload (Option b). CRM is responsible for uploading to S3. POS currently stores on local filesystem — this CR is the integration that moves it to S3.
+**Source**: "it doesn't upload yet we need to start after integration, currently uploading on file system local"
+**Locks**: `POST /api/pos/customers/{id}/documents` accepts multipart form-data (file + doc_type). CRM stores on S3 at `customers/{customer_id}/docs/{doc_type}/{uuid}.{ext}`.
+
+### 2026-08-04 [CR-072] §q4-latest-per-type — Return latest document per type only
+**Decision**: `GET /api/pos/customers/{id}/documents` and `POST /api/pos/customer-lookup` response return only the **latest document per type** (e.g. latest aadhaar_front, latest aadhaar_back). Full history is stored in DB but not surfaced in POS lookup.
+**Source**: "latest"
+**Locks**: Document query uses `$sort created_at DESC` + deduplicated by `doc_type`.
+
+### 2026-08-04 [CR-072] §q5-no-feature-flag — CRM provides API to all tenants, POS decides
+**Decision**: No CRM-side feature flag. The document upload/fetch API is available to all tenants. POS integration team decides which properties/hotels use it. CRM just provides the correct API.
+**Source**: "that's POS can take care, we need to give correct API"
+**Locks**: No `features.documents_enabled` flag on users collection. API open to all authenticated POS clients.
+
+### 2026-08-04 [CR-072] §q1-deferred — Document types locked during impact analysis
+**Decision**: Q1 (document types at launch — Aadhaar, Passport, etc.) to be answered by owner when sharing actual POS payload. Will be locked during impact analysis phase, not intake.
+**Source**: "I will share actual payload which POS used — Q1 during impact analysis"
+**Locks**: `doc_type` field values to be defined once POS payload is shared.

@@ -5,7 +5,7 @@
 **Reporter**: Owner (Abhishek)  
 **Role**: Intake Agent  
 **Source investigation**: INV-014  
-**Status**: 📋 REGISTERED  
+**Status**: 🔵 ALL DECISIONS LOCKED — Ready for Planning  
 
 ---
 
@@ -15,6 +15,33 @@
 > and GST Number is captured — which is missing in CRM. We are not capturing user as
 > B2C or B2B customer. Ideally we should have a key if he is a B2B customer also and
 > capture these variables. In POS API also this should be passed."
+
+---
+
+## Owner Decisions — ALL LOCKED (2026-08-04)
+
+| Q | Decision | Source |
+|---|---|---|
+| **Q1 — `is_b2b` auto-derive** | Auto-set `is_b2b=True` when `gst_number` is non-empty. No explicit flag needed from POS. | "is_b2b automatically set to True - if gst number is there" |
+| **Q2 — customer_type sync + invoice** | `is_b2b=True` → `customer_type` auto-updates to `"corporate"`. Invoice addressed to `gst_name` (business). `name` = contact person. Both shown on invoice. | "yes it will be B2B invoice, gst customer name will be business name, invoice will be on business name" |
+| **Q3 — POS lookup response shape** | **Flat**: `gst_name`, `gst_number`, `is_b2b` at top level — consistent with all other customer fields. | "Flat ok" |
+| **Q4 — Invoice layout** | `gst_name` appears as `Bill To: ABC Pvt Ltd`. GSTIN below. `name` appears as `Contact:` line. | "appear as 'Bill To: ABC Pvt Ltd'" |
+
+---
+
+## Invoice Structure (locked)
+
+```
+┌──────────────────────────────────┐
+│  [Restaurant Name]               │
+│  Invoice #KM/012535              │
+│                                  │
+│  Bill To: ABC Pvt Ltd            │  ← gst_name
+│  GSTIN: 27ABCDE1234F1Z5          │  ← gst_number
+│  Contact: Rahul Kumar            │  ← customer.name
+│  Phone: 9999999999               │
+└──────────────────────────────────┘
+```
 
 ---
 
@@ -179,14 +206,14 @@ Change: Also read `customer.get("gst_name", "")` and pass it to the invoice temp
 
 ---
 
-## Owner Questions Before Planning
+## Owner Questions — ALL ANSWERED AND LOCKED
 
-| # | Question | Options |
-|---|---|---|
-| Q1 | For `is_b2b` field — should it auto-derive from `gst_number` being non-empty, or must it be set explicitly by POS? | (a) Auto-derive: if gst_number is set → is_b2b = True. (b) Explicit only: POS must send `is_b2b: true`. (c) Both — auto-derive as fallback |
-| Q2 | For the order webhook (G1/G2) — when POS sends a B2B order, should `is_b2b=True` also upgrade `customer_type` to "corporate" automatically? | (a) Yes — sync both. (b) No — keep them independent |
-| Q3 | For `customer-lookup` (G3) — does the POS team need a separate GST object or flat fields? | (a) Flat: `gst_name`, `gst_number`, `is_b2b` at top level. (b) Nested: `"gst": {"name": ..., "number": ...}` |
-| Q4 | Invoice template — should `gst_name` appear as "Bill To: ABC Pvt Ltd" or a separate "GST Registered Name" row? | Owner/POS team to decide layout |
+| # | Question | Answer | Locked |
+|---|---|---|---|
+| Q1 | `is_b2b` auto-derive vs explicit? | **Auto-derive**: if `gst_number` non-empty → `is_b2b=True` | ✅ |
+| Q2 | Sync `is_b2b` + `customer_type`? | **Yes**: `is_b2b=True` → `customer_type="corporate"`. Invoice on business name. | ✅ |
+| Q3 | Flat vs nested in lookup response? | **Flat**: `gst_name`, `gst_number`, `is_b2b` at top level | ✅ |
+| Q4 | Invoice layout? | `Bill To: {gst_name}` + `GSTIN: {gst_number}` + `Contact: {name}` | ✅ |
 
 ---
 

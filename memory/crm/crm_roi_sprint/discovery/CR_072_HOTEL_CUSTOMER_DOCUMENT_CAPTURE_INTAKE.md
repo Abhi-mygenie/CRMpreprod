@@ -4,7 +4,7 @@
 **Reported**: 2026-08-04  
 **Reporter**: Owner (Abhishek)  
 **Role**: Intake Agent  
-**Status**: 📋 REGISTERED  
+**Status**: 🔵 Q2–Q5 LOCKED — Q1 (doc types) locked during impact analysis when POS payload shared
 
 ---
 
@@ -16,6 +16,36 @@
 > automatically docs and details should be visible in POS."
 >
 > "For existing customers we will have this later."
+
+---
+
+## Owner Decisions — Q2–Q5 LOCKED (2026-08-04)
+
+| Q | Decision | Status |
+|---|---|---|
+| **Q1 — Document types** | Deferred — owner will share actual POS payload during impact analysis | ⏳ Pending |
+| **Q2 — S3 access** | **Signed URL** — private S3, pre-signed URLs with expiry. Appropriate for Aadhaar/PII. | ✅ Locked |
+| **Q3 — Upload format** | **Multipart upload to CRM API** (option b). CRM accepts file + doc_type, uploads to S3. Currently POS stores on local filesystem — this CR is the integration. | ✅ Locked |
+| **Q4 — POS lookup** | **Latest per doc type only** — latest Aadhaar front, latest Aadhaar back, etc. Full history in DB, not exposed in lookup. | ✅ Locked |
+| **Q5 — Scope** | **No CRM feature flag** — API available to all tenants. POS team decides which properties use it. | ✅ Locked |
+
+---
+
+## S3 Path (locked)
+
+```
+customers/{customer_id}/docs/{doc_type}/{uuid}.{ext}
+e.g. customers/abc123/docs/aadhaar_front/d3f9b2.jpg
+```
+
+## API endpoints to build (locked)
+
+```
+POST /api/pos/customers/{id}/documents     ← POS uploads file (multipart, doc_type field)
+GET  /api/pos/customers/{id}/documents     ← returns latest per doc_type with signed URLs
+POST /api/pos/customer-lookup              ← extend response to include documents[] (signed URLs)
+CRM  CustomerDetailPage                    ← Documents section (view + download)
+```
 
 ---
 
