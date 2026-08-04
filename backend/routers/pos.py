@@ -2564,7 +2564,7 @@ async def pos_search_customers(
     return POSResponse(
         success=True,
         message=f"{len(customers)} customers found",
-        data={"customers": customers, "total": len(customers)}
+        data={"customers": [{**c, "is_b2b": c.get("is_b2b", False), "customer_type": c.get("customer_type", "normal")} for c in customers], "total": len(customers)}
     )
 
 
