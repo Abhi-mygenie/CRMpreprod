@@ -278,6 +278,9 @@ class CustomerBase(BaseModel):
     gst_name: Optional[str] = None
     gst_number: Optional[str] = None
     is_b2b: Optional[bool] = None  # CR-071: auto-derived from gst_number
+    billing_address: Optional[str] = None
+    credit_limit: Optional[float] = None
+    payment_terms: Optional[str] = None  # Net 30, Net 60, etc.
     
     # Address
     address: Optional[str] = None
