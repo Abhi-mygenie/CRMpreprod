@@ -1,0 +1,49 @@
+{
+  "summary": "Complete QA for CR-071 (B2B Customer Capture) + CR-072 (Hotel Document Capture). All 12 backend tests passed (T1, T2, T3, T4, T5, T6, T7 x2, T8, T9, T10, T12, T13). Frontend T11 verified via Playwright — Documents section renders correctly with data-testid='documents-section' in both empty state ('No documents uploaded yet') and populated state (doc-card-aadhaar with doc-download-{id} link). Real S3 uploads worked against mygenie-prod bucket in ap-south-1; signed URLs generated correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/customers",
+        "issue": "PRE-EXISTING BUG (not CR-071/CR-072 scope): CustomerCreate/CustomerBase schema is missing `billing_address`, `credit_limit`, `payment_terms` fields, but create_customer() in customers.py:786 accesses `customer_data.billing_address` unconditionally → AttributeError → 500. Reproduces on any POST /api/customers call with a plain payload. Test suite worked around by seeding via POS webhook path instead."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr071_cr072.py",
+    "/app/test_reports/pytest/pytest_cr071_cr072.xml"
+  ],
+  "action_items": [
+    "OPTIONAL (out of scope, but critical for CRM staff): Add billing_address, credit_limit, payment_terms to CustomerBase in models/schemas.py — POST /api/customers is currently 500ing. Alternatively, use .dict().get() defensively in customers.py:786."
+  ],
+  "critical_code_review_comments": [
+    "CR-071 VERIFIED: pos.py customer_update_set correctly guards non-empty gst_name/gst_number and sets is_b2b=True + customer_type='corporate' only when gst_number present. T2 confirmed that a subsequent order WITHOUT GST does NOT clobber existing B2B fields (regression protection working).",
+    "CR-071 VERIFIED: /api/pos/customer-lookup response now returns customer_type, gst_name, gst_number, is_b2b (flat, top-level) plus documents (grouped dict). All existing lookup fields (name, phone, tier, total_points, wallet_balance, etc.) still present — no regression (T13).",
+    "CR-071 VERIFIED: is_b2b field surfaces in both GET /api/customers list and GET /api/customers/{id} detail responses.",
+    "CR-071 VERIFIED: /api/whatsapp/variables returns customer_gst_name + customer_gst_number (total variables >= 43).",
+    "CR-072 VERIFIED: POST /api/pos/customers/{id}/documents validates doc_type against allow-list (rejects invalid → 400), validates MIME type (rejects text/plain → 400), enforces 5MB max, uploads to S3 as private object, stores metadata in db.customer_documents, prunes oldest when >5 per doc_type (T12: uploaded 6, verified 5 remain), returns signed URL.",
+    "CR-072 VERIFIED: GET /api/pos/customers/{id}/documents returns grouped-by-doc_type structure, newest first, with signed URLs (900s expiry).",
+    "CR-072 VERIFIED: GET /api/customers/{id}/documents (CRM/JWT endpoint) returns same grouped structure.",
+    "CR-072 VERIFIED: Frontend CustomerDetailPage.jsx renders <div data-testid='documents-section'>, shows <p data-testid='no-documents'>No documents uploaded yet</p> for empty state, and doc-card-{type} + doc-download-{id} links for each uploaded document. Layout is clean, aligned with rest of page.",
+    "MINOR: The pos_upload_document handler order: S3_CONFIGURED check happens before doc_type/MIME validation (lines 2130-2146). This is OK, but means if S3 becomes unavailable, tests for invalid doc_type return 503 instead of 400 (test allows both). Not blocking.",
+    "MINOR: In customers.py get_customer_documents, no pagination — capped at 100 docs total. With max 5 per type × 6 types = 30 max, so fine in practice."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr071_cr072.py (new test file)"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 passed)",
+    "frontend": "100% (T11 both empty + populated states verified)"
+  },
+  "test_credentials": "owner@kunafamahal.com / Qplazm@10 (restaurant_689, pos_id=0001). Login returns {access_token, ...}. POS auth: X-API-Key header via GET /api/pos/api-key. IMPORTANT: POS webhook expects pos_id='0001' (not 'mygenie') and restaurant_id='689' (strip 'restaurant_' prefix from /api/auth/me.id).",
+  "seed_data_creation": "Test customers auto-created via POS webhook path (unique phone per run). All cleaned up in fixture teardown.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "test_cr071_cr072.py has 12 tests + helpful fixtures (pos_ids extracts pos_id/restaurant_id from /api/auth/me). Reusable pattern for POS tests. Note pre-existing bug in POST /api/customers (missing billing_address in CustomerBase schema) — bypass by seeding customer via POS webhook.",
+  "rca of the issue": "N/A — no defects in CR-071 or CR-072 implementation. Pre-existing customer-create 500 documented for main agent visibility."
+}
