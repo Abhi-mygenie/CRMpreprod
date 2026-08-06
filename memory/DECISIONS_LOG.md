@@ -1233,3 +1233,34 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: POS API contract validated. All 5 questions answered. One change applied (P5: `voter_id`). CRM implementation gate is now OPEN for both CR-071 and CR-072.
 **Source**: POS team reply 2026-08-04. Contract doc: `handoff/CR_071_CR_072_POS_API_CONTRACT.md`.
 **Key confirmations**: (P1) field names confirmed as-is; (P2) only on manual fill, never-blank guard correct; (P3) check-in only Phase 1, mid-stay Phase 2 same endpoint; (P4) fetch-on-open, no CRM change; (P5) `voter_id` added, filename convention agreed.
+
+---
+
+## 2026-08-06 — CR-075 intake decisions
+
+### 2026-08-06 [CR-075] Q1 — Document migration runs on every sync
+**Decision**: Document migration runs on **every** Sync Customers call, not just the first.
+**Source**: Owner: "q1 every sync"
+**Rationale**: Idempotency guard (`source_url` dedup check before any download/upload) ensures re-running never creates duplicate rows. New POS documents uploaded after the first sync will automatically appear in CRM on next sync.
+**Locks**: `background_customer_sync()` must check `source_url` existence before inserting — skip if already present. No separate "first sync only" flag.
+
+### 2026-08-06 [CR-075] Q2 — Image download failure = skip + log
+**Decision**: If an individual image download fails (network error, unexpected non-404), skip that document and log the failure. Continue processing remaining documents and customers.
+**Source**: Owner: "q2 skip plus log"
+**Rationale**: A single unreachable image should not abort the entire customer sync or block other documents for other customers.
+**Locks**: Each download is wrapped in try/except. Failures logged to sync summary (`skipped_docs_count`, `failed_doc_urls[]`). Migration completes even with partial failures.
+
+### 2026-08-06 [CR-075] Q3 — Migrate all reachable images regardless of host
+**Decision**: No host filtering. Whatever URL comes in the API response gets a download attempt. All reachable images are migrated (manage.mygenie.online ✅, dev.mygenie.online ✅). Only `source_404_skipped` rule applies for the known-broken `/storage/;/` path.
+**Source**: Owner: "q3 what ever comes in API get migrated"
+**Locks**: No allowlist/denylist on image hosts. Single skip rule: `/storage/;/` in URL path → log `source_404_skipped`, do not attempt download.
+
+### 2026-08-06 [CR-075] Q4 — Document naming convention for migrated files (ANSWERED from code)
+**Decision**: Migrated documents follow the **exact same CR-072 naming convention** already in production. The POS original filename is discarded. CRM assigns:
+- **S3 key**: `customers/{customer_id}/docs/{doc_type}/{uuid}.{ext}` (identical to live-upload pattern in `routers/pos.py:2175`)
+- **file_name field**: `{doc_type}_{side}.{ext}` — e.g. `aadhaar_front.jpg`, `aadhaar_back.jpg` (side suffix added since migration has explicit front/back)
+- **Storage**: `put_private_object` (same as CR-072 — private S3, accessed via presigned URL)
+- **uploaded_by**: `"migration"` (distinguishes migrated docs from live POS uploads)
+- **source_url**: original POS URL stored for audit trail
+**Source**: Owner question 2026-08-06: "after migration how crm will change the document name to follow convention we made so store it". Answered by code inspection — `routers/pos.py:2175,2190` establishes the convention; migration follows it identically.
+**Locks**: Migration must NOT store POS filename. Must generate new UUID key. Must set `uploaded_by="migration"` and `source_url=<original_pos_url>` for traceability.

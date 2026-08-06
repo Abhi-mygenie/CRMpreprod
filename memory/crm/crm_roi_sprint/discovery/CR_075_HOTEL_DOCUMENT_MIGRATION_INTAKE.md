@@ -5,7 +5,7 @@
 **Date registered**: 2026-08-06  
 **Role**: Intake Agent  
 **Source**: SESSION_2026_08_06_HANDOVER.md (endpoint validation) + 2026-08-06 live curl validation session  
-**Status**: 📋 REGISTERED — awaiting planning approval  
+**Status**: ✅ INTAKE CLOSED — Q1-Q4 all locked, ready for planning  
 
 ---
 
@@ -202,22 +202,28 @@ for doc in mygenie_customer.get("booking_documents", []):
 
 ---
 
-## 8. Owner Decisions Needed (Q1–Q3)
+## 8. Owner Decisions — LOCKED (2026-08-06)
 
-**Q1**: Should document migration run automatically during every Sync, or only on first sync / on demand?
-- **(a) Every sync** — idempotency guard prevents duplicates; newly uploaded POS docs appear automatically
-- **(b) First sync only** — simpler but new POS uploads never appear in CRM without manual re-trigger
-- **Recommendation**: (a)
+**Q1 — LOCKED: Every sync** ✅
+Document migration runs on every Sync Customers call. Idempotency guard (`source_url` dedup check) ensures re-running never creates duplicate rows. New POS documents uploaded after the first sync will automatically appear in CRM on next sync.
 
-**Q2**: What should happen when a document image download fails (network error, non-404)?
-- **(a) Skip and log** — migration completes, failures logged in sync_log summary
-- **(b) Abort the whole sync** — safe but breaks customer sync too
-- **Recommendation**: (a)
+**Q2 — LOCKED: Skip + log** ✅
+If an individual image download fails, skip that document and log the failure. Continue processing all remaining documents. Failures surface in the sync summary (`skipped_docs_count`, `failed_doc_urls[]`). Migration never aborts due to a single image error.
 
-**Q3**: Should `dev.mygenie.online` images be migrated (they are HTTP 200 and real)?
-- **(a) Yes** — they are real documents uploaded during dev-server period; migrate them
-- **(b) No** — skip non-manage hosts
-- **Recommendation**: (a) — host is irrelevant if the image is reachable
+**Q3 — LOCKED: Whatever comes in API gets migrated** ✅
+No host filtering. All reachable URLs are downloaded regardless of host (manage ✅, dev ✅). Single skip rule: URLs containing `/storage/;/` → `source_404_skipped` (do not attempt download).
+
+**Q4 — LOCKED: Follow CR-072 naming convention exactly** ✅ *(answered from code — no owner decision needed)*
+Owner asked: *"after migration how crm will change the document name to follow convention we made so store it"*
+
+Answer from `routers/pos.py:2175,2190` (CR-072 live implementation):
+- **S3 key**: `customers/{customer_id}/docs/{doc_type}/{uuid}.{ext}` — same as live upload
+- **file_name**: `{doc_type}_{side}.{ext}` — e.g. `aadhaar_front.jpg`, `aadhaar_back.jpg`
+- **Storage**: `put_private_object` (private S3 + presigned URL — same as CR-072)
+- **uploaded_by**: `"migration"` (distinguishes from `"pos"` live uploads)
+- **source_url**: original POS URL stored for audit trail
+
+The POS filename (e.g. `2025-08-16-689ff9c2ebbb1.png`) is **discarded**. CRM generates its own UUID key and assigns a clean `{doc_type}_{side}.{ext}` filename. This matches exactly what happens when a staff member uploads a document manually through POS today.
 
 ---
 
