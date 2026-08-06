@@ -176,3 +176,51 @@ a standalone script — no hotspot files. LOW risk.
 
 **Next agent should start**: INTAKE role → register CR-075 formally → write intake doc.
 **Reference this file**: `memory/crm/crm_roi_sprint/discovery/CR_075_ENDPOINT_VALIDATION.md`
+
+---
+
+## Session 2 Addendum — 2026-08-06 (Live Curl Validation)
+
+**Role**: Intake Agent (live re-validation with full response scan)
+**Token used**: restaurant_id=478 (same as Session 1)
+
+### New findings vs Session 1
+
+| Finding | Session 1 | Session 2 (confirmed) |
+|---|---|---|
+| Pagination needed? | Unclear | ❌ No — all 64 in one call, no pagination keys |
+| Image hosts | `manage.mygenie.online` assumed only | 3 hosts: manage ✅, dev ✅, preprod ❌ 404 |
+| `id_type` "Driving License" | Listed in mapping | ❌ Not present — actual value is **"License"** |
+| `back_image` presence | Assumed present | 16/32 docs have back (50%) |
+| Real doc count | 2 examples shown | 32 confirmed across 5 customers |
+| Customer with null name | Not noted | 9 customers have null/blank name — match by phone |
+
+### Image host breakdown (live HTTP status)
+
+| Host | Docs | Status |
+|---|---|---|
+| `manage.mygenie.online` | 17 | ✅ HTTP 200, 500KB–1MB |
+| `dev.mygenie.online` | 6 | ✅ HTTP 200 |
+| `preprod.mygenie.online` | 9 | ❌ HTTP 404 — `/storage/;/` path bug, files permanently lost |
+
+### Corrected id_type mapping (from live data)
+
+| POS `id_type` | CRM `doc_type` | Seen in live data |
+|---|---|---|
+| `"License"` | `"license"` | ✅ 16 docs |
+| `"Aadhar card"` | `"aadhaar"` | ✅ 10 docs |
+| `"Passport"` | `"passport"` | ✅ 5 docs |
+| `"Other"` | `"other"` | ✅ 1 doc |
+| `"Pan card"` | `"pan_card"` | not in this tenant |
+| `"Voter ID"` | `"voter_id"` | not in this tenant |
+| `"Select document type"` | **SKIP** | majority of entries |
+
+### Architecture decision (owner confirmed same session)
+
+**No new button. No new route.**
+Extend the existing `background_customer_sync()` in `routers/migration.py` to also
+process `booking_documents` from the same response it already receives.
+Same "Sync Customers" button, same API call, same flow — just reads an additional field.
+
+### Intake doc written
+`discovery/CR_075_HOTEL_DOCUMENT_MIGRATION_INTAKE.md`
