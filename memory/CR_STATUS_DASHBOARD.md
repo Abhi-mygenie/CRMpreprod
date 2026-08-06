@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (IMPLEMENTATION Agent · CR-067 + CR-068 + CR-078 ALL IMPLEMENTED — code complete · QA handovers written · ready for QA)**
+> Last updated: **2026-08-06 (IMPLEMENTATION Agent · CR-078 POS API CONTRACT WRITTEN — v1.0 FINAL · POS may integrate)**
 
 ---
 
