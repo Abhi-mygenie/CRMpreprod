@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from pymongo import UpdateOne, InsertOne  # BUG-013
-from core.s3 import generate_presigned_url  # CR-072
+from core.s3 import generate_presigned_url, put_private_object  # CR-072 / CR-075
 
 logger = logging.getLogger("customer_sync")
 
@@ -179,6 +179,26 @@ async def _cust_push_failed_record(log_id: str, record: dict):
         logger.exception("migration_sync_logs push_failed_record_error log_id=%s", log_id)
 
 
+# CR-075: POS id_type → CRM doc_type mapping (confirmed from live API 2026-08-06)
+_CR075_ID_TYPE_MAP = {
+    "Aadhar card": "aadhaar",
+    "Passport":    "passport",
+    "License":     "license",
+    "Pan card":    "pan_card",
+    "Voter ID":    "voter_id",
+    "Other":       "other",
+    # "Select document type" → SKIP (handled in helper)
+}
+
+_CR075_EXT_CONTENT_TYPE = {
+    "jpg":  "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png":  "image/png",
+    "webp": "image/webp",
+    "pdf":  "application/pdf",
+}
+
+
 async def background_customer_sync(user_id: str, mygenie_token: str):
     """Background task to sync customers"""
     mygenie_api_url = os.environ['MYGENIE_API_URL']
@@ -266,6 +286,11 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
             page = 1
             last_page = 1
             customer_index = 0
+            # CR-075: document migration counters (reset per sync run)
+            doc_summary = {
+                "migrated": 0, "skipped_stubs": 0,
+                "skipped_404": 0, "already_present": 0, "failed": 0,
+            }
 
             while page <= last_page:
                 response = await client.post(
@@ -510,6 +535,15 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                     # `loyalty_enabled` and a restaurant with loyalty OFF
                     # has no need for synthetic loyalty history.
 
+                    # CR-075: migrate booking_documents for this customer
+                    await _cr075_migrate_docs(
+                        client,
+                        user_id,
+                        customer_id,
+                        mygenie_customer.get("booking_documents", []),
+                        doc_summary,
+                    )
+
                     # Update progress every 10 customers
                     if (customer_index + 1) % 10 == 0:
                         customer_sync_status[user_id]["synced"] = synced_count
@@ -564,6 +598,11 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                 "synced_count": synced_count,
                 "updated_count": updated_count,
                 "failed_count": failed_count,
+                "docs_migrated":        doc_summary["migrated"],
+                "docs_skipped_stubs":   doc_summary["skipped_stubs"],
+                "docs_skipped_404":     doc_summary["skipped_404"],
+                "docs_already_present": doc_summary["already_present"],
+                "docs_failed":          doc_summary["failed"],
             })
             
     except Exception as e:
@@ -582,6 +621,110 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
             "updated_count": updated_count,
             "failed_count": failed_count,
         })
+
+
+async def _cr075_migrate_docs(
+    client: httpx.AsyncClient,
+    user_id: str,
+    customer_id: str,
+    booking_documents: list,
+    doc_summary: dict,
+) -> None:
+    """CR-075: For one customer, migrate booking_documents from POS → customer_documents (S3 private).
+
+    Decisions locked:
+      Q1 — runs every sync; source_url idempotency guard prevents duplicates
+      Q2 — skip+log on download/upload failure; never raises
+      Q3 — all reachable hosts migrated (manage / dev); /storage/;/ skipped
+      Q4 — CR-072 naming: s3_key=customers/{id}/docs/{type}/{uuid}.{ext},
+           file_name={type}_{side}.{ext}, put_private_object, uploaded_by="migration"
+      Q5 — no per-doc-type cap enforced (historical import; cap stays for live POS uploads)
+    """
+    for doc in booking_documents:
+        id_type = doc.get("id_type", "")
+
+        # Skip empty stubs (majority of POS entries)
+        if id_type == "Select document type":
+            doc_summary["skipped_stubs"] += 1
+            continue
+        front = doc.get("front_image", "") or ""
+        back  = doc.get("back_image",  "") or ""
+        if not front and not back:
+            doc_summary["skipped_stubs"] += 1
+            continue
+
+        doc_type = _CR075_ID_TYPE_MAP.get(id_type, "other")
+
+        for side, url in (("front", front), ("back", back)):
+            if not url:
+                continue
+
+            # Skip known-broken preprod URLs with semicolon path bug (Q3)
+            if "/storage/;/" in url:
+                doc_summary["skipped_404"] += 1
+                logger.info(
+                    "CR-075 source_404_skipped customer_id=%s url=%s",
+                    customer_id, url,
+                )
+                continue
+
+            # Idempotency guard — source_url is the dedup key (Q1)
+            already = await db.customer_documents.find_one(
+                {"user_id": user_id, "customer_id": customer_id, "source_url": url},
+                {"_id": 1},
+            )
+            if already:
+                doc_summary["already_present"] += 1
+                continue
+
+            # Download image (Q2: skip+log on any failure; Q3: no host filtering)
+            try:
+                resp = await client.get(url, timeout=15.0, follow_redirects=True)
+                resp.raise_for_status()
+                img_bytes = resp.content
+            except Exception as dl_err:
+                doc_summary["failed"] += 1
+                logger.warning(
+                    "CR-075 download_failed customer_id=%s url=%s err=%s",
+                    customer_id, url, dl_err,
+                )
+                continue
+
+            # Derive extension from URL filename; fallback to jpg
+            url_filename = url.rsplit("/", 1)[-1].split("?")[0]
+            raw_ext = url_filename.rsplit(".", 1)[-1].lower() if "." in url_filename else "jpg"
+            ext = raw_ext if raw_ext in _CR075_EXT_CONTENT_TYPE else "jpg"
+            content_type = _CR075_EXT_CONTENT_TYPE[ext]
+
+            # S3 key and file_name — CR-072 naming convention (Q4)
+            s3_key    = f"customers/{customer_id}/docs/{doc_type}/{uuid.uuid4().hex}.{ext}"
+            file_name = f"{doc_type}_{side}.{ext}"
+
+            # Upload private — no public ACL, access via presigned URL (Q4)
+            ok = put_private_object(s3_key, img_bytes, content_type)
+            if not ok:
+                doc_summary["failed"] += 1
+                logger.warning(
+                    "CR-075 s3_upload_failed customer_id=%s s3_key=%s",
+                    customer_id, s3_key,
+                )
+                continue
+
+            # Persist metadata — mirrors CR-072 schema exactly, plus source_url (Q4)
+            await db.customer_documents.insert_one({
+                "id":           str(uuid.uuid4()),
+                "user_id":      user_id,
+                "customer_id":  customer_id,
+                "doc_type":     doc_type,
+                "s3_key":       s3_key,
+                "file_name":    file_name,
+                "content_type": content_type,
+                "file_size":    len(img_bytes),
+                "uploaded_at":  datetime.now(timezone.utc).isoformat(),
+                "uploaded_by":  "migration",   # Q4 — distinguishes from "pos" live uploads
+                "source_url":   url,           # Q4 — audit trail + idempotency key
+            })
+            doc_summary["migrated"] += 1
 
 
 @router.post("/sync-from-mygenie")
