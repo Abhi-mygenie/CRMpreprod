@@ -1,0 +1,51 @@
+{
+  "summary": "QA run for BUG-011 and BUG-012. BUG-011 pytest unit tests: 3/3 PASS after fixing missing resolve_variable stub. BUG-012 frontend: all 3 scenarios verified working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/campaigns/history/all + /api/campaigns/{id}/runs",
+        "issue": "No campaign runs or delivered/read message logs exist in the test tenant DB for Kunafa (restaurant_689). Cannot verify non-zero delivered/read API values in live data — only unit test coverage for _augment_run_stats(). Hungry (restaurant_634) also has 0 campaigns.",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "bug_011_unit_tests": {
+    "test_augment_run_stats_computes_counts": "PASS",
+    "test_augment_run_stats_legacy_campaign_id_field": "PASS",
+    "test_augment_run_stats_empty_runs": "PASS",
+    "root_cause_fix_needed": "test stub was missing resolve_variable — fixed in tests/test_bug011_run_stats.py line 58"
+  },
+  "bug_012_frontend_tests": {
+    "with_campaign_id_param": "PASS — banner 'Filtered by campaign: QA-CR076-test' shown, messages filtered",
+    "no_params_regression": "PASS — 'All Campaigns' filter shown, no banner, all 67 messages visible",
+    "with_campaign_and_run_id": "PASS — both 'Filtered by campaign' and 'Filtered to run' banners shown, table filtered"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bug011_run_stats.py",
+    "/app/test_reports/pytest/bug011_results.xml"
+  ],
+  "action_items": [
+    "E1: resolve_variable was missing from the test stub in test_bug011_run_stats.py — FIXED by T1 (added wa_mod.resolve_variable = lambda *a, **kw: '')",
+    "E1: No live campaign run data exists in either test tenant. To fully verify BUG-011 API returning non-zero delivered/read, a completed campaign run with delivered/read WA messages is needed in the test DB."
+  ],
+  "critical_code_review_comments": [
+    "BUG-011 _augment_run_stats() implementation looks correct — $or pipeline, delivered subsumes read, fallback to stored values all implemented properly",
+    "BUG-012 lazy useState init + fetchSeq guard implementation is clean and correct"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bug011_run_stats.py"
+  ],
+  "success_rate": {
+    "backend_unit": "3/3 (100%)",
+    "frontend": "3/3 scenarios PASS (100%)"
+  },
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "BUG-011 and BUG-012 implementation verified. pytest stub fix committed to test_bug011_run_stats.py (resolve_variable). Live API non-zero counters unverifiable due to no campaign run data in test tenants. BUG-012 all 3 deep-link scenarios working."
+}

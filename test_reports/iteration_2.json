@@ -1,0 +1,43 @@
+{
+  "summary": "CR-076 full test run: Backend all 11 tests PASS. Frontend: 4/5 features PASS, 1 bug found in CampaignWizardPage audience pre-fill.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "CampaignWizardPage",
+        "issue": "V5 BUG: When navigating to /campaigns/new?audience_stage=churned&audience_count=100, audience shows '0 customers' and Select shows empty. audienceId is set to lifecycle_stage:churned but (1) there's no matching SelectItem in the dropdown so nothing displays, and (2) audienceCount is reset to 0 by the audienceIdSync useEffect which runs after the prefill effect in the same render with audienceId='all-customers' (initial state not yet updated) and totalCustomers=0.",
+        "selector": "[data-testid='audience-info'], [data-testid='audience-select']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr076.py",
+    "/app/test_reports/pytest/cr076_results.xml"
+  ],
+  "action_items": [
+    "Fix CampaignWizardPage V5 pre-fill bug: audienceIdSync useEffect resets audienceCount to 0 when lifecycle_stage: prefix audience is pre-filled. Fix: add guard in audienceIdSync effect — if audienceId starts with 'lifecycle_stage:', skip the effect (preserve the count from URL param). Also add a read-only display item in the Select for lifecycle_stage: audience_id so the Select shows 'Churned Customers' instead of empty.",
+    "RCA: In CampaignWizardPage, the useEffect at line 169 has deps [audienceId, segments, totalCustomers]. On initial mount, it runs with audienceId='all-customers' (initial state, pre-fill hasn't committed yet) and totalCustomers=0, calling setAudienceCount(0). The pre-fill useEffect sets audienceCount(100) in the same mount cycle, but React's state update batching means the audienceId sync effect may run AFTER with stale values overriding the 100 with 0."
+  ],
+  "critical_code_review_comments": [
+    "CampaignWizardPage.jsx L169-177: audienceIdSync useEffect has a race condition with the prefill useEffect. The prefill sets audienceId=lifecycle_stage:X and audienceCount=N but the audienceIdSync effect (which runs in the same render cycle) sees audienceId='all-customers' (stale initial value) and sets audienceCount=0, overriding the prefill. Fix: Guard with `if (audienceId.startsWith('lifecycle_stage:')) return;` at the top of the audienceIdSync effect.",
+    "CampaignWizardPage.jsx L407-414: The audience Select has no option for lifecycle_stage: prefixed IDs, so when pre-filled from URL params, the Select shows as empty. Should render a disabled/read-only option showing the lifecycle stage name when audienceId starts with 'lifecycle_stage:'."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr076.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests pass)",
+    "frontend": "80% (V1-AudiencesPage PASS, V2-BulkReengage PASS, V3-V4-Navigation PASS, V6-Modal PASS, V8-CustomerDetail auto-open PASS, V5-CampaignWizard pre-fill FAIL)"
+  },
+  "seed_data_creation": "Test segments created with prefix QA-CR076- and cleaned up automatically by pytest teardown",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Backend 11 tests all pass (lifecycle_stage segments, campaign lifecycle audience prefix, regression filters). Frontend: all CR-076 features work except CampaignWizardPage URL param pre-fill which shows 0 customers and empty Select. Lifecycle page route is /customer-lifecycle (not /analytics/lifecycle). Customer used for testing: b041e181-3130-4780-bf16-6525fae85435. Lifecycle analytics at GET /api/analytics/customer-lifecycle.",
+  "rca_of_issue": "CampaignWizardPage V5 pre-fill bug: React useEffect execution order issue. The audienceIdSync effect (deps: audienceId, segments, totalCustomers) runs in the initial render with audienceId='all-customers' (initial useState value) and totalCustomers=0, calling setAudienceCount(0). The prefill effect (deps: []) ALSO runs in the initial render and calls setAudienceCount(100). In React 18, both effects run in order after the same render — audienceIdSync first (line 169 is later in code than prefill at line 116, so actually prefill runs FIRST then audienceIdSync). Since audienceIdSync sees audienceId='all-customers' (not yet updated from prefill's setState) and totalCustomers=0, it calls setAudienceCount(0) which overrides the 100 set by prefill. Fix: add `if (audienceId.startsWith('lifecycle_stage:')) return;` to audienceIdSync effect."
+}

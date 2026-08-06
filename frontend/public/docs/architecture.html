@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyGenie CRM — Architecture v1.1</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#e8590c; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; line-height:1.6; }
+  .wrap { max-width:1280px; margin:0 auto; padding:48px 32px 96px; }
+  header { border-bottom:1px solid var(--border); padding-bottom:24px; margin-bottom:40px; }
+  h1 { font-size:2rem; margin:0 0 8px; }
+  h1 span { color:var(--accent); }
+  .meta { color:var(--muted); font-size:.9rem; }
+  .meta a { color:var(--accent); }
+  h2 { font-size:1.3rem; margin:56px 0 8px; padding-left:14px; border-left:4px solid var(--accent); }
+  .desc { color:var(--muted); font-size:.92rem; margin:0 0 16px; }
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; }
+  pre.mermaid { margin:0; display:flex; justify-content:center; }
+  .note { background:#1c2128; border:1px solid var(--border); border-left:4px solid #d29922; border-radius:8px; padding:12px 18px; margin-top:14px; font-size:.88rem; color:var(--muted); }
+  .note b { color:var(--text); }
+  nav { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  nav a { color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:.82rem; text-decoration:none; }
+  nav a:hover { border-color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>MyGenie CRM — <span>Architecture</span></h1>
+  <div class="meta">v1.1 · 2026-07-06 · Sprint 10 closure baseline · Source: <code>/app/memory/ARCHITECTURE.md</code> · Companion: <a href="./dataflow.html">Data Flow doc →</a></div>
+  <nav>
+    <a href="#s1">1 · System architecture</a>
+    <a href="#s2">2 · Auth &amp; session</a>
+    <a href="#s3">3 · Campaign send</a>
+    <a href="#s4">4 · Template lifecycle</a>
+    <a href="#s5">5 · Segmentation &amp; tags</a>
+    <a href="#s6">6 · POS + external sends</a>
+  </nav>
+</header>
+
+<h2 id="s1">1 · High-level system architecture</h2>
+<p class="desc">React SPA + FastAPI backend + MongoDB preprod, with MyGenie POS/SSO, AuthKey WhatsApp, Meta Graph and S3 at the edges.</p>
+<div class="panel"><pre class="mermaid">
+flowchart LR
+    subgraph Client["Web + Mobile Clients"]
+        Browser["Browser (React SPA)"]
+        Capacitor["Capacitor Mobile Shell (iOS / Android)"]
+    end
+
+    subgraph Edge["Emergent Kubernetes Ingress"]
+        Ingress["nginx / K8s ingress&lt;br/&gt;/api → backend:8001&lt;br/&gt;rest → frontend:3000"]
+    end
+
+    subgraph FE["Frontend Pod"]
+        React["React (CRACO) + Tailwind + shadcn"]
+        RQuery["react-query / fetch"]
+    end
+
+    subgraph BE["Backend Pod — FastAPI"]
+        Uvicorn["Uvicorn (0.0.0.0:8001)"]
+        Server["server.py"]
+        subgraph Routers
+            R_Auth["routers/auth.py"]
+            R_Cust["routers/customers.py&lt;br/&gt;(2200+ LOC — refactor pending)"]
+            R_Camp["routers/campaigns.py"]
+            R_WA["routers/whatsapp.py&lt;br/&gt;(HOTSPOT, ~4k LOC)"]
+            R_POS["routers/pos.py"]
+            R_Inv["routers/invoices.py"]
+            R_Others["analytics · coupons · feedback · loyalty · menu · points · scan · suggestions · wallet · migration · cron"]
+        end
+        subgraph Core["core/"]
+            C_Helpers["helpers.py&lt;br/&gt;(build_customer_query)"]
+            C_Sched["scheduler.py&lt;br/&gt;(APScheduler)"]
+            C_Jobs["campaign_jobs.py&lt;br/&gt;(process_due_campaigns)"]
+            C_WA["whatsapp.py&lt;br/&gt;(send_bulk_messages)"]
+            C_S3["s3.py&lt;br/&gt;(bill logos + invoices)"]
+            C_Loyalty["loyalty.py + loyalty_jobs.py"]
+            C_Auth["auth.py (JWT + MyGenie SSO helper)"]
+        end
+        subgraph Services["services/"]
+            S_Invoice["invoice_generator.py&lt;br/&gt;(WeasyPrint + Jinja2)"]
+            S_Analytics["analytics_service.py"]
+        end
+    end
+
+    subgraph Data["Data Layer"]
+        Mongo[("MongoDB preprod&lt;br/&gt;mygenie · 29 collections&lt;br/&gt;5,971 customers")]
+        S3[("AWS S3 mygenie-prod&lt;br/&gt;ap-south-1&lt;br/&gt;bill-logos/ + invoices/")]
+    end
+
+    subgraph External["External Services"]
+        MyGenie["MyGenie Preprod&lt;br/&gt;(SSO + POS)"]
+        AuthKey["AuthKey.io&lt;br/&gt;WhatsApp API + templates"]
+        Meta["Meta Graph API v21&lt;br/&gt;(status check + /uploads)"]
+        Fresh["Freshmarketer&lt;br/&gt;(inbound webhook)"]
+    end
+
+    Browser --> Ingress
+    Capacitor --> Ingress
+    Ingress -->|/*| React
+    Ingress -->|/api/*| Uvicorn
+
+    React &lt;--> RQuery
+    RQuery -->|REACT_APP_BACKEND_URL/api/*| Ingress
+
+    Uvicorn --> Server
+    Server --> R_Auth
+    Server --> R_Cust
+    Server --> R_Camp
+    Server --> R_WA
+    Server --> R_POS
+    Server --> R_Inv
+    Server --> R_Others
+
+    R_Auth --> C_Auth
+    R_Cust --> C_Helpers
+    R_Camp --> C_Helpers
+    R_Camp --> C_Jobs
+    R_WA --> C_WA
+    R_Inv --> S_Invoice
+
+    C_Sched -.schedules.-> C_Jobs
+    C_Jobs --> C_WA
+    C_WA --> AuthKey
+
+    R_Auth &lt;--> MyGenie
+    R_POS &lt;--> MyGenie
+    R_WA &lt;--> Meta
+    Fresh --> R_WA
+
+    S_Invoice --> C_S3
+    R_Auth --> C_S3
+    C_S3 --> S3
+
+    R_Auth --> Mongo
+    R_Cust --> Mongo
+    R_Camp --> Mongo
+    R_WA --> Mongo
+    R_POS --> Mongo
+    R_Inv --> Mongo
+    R_Others --> Mongo
+    C_Jobs --> Mongo
+    C_Loyalty --> Mongo
+</pre></div>
+<div class="note"><b>Notes</b> — APScheduler runs two jobs: Daily Loyalty @ 00:00 UTC, Process Due Campaigns @ every minute (gated by <code>CAMPAIGN_SCHEDULER_ENABLED</code>). S3 falls back to local disk when unconfigured.</div>
+
+<h2 id="s2">2 · Authentication &amp; session flow</h2>
+<p class="desc">MyGenie SSO pass-through with idempotent user upsert and one-time CRM token registration with POS (CR-028 + BUG-008).</p>
+<div class="panel"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as Owner (Browser)
+    participant FE as React (LoginPage)
+    participant BE as FastAPI /api/auth/login
+    participant MG as MyGenie preprod
+    participant DB as MongoDB users
+    participant POS as MyGenie POS
+
+    U->>FE: email + password
+    FE->>BE: POST /api/auth/login
+    BE->>MG: POST /api/v1/auth/vendoremployee/login
+    MG-->>BE: mygenie_token + restaurant_id
+    BE->>MG: GET /api/v1/vendoremployee/profile
+    MG-->>BE: restaurant profile + POS config
+    BE->>DB: upsert users doc (idempotent)
+    alt crm_token_registered_with_pos = false
+        BE->>POS: POST /api/v1/crm_token (register api_key)
+        POS-->>BE: 200 / 409 (idempotent)
+        BE->>DB: set crm_token_registered_with_pos=true
+    end
+    BE-->>FE: access_token (JWT 24h) + user + pos_config
+    FE->>FE: store JWT
+    FE-->>U: redirect to /dashboard
+</pre></div>
+
+<h2 id="s3">3 · Campaign send data flow (CR-024 + CR-039)</h2>
+<p class="desc">Audience resolution → scheduled fire → per-recipient send with composite-key logging and defensive webhook handling.</p>
+<div class="panel"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as Owner
+    participant FE as CampaignsPage
+    participant BE as routers/campaigns.py
+    participant Helpers as core/helpers.py&lt;br/&gt;(build_customer_query)
+    participant DB as MongoDB
+    participant Sched as APScheduler&lt;br/&gt;(process_due_campaigns @1m)
+    participant Send as core/whatsapp.py&lt;br/&gt;(send_bulk_messages)
+    participant AK as AuthKey API
+    participant WA as WhatsApp
+    participant Cb as /api/whatsapp/callback
+
+    U->>FE: create campaign (audience + template + schedule)
+    FE->>BE: POST /api/campaigns
+    BE->>Helpers: resolve audience filter → customer_ids
+    Helpers->>DB: filtered find on customers
+    BE->>DB: insert campaigns + campaign_runs
+    BE-->>FE: 201 Created
+
+    loop every minute (if enabled)
+        Sched->>BE: process_due_campaigns()
+        BE->>DB: find due campaigns (atomic claim)
+        BE->>Send: batch send
+        Send->>AK: POST bulkSMS (per recipient)
+        AK-->>Send: LogID (may DUPLICATE across recipients)
+        Send->>DB: insert N whatsapp_message_logs rows&lt;br/&gt;composite key: message_id + customer_phone
+        AK->>WA: dispatch
+    end
+
+    WA-->>AK: delivery status
+    AK->>Cb: webhook (logid, mobile, status)
+    Cb->>DB: find_one(message_id=logid, customer_phone=mobile)
+    Note over Cb,DB: CR-039 fix: composite lookup&lt;br/&gt;(was silently updating row 1 of N)
+    Cb->>DB: update status/timestamp&lt;br/&gt;gated behind state machine (CR-041)
+</pre></div>
+<div class="note"><b>Defensive properties</b> — composite webhook lookup with ambiguous-row skip (CR-039); timestamp writes after the state-machine gate (CR-041); <code>max_instances=1 + coalesce + 15s timeouts + atomic claim</code>.</div>
+
+<h2 id="s4">4 · WhatsApp template lifecycle (CR-023 + CR-037)</h2>
+<p class="desc">Local draft → Meta submission → async review → AuthKey sync, preserving rejected status (CR-037).</p>
+<div class="panel"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as Owner
+    participant FE as TemplateBuilderPage
+    participant BE as routers/whatsapp.py
+    participant DB as MongoDB custom_templates
+    participant Meta as Meta Graph v21
+    participant AK as AuthKey (migrate + list)
+
+    U->>FE: build template (body + variables + header)
+    FE->>BE: POST /api/whatsapp/custom-templates
+    BE->>DB: insert (status=draft)
+    U->>FE: Submit to Meta
+    FE->>BE: POST /api/whatsapp/custom-templates/:id/submit
+    BE->>Meta: create WA message template
+    Meta-->>BE: template_id + status=PENDING
+    BE->>DB: status=pending
+
+    Note over Meta: async review (mins to hrs)
+
+    U->>FE: click Refresh status
+    FE->>BE: GET /api/whatsapp/check-template-status/:id
+    BE->>Meta: GET template status
+    Meta-->>BE: APPROVED | REJECTED
+    BE->>DB: status=approved | rejected
+
+    U->>FE: click Sync with AuthKey
+    FE->>BE: POST /api/whatsapp/authkey/sync-templates
+    BE->>AK: POST wptemplateMigration
+    BE->>AK: GET getAllTemplate
+    AK-->>BE: template_name + wid list
+    BE->>DB: find custom_templates (projection includes status — CR-037 fix)
+    loop for each local template
+        BE->>DB: if status != rejected → approved + authkey_wid&lt;br/&gt;else → authkey_wid only (preserve rejected)
+    end
+</pre></div>
+
+<h2 id="s5">5 · Audience segmentation + tagging (CR-033 + CR-034 + CR-043)</h2>
+<p class="desc">20-filter query builder + tags with ANY/ALL semantics, backed by compound index.</p>
+<div class="panel"><pre class="mermaid">
+flowchart LR
+    subgraph FE_Audience["AudiencesPage.jsx"]
+        Accordion["5 accordion sections:&lt;br/&gt;Loyalty &amp; Tier · Dates &amp; Occasions&lt;br/&gt;· WhatsApp &amp; Engagement&lt;br/&gt;· Customer Flags &amp; Profile · Tags"]
+        Chips["Active-filter chips&lt;br/&gt;(dismissible)"]
+        AnyAll["Tags ANY/ALL toggle"]
+    end
+
+    subgraph FE_Customers["CustomersPage.jsx"]
+        ChipStrip["Top-6-by-count tag chip strip&lt;br/&gt;(CR-043 Part A)"]
+        RowTags["Per-row TagChip + tag popover&lt;br/&gt;(CR-034)"]
+    end
+
+    subgraph BE_Cust["routers/customers.py"]
+        ListCust["GET /customers?tags=&amp;tags_mode="]
+        TagCRUD["POST/DELETE /customers/:id/tags"]
+        TagCatalog["GET /customers/tags?with_counts=true"]
+        BulkTag["POST /customers/bulk-tag · bulk-untag"]
+    end
+
+    subgraph BE_Seg["routers/campaigns.py + segments"]
+        Preview["POST /segments/preview-count"]
+        SaveSeg["POST /segments (audience)"]
+    end
+
+    subgraph Query["core/helpers.py"]
+        BCQ["build_customer_query() — async&lt;br/&gt;20 filter blocks (CR-033)&lt;br/&gt;+ tags filter block (CR-034)"]
+    end
+
+    subgraph Mongo["MongoDB"]
+        Customers[("customers&lt;br/&gt;tags · vip_flag · whatsapp_opt_in · birthday")]
+        Users[("users&lt;br/&gt;available_tags (catalog)")]
+        Segments[("segments&lt;br/&gt;filters JSON + count")]
+        IdxTags[("idx_customers_user_tags&lt;br/&gt;user_id:1, tags:1")]
+    end
+
+    Accordion --> Preview
+    Chips --> Preview
+    AnyAll --> Preview
+    Preview --> BCQ
+    SaveSeg --> BCQ
+    BCQ --> Customers
+    BCQ -.uses.-> IdxTags
+
+    ChipStrip --> ListCust
+    RowTags --> TagCRUD
+    ListCust --> BCQ
+
+    TagCRUD --> Customers
+    TagCRUD --> Users
+    TagCatalog --> Customers
+    TagCatalog --> Users
+    BulkTag --> Customers
+
+    SaveSeg --> Segments
+</pre></div>
+<div class="note"><b>BUG-A fix (CR-033)</b> — six boolean filters (<code>vip_flag</code>, <code>whatsapp_opt_in</code>, <code>has_birthday_this_month</code>, <code>is_blocked</code>, <code>blacklist_flag</code>, <code>complaint_flag</code>) now gated by explicit <code>!= 'all'</code> guard with truthy coercion. Verified on preprod DB.</div>
+
+<h2 id="s6">6 · POS + external send pipeline (CR-DIRECT-SEND + CR-030)</h2>
+<p class="desc">Two external inbound triggers — MyGenie POS (flat JSON + X-API-Key) and Freshmarketer (nested envelope, idempotent on Body.id).</p>
+<div class="panel"><pre class="mermaid">
+flowchart LR
+    subgraph External
+        POS["MyGenie POS"]
+        FM["Freshmarketer"]
+    end
+
+    subgraph BE["Backend"]
+        R_POS["routers/pos.py"]
+        R_WA_hook["routers/whatsapp.py&lt;br/&gt;POST /api/pos/webhook"]
+        Send["core/whatsapp.py&lt;br/&gt;send message"]
+        DB[("MongoDB&lt;br/&gt;whatsapp_message_logs&lt;br/&gt;webhook_logs")]
+    end
+
+    POS -->|X-API-Key + flat JSON| R_POS
+    R_POS -->|resolve template via variable_labels| Send
+
+    FM -->|nested envelope&lt;br/&gt;Body.data.custom_data| R_WA_hook
+    R_WA_hook -->|extract + coerce numbers| Send
+    R_WA_hook -->|idempotency on Body.id| DB
+
+    Send --> AuthKey["AuthKey.io"]
+    Send --> DB
+    AuthKey --> Callback["/api/whatsapp/callback"]
+    Callback --> DB
+</pre></div>
+
+</div>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose', flowchart: { curve: 'basis' } });
+</script>
+</body>
+</html>

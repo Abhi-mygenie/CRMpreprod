@@ -1,0 +1,50 @@
+{
+  "summary": "Formal QA run for BUG-011, BUG-012, CR-061, CRM-2. All tests PASS.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "BUG-011": {
+      "status": "PASS",
+      "details": "3/3 pytest tests pass. _augment_run_stats() correctly aggregates delivered/read/sent/failed from whatsapp_message_logs at read-time. Legacy campaign_id $or field verified. Empty runs handled.",
+      "test_file": "/app/backend/tests/test_bug011_run_stats.py"
+    },
+    "BUG-012": {
+      "status": "PASS",
+      "details": "Playwright tests 3/3 pass. (1) /message-status?campaign_id=b2-e2e-campaign shows campaign banner + only 2 rows for that campaign. (2) /message-status with no params shows all messages (regression clean). (3) /message-status?campaign_id=X&run_id=Y shows both campaign banner and run banner.",
+      "screenshots": [".screenshots/bug012_campaign_filter.png", ".screenshots/bug012_both_filters.png"]
+    },
+    "CR-061": {
+      "status": "PASS",
+      "details": "13/13 pytest tests pass. jehsnest (restaurant_635, NOT in allowlist) gets crm_templates_enabled=False from /api/whatsapp/api-key. All 6 authoring endpoints return non-403. GET /api/whatsapp/custom-templates returns 200. Health check 200.",
+      "test_file": "/app/backend/tests/test_cr061_gate_removal.py"
+    },
+    "CRM-2": {
+      "status": "PASS",
+      "details": "POST /api/pos/customers/{customer_id}/documents with valid POS API key + doc_type=aadhaar but no file returns HTTP 400 with detail='file is required' (not 422).",
+      "test_file": "/app/backend/tests/test_crm2_doc_upload.py"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bug011_run_stats.py",
+    "/app/backend/tests/test_cr061_gate_removal.py",
+    "/app/backend/tests/test_crm2_doc_upload.py",
+    "/app/test_reports/pytest/bug011_results.xml",
+    "/app/test_reports/pytest/cr061_results.xml",
+    "/app/test_reports/pytest/crm2_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/backend/tests/test_crm2_doc_upload.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Used existing customer phone=9999999999 for CRM-2 test (customer_id=793637c6-7374-43f8-8fc5-3197796319c2, tenant 478)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 4 items fully verified: BUG-011 (3/3 unit), BUG-012 (3/3 Playwright), CR-061 (13/13 pytest), CRM-2 (1/1 pytest). No failures. New test file added: test_crm2_doc_upload.py."
+}
