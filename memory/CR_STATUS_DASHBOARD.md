@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (SESSION — Planning Agent · CR-067 + CR-068 PLANNING APPROVED — all decisions locked · implementation plan gate open)**
+> Last updated: **2026-08-06 (SESSION CLOSED — Planning Agent · CR-067 + CR-068 PLANNING APPROVED · all decisions locked · session handover written · awaiting owner approval to build)**
 
 ---
 
