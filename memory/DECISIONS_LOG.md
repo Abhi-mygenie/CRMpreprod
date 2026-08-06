@@ -1288,6 +1288,18 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner: "q3 what ever comes in API get migrated"
 **Locks**: No allowlist/denylist on image hosts. Single skip rule: `/storage/;/` in URL path → log `source_404_skipped`, do not attempt download.
 
+### 2026-08-06 [CR-078] — Registered: POS Customer Intelligence Report API
+**Decision**: CR-078 formally registered as P2, MEDIUM risk.
+**Source**: Owner verbal — "we want to build a report about the customer intelligence… right now POS has one-to-one lookup, it doesn't have aggregated endpoint for the reports".
+**Rationale**: Code confirmed zero aggregate POS endpoints exist. All intelligence computation (customer_intelligence.py, analytics.py) is CRM-JWT gated. Blast radius SMALL — new file only.
+**Locks**:
+- ID: CR-078
+- New file: `routers/pos_reports.py` + 1 line `server.py`. Zero existing files modified.
+- Auth: `verify_pos_auth` (X-API-Key) — same as all existing POS endpoints.
+- NOT a duplicate of cross-sell API (per-customer) or CR-003 (CRM JWT frontend analytics).
+- Planning BLOCKED on owner Q1 (which endpoints), Q2 (caching), Q3 (value score sort approach).
+- CR-067 + CR-068 remain higher priority and proceed first.
+
 ### 2026-08-06 [CR-075] Q5 — Do NOT enforce 5-doc cap during migration
 **Decision**: Skip the CR-072 per-doc-type cap (max 5) during migration. All historical documents from POS are imported as-is regardless of count. The cap applies to future live POS uploads only.
 **Source**: Owner: "b" (2026-08-06) in response to Q5 options (a=enforce cap / b=skip cap for migration).

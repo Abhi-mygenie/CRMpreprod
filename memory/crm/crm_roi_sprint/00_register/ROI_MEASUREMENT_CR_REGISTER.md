@@ -121,6 +121,10 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 
 ---
 
+| 28 | `CR-078 POS Customer Intelligence Report API` | New feature — POS aggregated report endpoints | Intake: `../discovery/CR_078_POS_CUSTOMER_INTELLIGENCE_REPORT_INTAKE.md` | `cr078_registered_awaiting_owner_q1_q2_q3` |
+
+---
+
 ## 6. Next Immediate Action
 
 - Kick off **CR-005 Phase 0 Discovery** to triage the 7 R689 field bugs (B1-B7), confirm B3/B6 dedupe, and decide routing (CRM-1.1 patch vs fold into CR-002B / V3-A2).
