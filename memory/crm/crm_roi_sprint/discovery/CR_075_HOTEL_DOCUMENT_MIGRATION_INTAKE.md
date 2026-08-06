@@ -143,15 +143,18 @@ This is the owner's preferred approach: same endpoint, same sync, one button, ze
 
 ## 6. Files That Will Change
 
+⚠️ **FILE CORRECTION (Planning Agent 2026-08-06)**: Intake doc incorrectly named `routers/migration.py`. Code reality confirms `background_customer_sync()` is at `routers/customers.py:182`. See `planning/CR_075_IMPACT_ANALYSIS.md` §2.
+
 | File | Change |
 |---|---|
-| `backend/routers/migration.py` | Extend `background_customer_sync()`: after customer upsert, loop over `booking_documents`, skip stubs + 404 URLs, download → S3 → insert `customer_documents` |
+| `backend/routers/customers.py` | Extend `background_customer_sync()` (line 182): add `put_private_object` import, add helper call after `customer_id` resolved (~line 513), add new `_migrate_booking_documents()` helper function |
 
 **Files that will NOT change:**
+- `routers/migration.py` — handles order sync only; `background_customer_sync` is NOT here
 - `frontend/src/pages/MigrationPage.jsx` — no UI change
 - `core/coupon.py`, `core/loyalty.py`, `routers/pos.py` — no hotspot files touched
 - `models/schemas.py` — no schema change (customer_documents schema exists from CR-072)
-- `core/s3.py` — used as-is (read-only import)
+- `core/s3.py` — used as-is (adding `put_private_object` to import in customers.py only)
 
 ---
 
