@@ -255,6 +255,7 @@ export default function TemplateBuilderPage() {
   const [customTemplates, setCustomTemplates] = useState([]);
   const [metaErrors, setMetaErrors] = useState([]);
   const bodyRef = useRef(null);
+  const [validateResult, setValidateResult] = useState(null); // CR-068: standalone validation state
 
   // CR-061 revised: Template Builder is accessible for ALL tenants (Add Template
   // button always visible). The allowlist only gates the CRM Templates drafts section
@@ -479,6 +480,14 @@ export default function TemplateBuilderPage() {
     finally { setSubmitting(false); }
   };
 
+  // CR-068: Standalone compliance dry-run — zero API calls, works for all tenants
+  const handleValidate = () => {
+    const { valid, errors, warnings: complianceWarnings } = validateMetaCompliance(tpl);
+    const bodyW   = getBodyWarnings(tpl.body);
+    const footerW = getFooterWarnings(tpl.footer);
+    setValidateResult({ valid, errors, warnings: [...complianceWarnings, ...bodyW, ...footerW] });
+  };
+
   // Status step
   const getStatusIdx = () => {
     if (status === "approved") return 4;
@@ -506,6 +515,9 @@ export default function TemplateBuilderPage() {
           <Button variant="outline" onClick={handleSaveDraft} disabled={saving} data-testid="builder-save-draft-btn">
             {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
             {saving ? "Saving..." : "Save as Draft"}
+          </Button>
+          <Button variant="outline" onClick={handleValidate} data-testid="builder-validate-btn">
+            <CheckCircle className="w-4 h-4 mr-1" /> Validate
           </Button>
           <Button onClick={handleSubmitToMeta} disabled={submitting || status === "approved"} className="bg-[#25D366] hover:bg-[#1da851] text-white" data-testid="builder-submit-meta-btn">
             {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
@@ -662,6 +674,35 @@ export default function TemplateBuilderPage() {
                 <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {w}
               </p>
             ))}
+
+            {/* CR-068: Validate result panel — errors red, warnings amber, dismissible */}
+            {validateResult && (
+              <div className={`mt-3 rounded-lg border p-3 text-sm ${validateResult.errors.length === 0 ? "border-green-300 bg-green-50" : "border-red-300 bg-red-50"}`} data-testid="builder-validate-result">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 space-y-1">
+                    {validateResult.valid && validateResult.warnings.length === 0 && (
+                      <p className="text-green-700 font-semibold flex items-center gap-1.5" data-testid="builder-validate-pass">
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" /> All V1–V23 checks passed
+                      </p>
+                    )}
+                    {validateResult.errors.map((e, i) => (
+                      <p key={i} className="text-red-700 flex items-start gap-1.5" data-testid={`builder-validate-error-${i}`}>
+                        <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {e}
+                      </p>
+                    ))}
+                    {validateResult.warnings.map((w, i) => (
+                      <p key={i} className="text-amber-700 flex items-start gap-1.5" data-testid={`builder-validate-warning-${i}`}>
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {w}
+                      </p>
+                    ))}
+                  </div>
+                  <button onClick={() => setValidateResult(null)} className="text-gray-400 hover:text-gray-600 flex-shrink-0 mt-0.5" data-testid="builder-validate-dismiss-btn">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {bodyVars.length > 0 && (
               <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200" data-testid="builder-body-examples">
                 <Label className="text-sm font-semibold text-blue-800">Example Values (Required by Meta)</Label>

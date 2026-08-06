@@ -1312,6 +1312,18 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 - `db.customers.create_index("user_id")` added to server.py lifespan (idempotent, performance fix for all queries).
 - Implementation gate: BLOCKED on owner approval per §7 of agent system prompt.
 
+
+### 2026-08-06 [CR-068] Implementation Complete
+**Decision**: CR-068 implemented. 4 additions applied to `TemplateBuilderPage.jsx`. Zero other files changed.
+**Source**: Implementation Agent 2026-08-06.
+**Locks**:
+- A1 (line 258): `const [validateResult, setValidateResult] = useState(null)`
+- A2 (line 484): `handleValidate()` — calls validateMetaCompliance + getBodyWarnings + getFooterWarnings, sets state
+- A3 (line 519): Validate button in top bar between Save as Draft and Submit to Meta
+- A4 (line 679): Inline result panel — green on pass, red errors, amber warnings, dismiss button
+- Webpack compiled successfully. Screenshot confirmed button visible.
+- QA handover: `qa/CR_068_QA_HANDOVER.md`
+
 ### 2026-08-06 [CR-078] Q1 — Phase 1 scope: E1 + E2 + E3 only
 **Decision**: Phase 1 builds three endpoints: E1 `/reports/summary`, E2 `/reports/top-customers`, E3 `/reports/churn-risk`.
 **Source**: Owner: "1 b"
