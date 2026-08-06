@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>CR-036 Batch B.2 — UI Mockups (mapped to existing screens)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#f5f6f8; }
+  .diff-add { outline: 2px dashed #f59e0b; outline-offset: 3px; border-radius: 10px; position: relative; }
+  .diff-add::after { content: attr(data-label); position: absolute; top: -10px; left: 8px; background:#f59e0b; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:9999px; letter-spacing:.03em; }
+  .chip-badge { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:9999px; }
+</style>
+</head>
+<body class="text-gray-900">
+
+<div class="max-w-[1500px] mx-auto p-6 space-y-10">
+
+  <!-- Header -->
+  <header class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-lg bg-[#F26B33] text-white grid place-items-center font-bold">B2</div>
+    <div>
+      <h1 class="text-2xl font-extrabold tracking-tight">CR-036 Batch B.2 — Mockups on existing screens</h1>
+      <p class="text-sm text-gray-500">Two screens change: <b>Message Status</b> + <b>Campaign Wizard · Step 2</b>. Every dashed amber box is a B.2 delta.</p>
+    </div>
+  </header>
+
+  <!-- =================================================================== -->
+  <!-- SCREEN 1: MESSAGE STATUS -->
+  <!-- =================================================================== -->
+  <section>
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Screen 1 / 2</span>
+      <h2 class="text-xl font-bold">WhatsApp Reports → Message Status</h2>
+      <span class="text-xs text-gray-400 font-mono">/message-status · MessageStatusPage.jsx</span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+
+      <!-- BEFORE -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between px-4 py-2 border-b bg-gray-50 rounded-t-xl">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Before (today)</span>
+          <span class="text-[10px] text-gray-400">MessageStatusPage.jsx — lines 412–491, 700–740</span>
+        </div>
+        <div class="p-4 space-y-3">
+          <!-- Stats -->
+          <div class="grid grid-cols-5 gap-2">
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center">
+              <div class="w-7 h-7 rounded-md bg-gray-500 grid place-items-center mb-1">
+                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <p class="text-base font-bold">1,842</p><p class="text-[9px] text-gray-500 font-medium">Total</p>
+            </div>
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center">
+              <div class="w-7 h-7 rounded-md bg-green-500 grid place-items-center mb-1">
+                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <p class="text-base font-bold">1,610</p><p class="text-[9px] text-gray-500 font-medium">Delivered</p>
+            </div>
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center">
+              <div class="w-7 h-7 rounded-md bg-blue-500 grid place-items-center mb-1">
+                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+              </div>
+              <p class="text-base font-bold">986</p><p class="text-[9px] text-gray-500 font-medium">Read</p>
+            </div>
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center">
+              <div class="w-7 h-7 rounded-md bg-yellow-500 grid place-items-center mb-1">
+                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <p class="text-base font-bold">184</p><p class="text-[9px] text-gray-500 font-medium">Pending</p>
+            </div>
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center">
+              <div class="w-7 h-7 rounded-md bg-red-500 grid place-items-center mb-1">
+                <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              </div>
+              <p class="text-base font-bold">48</p><p class="text-[9px] text-gray-500 font-medium">Failed</p>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-3">
+            <div class="flex flex-wrap gap-2 items-center">
+              <div class="h-9 w-[100px] rounded-md border border-gray-200 px-2 text-xs flex items-center justify-between bg-white">All Status ▾</div>
+              <div class="h-9 w-[100px] rounded-md border border-gray-200 px-2 text-xs flex items-center justify-between bg-white">All Events ▾</div>
+              <div class="h-9 w-[110px] rounded-md border border-gray-200 px-2 text-xs flex items-center justify-between bg-white">All Campaigns ▾</div>
+              <div class="h-9 w-[110px] rounded-md border border-gray-200 px-2 text-xs flex items-center justify-between bg-white">All Templates ▾</div>
+              <div class="h-9 flex-1 min-w-[140px] rounded-md border border-gray-200 px-2 text-xs flex items-center bg-white text-gray-400">🔍 Search name or phone...</div>
+            </div>
+          </div>
+
+          <!-- Log rows -->
+          <div class="border border-gray-100 rounded-lg overflow-hidden bg-white">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase tracking-wider">
+                <tr><th class="p-2 text-left">Customer</th><th class="p-2 text-left">Template</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Sent</th></tr>
+              </thead>
+              <tbody>
+                <tr class="border-t"><td class="p-2">Anita Rao<br><span class="text-gray-400">+91 98…</span></td><td class="p-2">welcome_offer</td><td class="p-2"><span class="chip-badge bg-green-100 text-green-800 border border-green-300">✓ Delivered</span></td><td class="p-2 text-gray-500">2m ago</td></tr>
+                <tr class="border-t bg-yellow-50/40" title="Actually a G5 media_missing failure – but badge says Pending 🙈">
+                  <td class="p-2">— <br><span class="text-gray-400">+91 90…</span></td>
+                  <td class="p-2 text-gray-400">-</td>
+                  <td class="p-2"><span class="chip-badge bg-yellow-100 text-yellow-800 border border-yellow-300">⏱ Pending</span></td>
+                  <td class="p-2 text-gray-500">5m ago</td>
+                </tr>
+                <tr class="border-t"><td class="p-2">Rahul S<br><span class="text-gray-400">+91 97…</span></td><td class="p-2">weekend_promo</td><td class="p-2"><span class="chip-badge bg-red-100 text-red-800 border border-red-300">✕ Failed</span></td><td class="p-2 text-gray-500">7m ago</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+            <b>Problem:</b> G5 <code>media_missing</code> rows render as <b>yellow "Pending"</b> (misleading), are <b>not filterable</b>, and lack <code>id</code>/<code>customer_name</code>/<code>template_name</code> → checkbox + row expand break, Name/Template show "–".
+          </div>
+        </div>
+      </div>
+
+      <!-- AFTER -->
+      <div class="bg-white rounded-xl border-2 border-amber-300 shadow-md">
+        <div class="flex items-center justify-between px-4 py-2 border-b bg-amber-50 rounded-t-xl">
+          <span class="text-xs font-bold text-amber-800 uppercase tracking-wider">After B.2</span>
+          <span class="text-[10px] text-amber-700 font-mono">edits E-B2-1 … E-B2-10 · G5 insert fix</span>
+        </div>
+        <div class="p-4 space-y-3">
+          <!-- Stats (unchanged 5 cards per D-B2-1) -->
+          <div class="grid grid-cols-5 gap-2">
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center"><div class="w-7 h-7 rounded-md bg-gray-500 grid place-items-center mb-1"><svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><p class="text-base font-bold">1,842</p><p class="text-[9px] text-gray-500 font-medium">Total</p></div>
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center"><div class="w-7 h-7 rounded-md bg-green-500 grid place-items-center mb-1"><svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><p class="text-base font-bold">1,610</p><p class="text-[9px] text-gray-500 font-medium">Delivered</p></div>
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center"><div class="w-7 h-7 rounded-md bg-blue-500 grid place-items-center mb-1"><svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></div><p class="text-base font-bold">986</p><p class="text-[9px] text-gray-500 font-medium">Read</p></div>
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center"><div class="w-7 h-7 rounded-md bg-yellow-500 grid place-items-center mb-1"><svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><p class="text-base font-bold">184</p><p class="text-[9px] text-gray-500 font-medium">Pending</p></div>
+            <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-2 flex flex-col items-center"><div class="w-7 h-7 rounded-md bg-red-500 grid place-items-center mb-1"><svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><p class="text-base font-bold">48</p><p class="text-[9px] text-gray-500 font-medium">Failed</p></div>
+          </div>
+
+          <!-- Filters (with amber CHIP appended) -->
+          <div class="bg-white shadow-sm border border-gray-100 rounded-lg p-3">
+            <div class="flex flex-wrap gap-2 items-center">
+              <div class="h-9 w-[100px] rounded-md border border-gray-200 px-2 text-xs flex items-center justify-between bg-white">All Status ▾</div>
+              <div class="h-9 w-[100px] rounded-md border border-gray-200 px-2 text-xs flex items-center justify-between bg-white">All Events ▾</div>
+              <div class="h-9 w-[110px] rounded-md border border-gray-200 px-2 text-xs flex items-center justify-between bg-white">All Campaigns ▾</div>
+              <div class="h-9 w-[110px] rounded-md border border-gray-200 px-2 text-xs flex items-center justify-between bg-white">All Templates ▾</div>
+
+              <!-- NEW: amber chip (only when count > 0) -->
+              <div class="diff-add" data-label="NEW · E-B2-9">
+                <button class="h-9 px-3 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  Media Missing (12)
+                </button>
+              </div>
+
+              <div class="h-9 flex-1 min-w-[140px] rounded-md border border-gray-200 px-2 text-xs flex items-center bg-white text-gray-400">🔍 Search name or phone...</div>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-2">Chip appears only when <code>stats.media_missing &gt; 0</code>. Click toggles <code>status_note=media_missing</code> filter (also flows into CSV/XLSX export).</p>
+          </div>
+
+          <!-- Log rows: G5 row now shows amber "Not Sent" badge + reason -->
+          <div class="border border-gray-100 rounded-lg overflow-hidden bg-white">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase tracking-wider">
+                <tr><th class="p-2 text-left">Customer</th><th class="p-2 text-left">Template</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Sent</th></tr>
+              </thead>
+              <tbody>
+                <tr class="border-t"><td class="p-2">Anita Rao<br><span class="text-gray-400">+91 98…</span></td><td class="p-2">welcome_offer</td><td class="p-2"><span class="chip-badge bg-green-100 text-green-800 border border-green-300">✓ Delivered</span></td><td class="p-2 text-gray-500">2m ago</td></tr>
+
+                <tr class="border-t bg-amber-50/30">
+                  <td class="p-2">
+                    <span class="text-gray-900">Meera K</span><br><span class="text-gray-400">+91 90…</span>
+                    <div class="text-[9px] text-gray-400 mt-0.5">← <b>id</b> + <b>customer_name</b> now populated (E-B2-5)</div>
+                  </td>
+                  <td class="p-2">
+                    <div>sampletestlogo</div>
+                    <div class="diff-add mt-1 inline-block" data-label="NEW · E-B2-10">
+                      <span class="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Media missing — re-upload template header</span>
+                    </div>
+                  </td>
+                  <td class="p-2">
+                    <div class="diff-add inline-block" data-label="NEW · E-B2-6">
+                      <span class="chip-badge bg-amber-100 text-amber-800 border border-amber-300">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        Not Sent
+                      </span>
+                    </div>
+                  </td>
+                  <td class="p-2 text-gray-500">5m ago</td>
+                </tr>
+
+                <tr class="border-t"><td class="p-2">Rahul S<br><span class="text-gray-400">+91 97…</span></td><td class="p-2">weekend_promo</td><td class="p-2"><span class="chip-badge bg-red-100 text-red-800 border border-red-300">✕ Failed</span></td><td class="p-2 text-gray-500">7m ago</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Applied filter state preview -->
+          <div class="diff-add" data-label="STATE · chip pressed">
+            <div class="rounded-lg border border-amber-500 bg-amber-50 p-3 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="h-9 px-3 rounded-full bg-amber-500 text-white text-xs font-semibold flex items-center gap-1.5">
+                  ✕ Media Missing (12)
+                </span>
+                <span class="text-xs text-amber-900">Showing only rows with <code>status_note=media_missing</code>. Click chip again to clear.</span>
+              </div>
+              <span class="text-[10px] text-amber-700 font-mono">GET /api/whatsapp/message-logs?status_note=media_missing</span>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md p-2">
+            <b>Distinctions:</b> <span class="chip-badge bg-red-100 text-red-800 border border-red-300 mx-1">Failed</span> = provider rejected (post-send) &nbsp;·&nbsp; <span class="chip-badge bg-amber-100 text-amber-800 border border-amber-300 mx-1">Not Sent</span> = G5 skipped before AuthKey call (media missing).
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- SCREEN 2: CAMPAIGN WIZARD STEP 2 -->
+  <!-- =================================================================== -->
+  <section>
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Screen 2 / 2</span>
+      <h2 class="text-xl font-bold">Campaign Wizard → Step 2 (Choose Message)</h2>
+      <span class="text-xs text-gray-400 font-mono">/campaigns/new · CampaignWizardPage.jsx</span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+
+      <!-- BEFORE -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between px-4 py-2 border-b bg-gray-50 rounded-t-xl">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Before (today · B.1 warning is dead code)</span>
+          <span class="text-[10px] text-gray-400">lines 397–450</span>
+        </div>
+        <div class="p-5">
+          <h3 class="text-lg font-bold mb-4">Choose Message Template</h3>
+          <label class="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Template</label>
+
+          <div class="mt-1.5 h-10 rounded-md border border-gray-300 px-3 flex items-center justify-between bg-white text-sm">
+            <span>sampletestlogo (2 variables, fully mapped)</span>
+            <span class="text-gray-400">▾</span>
+          </div>
+
+          <p class="text-[11px] text-gray-500 mt-1">Only approved and mapped templates are shown</p>
+
+          <div class="mt-3 rounded-md bg-gray-50 border border-dashed border-gray-300 p-2 text-[11px] text-gray-500 italic">
+            (No banner rendered — <code>currentTemplate.needs_media_reupload</code> is never set because <code>/authkey-templates</code> is not enriched.)
+          </div>
+
+          <div class="mt-6 flex justify-between">
+            <button class="h-9 px-4 rounded-full border border-gray-300 text-sm text-gray-700">Back</button>
+            <button class="h-9 px-4 rounded-full bg-[#F26B33] text-white text-sm font-semibold">Next: Review & Send →</button>
+          </div>
+
+          <div class="mt-5 text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+            <b>Problem:</b> Owner picks a template with a broken/missing media header, clicks Next, sends → every message is silently G5-skipped as <code>media_missing</code>. Discovers only from Reports.
+          </div>
+        </div>
+      </div>
+
+      <!-- AFTER -->
+      <div class="bg-white rounded-xl border-2 border-amber-300 shadow-md">
+        <div class="flex items-center justify-between px-4 py-2 border-b bg-amber-50 rounded-t-xl">
+          <span class="text-xs font-bold text-amber-800 uppercase tracking-wider">After B.2 · soft block</span>
+          <span class="text-[10px] text-amber-700 font-mono">edits E-B2-4 · E-B2-11 … E-B2-15</span>
+        </div>
+        <div class="p-5">
+          <h3 class="text-lg font-bold mb-4">Choose Message Template</h3>
+          <label class="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Template</label>
+
+          <!-- Dropdown suffix -->
+          <div class="diff-add" data-label="NEW · E-B2-13 suffix">
+            <div class="mt-1.5 h-10 rounded-md border border-red-300 px-3 flex items-center justify-between bg-white text-sm">
+              <span>sampletestlogo (2 variables, fully mapped) <span class="text-red-700 font-semibold">• media required</span></span>
+              <span class="text-gray-400">▾</span>
+            </div>
+          </div>
+
+          <!-- Open dropdown preview -->
+          <div class="mt-2 border border-gray-200 rounded-md shadow-sm bg-white text-sm max-w-md">
+            <div class="px-3 py-2 hover:bg-gray-50">welcome_offer (3 variables, fully mapped)</div>
+            <div class="diff-add" data-label="suffix on media-blocked items">
+              <div class="px-3 py-2 bg-red-50 text-red-800">sampletestlogo (2 variables, fully mapped) <b>• media required</b></div>
+            </div>
+            <div class="px-3 py-2 hover:bg-gray-50">weekend_promo (1 variable, fully mapped)</div>
+          </div>
+
+          <!-- Red block banner -->
+          <div class="diff-add mt-3" data-label="NEW · E-B2-14 (replaces dead amber warning)">
+            <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-800">
+              ⛔ This template has a media header but no uploaded file — messages cannot send.
+              <span class="underline cursor-pointer font-semibold">Go to Templates to re-upload</span>, then return here.
+            </div>
+          </div>
+
+          <p class="text-[11px] text-gray-500 mt-2">Only approved and mapped templates are shown</p>
+
+          <!-- Buttons: Next disabled -->
+          <div class="mt-6 flex justify-between items-center">
+            <button class="h-9 px-4 rounded-full border border-gray-300 text-sm text-gray-700">Back</button>
+            <div class="diff-add" data-label="E-B2-15 · canStep2=false">
+              <button disabled class="h-9 px-4 rounded-full bg-gray-300 text-gray-500 text-sm font-semibold cursor-not-allowed">Next: Review & Send →</button>
+            </div>
+          </div>
+
+          <div class="mt-5 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md p-2">
+            <b>Recovery path:</b> owner clicks the underlined link → lands on Templates page → re-uploads header via B.1 flow → returns to wizard → banner disappears, Next enables. Backend G5 remains the authoritative last line.
+          </div>
+
+          <!-- Data flow legend -->
+          <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-[11px] text-gray-600">
+            <div class="font-semibold text-gray-700 mb-1">Data flow (E-B2-4):</div>
+            <code>GET /api/whatsapp/authkey-templates</code> now enriches each item with
+            <span class="font-mono bg-white border px-1 rounded">header_type</span>,
+            <span class="font-mono bg-white border px-1 rounded">has_send_media</span>,
+            <span class="font-mono bg-white border px-1 rounded">needs_media_reupload</span> from <code>custom_templates</code>.<br/>
+            <span class="text-gray-500">Predicate:</span> <code class="text-gray-800">isMediaBlocked = header_type ∈ {image,video,document} &amp;&amp; !has_send_media</code>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <!-- SUMMARY -->
+  <!-- =================================================================== -->
+  <section class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <h2 class="text-lg font-bold mb-3">Summary — every visible change, mapped</h2>
+    <div class="grid grid-cols-2 gap-6 text-sm">
+      <div>
+        <div class="font-semibold text-gray-700 mb-2">Message Status page</div>
+        <ul class="space-y-1 text-gray-700 list-disc pl-5">
+          <li>Amber <b>"Media Missing (N)"</b> chip in filter row — hidden when N=0 <span class="text-gray-400 text-xs">(E-B2-9)</span></li>
+          <li>G5 rows now render <b>amber "Not Sent"</b> badge instead of yellow "Pending" <span class="text-gray-400 text-xs">(E-B2-6)</span></li>
+          <li>Reason line "Media missing — re-upload template header" under Template cell <span class="text-gray-400 text-xs">(E-B2-10)</span></li>
+          <li>Customer name + template name populated → row expand + checkbox work <span class="text-gray-400 text-xs">(E-B2-5 backend)</span></li>
+          <li>Export CSV/XLSX inherits the same filter <span class="text-gray-400 text-xs">(E-B2-8)</span></li>
+        </ul>
+      </div>
+      <div>
+        <div class="font-semibold text-gray-700 mb-2">Campaign Wizard · Step 2</div>
+        <ul class="space-y-1 text-gray-700 list-disc pl-5">
+          <li>Template dropdown item suffix <b>"• media required"</b> for blocked templates <span class="text-gray-400 text-xs">(E-B2-13)</span></li>
+          <li>Red <b>block banner</b> on selection with CTA to Templates page <span class="text-gray-400 text-xs">(E-B2-14)</span></li>
+          <li><b>Next</b> button disabled until re-upload is done <span class="text-gray-400 text-xs">(E-B2-15)</span></li>
+          <li>Templates <b>not hidden</b> (D-B2-2: visible-but-blocked avoids "where did it go?" confusion)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-4 flex items-center gap-3 text-xs text-gray-500">
+      <span class="chip-badge bg-amber-100 text-amber-800 border border-amber-300">Not Sent = pre-send G5 skip</span>
+      <span class="chip-badge bg-red-100 text-red-800 border border-red-300">Failed = provider rejected</span>
+      <span class="chip-badge bg-yellow-100 text-yellow-800 border border-yellow-300">Pending = awaiting delivery</span>
+      <span class="chip-badge bg-green-100 text-green-800 border border-green-300">Delivered</span>
+      <span class="chip-badge bg-blue-100 text-blue-800 border border-blue-300">Read</span>
+    </div>
+  </section>
+
+  <footer class="text-[11px] text-gray-400 text-center py-3">
+    Mockup preview · maps 1:1 to <code>MessageStatusPage.jsx</code> and <code>CampaignWizardPage.jsx</code>. Awaiting owner approval to open Implementation gate.
+  </footer>
+</div>
+</body>
+</html>

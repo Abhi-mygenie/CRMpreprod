@@ -1,0 +1,59 @@
+{
+  "summary": "CR-069 Full 14/14 implementation QA. All backend E-1/E-2/E-3 tests pass. Frontend V1/V2/V4/V5 pass. V3 (Map dialog button bubble preview) is MISSING from implementation — only the campaign wizard preview renders button bubbles. One build_body_values bug fixed (btn_url_ keys leaked into body output). Test file updated and 5/5 pytest pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "TemplatesPage — Map Variables Dialog preview",
+        "issue": "V3 FAIL: WhatsApp preview in Map Variables dialog does NOT render button bubbles. Only message body text rendered. Code at TemplatesPage.jsx ~line 835-840 closes the bubble div without adding mappingTemplate.buttons rendering. Campaign wizard preview correctly shows button bubbles but Map dialog doesn't.",
+        "selector": "Dialog[data-testid='map-dialog'] .bg-\\[#DCF8C6\\]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "E1_authkey_templates_buttons": "PASS — final_bill wid=41354 has 2 buttons: Feedback (static) + Bill (dynamic URL {{1}})",
+    "E2_template_variable_map": "PASS — mappings for 41354 includes btn_url_{{1}} -> einvoice_token alongside 7 body vars",
+    "E3_test_template_send_with_button_values": "PASS — POST /api/whatsapp/test-template with button_values returns success + message_id",
+    "V1_template_card_button_chips": "PASS — final_bill card shows 'Bill' URL chip in addition to 7 body var chips",
+    "V2_map_dialog_button_slot": "PASS — Map Variables dialog shows 'Button URL Parameters' section with 'Bill button URL {{1}}' row and static Feedback note",
+    "V3_map_dialog_preview_buttons": "FAIL — Map dialog green preview bubble only shows message body, no Feedback/Bill button bubbles below",
+    "V4_campaign_wizard_isFullyMapped": "PASS — final_bill selected in wizard shows '7 variables, fully mapped' counting button var. Warning lists btn_url_{{1}} as empty-in-campaign.",
+    "V5_campaign_wizard_variable_grid": "PASS — variable grid shows 7 body rows + 'Bill' button row + 'All 7 body + 1 button variables mapped' note",
+    "pytest_5_5": "PASS — 5/5 tests after fixes"
+  },
+  "fixes_applied": [
+    "core/whatsapp.py: Added btn_url_ prefix filter in build_body_values() so button URL keys don't leak into body output (was causing TestCR069SendPathSafety test failure)",
+    "memory/test_credentials.md: Added name column to credentials table so _hungry_credentials() parser finds correct (email, password) pair at cells[1]/cells[2]",
+    "tests/test_cr069_button_mapping.py: Updated url assertion to accept both {1} and {{1}} since DB stores Meta-format double braces"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_cr069_button_mapping.py",
+    "/app/test_reports/pytest/cr069_results.xml"
+  ],
+  "action_items": [
+    "V3 FIX NEEDED: Add button bubble rendering to the Map Variables dialog WhatsApp preview in TemplatesPage.jsx. After the message bubble closing div (~line 840), add: {(mappingTemplate.buttons || []).length > 0 && <div className='mt-1 space-y-0.5'>{mappingTemplate.buttons.map((btn, i) => <div key={i} className='bg-white rounded-lg py-1.5 text-center text-sm text-blue-500 font-medium border border-gray-200 flex items-center justify-center gap-1.5'>{btn.type==='URL' && <ExternalLink />}{btn.text}</div>)}</div>}"
+  ],
+  "critical_code_review_comments": [
+    "build_body_values() lacked btn_url_ filter — callers relying on pre-filtering at trigger level is fragile. Now fixed defensively in the function itself.",
+    "V3 gap: Map dialog preview omits button bubbles while card grid (line 717-730) and campaign wizard both implement them — implementation was inconsistent across 3 surfaces."
+  ],
+  "updated_files": [
+    "/app/backend/core/whatsapp.py",
+    "/app/memory/test_credentials.md",
+    "/app/backend/tests/test_cr069_button_mapping.py"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 pytest, E1/E2/E3 all pass)",
+    "frontend": "80% (V1/V2/V4/V5 pass, V3 fail)"
+  },
+  "seed_data_creation": "No seed data created. Existing final_bill wid=41354 with btn_url_{{1}}->einvoice_token mapping used.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "CR-069 is 80% complete. Backend (E1-E3) all pass. Frontend V1/V2/V4/V5 all pass. Only V3 (Map dialog button bubble preview) is missing — needs 5-10 lines of JSX added after line ~840 in TemplatesPage.jsx. Test credentials format in test_credentials.md now fixed with leading name column for _hungry_credentials() parser. All 5 pytest tests pass after fixes."
+}

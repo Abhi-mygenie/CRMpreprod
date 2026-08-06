@@ -1,0 +1,28 @@
+{
+  "summary": "CR-061 gate removal verification. All 13 pytest tests PASS. Non-allowlisted tenant (owner@jehsnest.com, restaurant_635) can call all template authoring endpoints without 403. Frontend flag crm_templates_enabled correctly returns false for restaurant_635. GET endpoints work for all tenants.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr061_gate_removal.py",
+    "/app/test_reports/pytest/cr061_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_require_crm_templates_enabled() is confirmed commented out at all 6 authoring endpoints. Allowlist (CRM_TEMPLATES_ALLOWED_RESTAURANT_IDS=510) now only controls crm_templates_enabled frontend flag via GET /api/whatsapp/api-key."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "13/13 (100%)"
+  },
+  "test_credentials": "owner@jehsnest.com / Qplazm@10 (restaurant_635, NOT in allowlist)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "CR-061 gate removal verified. All authoring endpoints open to all tenants. Frontend visibility flag crm_templates_enabled still works via allowlist. 13/13 tests pass."
+}

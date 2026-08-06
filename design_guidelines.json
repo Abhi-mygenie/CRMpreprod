@@ -1,0 +1,120 @@
+{
+  "theme": "light",
+  "typography": {
+    "fonts": {
+      "headings": "Manrope",
+      "body": "IBM Plex Sans",
+      "monospace": "JetBrains Mono"
+    },
+    "hierarchy": {
+      "h1": "text-2xl lg:text-3xl font-black tracking-tighter",
+      "section_headers": "text-lg font-semibold tracking-tight",
+      "table_headers": "text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground",
+      "body": "text-sm text-foreground",
+      "small": "text-xs text-muted-foreground"
+    },
+    "rules": [
+      "Never use Inter for headings.",
+      "Use tight letter spacing for large text.",
+      "Left-align text, right-align numbers."
+    ]
+  },
+  "colors": {
+    "brand": {
+      "primary": "#F26B33",
+      "green": "#329937",
+      "dark_text": "#1A1A1A"
+    },
+    "stages": {
+      "new": "#329937",
+      "active": "#62B5E5",
+      "at_risk": "#F59E0B",
+      "dormant": "#EF4444",
+      "churned": "#6B7280"
+    },
+    "integrations": {
+      "whatsapp": "#25D366"
+    },
+    "backgrounds": {
+      "app": "bg-stone-50 dark:bg-stone-950",
+      "card": "bg-white dark:bg-stone-900"
+    },
+    "rules": [
+      "Stage colors MUST be strictly preserved.",
+      "Use tinted greys (stone) to provide organic warmth.",
+      "Do NOT use complete transparent background in header, overlays, any surface that has content under it."
+    ]
+  },
+  "grids": {
+    "dashboard_layout": "grid-cols-1 lg:grid-cols-12 gap-6",
+    "stage_cards": "col-span-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4",
+    "charts_section": "col-span-full grid grid-cols-1 lg:grid-cols-12 gap-6",
+    "distribution_bar": "col-span-full",
+    "trend_chart": "col-span-full lg:col-span-12",
+    "data_table": "col-span-full"
+  },
+  "layouts": {
+    "container": "Strict grid hierarchy, dense and compact spacing.",
+    "responsive": "Mobile-first: Desktop table, Mobile card layout.",
+    "spacing_scale": "p-2, p-4, p-6, p-8. Use generous padding inside containers."
+  },
+  "components": {
+    "StageCards": {
+      "description": "Clickable to filter. Unselected state uses subtle borders. Selected state gets a 2px solid border of the respective stage color and a subtle tinted background. Adds -translate-y-1 on hover.",
+      "path": "/app/frontend/src/components/StageCards.js"
+    },
+    "CustomerTable": {
+      "description": "Cardless or subtle roundness (max 8px border-radius) with dense styles. Left-align text, right-align numbers.",
+      "path": "/app/frontend/src/components/CustomerTable.js"
+    },
+    "BulkReengageBanner": {
+      "description": "Appears above the table when a stage is selected. Background is a 10% opacity tint of the stage color, with a solid 1px border. Includes a bold CTA button.",
+      "path": "/app/frontend/src/components/BulkReengageBanner.js"
+    },
+    "ReengageModal": {
+      "description": "Inline Sheet or Dialog. Must show realistic WhatsApp bubble preview with #25D366 submit button.",
+      "path": "/app/frontend/src/components/ReengageModal.js"
+    }
+  },
+  "motion": {
+    "interactions": "Hover states on table rows (bg-muted/50), subtle lift (-translate-y-1) on stage cards.",
+    "transitions": "transition-transform duration-200 ease-out, transition-colors duration-200 ease-out.",
+    "rules": "Respect prefers-reduced-motion. Avoid transition-all."
+  },
+  "visual_enhancers": {
+    "borders": "Use 1px subtle borders (border-border/40). Apply Grid Borders look for the table to expose the technical skeleton.",
+    "shadows": "Very subtle ambient shadows (shadow-sm) on cards, crisp inner glow on buttons.",
+    "surfaces": "Use Neumorphism (Tactile) variant for dashboard widgets: flat background, 1px subtle border, no shadow by default, subtle shadow on hover."
+  },
+  "accessibility": {
+    "contrast": "Ensure text over brand/stage colors meets APCA contrast guidelines. Text on WhatsApp Green should be dark or use text-shadow if white.",
+    "testing": "All interactive and key informational elements MUST include a data-testid attribute.",
+    "focus": "Focus states must have higher contrast than default state."
+  },
+  "media": {
+    "images": "Not heavily required for CRM. Use Lucide React icons.",
+    "image_urls": {}
+  },
+  "3d_libraries": {
+    "recommended": "Recharts",
+    "steps": "Use Recharts for the Area Chart (Lifecycle trend) and a custom stacked div for the Stage distribution bar."
+  },
+  "instructions_to_main_agent": [
+    "Build the dashboard prioritizing the table's density and clarity.",
+    "Implement a responsive layout: table on desktop, stack of cards on mobile.",
+    "Strictly apply the specified stage colors for badges, distribution bar, and the trend chart.",
+    "The Re-engage Modal should accurately replicate a WhatsApp chat bubble using the tailwind styling (rounded corners with one sharp corner, greenish background for outgoing message).",
+    "Ensure 'Re-engage Churned Customers' bulk CTA is prominent when clicking a stage card.",
+    "Ensure the UI components are functional (e.g., clicking a stage card filters the table, and shows the banner)."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this.",
+    "Do not apply universal transitions like 'transition: all'.",
+    "Do not center align the app container via CSS (.App { text-align: center; }).",
+    "Use modern pill-shaped or slightly rounded buttons with interaction animations.",
+    "Never use AI assistant Emoji characters (\ud83e\udd16\ud83e\udde0\ud83d\udcad\ud83d\udca1) for icons. Use Lucide React icons.",
+    "Add hover states, active states, and focus-visible rings to all interactive elements.",
+    "Use sonner for toasts. Component located in /app/frontend/src/components/ui/sonner.js",
+    "Prioritize using pre-existing components from src/components/ui."
+  ]
+}

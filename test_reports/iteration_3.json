@@ -1,0 +1,36 @@
+{
+  "summary": "V5 Re-test of CampaignWizardPage prefill fix — STILL FAILING. The two fixes applied (guard in audienceIdSync + lifecycle SelectItem) are insufficient. The guard fires too late.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "CampaignWizardPage",
+        "issue": "V5 STILL FAILING after fix attempt. Navigating to /campaigns/new?audience_stage=churned&audience_count=150 still shows 'All Customers (0 customers)' in the Select and '0 customers will receive this campaign' in audience-info. The guard `if (audienceId.startsWith('lifecycle_stage:')) return;` does NOT help because on the initial run of audienceIdSync, audienceId is STILL 'all-customers' (from useState initial value) — the guard only fires AFTER the state from prefill useEffect has been committed. React 18 batches all effects from the initial render: both prefill and audienceIdSync run in the same batch, but audienceIdSync (defined later) overrides the prefill's setAudienceCount(150) with setAudienceCount(0) and setAudienceName('All Customers') because they share the same initial closure with audienceId='all-customers'.",
+        "selector": "[data-testid='audience-select'], [data-testid='audience-info']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "FIX REQUIRED: In audienceIdSync useEffect (line 169), add an ADDITIONAL guard to also check if URL has audience_stage param. The current guard `if (audienceId.startsWith('lifecycle_stage:')) return;` is insufficient because on initial mount audienceId is still 'all-customers'. The correct fix: add `const audienceStage = searchParams.get('audience_stage'); if (audienceStage && audienceStage !== 'all' && !campaignId) return;` right after the existing guard (or as the first line). This prevents audienceIdSync from overriding the prefill state even on the initial run. Note: searchParams must be included in the deps or accessed outside the effect.",
+    "Alternative fix: reorder effects so audienceIdSync runs BEFORE prefill (swap their position in the component code), so the prefill's setState wins the last-write-wins batching."
+  ],
+  "rca_of_issue": "React 18 batches all setState calls from useEffect callbacks that fire in the same render commit. On initial mount, 3 effects run: (1) loadData (async, sets segments+totalCustomers later), (2) prefill (sets audienceId='lifecycle_stage:churned', audienceName='Churned Customers', audienceCount=150), (3) audienceIdSync (sees audienceId='all-customers' from initial closure, calls setAudienceName('All Customers'), setAudienceCount(0)). React batches all these setState calls and applies: audienceId='lifecycle_stage:churned' (from prefill wins since audienceIdSync doesn't set audienceId), audienceName='All Customers' (from audienceIdSync, overrides prefill's 'Churned Customers'), audienceCount=0 (from audienceIdSync's setAudienceCount(totalCustomers=0), overrides prefill's 150). Then React re-renders, audienceIdSync runs again but now audienceId='lifecycle_stage:churned' so guard fires — but audienceName and audienceCount are already wrong. The fix guard was placed correctly but only applies on RE-RUNS, not the initial run where audienceId='all-customers' in the closure.",
+  "critical_code_review_comments": [
+    "CampaignWizardPage.jsx L169-178: The applied fix guard only catches RE-RUNS of audienceIdSync (when audienceId has already been updated to lifecycle_stage:X). The INITIAL run still sees audienceId='all-customers' and overrides the prefill. Must add URL param check as additional guard."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (from iteration_2, not re-tested)",
+    "frontend": "0% for V5 tests (both churned and at_risk prefill FAIL)"
+  },
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "V5 prefill fix is still broken. Specific fix needed: in audienceIdSync useEffect (line 169), add guard: const audienceStage = searchParams.get('audience_stage'); if (audienceStage && audienceStage !== 'all' && !campaignId) return; — This ensures the effect skips even on initial run when audienceId is still 'all-customers'. Also note: login navigates to '/' not '/dashboard', so wait_for_url('**/dashboard**') will always timeout — use wait_for_url('**/', timeout=8000) or wait_for_timeout(3000) instead."
+}
