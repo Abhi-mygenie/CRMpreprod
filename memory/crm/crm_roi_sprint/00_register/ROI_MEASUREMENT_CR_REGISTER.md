@@ -121,7 +121,7 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 
 ---
 
-| 28 | `CR-078 POS Customer Intelligence Report API` | New feature — POS aggregated report endpoints | Intake: `../discovery/CR_078_POS_CUSTOMER_INTELLIGENCE_REPORT_INTAKE.md` | `cr078_planning_complete_awaiting_owner_approval` |
+| 28 | `CR-078 POS Customer Intelligence Report API` | New feature — POS aggregated report endpoints | Intake: `../discovery/CR_078_POS_CUSTOMER_INTELLIGENCE_REPORT_INTAKE.md` | `cr078_implemented_self_test_7of7_pass_qa_pending` |
 
 ---
 

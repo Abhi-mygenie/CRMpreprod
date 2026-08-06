@@ -1314,6 +1314,19 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 
 
+
+### 2026-08-06 [CR-078] Implementation Complete
+**Decision**: CR-078 Phase 1 implemented. `routers/pos_reports.py` created (~230 LOC). `server.py` +4 lines (import + include_router + user_id index + syntax fix).
+**Source**: Implementation Agent 2026-08-06.
+**Locks**:
+- E1 `GET /api/pos/reports/summary` — 3 DB calls: loyalty_settings + customers $facet + orders $facet.
+- E2 `GET /api/pos/reports/top-customers` — 1 DB call, whitelist sort {total_spent, total_visits, total_points}, sort_by=value_score falls back to total_spent (Q3=a).
+- E3 `GET /api/pos/reports/churn-risk` — 3 DB calls, bands: high (at_risk) / medium (dormant), event-in-use guard NOT needed (read-only).
+- `_get_stage_cutoffs()` inlined as module-private (R1 decision — no cross-router import).
+- No caching (Q2=c).
+- Curl self-tests: all 7 checks PASS (auth guard, E1 structure+total, E2 sort+fallback, E3 bands+invalid).
+- QA handover: `qa/CR_078_QA_HANDOVER.md`.
+
 ### 2026-08-06 [CR-067] Implementation Complete
 **Decision**: CR-067 implemented. 3 backend edits in `routers/whatsapp.py` + 1 frontend edit in `TemplatesPage.jsx`.
 **Source**: Implementation Agent 2026-08-06.
