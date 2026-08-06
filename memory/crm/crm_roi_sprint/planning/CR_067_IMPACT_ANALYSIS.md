@@ -21,10 +21,10 @@ CR-067 registered in `CR_STATUS_DASHBOARD.md`. Intake: `discovery/CR_067_TEMPLAT
 |---|---|
 | **Q1** | **LOCKED: Both** — delete locally AND call Meta DELETE API. Warning modal shown before delete. |
 | **Q2** | **LOCKED: Block delete** — if template is mapped to an event or used in a campaign, block with error. |
-| **Q3** | **LOCKED (interpreted from "yes")** — during AuthKey sync, mark local records as `status="deleted_on_meta"` with visible badge if their `authkey_wid` no longer appears in AuthKey's template list. No silent auto-delete. |
+| **Q3** | **LOCKED: (a) Auto-delete** — during AuthKey sync, permanently remove the local `custom_templates` record from MongoDB if its `authkey_wid` no longer appears in AuthKey's template list. No badge, no stale marker — clean removal. |
 | **Q4** | **LOCKED: Now** — implement in this sprint alongside CR-068. |
 
-*Q3 interpretation: Owner said "yes I think when re-login it would anyway not show". Treating as: yes, stale templates should be surfaced. Recommendation is badge/mark (not silent delete) so owner retains control. If owner meant "yes auto-delete silently", planning agent will ask before implementation starts.*
+*Q3 confirmed 2026-08-06: owner answered "A" (auto-delete) after clarification of what auto-delete vs badge means.*
 
 ---
 
@@ -184,6 +184,5 @@ Code reality: PARTIAL (in-use block + local delete exist; Meta cascade + warning
 Risk: MEDIUM (whatsapp.py is hotspot — isolated to non-send-path functions)
 Files WILL change: routers/whatsapp.py (3 functions), TemplatesPage.jsx (1 function)
 Files WILL NOT touch: core/whatsapp.py, campaigns.py, pos.py, models/schemas.py, TemplateBuilderPage.jsx
-Owner decisions: Q1-Q4 all LOCKED
-Next: Implementation Plan → Owner Approval → Implementation
+Owner decisions: Q1-Q4 all LOCKED (CR-067) · Q1-Q3 all LOCKED (CR-068)
 ```

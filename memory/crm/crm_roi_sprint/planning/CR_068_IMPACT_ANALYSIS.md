@@ -30,13 +30,11 @@ for compliance errors at any time, before ever submitting to Meta.
 
 ## 3. Owner Decisions
 
-| Q | Question | Decision |
-|---|---|---|
-| **Q1** | Frontend-only vs FE + backend endpoint? | **OPEN** — recommendation: **frontend-only** (reuse existing JS functions, zero backend changes, faster) |
-| **Q2** | Show errors inline panel or toast list? | **OPEN** — recommendation: **inline panel** below the body textarea (more readable for multiple errors) |
-| **Q3** | Priority vs CR-067? | **OPEN** — recommendation: **implement together** (different files, no conflict, same session) |
-
-*Planning agent recommendation: frontend-only (Q1a), inline panel (Q2a), both together (Q3). Owner may confirm or override.*
+| Q | Decision |
+|---|---|
+| **Q1** | **LOCKED: (a) Frontend-only** — reuse existing `validateMetaCompliance()` + `getBodyWarnings()` + `getFooterWarnings()`. Zero backend changes, zero API calls. |
+| **Q2** | **LOCKED: Inline panel** — errors/warnings shown in a result panel below the body textarea. Dismissible. Errors red, warnings amber. |
+| **Q3** | **LOCKED: Build alongside CR-067** — different files, no conflict, same session. |
 
 ---
 
@@ -149,6 +147,6 @@ Code reality: FULL (all validation functions exist — pure wiring task)
 Risk: LOW (frontend-only, no hotspot files)
 Files WILL change: TemplateBuilderPage.jsx only (+~35 LOC, 0 modified)
 Files WILL NOT touch: any backend file, any other frontend file
-Owner decisions: Q1-Q3 open (recommendations provided — owner to confirm)
-Next: Owner confirms Q1-Q3 → Implementation Plan → Implementation
+Owner decisions: Q1-Q3 all LOCKED
+Next: Implementation Plan → Owner Approval → Implementation
 ```

@@ -1238,7 +1238,40 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 ## 2026-08-06 — CR-075 intake decisions
 
-### 2026-08-06 [CR-075] Q1 — Document migration runs on every sync
+### 2026-08-06 [CR-067] Q1 — Delete cascades to Meta + warning modal
+**Decision**: Delete from CRM also calls Meta `DELETE /{WABA_ID}/message_templates`. Warning modal shown before confirming. Tenants without WABA credentials get local-only delete with toast.
+**Source**: Owner: "1 both and we shd have warning modal before delete"
+**Locks**: `delete_custom_template` (whatsapp.py:565) must call Meta DELETE before local delete. `TemplatesPage.jsx:362` must show AlertDialog confirmation.
+
+### 2026-08-06 [CR-067] Q2 — Block delete if template is in-use
+**Decision**: If template is mapped to an event or used in a campaign, block delete with 400 error.
+**Source**: Owner: "2 block delete"
+**Locks**: In-use check at `whatsapp.py:571-586` is already coded — no change needed.
+
+### 2026-08-06 [CR-067] Q3 — Auto-delete local record during AuthKey sync
+**Decision**: During AuthKey sync, if a local CRM template's `authkey_wid` no longer appears in AuthKey's template list, permanently delete that local `custom_templates` record from MongoDB. No badge, no stale marker.
+**Source**: Owner: "A" (2026-08-06) after explicit clarification of (a) auto-delete vs (b) badge.
+**Locks**: `sync_authkey_templates` (whatsapp.py:~1140) must delete orphaned local records after wid backfill loop.
+
+### 2026-08-06 [CR-067] Q4 — Implement now alongside CR-068
+**Decision**: CR-067 implemented in this sprint, in the same session as CR-068.
+**Source**: Owner confirmed "CR-062, 67 and 68" as next build items.
+**Locks**: Both CRs built together; different files, no conflict.
+
+### 2026-08-06 [CR-068] Q1 — Frontend-only Validate button
+**Decision**: Standalone "Validate" button calls existing `validateMetaCompliance()` + `getBodyWarnings()` + `getFooterWarnings()` client-side. Zero backend changes, zero API calls.
+**Source**: Owner: "A" (2026-08-06) confirming frontend-only recommendation.
+**Locks**: No new backend endpoint. `TemplateBuilderPage.jsx` only.
+
+### 2026-08-06 [CR-068] Q2 — Inline panel for validation results
+**Decision**: Errors and warnings shown in an inline result panel below the body textarea (not toast list).
+**Source**: Planning agent recommendation accepted — owner closed session without objection.
+**Locks**: Result panel appears below body editor, dismissible. Errors in red, warnings in amber.
+
+### 2026-08-06 [CR-068] Q3 — Build alongside CR-067
+**Decision**: CR-068 built in the same session as CR-067.
+**Source**: Owner: "update decision and close the session for impact" — confirming both proceed together.
+**Locks**: Both CRs implemented in one session. TemplateBuilderPage.jsx and whatsapp.py/TemplatesPage.jsx are independent files.
 **Decision**: Document migration runs on **every** Sync Customers call, not just the first.
 **Source**: Owner: "q1 every sync"
 **Rationale**: Idempotency guard (`source_url` dedup check before any download/upload) ensures re-running never creates duplicate rows. New POS documents uploaded after the first sync will automatically appear in CRM on next sync.
