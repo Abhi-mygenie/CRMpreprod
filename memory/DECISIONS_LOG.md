@@ -1300,6 +1300,23 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 - Planning BLOCKED on owner Q1 (which endpoints), Q2 (caching), Q3 (value score sort approach).
 - CR-067 + CR-068 remain higher priority and proceed first.
 
+### 2026-08-06 [CR-078] Q1 — Phase 1 scope: E1 + E2 + E3 only
+**Decision**: Phase 1 builds three endpoints: E1 `/reports/summary`, E2 `/reports/top-customers`, E3 `/reports/churn-risk`.
+**Source**: Owner: "1 b"
+**Locks**: E4 (revenue-intelligence) and E5 (enriched per-customer lookup) deferred to Phase 2. New file: `routers/pos_reports.py`.
+
+### 2026-08-06 [CR-078] Q2 — No caching, always-fresh
+**Decision**: All three Phase 1 endpoints are always-fresh — every request hits MongoDB directly. No in-memory TTL cache.
+**Source**: Owner: "2 c"
+**Locks**: If performance is measured as a problem post-testing, caching can be added as a follow-up. Not in Phase 1 scope.
+
+### 2026-08-06 [CR-078] Q3 — Value score sort deferred to Phase 2
+**Decision**: `/reports/top-customers` Phase 1 sorts on stored fields only (`total_spent`, `total_visits`, `total_points`). `sort_by=value_score` is deferred to Phase 2, which will pre-compute and store `crm_value_score` on the `customers` document.
+**Source**: Owner: "3 a"
+**Locks**: `compute_customer_value()` must NOT be called in a bulk loop in Phase 1. Phase 2 will introduce a nightly pre-computation job. This constraint must be explicitly noted in the Implementation Plan.
+
+
+
 ### 2026-08-06 [CR-075] Q5 — Do NOT enforce 5-doc cap during migration
 **Decision**: Skip the CR-072 per-doc-type cap (max 5) during migration. All historical documents from POS are imported as-is regardless of count. The cap applies to future live POS uploads only.
 **Source**: Owner: "b" (2026-08-06) in response to Q5 options (a=enforce cap / b=skip cap for migration).

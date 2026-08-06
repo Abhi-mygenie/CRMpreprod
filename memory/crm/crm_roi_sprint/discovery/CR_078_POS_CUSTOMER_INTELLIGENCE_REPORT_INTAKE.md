@@ -264,3 +264,27 @@ Next: Planning — BLOCKED on owner Q1 (scope), Q2 (caching), Q3 (value score so
 
 ---
 *Zero production files modified during Intake. No code written.*
+
+---
+
+## 13. Intake Closure — Owner Decisions Locked (2026-08-06)
+
+| Q | Question | Answer | Decision |
+|---|---|---|---|
+| Q1 | Which endpoints Phase 1? | **b** | E1 (`/reports/summary`) + E2 (`/reports/top-customers`) + E3 (`/reports/churn-risk`) only. E4 + E5 deferred to Phase 2. |
+| Q2 | Caching on heavy aggregations? | **c** | Always-fresh. No TTL cache. Add only if perf measured as a problem post-testing. |
+| Q3 | Value score sort on top-customers? | **a** | Deferred to Phase 2. Phase 1 sorts on stored fields only (`total_spent`, `total_visits`, `total_points`). `compute_customer_value()` must NOT run in a bulk loop in Phase 1. |
+
+**Status**: 🔵 INTAKE CLOSED — Planning gate OPEN.
+**Files that WILL change (Phase 1)**:
+- `routers/pos_reports.py` — new file, 3 endpoints (~150 LOC)
+- `backend/server.py` — +1 line (router registration)
+
+**Files that WILL NOT change**: everything else.
+
+**Locked scope for Phase 1 Implementation Plan**:
+1. `GET /api/pos/reports/summary` — customer counts, lifecycle breakdown, tier distribution, revenue KPIs, loyalty stats
+2. `GET /api/pos/reports/top-customers?limit=&sort_by=total_spent|total_visits|total_points` — ranked customer list, stored-field sort only
+3. `GET /api/pos/reports/churn-risk?band=high|medium` — win-back list using CR-077 configurable thresholds (`get_stage_cutoffs()` reused from `routers/analytics.py`)
+
+**Next**: Planning Agent writes edit-by-edit implementation plan for these 3 endpoints.
