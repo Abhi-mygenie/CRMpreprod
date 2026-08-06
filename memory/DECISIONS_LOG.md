@@ -1255,6 +1255,15 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner: "q3 what ever comes in API get migrated"
 **Locks**: No allowlist/denylist on image hosts. Single skip rule: `/storage/;/` in URL path → log `source_404_skipped`, do not attempt download.
 
+### 2026-08-06 [CR-075] Q5 — Do NOT enforce 5-doc cap during migration
+**Decision**: Skip the CR-072 per-doc-type cap (max 5) during migration. All historical documents from POS are imported as-is regardless of count. The cap applies to future live POS uploads only.
+**Source**: Owner: "b" (2026-08-06) in response to Q5 options (a=enforce cap / b=skip cap for migration).
+**Rationale**: POS never had a cap — all documents were legitimately kept. Capping at import would silently discard real historical documents (live data: one customer has 15 License docs — enforcing cap would drop 10 permanently).
+**Locks**:
+- `_migrate_booking_documents()` must NOT call the prune-oldest logic from CR-072 (`pos.py:2198-2208`)
+- The cap prune block stays in `pos.py` for live POS uploads — unchanged
+- Future live uploads via POS still enforce max 5 per type
+
 ### 2026-08-06 [CR-075] Q4 — Document naming convention for migrated files (ANSWERED from code)
 **Decision**: Migrated documents follow the **exact same CR-072 naming convention** already in production. The POS original filename is discarded. CRM assigns:
 - **S3 key**: `customers/{customer_id}/docs/{doc_type}/{uuid}.{ext}` (identical to live-upload pattern in `routers/pos.py:2175`)

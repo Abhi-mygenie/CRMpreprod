@@ -5,7 +5,7 @@
 **Date registered**: 2026-08-06  
 **Role**: Intake Agent  
 **Source**: SESSION_2026_08_06_HANDOVER.md (endpoint validation) + 2026-08-06 live curl validation session  
-**Status**: ✅ INTAKE CLOSED — Q1-Q4 all locked, ready for planning  
+**Status**: ✅ INTAKE CLOSED — Q1-Q5 all locked · Impact Analysis complete · Ready for implementation plan  
 
 ---
 
@@ -215,6 +215,9 @@ If an individual image download fails, skip that document and log the failure. C
 
 **Q3 — LOCKED: Whatever comes in API gets migrated** ✅
 No host filtering. All reachable URLs are downloaded regardless of host (manage ✅, dev ✅). Single skip rule: URLs containing `/storage/;/` → `source_404_skipped` (do not attempt download).
+
+**Q5 — LOCKED: Skip 5-doc cap during migration** ✅
+All historical POS documents imported regardless of count per doc_type. Cap applies to future live POS uploads only. DECISIONS_LOG: 2026-08-06 §CR-075 Q5.
 
 **Q4 — LOCKED: Follow CR-072 naming convention exactly** ✅ *(answered from code — no owner decision needed)*
 Owner asked: *"after migration how crm will change the document name to follow convention we made so store it"*

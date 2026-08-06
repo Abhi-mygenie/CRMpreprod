@@ -265,27 +265,16 @@ Open CRs touching `routers/customers.py`:
 
 ---
 
-## 11. New Open Question — Q5 (OWNER DECISION REQUIRED)
+## 11. Q5 — Doc Cap During Migration — LOCKED ✅
 
-**Discovered during code reality check.**
+**Owner decision (2026-08-06)**: **(b) Skip cap for migration.**
 
-CR-072 enforces a **max 5 documents per `doc_type` per customer** (pos.py:2198-2208). When the 6th is uploaded, the oldest is pruned.
+CR-072 enforces max 5 documents per `doc_type` per customer on live POS uploads (pos.py:2198-2208).
+This cap does **NOT** apply during migration.
 
-Live data from restaurant_id=478 shows customer "avi" (phone 9823905120) has **15 real License documents** and **1 Aadhar card** = 16 real docs total.
+**Rationale**: POS never had a cap — all documents were legitimately stored. Live data shows one customer has 15 License docs — enforcing cap would permanently drop 10. Migration imports the full historical record. The cap stays in place for future live POS uploads only.
 
-If migration enforces the same cap:
-- Only the 5 most-recent License docs would be kept
-- 10+ historical License docs would be permanently dropped
-
-**Q5**: Should the 5-docs-per-type cap be enforced during migration?
-
-| Option | Effect |
-|---|---|
-| **(a) Enforce cap** | Migrates only 5 most-recent per doc_type. Consistent with live-upload behavior. Simple. |
-| **(b) Skip cap for migration** | All historical docs migrated (up to whatever POS has). More complete historical record. Guest with 16 docs retains all 16. |
-| **Recommendation**: **(b)** | Migration is a one-time historical import. POS had no cap — all docs were kept there. Capping at migration would silently discard real documents. The cap can apply to future live uploads only. |
-
-**This is a data retention decision. Owner approval required before implementation plan is written.**
+**Implementation rule**: `_migrate_booking_documents()` must NOT call the prune-oldest block. The prune block in `pos.py:2198-2208` is untouched and continues to apply to live uploads.
 
 ---
 
@@ -330,7 +319,7 @@ If migration enforces the same cap:
 | Q2 | Download fail = skip+log? | ✅ LOCKED: skip+log |
 | Q3 | All API URLs migrated? | ✅ LOCKED: all reachable |
 | Q4 | CR-072 naming convention? | ✅ LOCKED: `{doc_type}_{side}.{ext}`, private S3, `source_url` stored |
-| **Q5** | **Enforce 5-doc cap during migration?** | **🔴 OPEN — owner decision required** |
+| **Q5** | **Enforce 5-doc cap during migration?** | **✅ LOCKED: (b) skip cap for migration — all historical docs imported as-is. Cap applies to future live POS uploads only.** |
 
 ---
 
