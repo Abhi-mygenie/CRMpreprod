@@ -1300,6 +1300,18 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 - Planning BLOCKED on owner Q1 (which endpoints), Q2 (caching), Q3 (value score sort approach).
 - CR-067 + CR-068 remain higher priority and proceed first.
 
+
+### 2026-08-06 [CR-078] Planning Complete — Impact Analysis + Implementation Plan
+**Decision**: Planning complete. Two files will change: `routers/pos_reports.py` (new, ~200 LOC) and `backend/server.py` (+3 lines). Zero other files modified.
+**Source**: Planning Agent 2026-08-06.
+**Locks**:
+- E1 uses `$facet` aggregation — 3 DB calls total (loyalty_settings + customers + orders).
+- E2 uses `.find().sort().limit()` — 1 DB call.
+- E3 uses count_documents + find — 3 DB calls total.
+- `_get_stage_cutoffs()` inlined as module-private copy in pos_reports.py (NOT imported from analytics.py).
+- `db.customers.create_index("user_id")` added to server.py lifespan (idempotent, performance fix for all queries).
+- Implementation gate: BLOCKED on owner approval per §7 of agent system prompt.
+
 ### 2026-08-06 [CR-078] Q1 — Phase 1 scope: E1 + E2 + E3 only
 **Decision**: Phase 1 builds three endpoints: E1 `/reports/summary`, E2 `/reports/top-customers`, E3 `/reports/churn-risk`.
 **Source**: Owner: "1 b"

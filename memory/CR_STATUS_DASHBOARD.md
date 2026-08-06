@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (INTAKE Agent · CR-078 INTAKE CLOSED — Q1=b Q2=c Q3=a locked · ready for Planning)**
+> Last updated: **2026-08-06 (PLANNING Agent · CR-078 PLANNING COMPLETE — Impact Analysis + Impl Plan written · awaiting owner approval to implement)**
 
 ---
 
@@ -116,7 +116,7 @@ DO NOT:
 | — | ~~**CR-023**~~ | 🟢 CLOSED | Phase 1+2+3 + CR-066 V11-V23 done. Owner E2E = acceptance, not code gap. |
 | — | ~~**CR-076**~~ | ✅ QA PASS | Lifecycle Re-engage — modal, bulk CTA, AudiencesPage filter, CampaignWizard pre-fill. Owner smoke pending. |
 | — | ~~**CR-077**~~ | ✅ QA PASS | Configurable lifecycle thresholds — 11 new loyalty_settings fields, Block E wired. Owner smoke pending. |
-| 2026-08-06 | **CR-078** | 🔵 Intake Closed (P2, MEDIUM) | POS Customer Intelligence Report API — Phase 1: E1 summary + E2 top-customers + E3 churn-risk. Q1=b, Q2=c, Q3=a locked. New file only (`routers/pos_reports.py`). Ready for Planning. Intake: `discovery/CR_078_POS_CUSTOMER_INTELLIGENCE_REPORT_INTAKE.md` |
+| 2026-08-06 | **CR-078** | 🔵 Planning Complete (P2, MEDIUM) | POS Customer Intelligence Report API — Phase 1: E1 /summary + E2 /top-customers + E3 /churn-risk. Impact Analysis + Impl Plan written. 14-check verification matrix. Awaiting owner approval to implement. Plans: `planning/CR_078_IMPACT_ANALYSIS.md`, `planning/CR_078_IMPLEMENTATION_PLAN.md` |
 | — | ~~**CR-071 + CR-072**~~ | ✅ QA PASS | B2B customer GST pipeline + hotel document capture. 13/13 PASS. Owner smoke pending. |
 | — | ~~**BUG-011**~~ | ✅ QA PASS (iteration_9) | `_augment_run_stats()` 3/3 pytest PASS. Delivered/read aggregation + legacy $or + empty-runs all verified. |
 | — | ~~**BUG-012**~~ | ✅ QA PASS (iteration_9) | Playwright 3/3 PASS. Deep-link filter, no-params regression, campaign+run dual-banner all confirmed. |
@@ -279,6 +279,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-08-06 (PLANNING COMPLETE) | **CR-078** | 🔵 Intake Closed → **🔵 PLANNING COMPLETE — Impact Analysis + Implementation Plan written. 2 files affected (pos_reports.py new, server.py +3 lines). 14-check verification matrix. 5 risk items assessed (all LOW after mitigation). Awaiting owner approval to implement.** Plans: `planning/CR_078_IMPACT_ANALYSIS.md`, `planning/CR_078_IMPLEMENTATION_PLAN.md`. |
 | 2026-08-06 (INTAKE) | **CR-078** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=b (E1+E2+E3, Phase 1), Q2=c (always-fresh, no caching), Q3=a (value_score sort deferred to Phase 2). Planning gate OPEN.** Intake: `discovery/CR_078_POS_CUSTOMER_INTELLIGENCE_REPORT_INTAKE.md`. |
 | 2026-08-06 (QA PASS) | **CR-075** | 🟡 Implemented → **✅ QA PASS 10/10**. Restaurant_478 (18march): 39 docs migrated, 87 stubs skipped, 9 broken-URL skipped, 0 failures. Idempotency: 2nd sync 0 new inserts. All Q1-Q5 decisions verified live. QA report: `qa/CR_075_QA_REPORT.md`. |
 | 2026-08-06 (IMPLEMENTED) | **CR-075** | 🔵 Planning Complete → **🟡 IMPLEMENTED**. 6 edits applied to `routers/customers.py`: E1 s3 import · E2 `_CR075_ID_TYPE_MAP`+`_CR075_EXT_CONTENT_TYPE` constants · E3 `doc_summary` init · E4 `_cr075_migrate_docs()` call at line ~535 · E5 5 doc-count fields in final sync log · E6 `_cr075_migrate_docs()` helper 80 LOC. Self-test 3/3 PASS: RUN1 counts (migrated=3/stubs=2/404=1) ✅ · Q1 idempotency (re-run: 0 inserts) ✅ · Q2 skip+log on failure ✅. Pre-existing issue noted: POS customer-migration endpoint times out at 60s on large payloads (existing code, not CR-075). Test file: `tests/test_cr075_doc_migration.py`. QA handover: `qa/CR_075_QA_HANDOVER.md`. |
