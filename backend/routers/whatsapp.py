@@ -584,6 +584,45 @@ async def delete_custom_template(template_id: str, user: dict = Depends(get_curr
             status_code=400,
             detail=f"Template is used in campaign '{campaign_usage.get('name')}' and cannot be deleted."
         )
+    # CR-067 GAP-1: fetch template for name (needed for Meta DELETE)
+    template_doc = await db.custom_templates.find_one(
+        {"id": template_id, "user_id": user["id"]},
+        {"_id": 0, "template_name": 1, "meta_template_id": 1}
+    )
+    if not template_doc:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    # CR-067 GAP-1: call Meta DELETE API if tenant has WABA credentials
+    meta_deleted = False
+    meta_note = None
+    user_meta = await db.users.find_one({"id": user["id"]}, {"meta_waba_id": 1, "meta_access_token": 1})
+    waba_id = (user_meta or {}).get("meta_waba_id")
+    access_token = (user_meta or {}).get("meta_access_token")
+    template_name = template_doc.get("template_name", "")
+
+    if waba_id and access_token and template_name:
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                meta_resp = await client.delete(
+                    f"{os.environ['META_GRAPH_API_URL']}/{waba_id}/message_templates",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    params={"name": template_name},
+                )
+            if meta_resp.status_code == 200 and meta_resp.json().get("success"):
+                meta_deleted = True
+            else:
+                logging.warning(
+                    "CR-067 Meta DELETE non-success template=%s status=%s body=%s",
+                    template_name, meta_resp.status_code, meta_resp.text[:200]
+                )
+                meta_note = "Meta delete may not have completed — template removed from CRM"
+        except Exception as meta_err:
+            logging.warning("CR-067 Meta DELETE failed template=%s err=%s", template_name, meta_err)
+            meta_note = "Meta delete failed — template removed from CRM only"
+    else:
+        meta_note = "Removed from CRM only (no Meta credentials configured)"
+
+    # Local delete
     result = await db.custom_templates.delete_one(
         {"id": template_id, "user_id": user["id"]}
     )
@@ -593,7 +632,10 @@ async def delete_custom_template(template_id: str, user: dict = Depends(get_curr
     await db.whatsapp_template_variable_map.delete_one(
         {"user_id": user["id"], "template_id": template_id}
     )
-    return {"message": "Template deleted"}
+    resp = {"message": "Template deleted", "meta_deleted": meta_deleted}
+    if meta_note:
+        resp["note"] = meta_note
+    return resp
 
 
 @router.patch("/custom-templates/{template_id}/labels")
@@ -663,9 +705,20 @@ async def check_template_status(template_id: str, user: dict = Depends(get_curre
                 params={"fields": "name,status,category,language,quality_score,rejected_reason"}
             )
         meta_data = resp.json()
-        meta_status = meta_data.get("status", "").upper()
 
-        status_map = {"APPROVED": "approved", "REJECTED": "rejected", "PENDING": "pending", "IN_APPEAL": "pending", "PAUSED": "approved"}
+        # CR-067 GAP-3: detect template deleted on Meta (404 or "No such" error)
+        error_obj = meta_data.get("error") if isinstance(meta_data.get("error"), dict) else {}
+        if resp.status_code == 404 or "No such" in error_obj.get("message", ""):
+            now_del = datetime.now(timezone.utc).isoformat()
+            await db.custom_templates.update_one(
+                {"id": template_id},
+                {"$set": {"status": "deleted_on_meta", "updated_at": now_del}}
+            )
+            return {"status": "deleted_on_meta", "meta_status": "DELETED", "meta_template_id": meta_tid}
+
+        meta_status = meta_data.get("status", "").upper()
+        # CR-067 GAP-3: DELETED status added to map
+        status_map = {"APPROVED": "approved", "REJECTED": "rejected", "PENDING": "pending", "IN_APPEAL": "pending", "PAUSED": "approved", "DELETED": "deleted_on_meta"}
         new_status = status_map.get(meta_status, template.get("status", "pending"))
 
         update_fields = {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}
@@ -1084,6 +1137,7 @@ async def sync_authkey_templates(user: dict = Depends(get_current_user)):
         # CR-DIRECT-SEND: After successful sync, fetch all AuthKey templates and
         # back-fill authkey_wid on matching custom_templates docs (match by name).
         wid_updates = 0
+        stale_deleted = 0  # CR-067 GAP-4
         try:
             async with httpx.AsyncClient(timeout=20) as client:
                 tpl_resp = await client.post(
@@ -1103,7 +1157,7 @@ async def sync_authkey_templates(user: dict = Depends(get_current_user)):
 
             # Match against local custom_templates
             local_templates = await db.custom_templates.find(
-                {"user_id": user["id"]}, {"_id": 0, "id": 1, "template_name": 1, "status": 1}
+                {"user_id": user["id"]}, {"_id": 0, "id": 1, "template_name": 1, "status": 1, "authkey_wid": 1}
             ).to_list(None)
             for ct in local_templates:
                 norm_ct = (ct.get("template_name") or "").strip().lower().replace(" ", "_")
@@ -1124,6 +1178,35 @@ async def sync_authkey_templates(user: dict = Depends(get_current_user)):
                         {"$set": update_set}
                     )
                     wid_updates += 1
+
+            # CR-067 GAP-4: auto-delete local records whose authkey_wid is gone from AuthKey
+            # (template was deleted on AuthKey side — Q3=a clean removal, not a badge)
+            authkey_wid_set = {str(at.get("wid", "")) for at in authkey_templates if at.get("wid")}
+            for ct in local_templates:
+                aw = ct.get("authkey_wid")
+                if not aw:
+                    continue  # no authkey_wid — may be Meta-only; skip
+                if str(aw) in authkey_wid_set:
+                    continue  # still live on AuthKey — skip
+                # authkey_wid orphaned — guard: skip if mapped to an event
+                event_use = await db.whatsapp_event_template_map.find_one(
+                    {"user_id": user["id"], "template_id": ct["id"]}
+                )
+                if event_use:
+                    logging.info(
+                        "CR-067 stale template id=%s skipped auto-delete (mapped to event %s)",
+                        ct["id"], event_use.get("event_key")
+                    )
+                    continue
+                await db.custom_templates.delete_one({"id": ct["id"], "user_id": user["id"]})
+                await db.whatsapp_template_variable_map.delete_one(
+                    {"user_id": user["id"], "template_id": ct["id"]}
+                )
+                stale_deleted += 1
+                logging.info(
+                    "CR-067 stale template auto-deleted id=%s name=%s authkey_wid=%s",
+                    ct["id"], ct.get("template_name"), aw
+                )
 
             # CR-073: Import externally-created AuthKey templates into custom_templates.
             # Only runs when tenant has Meta WABA configured (Q2=b).
@@ -1239,6 +1322,7 @@ async def sync_authkey_templates(user: dict = Depends(get_current_user)):
             "response": response_data,
             "wid_updates": wid_updates,
             "imported_count": imported_count if 'imported_count' in locals() else 0,
+            "stale_deleted": stale_deleted,  # CR-067 GAP-4
         }
         
     except httpx.RequestError as e:

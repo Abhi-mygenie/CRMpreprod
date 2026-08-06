@@ -41,6 +41,7 @@ export default function TemplatesPage() {
     const [submittingToMeta, setSubmittingToMeta] = useState(false);
     // CR-036 B.3 (E-B3-10): inline media re-upload modal
     const [reuploadTemplate, setReuploadTemplate] = useState(null);
+    const [deleteConfirmTemplate, setDeleteConfirmTemplate] = useState(null); // CR-067
 
     // CR-036 B.3 (E-B3-13): media re-upload complete → persist via Q16 media-only PUT
     const handleReuploadComplete = async (data) => {
@@ -359,9 +360,17 @@ export default function TemplatesPage() {
         finally { setSubmittingToMeta(false); }
     };
 
-    const handleDeleteCustomTemplate = async (templateId) => {
-        try { await api.delete(`/whatsapp/custom-templates/${templateId}`); toast.success("Template deleted"); fetchCustomTemplates(); }
-        catch (err) { toast.error("Failed to delete template"); }
+    const handleDeleteCustomTemplate = async (templateId) => {  // CR-067: called from confirm dialog
+        try {
+            const resp = await api.delete(`/whatsapp/custom-templates/${templateId}`);
+            const note = resp.data?.note;
+            toast.success(note ? `Template deleted — ${note}` : "Template deleted");
+            fetchCustomTemplates();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to delete template");
+        } finally {
+            setDeleteConfirmTemplate(null);
+        }
     };
 
     const handleSubmitCustomTemplate = async (templateId) => {
@@ -605,7 +614,7 @@ export default function TemplatesPage() {
                                                                         <Lock className="w-3 h-3" /> In Use
                                                                     </span>
                                                                 ) : (
-                                                                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 ml-auto" onClick={() => handleDeleteCustomTemplate(ct.id)} data-testid={`delete-custom-${ct.id}`}><Trash2 className="w-3 h-3" /></Button>
+                                                                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 ml-auto" onClick={() => setDeleteConfirmTemplate(ct)} data-testid={`delete-custom-${ct.id}`}><Trash2 className="w-3 h-3" /></Button>
                                                                 )}
                                                             </div>
                                                         </CardContent>
@@ -1172,6 +1181,28 @@ export default function TemplatesPage() {
                                 onUploaded={handleReuploadComplete}
                             />
                         )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* CR-067: Delete confirmation modal — warns before cascading to Meta */}
+                <Dialog open={!!deleteConfirmTemplate} onOpenChange={(o) => !o && setDeleteConfirmTemplate(null)}>
+                    <DialogContent data-testid="delete-confirm-modal">
+                        <DialogHeader>
+                            <DialogTitle>Delete template?</DialogTitle>
+                            <DialogDescription>
+                                <strong>{deleteConfirmTemplate?.template_name}</strong> will be permanently removed from CRM
+                                {deleteConfirmTemplate?.meta_template_id
+                                    ? " and from Meta WhatsApp. The template name will be reserved for 30 days."
+                                    : " (no Meta credentials — local removal only)."
+                                } This cannot be undone.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2">
+                            <Button variant="outline" onClick={() => setDeleteConfirmTemplate(null)} data-testid="delete-cancel-btn">Cancel</Button>
+                            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleDeleteCustomTemplate(deleteConfirmTemplate?.id)} data-testid="delete-confirm-btn">
+                                Delete
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
 

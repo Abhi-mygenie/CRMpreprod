@@ -1313,6 +1313,17 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 - Implementation gate: BLOCKED on owner approval per §7 of agent system prompt.
 
 
+
+### 2026-08-06 [CR-067] Implementation Complete
+**Decision**: CR-067 implemented. 3 backend edits in `routers/whatsapp.py` + 1 frontend edit in `TemplatesPage.jsx`.
+**Source**: Implementation Agent 2026-08-06.
+**Locks**:
+- E1 (GAP-1 line 587): `delete_custom_template` — Meta DELETE API called before local delete; skips gracefully if no WABA creds; `meta_deleted` bool + optional `note` in response.
+- E2 (GAP-3 line 709): `check_template_status` — 404 + "No such" error → `status="deleted_on_meta"`; "DELETED" added to `status_map`.
+- E3 (GAP-4 line 1182): `sync_authkey_templates` — stale records auto-deleted if `authkey_wid` orphaned; event-mapped templates skipped; `stale_deleted` in response.
+- E4 (TemplatesPage.jsx line 44): `deleteConfirmTemplate` state + confirmation Dialog + trash button opens modal.
+- Backend startup clean. Webpack compiled. QA handover: `qa/CR_067_QA_HANDOVER.md`.
+
 ### 2026-08-06 [CR-068] Implementation Complete
 **Decision**: CR-068 implemented. 4 additions applied to `TemplateBuilderPage.jsx`. Zero other files changed.
 **Source**: Implementation Agent 2026-08-06.
