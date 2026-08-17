@@ -1318,6 +1318,15 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 
 
+### 2026-08-06 [CR-079 / CR-081 / CR-080] Implementation Complete
+**Decision**: All three CRs implemented. Self-tests pass for all 3.
+**Source**: Implementation Agent 2026-08-06.
+**Locks**:
+- CR-079: E1 `pos_id`/`restaurant_id` Optional in `POSCustomerUpdate` (pos.py:128-131). E2 PUT returns `updated` (full doc). Self-test 4/4 PASS.
+- CR-081: `routers/pos_coupons.py` created (8 endpoints). `server.py` +2 lines. C-6 DELETE adds campaign guard. `coupon_distributions` collection. Self-test 11/11 PASS.
+- CR-080: `routers/pos_loyalty.py` created (5 endpoints). `server.py` +2 lines. Bonus cap 1,000 pts. wallet_enabled guard in L-4. Message format fixed to use comma (1,000). Self-test 11/11 PASS. V10 wallet credit returns INFO (wallet disabled on Kunafa Mahal tenant — expected).
+- Backend startup: Application startup complete.
+
 ### 2026-08-06 [CR-079 / CR-081 / CR-080] Implementation Plans Complete
 **Decision**: All three implementation plans written. All edit-by-edit steps, curl probes, and exit gate checklists confirmed.
 **Source**: Planning Agent 2026-08-06.

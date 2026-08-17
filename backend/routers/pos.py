@@ -126,9 +126,9 @@ class POSCustomerCreate(BaseModel):
 
 class POSCustomerUpdate(BaseModel):
     """Schema for POS to update a customer - phone is required as unique key"""
-    # POS Identification (Required)
-    pos_id: str  # POS system identifier (mygenie, petpooja, ezzo)
-    restaurant_id: str  # Restaurant ID in that POS system
+    # POS Identification (Optional — derived from X-API-Key auth if not sent) CR-079
+    pos_id: Optional[str] = None  # POS system identifier (mygenie, petpooja, ezzo)
+    restaurant_id: Optional[str] = None  # Restaurant ID in that POS system
     
     # Basic Info (phone is required - unique key)
     phone: str  # Required - unique identifier
@@ -438,12 +438,7 @@ async def pos_update_customer(
     return POSResponse(
         success=True,
         message="Customer updated successfully",
-        data={
-            "customer_id": customer_id,
-            "name": updated.get("name"),
-            "phone": updated.get("phone"),
-            "updated_at": update_dict.get("pos_synced_at")
-        }
+        data=updated  # CR-079 Q2=a: full customer object (_id excluded by projection above)
     )
 
 # ============================================

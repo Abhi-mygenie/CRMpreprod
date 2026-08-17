@@ -126,9 +126,9 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 ---
 
 
-| 29 | `CR-079 POS Customer Edit — Contract Fix` | Fix — schema + response shape | Intake: `../discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md` | `cr079_planning_complete_impl_plan_written_ready_for_implementation` |
-| 30 | `CR-080 POS Loyalty & Wallet Management` | New feature — POS auth wrappers + financial writes | Intake: `../discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md` | `cr080_planning_complete_impl_plan_written_ready_for_implementation` |
-| 31 | `CR-081 POS Coupon Management` | New feature — POS auth wrappers + net-new distribute | Intake: `../discovery/CR_081_POS_COUPON_MANAGEMENT_INTAKE.md` | `cr081_planning_complete_impl_plan_written_ready_for_implementation` |
+| 29 | `CR-079 POS Customer Edit — Contract Fix` | Fix — schema + response shape | Intake: `../discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md` | `cr079_implemented_self_test_4of4_pass_qa_pending` |
+| 30 | `CR-080 POS Loyalty & Wallet Management` | New feature — POS auth wrappers + financial writes | Intake: `../discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md` | `cr080_implemented_self_test_11of11_pass_qa_pending` |
+| 31 | `CR-081 POS Coupon Management` | New feature — POS auth wrappers + net-new distribute | Intake: `../discovery/CR_081_POS_COUPON_MANAGEMENT_INTAKE.md` | `cr081_implemented_self_test_11of11_pass_qa_pending` |
 
 | 32 | `CR-082 Anonymous Coupon Application (customer_id optional)` | Enhancement — coupon engine | Intake: `../discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md` | `cr082_intake_closed_owner_approved_planning_gate_open` |
 

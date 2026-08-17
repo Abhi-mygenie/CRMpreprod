@@ -13,7 +13,7 @@ from core.pos_request_logger import (
     ensure_pos_request_logs_indexes,
 )
 from core.coupon import ensure_coupon_indexes  # CR-001C-C V1
-from routers import auth, customers, points, wallet, coupons, feedback, whatsapp, pos, pos_reports, migration, analytics, scan, menu, suggestions, invoices, campaigns
+from routers import auth, customers, points, wallet, coupons, pos_coupons, pos_loyalty, feedback, whatsapp, pos, pos_reports, migration, analytics, scan, menu, suggestions, invoices, campaigns
 
 # Load CR-002 POS request logging config once at module load (env-driven).
 POS_LOG_CONFIG = _load_pos_log_config()
@@ -170,6 +170,8 @@ api_router.include_router(whatsapp.router)
 api_router.include_router(pos.router)
 api_router.include_router(pos.messaging_router)
 api_router.include_router(pos_reports.router)  # CR-078
+api_router.include_router(pos_coupons.router)  # CR-081
+api_router.include_router(pos_loyalty.router)  # CR-080
 api_router.include_router(migration.router)
 api_router.include_router(analytics.router)
 api_router.include_router(scan.router)
