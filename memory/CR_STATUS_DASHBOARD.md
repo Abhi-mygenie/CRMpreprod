@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (INTAKE Agent · CR-079/080/081/082 ALL INTAKE CLOSED — all decisions locked · CR-082 awaiting owner approval (HIGH risk) · CR-079/080/081 ready for planning)**
+> Last updated: **2026-08-06 (INTAKE Agent · CR-079/080/081/082 INTAKE SESSION CLOSED — all decisions locked · all 4 CRs planning gate OPEN)**
 
 ---
 
@@ -119,7 +119,7 @@ DO NOT:
 | 2026-08-06 | **CR-079** | 🔵 Intake Closed (P2, LOW) | POS Customer Edit — schema fix. Make `pos_id`/`restaurant_id` optional; return full customer on PUT. Blocked on Q1 (phone required?) + Q2 (full vs lean response). Intake: `discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md` |
 | 2026-08-06 | **CR-080** | 🔵 Intake Closed (P1, MEDIUM) | POS Loyalty & Wallet Management — 6 new POS-auth endpoints (4 read, 2 financial write). Blocked on Q1 (new file?), Q2 (bonus cap?), Q3 (payment_method required?). Intake: `discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md` |
 | 2026-08-06 | **CR-081** | 🔵 Intake Closed (P2, MEDIUM) |
-| 2026-08-06 | **CR-082** | 📋 Registered (P1, HIGH) | Per-Coupon "Requires Customer" Flag — new `requires_customer: bool` field on each coupon. `true` (default) = customer required (existing behaviour). `false` = generic walk-in coupon. Toggle in CRM coupon form. POS returns only generic coupons when no customer. Usage always recorded. All decisions locked. Awaiting owner approval (HIGH — core/coupon.py). Intake: `discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md` |
+| 2026-08-06 | **CR-082** | 🔵 Intake Closed (P1, HIGH) | Per-Coupon "Requires Customer" Flag — new `requires_customer: bool` field on each coupon. `true` (default) = customer required (existing behaviour). `false` = generic walk-in coupon. Toggle in CRM coupon form. POS returns only generic coupons when no customer. Usage always recorded. All decisions locked. Awaiting owner approval (HIGH — core/coupon.py). Intake: `discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md` |
  POS Coupon Management — 8 new POS-auth endpoints (4 read, 3 write, 1 net-new distribute). Blocked on Q1 (new file?), Q2 (distribute approach), Q3 (delete allowed?). Intake: `discovery/CR_081_POS_COUPON_MANAGEMENT_INTAKE.md` |
 | 2026-08-06 | **CR-078** | 🟡 Implemented (P2, MEDIUM) | POS Customer Intelligence Report API — Phase 1: E1 /summary + E2 /top-customers + E3 /churn-risk. New file `routers/pos_reports.py` + server.py +3 lines. Curl self-tests PASS. 14-check QA matrix. QA: `qa/CR_078_QA_HANDOVER.md` |
 | — | ~~**CR-071 + CR-072**~~ | ✅ QA PASS | B2B customer GST pipeline + hotel document capture. 13/13 PASS. Owner smoke pending. |
@@ -314,6 +314,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 | 2026-08-06 (INTAKE CLOSED) | **CR-079** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (phone required), Q2=a (full customer in PUT response). Planning gate OPEN.** |
 | 2026-08-06 (INTAKE CLOSED) | **CR-080** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (new file pos_loyalty.py), Q2=b (bonus cap 1000pts), Q3=a (payment_method required). Planning gate OPEN.** |
 | 2026-08-06 (INTAKE CLOSED) | **CR-081** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (new file pos_coupons.py), Q2=a no-WA (distribute records only, WhatsApp Phase 2), Q3=yes (DELETE exposed with in-use guard). Planning gate OPEN.** |
+| 2026-08-06 (INTAKE SESSION CLOSED) | **CR-079/080/081/082** | All 4 CRs intake-closed in one session. No blockers. No open questions. Owner approved CR-082 HIGH risk by closing intake. All decisions locked. Planning gate OPEN for all 4. Handover: `handoff/SESSION_2026_08_06_CR079_CR080_CR081_CR082_INTAKE_HANDOVER.md`. |
 | 2026-08-06 (INTAKE REVISED) | **CR-082** | 📋 Registered → **📋 REGISTERED (REVISED) — Design updated: per-coupon `requires_customer: bool` flag (not global). Checkbox on CRM create/edit form. `false` = generic/walk-in. `true` = customer required (default, backward compat). POS available-coupons returns only generic when no customer. All 8 decisions locked. HIGH risk — core/coupon.py. Awaiting owner approval.** Intake: `discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md`. |
 | 2026-08-06 (INTAKE) | **CR-079** | — → **📋 REGISTERED (P2, LOW)**. POS Customer Edit — PUT endpoint exists but `pos_id`/`restaurant_id` mandatory + response only 4 fields + no contract doc. Source: INV-015. Intake: `discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md`. |
 | 2026-08-06 (INTAKE) | **CR-080** | — → **📋 REGISTERED (P1, MEDIUM)**. POS Loyalty & Wallet Management — 6 gaps (L-1 to L-6). 4 read-only (LOW), 2 financial write (MEDIUM). Source: INV-015. Intake: `discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md`. |

@@ -130,7 +130,7 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 30 | `CR-080 POS Loyalty & Wallet Management` | New feature — POS auth wrappers + financial writes | Intake: `../discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md` | `cr080_intake_closed_q1a_q2b_q3a_ready_for_planning` |
 | 31 | `CR-081 POS Coupon Management` | New feature — POS auth wrappers + net-new distribute | Intake: `../discovery/CR_081_POS_COUPON_MANAGEMENT_INTAKE.md` | `cr081_intake_closed_q1a_q2a_no_wa_q3yes_ready_for_planning` |
 
-| 32 | `CR-082 Anonymous Coupon Application (customer_id optional)` | Enhancement — coupon engine | Intake: `../discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md` | `cr082_intake_closed_revised_requires_customer_flag_all_decisions_locked_awaiting_owner_approval_high_risk` |
+| 32 | `CR-082 Anonymous Coupon Application (customer_id optional)` | Enhancement — coupon engine | Intake: `../discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md` | `cr082_intake_closed_owner_approved_planning_gate_open` |
 
 ## 6. Next Immediate Action
 

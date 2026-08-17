@@ -1332,6 +1332,11 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner 2026-08-06.
 **Locks**: New file. C-8 distribute = record only, no WhatsApp Phase 1. Delete allowed from POS with existing guard. Planning gate OPEN.
 
+### 2026-08-06 [CR-082] Owner Approval — Planning Gate Open
+**Decision**: Owner approved CR-082 for planning by closing the intake session with no blockers raised.
+**Source**: Owner: "any blockers or question if not close intake session follow gates and rules" — 2026-08-06.
+**Locks**: CR-082 HIGH risk is approved. Planning agent may proceed to full implementation plan. Must read entire `core/coupon.py` before writing plan. Must include full regression plan for existing coupon test suites.
+
 ### 2026-08-06 [CR-082] — Registered + Revised: Per-Coupon "Requires Customer" Flag
 **Decision**: CR-082 design revised. Not a global customer_id-optional change. Instead: per-coupon boolean field `requires_customer` (default: true).
 **Source**: Owner clarification 2026-08-06 — "we should be able to choose tick if this particular will be generic or only with customer name".
