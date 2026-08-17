@@ -125,6 +125,11 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 
 ---
 
+
+| 29 | `CR-079 POS Customer Edit — Contract Fix` | Fix — schema + response shape | Intake: `../discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md` | `cr079_registered_awaiting_owner_q1_q2` |
+| 30 | `CR-080 POS Loyalty & Wallet Management` | New feature — POS auth wrappers + financial writes | Intake: `../discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md` | `cr080_registered_awaiting_owner_q1_q2_q3` |
+| 31 | `CR-081 POS Coupon Management` | New feature — POS auth wrappers + net-new distribute | Intake: `../discovery/CR_081_POS_COUPON_MANAGEMENT_INTAKE.md` | `cr081_registered_awaiting_owner_q1_q2_q3` |
+
 ## 6. Next Immediate Action
 
 - Kick off **CR-005 Phase 0 Discovery** to triage the 7 R689 field bugs (B1-B7), confirm B3/B6 dedupe, and decide routing (CRM-1.1 patch vs fold into CR-002B / V3-A2).

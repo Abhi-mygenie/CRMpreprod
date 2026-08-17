@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (IMPLEMENTATION Agent · CR-078 POS API CONTRACT WRITTEN — v1.0 FINAL · POS may integrate)**
+> Last updated: **2026-08-06 (INTAKE Agent · CR-079 + CR-080 + CR-081 REGISTERED — INV-015 complete · awaiting owner Q1–Q3 per CR before planning)**
 
 ---
 
@@ -116,6 +116,9 @@ DO NOT:
 | — | ~~**CR-023**~~ | 🟢 CLOSED | Phase 1+2+3 + CR-066 V11-V23 done. Owner E2E = acceptance, not code gap. |
 | — | ~~**CR-076**~~ | ✅ QA PASS | Lifecycle Re-engage — modal, bulk CTA, AudiencesPage filter, CampaignWizard pre-fill. Owner smoke pending. |
 | — | ~~**CR-077**~~ | ✅ QA PASS | Configurable lifecycle thresholds — 11 new loyalty_settings fields, Block E wired. Owner smoke pending. |
+| 2026-08-06 | **CR-079** | 📋 Registered (P2, LOW) | POS Customer Edit — schema fix. Make `pos_id`/`restaurant_id` optional; return full customer on PUT. Blocked on Q1 (phone required?) + Q2 (full vs lean response). Intake: `discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md` |
+| 2026-08-06 | **CR-080** | 📋 Registered (P1, MEDIUM) | POS Loyalty & Wallet Management — 6 new POS-auth endpoints (4 read, 2 financial write). Blocked on Q1 (new file?), Q2 (bonus cap?), Q3 (payment_method required?). Intake: `discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md` |
+| 2026-08-06 | **CR-081** | 📋 Registered (P2, MEDIUM) | POS Coupon Management — 8 new POS-auth endpoints (4 read, 3 write, 1 net-new distribute). Blocked on Q1 (new file?), Q2 (distribute approach), Q3 (delete allowed?). Intake: `discovery/CR_081_POS_COUPON_MANAGEMENT_INTAKE.md` |
 | 2026-08-06 | **CR-078** | 🟡 Implemented (P2, MEDIUM) | POS Customer Intelligence Report API — Phase 1: E1 /summary + E2 /top-customers + E3 /churn-risk. New file `routers/pos_reports.py` + server.py +3 lines. Curl self-tests PASS. 14-check QA matrix. QA: `qa/CR_078_QA_HANDOVER.md` |
 | — | ~~**CR-071 + CR-072**~~ | ✅ QA PASS | B2B customer GST pipeline + hotel document capture. 13/13 PASS. Owner smoke pending. |
 | — | ~~**BUG-011**~~ | ✅ QA PASS (iteration_9) | `_augment_run_stats()` 3/3 pytest PASS. Delivered/read aggregation + legacy $or + empty-runs all verified. |
@@ -306,6 +309,9 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 | 2026-08-06 (QA PASS) | **BUG-011 + BUG-012 + CR-061 + CRM-2** | 🟡/✅ → **✅ QA PASS (iteration_9, 2026-08-06)**. BUG-011: 3/3 pytest. BUG-012: 3/3 Playwright. CR-061: 13/13 pytest. CRM-2: 400 confirmed. New test file: `tests/test_crm2_doc_upload.py`. |
 | 2026-08-05 (BUG FIX) | **CRM-2** | Partial → **✅ FULLY FIXED**. Document upload endpoint `POST /api/pos/customers/{id}/documents` was returning 422 (FastAPI validation) instead of 400 when multipart `file` part was completely absent. Root cause: `file: UploadFile = File(...)` caused FastAPI to raise 422 before function body ran. Fix: changed to `Optional[UploadFile] = File(None)` + explicit null-guard `if file is None: raise HTTPException(400)`. Self-test PASS. Fix report: `implementation/CRM_2_BUG_FIX_REPORT.md`. |
 | 2026-08-06 (IMPLEMENTATION COMPLETE) | **CR-068** | 🔵 Planning Approved → **🟡 IMPLEMENTED — 4 additions to TemplateBuilderPage.jsx (+35 LOC, 0 modified). useState + handleValidate + Validate button (top bar) + inline result panel. Webpack compiled clean. Screenshot verified: button visible between Save as Draft and Submit to Meta. QA handover written.** File: `TemplateBuilderPage.jsx:258,484,519,679`. QA: `qa/CR_068_QA_HANDOVER.md`. |
+| 2026-08-06 (INTAKE) | **CR-079** | — → **📋 REGISTERED (P2, LOW)**. POS Customer Edit — PUT endpoint exists but `pos_id`/`restaurant_id` mandatory + response only 4 fields + no contract doc. Source: INV-015. Intake: `discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md`. |
+| 2026-08-06 (INTAKE) | **CR-080** | — → **📋 REGISTERED (P1, MEDIUM)**. POS Loyalty & Wallet Management — 6 gaps (L-1 to L-6). 4 read-only (LOW), 2 financial write (MEDIUM). Source: INV-015. Intake: `discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md`. |
+| 2026-08-06 (INTAKE) | **CR-081** | — → **📋 REGISTERED (P2, MEDIUM)**. POS Coupon Management — 8 gaps (C-1 to C-8). 4 read/toggle (LOW), 3 write/delete (MEDIUM), 1 net-new distribute (MEDIUM). Source: INV-015. Intake: `discovery/CR_081_POS_COUPON_MANAGEMENT_INTAKE.md`. |
 | 2026-08-06 (IMPLEMENTATION COMPLETE) | **CR-078** | 🔵 Planning Complete → **🟡 IMPLEMENTED — `routers/pos_reports.py` created (~230 LOC), `server.py` +3 lines. All 3 endpoints registered. Backend startup clean. Curl: E1 summary ✅ E2 top-customers ✅ E3 churn-risk ✅ auth-guard ✅ invalid-band ✅. QA: `qa/CR_078_QA_HANDOVER.md`.** |
 | 2026-08-06 (IMPLEMENTATION COMPLETE) | **CR-067** | 🔵 Planning Approved → **🟡 IMPLEMENTED — 3 backend edits in `routers/whatsapp.py` (GAP-1 Meta DELETE cascade, GAP-3 deleted-status detection, GAP-4 stale auto-delete in AuthKey sync) + 1 frontend edit in `TemplatesPage.jsx` (warning modal with confirm/cancel). Backend startup clean. Webpack compiled. 10 QA checks. QA handover: `qa/CR_067_QA_HANDOVER.md`. |
 | 2026-08-06 (PLANNING APPROVED) | **CR-067 + CR-068** | 📋 Registered → **🔵 PLANNING APPROVED — all decisions locked**. CR-067 Q1: both + warning modal. Q2: block in-use (already coded). Q3: auto-delete local record during AuthKey sync. Q4: now. CR-068 Q1: frontend-only. Q2: inline panel. Q3: build alongside CR-067. Plans: `planning/CR_067_IMPACT_ANALYSIS.md`, `planning/CR_068_IMPACT_ANALYSIS.md`. |

@@ -1315,6 +1315,31 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 
 
+
+### 2026-08-06 [CR-079] — Registered: POS Customer Edit — Contract Fix
+**Decision**: CR-079 formally registered as P2, LOW risk.
+**Source**: INV-015 investigation 2026-08-06.
+**Rationale**: `PUT /api/pos/customers/{id}` already exists with verify_pos_auth. Problem is schema (pos_id/restaurant_id mandatory) and response (4 fields only). No code needed for most POS edit use cases — just contract clarity.
+**Locks**:
+- ID: CR-079. Files WILL change: `routers/pos.py` (2 edits) + contract doc.
+- Planning BLOCKED on Q1 (phone required on PUT?) + Q2 (full vs lean response).
+
+### 2026-08-06 [CR-080] — Registered: POS Loyalty & Wallet Management
+**Decision**: CR-080 formally registered as P1, MEDIUM risk.
+**Source**: INV-015 investigation 2026-08-06.
+**Rationale**: All loyalty/wallet management (settings read, bonus points award, history, wallet credit/history) is CRM-JWT only. POS UI cannot perform any loyalty/wallet management operations. 6 gaps identified.
+**Locks**:
+- ID: CR-080. Risk MEDIUM for L-2 (bonus points write) and L-4 (wallet credit write) — financial collections.
+- Planning BLOCKED on Q1 (new file?), Q2 (bonus cap?), Q3 (payment_method required?).
+
+### 2026-08-06 [CR-081] — Registered: POS Coupon Management
+**Decision**: CR-081 formally registered as P2, MEDIUM risk.
+**Source**: INV-015 investigation 2026-08-06.
+**Rationale**: All coupon management (list, create, edit, toggle, delete, usage) is CRM-JWT only. 1 gap (C-8 distribute) is net-new and doesn't exist anywhere. 8 gaps total.
+**Locks**:
+- ID: CR-081. Risk MEDIUM for write endpoints — discount math in core/coupon.py is CRITICAL hotspot.
+- Planning BLOCKED on Q1 (new file?), Q2 (distribute approach), Q3 (delete from POS?).
+
 ### 2026-08-06 [CR-078] Implementation Complete
 **Decision**: CR-078 Phase 1 implemented. `routers/pos_reports.py` created (~230 LOC). `server.py` +4 lines (import + include_router + user_id index + syntax fix).
 **Source**: Implementation Agent 2026-08-06.
