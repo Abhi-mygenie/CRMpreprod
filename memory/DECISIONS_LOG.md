@@ -1316,6 +1316,47 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 
 
+
+### 2026-08-06 [CR-079] Q1+Q2 — Intake Closed
+**Decision**: Q1=a (phone required on PUT), Q2=a (full customer object in PUT response).
+**Source**: Owner 2026-08-06.
+**Locks**: `phone` stays required. PUT returns full customer doc (same shape as GET /customers/{id}). Planning gate OPEN.
+
+### 2026-08-06 [CR-080] Q1+Q2+Q3 — Intake Closed
+**Decision**: Q1=a (new file `routers/pos_loyalty.py`), Q2=b (bonus points capped at 1,000 per award), Q3=a (`payment_method` required for wallet credit).
+**Source**: Owner 2026-08-06.
+**Locks**: New file. Cap enforced. Audit trail required. Planning gate OPEN.
+
+### 2026-08-06 [CR-081] Q1+Q2+Q3 — Intake Closed
+**Decision**: Q1=a (new file `routers/pos_coupons.py`), Q2=a no-WhatsApp (distribute records only, WhatsApp deferred Phase 2), Q3=yes (DELETE exposed with in-use guard).
+**Source**: Owner 2026-08-06.
+**Locks**: New file. C-8 distribute = record only, no WhatsApp Phase 1. Delete allowed from POS with existing guard. Planning gate OPEN.
+
+### 2026-08-06 [CR-082] — Registered + Revised: Per-Coupon "Requires Customer" Flag
+**Decision**: CR-082 design revised. Not a global customer_id-optional change. Instead: per-coupon boolean field `requires_customer` (default: true).
+**Source**: Owner clarification 2026-08-06 — "we should be able to choose tick if this particular will be generic or only with customer name".
+**Locks**:
+- New field `requires_customer: bool = True` on every coupon (additive, backward compatible).
+- `true` (default): customer required before coupon can be applied — existing behaviour unchanged.
+- `false`: generic coupon — applies to anonymous walk-in orders without customer capture.
+- CRM frontend: checkbox "Require customer to apply" on coupon create/edit form (checked by default).
+- POS: `GET /pos/coupons/available` without customer_id returns only `requires_customer=false` coupons.
+- Validation: `requires_customer=false` + `customer_id=None` → skip per_user_limit, proceed with global caps.
+- Usage recording: always recorded with `customer_id=null` for anonymous — global analytics preserved.
+- WhatsApp silently skipped for anonymous (no phone).
+- Files: `core/coupon.py` (CRITICAL), `models/schemas.py`, `routers/pos.py`, `CouponsPage.jsx`.
+- Planning BLOCKED on owner approval (HIGH risk).
+**Decision**: CR-082 registered as P1, HIGH risk. customer_id optional on coupon validate/apply/orders.
+**Source**: Owner 2026-08-06 — "coupons can be applied even if customer is not captured; usage has to be recorded for ROI".
+**Locks**:
+- `customer_id = None` → skip per_user_limit check
+- `customer_id = None` → still record usage with `customer_id = null` (global analytics preserved)
+- `usage_limit` + `max_applications` (global caps) still enforced for anonymous orders
+- WhatsApp `coupon_earned` event silently skipped when no customer
+- Files: `core/coupon.py` (CRITICAL hotspot), `models/schemas.py`, `routers/pos.py`
+- Risk HIGH — requires full read of core/coupon.py before planning
+- Planning BLOCKED on owner approval (HIGH risk gate per §7 of agent system prompt)
+
 ### 2026-08-06 [CR-079] — Registered: POS Customer Edit — Contract Fix
 **Decision**: CR-079 formally registered as P2, LOW risk.
 **Source**: INV-015 investigation 2026-08-06.
