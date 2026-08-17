@@ -1318,6 +1318,15 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 
 
+### 2026-08-06 [CR-079 / CR-081 / CR-080] Implementation Plans Complete
+**Decision**: All three implementation plans written. All edit-by-edit steps, curl probes, and exit gate checklists confirmed.
+**Source**: Planning Agent 2026-08-06.
+**Locks**:
+- CR-079: Edit 1 = `pos_id`/`restaurant_id` Optional in POSCustomerUpdate. Edit 2 = return `updated` (full doc) in PUT response. 6 curl probes V1–V6.
+- CR-081: New `routers/pos_coupons.py` 8 endpoints. C-6 DELETE adds campaign guard (absent from CRM coupons.py). C-7 handles customer_id=null rows. New `coupon_distributions` collection. 11 curl probes V1–V11.
+- CR-080: New `routers/pos_loyalty.py` 5 endpoints. Bonus/credit logic inlined (cannot call CRM helpers due to get_current_user dependency). Bonus cap 1,000pts enforced at POS layer. wallet_enabled guard added in L-4 (missing from wallet.py helper). 11 curl probes V1–V11.
+- Implementation gates: OPEN for all 3. Recommended order: CR-079 → CR-081 → CR-080.
+
 ### 2026-08-06 [CR-079 / CR-081 / CR-080] Impact Analysis Complete
 **Decision**: Impact analysis complete for all three CRs. Key findings locked.
 **Source**: Planning Agent 2026-08-06.
