@@ -1317,6 +1317,16 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 
 
+
+### 2026-08-06 [CR-079 / CR-081 / CR-080] Impact Analysis Complete
+**Decision**: Impact analysis complete for all three CRs. Key findings locked.
+**Source**: Planning Agent 2026-08-06.
+**Locks**:
+- CR-079: `pos_id`/`restaurant_id` → `Optional[str] = None` in `POSCustomerUpdate`. PUT returns full `updated` doc (already fetched). 2 edits, ~6 LOC. Backward compatible.
+- CR-081: New `routers/pos_coupons.py`. CRM `delete_coupon` has NO campaign guard — C-6 POS delete adds it. C-8 distribute creates new `coupon_distributions` collection. C-7 usage endpoint must handle `customer_id=null` rows (CR-082 impact).
+- CR-080: New `routers/pos_loyalty.py`. `create_points_transaction` and `create_wallet_transaction` use `get_current_user` — cannot call directly from POS router. Must inline bonus/credit branches (~40 LOC). Must add `wallet_enabled` guard in L-4 wrapper (not present in wallet.py helper itself).
+- Implementation plans: next step before coding.
+
 ### 2026-08-06 [CR-079] Q1+Q2 — Intake Closed
 **Decision**: Q1=a (phone required on PUT), Q2=a (full customer object in PUT response).
 **Source**: Owner 2026-08-06.
