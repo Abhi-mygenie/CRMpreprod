@@ -1318,6 +1318,16 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 
 
+### 2026-08-06 [CR-079 / CR-081 / CR-080] QA PASS — iteration_10
+**Decision**: All 3 CRs QA passed. 26/26 checks PASS.
+**Source**: QA Agent + testing_agent_v3 iteration_10 — 2026-08-06.
+**Locks**:
+- CR-079: 5/5 PASS. PUT without pos_id/restaurant_id works. Full customer in response. No _id. Backward compat confirmed.
+- CR-081: 11/11 PASS. All 8 endpoints verified. Note: CouponCreate requires start_date + end_date (non-optional). POS API contract must document this.
+- CR-080: 10/10 PASS. Bonus cap 1,000 enforced. Wallet credit INFO (wallet disabled on Kunafa Mahal — expected, not a bug).
+- Test file: /app/backend/tests/test_cr079_081_080.py
+- Next: owner smoke tests.
+
 ### 2026-08-06 [CR-079 / CR-081 / CR-080] Implementation Complete
 **Decision**: All three CRs implemented. Self-tests pass for all 3.
 **Source**: Implementation Agent 2026-08-06.

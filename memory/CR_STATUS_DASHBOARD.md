@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (IMPLEMENTATION Agent · CR-079 + CR-081 + CR-080 IMPLEMENTED — all self-tests pass · ready for QA)**
+> Last updated: **2026-08-06 (QA Agent · CR-079 + CR-081 + CR-080 QA PASS 26/26 — all checks green · owner smoke pending)**
 
 ---
 
@@ -116,9 +116,9 @@ DO NOT:
 | — | ~~**CR-023**~~ | 🟢 CLOSED | Phase 1+2+3 + CR-066 V11-V23 done. Owner E2E = acceptance, not code gap. |
 | — | ~~**CR-076**~~ | ✅ QA PASS | Lifecycle Re-engage — modal, bulk CTA, AudiencesPage filter, CampaignWizard pre-fill. Owner smoke pending. |
 | — | ~~**CR-077**~~ | ✅ QA PASS | Configurable lifecycle thresholds — 11 new loyalty_settings fields, Block E wired. Owner smoke pending. |
-| 2026-08-06 | **CR-079** | 🟡 Implemented (P2, LOW) | POS Customer Edit — schema fix. Make `pos_id`/`restaurant_id` optional; return full customer on PUT. Blocked on Q1 (phone required?) + Q2 (full vs lean response). Intake: `discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md` |
-| 2026-08-06 | **CR-080** | 🟡 Implemented (P1, MEDIUM) | POS Loyalty & Wallet Management — 6 new POS-auth endpoints (4 read, 2 financial write). Blocked on Q1 (new file?), Q2 (bonus cap?), Q3 (payment_method required?). Intake: `discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md` |
-| 2026-08-06 | **CR-081** | 🟡 Implemented (P2, MEDIUM) |
+| 2026-08-06 | **CR-079** | ✅ QA PASS (P2, LOW) | POS Customer Edit — schema fix. Make `pos_id`/`restaurant_id` optional; return full customer on PUT. Blocked on Q1 (phone required?) + Q2 (full vs lean response). Intake: `discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md` |
+| 2026-08-06 | **CR-080** | ✅ QA PASS (P1, MEDIUM) | POS Loyalty & Wallet Management — 6 new POS-auth endpoints (4 read, 2 financial write). Blocked on Q1 (new file?), Q2 (bonus cap?), Q3 (payment_method required?). Intake: `discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md` |
+| 2026-08-06 | **CR-081** | ✅ QA PASS (P2, MEDIUM) |
 | 2026-08-06 | **CR-082** | 🔵 Intake Closed (P1, HIGH) | Per-Coupon "Requires Customer" Flag — new `requires_customer: bool` field on each coupon. `true` (default) = customer required (existing behaviour). `false` = generic walk-in coupon. Toggle in CRM coupon form. POS returns only generic coupons when no customer. Usage always recorded. All decisions locked. Awaiting owner approval (HIGH — core/coupon.py). Intake: `discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md` |
  POS Coupon Management — 8 new POS-auth endpoints (4 read, 3 write, 1 net-new distribute). Blocked on Q1 (new file?), Q2 (distribute approach), Q3 (delete allowed?). Intake: `discovery/CR_081_POS_COUPON_MANAGEMENT_INTAKE.md` |
 | 2026-08-06 | **CR-078** | 🟡 Implemented (P2, MEDIUM) | POS Customer Intelligence Report API — Phase 1: E1 /summary + E2 /top-customers + E3 /churn-risk. New file `routers/pos_reports.py` + server.py +3 lines. Curl self-tests PASS. 14-check QA matrix. QA: `qa/CR_078_QA_HANDOVER.md` |
@@ -314,6 +314,9 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 | 2026-08-06 (INTAKE CLOSED) | **CR-079** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (phone required), Q2=a (full customer in PUT response). Planning gate OPEN.** |
 | 2026-08-06 (INTAKE CLOSED) | **CR-080** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (new file pos_loyalty.py), Q2=b (bonus cap 1000pts), Q3=a (payment_method required). Planning gate OPEN.** |
 | 2026-08-06 (INTAKE CLOSED) | **CR-081** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (new file pos_coupons.py), Q2=a no-WA (distribute records only, WhatsApp Phase 2), Q3=yes (DELETE exposed with in-use guard). Planning gate OPEN.** |
+| 2026-08-06 (QA PASS) | **CR-079** | 🟡 Implemented → **✅ QA PASS 5/5** (iteration_10). V1-V5 all PASS. PUT without pos_id/restaurant_id works. Full customer returned. No _id. Backward compat confirmed. |
+| 2026-08-06 (QA PASS) | **CR-081** | 🟡 Implemented → **✅ QA PASS 11/11** (iteration_10). C-1 list ✓ C-2 get ✓ C-3 create ✓ C-4 edit ✓ C-5 toggle ✓ C-6 delete ✓ C-7 usage ✓ C-8 distribute ✓ regressions ✓. Note: CouponCreate requires start_date+end_date. |
+| 2026-08-06 (QA PASS) | **CR-080** | 🟡 Implemented → **✅ QA PASS 10/10** (iteration_10). L-1 settings ✓ L-3 history ✓ L-2 award 100pts ✓ cap 1001 blocked ✓ negative blocked ✓ wallet history ✓ missing payment_method blocked ✓ regression ✓. Wallet credit INFO (wallet disabled on Kunafa — expected). |
 | 2026-08-06 (IMPLEMENTED) | **CR-079** | 🔵 Plan → **🟡 IMPLEMENTED**. E1: `pos_id`/`restaurant_id` → Optional. E2: PUT returns full customer. Self-test 4/4 PASS. QA pending. |
 | 2026-08-06 (IMPLEMENTED) | **CR-081** | 🔵 Plan → **🟡 IMPLEMENTED**. New `routers/pos_coupons.py` 8 endpoints + `server.py`. Self-test 11/11 PASS. QA pending. |
 | 2026-08-06 (IMPLEMENTED) | **CR-080** | 🔵 Plan → **🟡 IMPLEMENTED**. New `routers/pos_loyalty.py` 5 endpoints + `server.py`. Self-test 11/11 PASS (V4 cap message fixed). QA pending. |

@@ -1,0 +1,60 @@
+{
+  "summary": "Independent backend-only verification of CR-079, CR-081, CR-080. All 26 checks passed after correcting test data (wrong phone number used initially, missing required start_date/end_date in CouponCreate). All new POS API endpoints verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr079_081_080.py",
+    "/app/test_reports/pytest/cr079_081_080_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CouponCreate schema requires start_date/end_date as non-Optional strings — POS callers must supply dates. Consider making them Optional with sensible defaults in a future CR if POS UI doesn't always collect them.",
+    "CR-081 C-3 POST /api/pos/coupons: The endpoint uses CouponCreate which is the full CRM schema with many required fields. If the POS UI sends minimal coupon data, integrators need to be aware of required start_date/end_date fields."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr079_081_080.py"
+  ],
+  "success_rate": {
+    "backend": "100% (26/26)",
+    "frontend": "N/A - not tested"
+  },
+  "seed_data_creation": "Created and deleted QATEST001 coupon during test run",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 26 CR-079/CR-081/CR-080 backend checks verified PASS. Test file: /app/backend/tests/test_cr079_081_080.py. Key info: customer phone for CUSTOMER_ID=1779d4fc-7161-4407-ac8c-cce30beb3e53 is 7505242126. CouponCreate requires start_date+end_date. Wallet is disabled on Kunafa Mahal tenant (wallet credit returns 'not enabled' - expected). Loyalty IS enabled.",
+  "test_check_results": {
+    "CR-079_V1": "PASS - update without pos_id/restaurant_id succeeds",
+    "CR-079_V2": "PASS - backward compat with pos_id+restaurant_id",
+    "CR-079_V3": "PASS - full customer fields (total_points, tier, wallet_balance, total_visits) in response",
+    "CR-079_V4": "PASS - no _id in response",
+    "CR-079_V5": "PASS - non-existent customer returns success=false",
+    "CR-081_V1": "PASS - list coupons returns coupons+total",
+    "CR-081_V2": "PASS - active_only=true filter works",
+    "CR-081_V3": "PASS - create coupon QATEST001",
+    "CR-081_V4": "PASS - duplicate code returns success=false",
+    "CR-081_V5": "PASS - update discount_value to 15.0",
+    "CR-081_V6": "PASS - toggle flips is_active",
+    "CR-081_V7": "PASS - delete non-campaign coupon succeeds",
+    "CR-081_V8": "PASS - distribute with customer_id records distribution",
+    "CR-081_V9": "PASS - distribute without customer_id returns success=false",
+    "CR-081_V10": "PASS - usage endpoint returns usage+total_discount",
+    "CR-081_V11": "PASS - /api/pos/coupons/available regression OK",
+    "CR-080_V1": "PASS - loyalty settings returns loyalty_enabled, bronze_earn_percent, tier_silver_min",
+    "CR-080_V2": "PASS - points-history returns transactions+current_balance",
+    "CR-080_V3": "PASS - award 100 pts succeeds (loyalty enabled)",
+    "CR-080_V4": "PASS - award 1001 pts rejected with '1,000' in message",
+    "CR-080_V5": "PASS - negative points rejected",
+    "CR-080_V6": "PASS - non-existent customer returns success=false",
+    "CR-080_V7": "PASS - wallet-history returns current_balance+transactions",
+    "CR-080_V8": "PASS - wallet credit without payment_method rejected",
+    "CR-080_V9": "PASS - wallet credit with negative amount rejected",
+    "CR-080_V10": "PASS - /api/pos/customers/{id}/loyalty regression OK"
+  }
+}
