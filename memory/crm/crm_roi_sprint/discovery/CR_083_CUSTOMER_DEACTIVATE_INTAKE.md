@@ -131,3 +131,21 @@ Next: Planning — BLOCKED on owner Q1 (label) + Q2 (default visibility)
 ```
 
 *Zero production files modified during Intake.*
+
+---
+
+## 9. Intake Closure — Owner Decisions Locked (2026-08-06)
+
+| Q | Question | Answer | Decision |
+|---|---|---|---|
+| Q1 | Button label | **a** | "Deactivate" when active → "Reactivate" when blocked |
+| Q2 | Default list visibility | **a** | Show blocked customers in list with red "Blocked" badge. Existing advanced filter already handles `is_blocked` filter. |
+
+**Status**: 🔵 INTAKE CLOSED — Planning gate OPEN.
+
+**Locked scope:**
+- `CustomerDetailPage.jsx`: status banner (red, when blocked) + "Deactivate" button with AlertDialog + "Reactivate" button when blocked
+- `CustomersPage.jsx`: red "Blocked" badge on customer card when `is_blocked=true`
+- No backend changes — `PUT /api/customers/{id}` + `is_blocked` field already work
+
+*Zero production files modified during Intake.*

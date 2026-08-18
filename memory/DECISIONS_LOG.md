@@ -1370,6 +1370,14 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner 2026-08-06.
 **Locks**: New file. C-8 distribute = record only, no WhatsApp Phase 1. Delete allowed from POS with existing guard. Planning gate OPEN.
 
+### 2026-08-06 [CR-083] Q1+Q2 — Intake Closed
+**Decision**: Q1=a (label "Deactivate" / "Reactivate"), Q2=a (show blocked customers in default list with red "Blocked" badge).
+**Source**: Owner: "1a 2a" — 2026-08-06.
+**Locks**:
+- Button label: "Deactivate" when active → "Reactivate" when blocked.
+- Default list: show all customers including blocked ones. Blocked customers get a red "Blocked" badge on their card. Existing advanced filter panel already supports filtering by is_blocked.
+- Planning gate: OPEN.
+
 ### 2026-08-06 [CR-083] — Registered: Customer Block / Deactivate
 **Decision**: CR-083 registered as P2, LOW risk. Owner chose Option A (soft delete via is_blocked) from INV-016.
 **Source**: Owner: "A" — 2026-08-06.

@@ -132,7 +132,7 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 
 | 32 | `CR-082 Anonymous Coupon Application (customer_id optional)` | Enhancement — coupon engine | Intake: `../discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md` | `cr082_impact_analysis_complete_ready_for_impl_plan` |
 
-| 33 | `CR-083 Customer Block / Deactivate — CRM Frontend` | New feature — frontend UI for existing is_blocked | Intake: `../discovery/CR_083_CUSTOMER_DEACTIVATE_INTAKE.md` | `cr083_registered_awaiting_owner_q1_q2` |
+| 33 | `CR-083 Customer Block / Deactivate — CRM Frontend` | New feature — frontend UI for existing is_blocked | Intake: `../discovery/CR_083_CUSTOMER_DEACTIVATE_INTAKE.md` | `cr083_intake_closed_q1a_q2a_ready_for_planning` |
 
 ## 6. Next Immediate Action
 
