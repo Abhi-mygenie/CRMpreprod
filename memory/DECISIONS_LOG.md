@@ -1370,6 +1370,18 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner 2026-08-06.
 **Locks**: New file. C-8 distribute = record only, no WhatsApp Phase 1. Delete allowed from POS with existing guard. Planning gate OPEN.
 
+### 2026-08-06 [CR-082] Impact Analysis Complete
+**Decision**: Impact Analysis complete. 8 edits across 4 files confirmed.
+**Source**: Planning Agent 2026-08-06.
+**Locks**:
+- `validate_coupon_for_customer` (coupon.py:1643): signature `customer_id: Optional[str] = None`. Insert `requires_customer` gate check after usage_limit check (line 1764). Fix `specific_users` guard at line 1815 (latent bug: `None not in [...]` is True).
+- `list_available_coupons` (coupon.py:1969): signature change only. Body already guarded with `if customer_id`. No body changes needed.
+- `record_coupon_usage_for_order` (coupon.py:2132): NO CHANGE. Always called with real customer_id at order commit via `_find_or_create_customer`.
+- `models/schemas.py`: `requires_customer: bool = True` on CouponCreate/CouponUpdate/Coupon. `POSCouponValidateRequest.customer_id` → Optional.
+- `routers/pos.py`: `pos_available_coupons` `customer_id` → Optional query param.
+- `CouponsPage.jsx`: toggle checkbox + Generic badge + EMPTY_FORM + hydration + handleSubmit.
+- Regression: zero breakage expected — default True = current behaviour for all existing coupons.
+
 ### 2026-08-06 [CR-082] Owner Approval — Planning Gate Open
 **Decision**: Owner approved CR-082 for planning by closing the intake session with no blockers raised.
 **Source**: Owner: "any blockers or question if not close intake session follow gates and rules" — 2026-08-06.

@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (QA Agent · CR-079 + CR-081 + CR-080 QA PASS 26/26 — all checks green · owner smoke pending)**
+> Last updated: **2026-08-06 (PLANNING Agent · CR-082 IMPACT ANALYSIS COMPLETE — 8 edits, 4 files, HIGH risk · impl plan next)**
 
 ---
 
@@ -327,6 +327,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 | 2026-08-06 (IMPACT ANALYSIS) | **CR-081** | 🔵 Intake Closed → **🔵 IMPACT ANALYSIS COMPLETE**. New file `routers/pos_coupons.py` (~220 LOC, 8 endpoints). Key finding: CRM `delete_coupon` has no campaign guard — POS C-6 adds it. New `coupon_distributions` collection. Plan: `planning/CR_081_IMPACT_ANALYSIS.md`. |
 | 2026-08-06 (IMPACT ANALYSIS) | **CR-080** | 🔵 Intake Closed → **🔵 IMPACT ANALYSIS COMPLETE**. New file `routers/pos_loyalty.py` (~200 LOC, 5 endpoints). Key finding: `create_points_transaction`/`create_wallet_transaction` use `get_current_user` — must inline bonus/credit branches. Must add `wallet_enabled` guard (missing in wallet.py). Plan: `planning/CR_080_IMPACT_ANALYSIS.md`. |
 | 2026-08-06 (INTAKE SESSION CLOSED) | **CR-079/080/081/082** | All 4 CRs intake-closed in one session. No blockers. No open questions. Owner approved CR-082 HIGH risk by closing intake. All decisions locked. Planning gate OPEN for all 4. Handover: `handoff/SESSION_2026_08_06_CR079_CR080_CR081_CR082_INTAKE_HANDOVER.md`. |
+| 2026-08-06 (IMPACT ANALYSIS) | **CR-082** | 📋 Registered → **🔵 IMPACT ANALYSIS COMPLETE**. 8 edits across 4 files. Key finding: `specific_users` check (coupon.py:1815) has latent bug with None customer_id — fix required. `record_coupon_usage_for_order` does NOT need change (always has real customer_id at order time). Plan: `planning/CR_082_IMPACT_ANALYSIS.md`. |
 | 2026-08-06 (INTAKE REVISED) | **CR-082** | 📋 Registered → **📋 REGISTERED (REVISED) — Design updated: per-coupon `requires_customer: bool` flag (not global). Checkbox on CRM create/edit form. `false` = generic/walk-in. `true` = customer required (default, backward compat). POS available-coupons returns only generic when no customer. All 8 decisions locked. HIGH risk — core/coupon.py. Awaiting owner approval.** Intake: `discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md`. |
 | 2026-08-06 (INTAKE) | **CR-079** | — → **📋 REGISTERED (P2, LOW)**. POS Customer Edit — PUT endpoint exists but `pos_id`/`restaurant_id` mandatory + response only 4 fields + no contract doc. Source: INV-015. Intake: `discovery/CR_079_POS_CUSTOMER_EDIT_INTAKE.md`. |
 | 2026-08-06 (INTAKE) | **CR-080** | — → **📋 REGISTERED (P1, MEDIUM)**. POS Loyalty & Wallet Management — 6 gaps (L-1 to L-6). 4 read-only (LOW), 2 financial write (MEDIUM). Source: INV-015. Intake: `discovery/CR_080_POS_LOYALTY_WALLET_INTAKE.md`. |
