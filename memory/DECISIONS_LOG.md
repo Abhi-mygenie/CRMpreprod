@@ -1370,6 +1370,15 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner 2026-08-06.
 **Locks**: New file. C-8 distribute = record only, no WhatsApp Phase 1. Delete allowed from POS with existing guard. Planning gate OPEN.
 
+### 2026-08-06 [CR-083] — Registered: Customer Block / Deactivate
+**Decision**: CR-083 registered as P2, LOW risk. Owner chose Option A (soft delete via is_blocked) from INV-016.
+**Source**: Owner: "A" — 2026-08-06.
+**Locks**:
+- Approach: soft delete only (is_blocked=True). Hard delete (Option C) NOT in scope.
+- Backend: FULLY READY. PUT /api/customers/{id} + is_blocked field both exist.
+- Frontend files: CustomerDetailPage.jsx (button + banner) + CustomersPage.jsx (badge).
+- Planning BLOCKED on Q1 (label: Deactivate vs Block) + Q2 (default list visibility).
+
 ### 2026-08-06 [INV-016] — Customer Delete Investigation Complete
 **Decision**: INV-016 investigation complete. Customer delete impact is HIGH.
 **Source**: Investigation Agent 2026-08-06.

@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (INVESTIGATION Agent · INV-016 COMPLETE — Customer Delete impact HIGH · 3 options identified · owner decision required)**
+> Last updated: **2026-08-06 (INTAKE Agent · CR-083 REGISTERED — Customer Deactivate (Option A) · frontend only, LOW risk · awaiting owner Q1+Q2)**
 
 ---
 
@@ -327,6 +327,8 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 | 2026-08-06 (IMPACT ANALYSIS) | **CR-081** | 🔵 Intake Closed → **🔵 IMPACT ANALYSIS COMPLETE**. New file `routers/pos_coupons.py` (~220 LOC, 8 endpoints). Key finding: CRM `delete_coupon` has no campaign guard — POS C-6 adds it. New `coupon_distributions` collection. Plan: `planning/CR_081_IMPACT_ANALYSIS.md`. |
 | 2026-08-06 (IMPACT ANALYSIS) | **CR-080** | 🔵 Intake Closed → **🔵 IMPACT ANALYSIS COMPLETE**. New file `routers/pos_loyalty.py` (~200 LOC, 5 endpoints). Key finding: `create_points_transaction`/`create_wallet_transaction` use `get_current_user` — must inline bonus/credit branches. Must add `wallet_enabled` guard (missing in wallet.py). Plan: `planning/CR_080_IMPACT_ANALYSIS.md`. |
 | 2026-08-06 (INTAKE SESSION CLOSED) | **CR-079/080/081/082** | All 4 CRs intake-closed in one session. No blockers. No open questions. Owner approved CR-082 HIGH risk by closing intake. All decisions locked. Planning gate OPEN for all 4. Handover: `handoff/SESSION_2026_08_06_CR079_CR080_CR081_CR082_INTAKE_HANDOVER.md`. |
+| 2026-08-06 | **CR-083** | 📋 Registered (P2, LOW) | Customer Block/Deactivate — frontend-only. Add Deactivate/Reactivate button + status banner on CustomerDetailPage + Blocked badge on CustomersPage. Backend PUT already supports is_blocked. Blocked on Q1 (label) + Q2 (default visibility). Intake: `discovery/CR_083_CUSTOMER_DEACTIVATE_INTAKE.md` |
+| 2026-08-06 (INTAKE) | **CR-083** | — → **📋 REGISTERED (P2, LOW)**. Customer Block/Deactivate (Option A from INV-016). Frontend only — backend PUT+is_blocked already works. CustomerDetailPage missing button. CustomersPage missing badge. Awaiting Q1 (label) + Q2 (default visibility). Intake: `discovery/CR_083_CUSTOMER_DEACTIVATE_INTAKE.md`. |
 | 2026-08-06 (INVESTIGATION) | **INV-016** | — → **Investigation complete**. Customer delete: HIGH impact. `DELETE /api/customers/{id}` exists but incomplete (2/13 collections cleaned, S3 not cleaned, no frontend button). Soft delete exists in POS auth. 3 options mapped (A soft, B anonymise, C hard cascade). Owner must choose approach before INTAKE. Report: `investigations/INV_016_CUSTOMER_DELETE_IMPACT.md`. |
 | 2026-08-06 (IMPACT ANALYSIS) | **CR-082** | 📋 Registered → **🔵 IMPACT ANALYSIS COMPLETE**. 8 edits across 4 files. Key finding: `specific_users` check (coupon.py:1815) has latent bug with None customer_id — fix required. `record_coupon_usage_for_order` does NOT need change (always has real customer_id at order time). Plan: `planning/CR_082_IMPACT_ANALYSIS.md`. |
 | 2026-08-06 (INTAKE REVISED) | **CR-082** | 📋 Registered → **📋 REGISTERED (REVISED) — Design updated: per-coupon `requires_customer: bool` flag (not global). Checkbox on CRM create/edit form. `false` = generic/walk-in. `true` = customer required (default, backward compat). POS available-coupons returns only generic when no customer. All 8 decisions locked. HIGH risk — core/coupon.py. Awaiting owner approval.** Intake: `discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md`. |
