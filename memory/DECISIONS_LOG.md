@@ -1318,6 +1318,16 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 
 
+### 2026-08-06 [CR-079 / CR-081 / CR-080] POS API Contract v1.0 FINAL
+**Decision**: Formal POS API contract written covering all 14 endpoints across 3 CRs.
+**Source**: Planning Agent 2026-08-06.
+**Locks**:
+- Contract path: `handoff/CR_079_CR_081_CR_080_POS_API_CONTRACT_v1_FINAL.md`
+- POS team may integrate immediately — CRM QA 26/26 PASS.
+- CR-081 C-3 POST /pos/coupons: `start_date` + `end_date` are REQUIRED fields — documented.
+- CR-080 L-2 award: cap 1,000 pts per call — documented.
+- CR-080 L-4 wallet credit: `payment_method` required — documented.
+
 ### 2026-08-06 [CR-079 / CR-081 / CR-080] QA PASS — iteration_10
 **Decision**: All 3 CRs QA passed. 26/26 checks PASS.
 **Source**: QA Agent + testing_agent_v3 iteration_10 — 2026-08-06.

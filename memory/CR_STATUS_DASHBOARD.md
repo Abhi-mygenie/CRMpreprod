@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-08-06 (INTAKE Agent · CR-083 INTAKE CLOSED — Q1=a (Deactivate) Q2=a (badge) · planning gate OPEN)**
+> Last updated: **2026-08-06 (PLANNING Agent · CR-079/081/080 POS API CONTRACT v1.0 FINAL written · POS may integrate)**
 
 ---
 
@@ -314,6 +314,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 | 2026-08-06 (INTAKE CLOSED) | **CR-079** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (phone required), Q2=a (full customer in PUT response). Planning gate OPEN.** |
 | 2026-08-06 (INTAKE CLOSED) | **CR-080** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (new file pos_loyalty.py), Q2=b (bonus cap 1000pts), Q3=a (payment_method required). Planning gate OPEN.** |
 | 2026-08-06 (INTAKE CLOSED) | **CR-081** | 📋 Registered → **🔵 INTAKE CLOSED — Q1=a (new file pos_coupons.py), Q2=a no-WA (distribute records only, WhatsApp Phase 2), Q3=yes (DELETE exposed with in-use guard). Planning gate OPEN.** |
+| 2026-08-06 (CONTRACT WRITTEN) | **CR-079/081/080** | ✅ QA PASS → **POS API Contract v1.0 FINAL written**. All 14 endpoints documented with request/response schemas, cURL examples, error reference, backward compat, integration checklist. Contract: `handoff/CR_079_CR_081_CR_080_POS_API_CONTRACT_v1_FINAL.md`. POS may integrate. |
 | 2026-08-06 (QA PASS) | **CR-079** | 🟡 Implemented → **✅ QA PASS 5/5** (iteration_10). V1-V5 all PASS. PUT without pos_id/restaurant_id works. Full customer returned. No _id. Backward compat confirmed. |
 | 2026-08-06 (QA PASS) | **CR-081** | 🟡 Implemented → **✅ QA PASS 11/11** (iteration_10). C-1 list ✓ C-2 get ✓ C-3 create ✓ C-4 edit ✓ C-5 toggle ✓ C-6 delete ✓ C-7 usage ✓ C-8 distribute ✓ regressions ✓. Note: CouponCreate requires start_date+end_date. |
 | 2026-08-06 (QA PASS) | **CR-080** | 🟡 Implemented → **✅ QA PASS 10/10** (iteration_10). L-1 settings ✓ L-3 history ✓ L-2 award 100pts ✓ cap 1001 blocked ✓ negative blocked ✓ wallet history ✓ missing payment_method blocked ✓ regression ✓. Wallet credit INFO (wallet disabled on Kunafa — expected). |
