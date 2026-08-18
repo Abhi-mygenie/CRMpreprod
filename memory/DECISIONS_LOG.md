@@ -1370,6 +1370,18 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner 2026-08-06.
 **Locks**: New file. C-8 distribute = record only, no WhatsApp Phase 1. Delete allowed from POS with existing guard. Planning gate OPEN.
 
+### 2026-08-06 [INV-016] — Customer Delete Investigation Complete
+**Decision**: INV-016 investigation complete. Customer delete impact is HIGH.
+**Source**: Investigation Agent 2026-08-06.
+**Locks**:
+- `DELETE /api/customers/{id}` EXISTS (customers.py:1877) but only cleans 2/13 collections. No frontend button.
+- `DELETE /api/pos/customers/{id}` EXISTS (pos.py:2606) — soft delete (is_blocked=True). No cascade.
+- S3 `delete_object()` available in `core/s3.py:258` but never called on customer delete.
+- 13 collections have orphaned customer_id if hard-deleted: orders, order_items, wallet_transactions, coupon_usage, coupon_transactions, feedback, whatsapp_message_logs, customer_documents (S3!), customer_otps, loyalty_mismatch_logs, coupon_distributions, pos_event_logs, points_transactions.
+- Three options: A (soft/blocked — existing, needs CRM UI), B (anonymise/GDPR), C (hard cascade + S3).
+- Owner must choose approach before INTAKE of new CR.
+- Report: `investigations/INV_016_CUSTOMER_DELETE_IMPACT.md`
+
 ### 2026-08-06 [CR-082] Impact Analysis Complete
 **Decision**: Impact Analysis complete. 8 edits across 4 files confirmed.
 **Source**: Planning Agent 2026-08-06.
