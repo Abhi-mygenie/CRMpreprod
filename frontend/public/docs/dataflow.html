@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyGenie CRM — Data Flow v1.1</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#1f9e6e; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; line-height:1.6; }
+  .wrap { max-width:1280px; margin:0 auto; padding:48px 32px 96px; }
+  header { border-bottom:1px solid var(--border); padding-bottom:24px; margin-bottom:40px; }
+  h1 { font-size:2rem; margin:0 0 8px; }
+  h1 span { color:var(--accent); }
+  .meta { color:var(--muted); font-size:.9rem; }
+  .meta a { color:var(--accent); }
+  h2 { font-size:1.3rem; margin:56px 0 8px; padding-left:14px; border-left:4px solid var(--accent); }
+  .desc { color:var(--muted); font-size:.92rem; margin:0 0 16px; }
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; }
+  pre.mermaid { margin:0; display:flex; justify-content:center; }
+  .note { background:#1c2128; border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:12px 18px; margin-top:14px; font-size:.88rem; color:var(--muted); }
+  .note b { color:var(--text); }
+  table { width:100%; border-collapse:collapse; margin-top:18px; font-size:.85rem; }
+  th, td { border:1px solid var(--border); padding:8px 12px; text-align:left; }
+  th { background:var(--panel); }
+  td code { color:var(--accent); background:#1c2128; padding:1px 5px; border-radius:4px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  nav a { color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:.82rem; text-decoration:none; }
+  nav a:hover { border-color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>MyGenie CRM — <span>Data Flow</span></h1>
+  <div class="meta">v1.1 · 2026-07-06 · Verified against code reality (grep of every <code>db.&lt;collection&gt;.&lt;write-op&gt;</code>) · Source: <code>/app/memory/ARCHITECTURE.md</code> §10–12 · Companion: <a href="./architecture.html">Architecture doc →</a></div>
+  <nav>
+    <a href="#s10">10 · End-to-end POS order flow</a>
+    <a href="#s11">11 · Collection ownership map</a>
+    <a href="#s12">12 · Scheduler &amp; async flow</a>
+  </nav>
+</header>
+
+<h2 id="s10">10 · End-to-end POS order data flow (collections per hop)</h2>
+<p class="desc">The single most important data path — every restaurant order fans out into loyalty, coupons, messaging, invoicing and analytics.</p>
+<div class="panel"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant POS as MyGenie POS
+    participant GW as routers/pos.py&lt;br/&gt;POST /api/pos/orders
+    participant Loy as core/loyalty.py
+    participant Cpn as core/coupon.py
+    participant WA as core/whatsapp.py
+    participant Inv as invoice_generator.py
+    participant AK as AuthKey.io
+    participant DB as MongoDB
+
+    POS->>GW: order payload + X-API-Key
+    GW->>DB: READ users (api_key → tenant auth)
+    GW->>DB: READ/WRITE customers — find or merge on (user_id, phone)
+    GW->>Loy: calculate_points(amount, customer, settings)
+    Loy->>DB: READ loyalty_settings
+    Loy->>DB: WRITE points_transactions (earn ledger)
+    Loy->>DB: WRITE customers (total_points · total_spent · total_visits · tier)
+    alt coupon_code present
+        GW->>Cpn: apply + record (idempotent on user_id+order_id)
+        Cpn->>DB: WRITE coupon_usage · coupons.usage_count · customers
+    end
+    GW->>DB: WRITE orders (insert_one) + order_items (insert_many)
+    GW->>WA: trigger_whatsapp_event (send_bill, order context)
+    WA->>DB: READ event_template_map + template_variable_map
+    WA->>AK: send message (per-tenant authkey_api_key)
+    WA->>DB: WRITE whatsapp_message_logs (status=pending)
+    GW->>Inv: generate invoice (dedup on user_id+restaurant_order_id)
+    Inv->>DB: WRITE invoices (token-indexed)
+    Inv->>Inv: HTML/PDF → S3 (fallback: local disk)
+    GW->>DB: WRITE pos_event_logs · webhook_logs · loyalty_mismatch_logs
+    GW-->>POS: 200 (points · tier · invoice URL)
+
+    Note over DB: analytics_service.py aggregates orders,&lt;br/&gt;order_items, customers, points_transactions — READ-ONLY
+</pre></div>
+<div class="note"><b>Data-integrity anchors</b> — tenant isolation via <code>user_id</code> on every query · customer merge on <code>(user_id, phone)</code> · coupon idempotency on <code>(user_id, order_id)</code> · invoice dedup on <code>(user_id, restaurant_order_id)</code>.</div>
+
+<h2 id="s11">11 · MongoDB collection read/write ownership map</h2>
+<p class="desc">Solid arrows = writes (owner), dotted = read-only consumers. 29 preprod collections grouped by domain.</p>
+<div class="panel"><pre class="mermaid">
+flowchart LR
+    R_Auth["routers/auth.py"]
+    R_Cust["routers/customers.py"]
+    R_POS["routers/pos.py"]
+    R_Camp["routers/campaigns.py"]
+    R_WA["routers/whatsapp.py"]
+    R_Scan["routers/scan.py"]
+    Cpn["coupons router&lt;br/&gt;+ core/coupon.py"]
+    C_Loy["core/loyalty.py&lt;br/&gt;+ loyalty_jobs.py"]
+    C_Jobs["core/campaign_jobs.py"]
+    C_WA["core/whatsapp.py"]
+    S_Inv["invoice_generator.py"]
+    S_Ana["analytics_service.py&lt;br/&gt;(READ-ONLY)"]
+
+    subgraph Identity
+        users[("users")]
+        customers[("customers")]
+        segments[("segments")]
+    end
+    subgraph Commerce
+        orders[("orders")]
+        order_items[("order_items")]
+        invoices[("invoices")]
+        coupons[("coupons")]
+        coupon_usage[("coupon_usage")]
+    end
+    subgraph Loyalty
+        points_tx[("points_transactions")]
+        loyalty_settings[("loyalty_settings")]
+        mismatch[("loyalty_mismatch_logs")]
+    end
+    subgraph Messaging
+        wml[("whatsapp_message_logs")]
+        wcl[("whatsapp_callback_logs")]
+        ct[("custom_templates")]
+        etm[("event_template_map")]
+        tvm[("template_variable_map")]
+    end
+    subgraph CampaignsD["Campaigns"]
+        campaigns[("campaigns")]
+        campaign_runs[("campaign_runs")]
+        cts[("campaign_test_sends")]
+    end
+    subgraph Ops["Ops / Audit"]
+        cron_logs[("cron_job_logs")]
+        webhook_logs[("webhook_logs")]
+        pos_events[("pos_event_logs")]
+    end
+
+    R_Auth -->|W upsert on login| users
+    R_POS -->|W| customers
+    R_POS -->|W| orders
+    R_POS -->|W| order_items
+    R_POS -->|W| webhook_logs
+    R_POS -->|W| pos_events
+    R_POS -->|W| mismatch
+    R_POS -.R api_key auth.-> users
+    R_Cust -->|W profile + tags| customers
+    R_Cust -->|W tag catalog| users
+    R_Cust -->|W| segments
+    R_Camp -->|W| campaigns
+    R_Camp -->|W| campaign_runs
+    R_Camp -->|W| cts
+    C_Jobs -->|W atomic claim + status| campaigns
+    C_Jobs -->|W| cron_logs
+    C_WA -->|W insert send rows| wml
+    R_WA -->|W status via callback| wml
+    R_WA -->|W| wcl
+    R_WA -->|W| ct
+    R_WA -->|W| etm
+    R_WA -->|W| tvm
+    R_WA -->|W authkey/meta creds| users
+    Cpn -->|W| coupons
+    Cpn -->|W| coupon_usage
+    Cpn -->|W redeem state| customers
+    C_Loy -->|W| points_tx
+    C_Loy -->|W points + tier| customers
+    C_Loy -.R.-> loyalty_settings
+    S_Inv -->|W| invoices
+    R_Scan -->|W QR registration| customers
+    S_Ana -.R.-> orders
+    S_Ana -.R.-> order_items
+    S_Ana -.R.-> customers
+    S_Ana -.R.-> points_tx
+</pre></div>
+
+<table>
+  <thead><tr><th>Domain</th><th>Collection</th><th>Write owner(s)</th><th>Read-only consumers</th></tr></thead>
+  <tbody>
+    <tr><td>Identity</td><td><code>users</code></td><td>auth (SSO upsert), customers (tag catalog), whatsapp (creds)</td><td>pos (api_key auth), all routers (tenant lookup)</td></tr>
+    <tr><td>Identity</td><td><code>customers</code></td><td>pos (merge), customers, scan (QR), loyalty, coupon</td><td>campaigns/segments (build_customer_query), analytics</td></tr>
+    <tr><td>Identity</td><td><code>segments</code></td><td>customers router</td><td>campaigns (audience resolution)</td></tr>
+    <tr><td>Commerce</td><td><code>orders</code> / <code>order_items</code></td><td>pos only</td><td>analytics, suggestions</td></tr>
+    <tr><td>Commerce</td><td><code>invoices</code></td><td>invoice_generator only</td><td>public invoice routes</td></tr>
+    <tr><td>Commerce</td><td><code>coupons</code> / <code>coupon_usage</code></td><td>coupons router + core/coupon</td><td>pos validate/apply</td></tr>
+    <tr><td>Loyalty</td><td><code>points_transactions</code></td><td>core/loyalty + loyalty_jobs + pos</td><td>analytics, points router</td></tr>
+    <tr><td>Loyalty</td><td><code>loyalty_settings</code></td><td>points router</td><td>core/loyalty</td></tr>
+    <tr><td>Messaging</td><td><code>whatsapp_message_logs</code></td><td>core/whatsapp (insert), whatsapp router (callback status)</td><td>Message Status page, campaign stats</td></tr>
+    <tr><td>Messaging</td><td><code>custom_templates</code> + maps</td><td>whatsapp router</td><td>campaigns, automation</td></tr>
+    <tr><td>Campaigns</td><td><code>campaigns</code> / <code>campaign_runs</code> / <code>campaign_test_sends</code></td><td>campaigns router + campaign_jobs (claim)</td><td>history page</td></tr>
+    <tr><td>Ops</td><td><code>cron_job_logs</code>, <code>webhook_logs</code>, <code>pos_event_logs</code></td><td>scheduler / pos / webhooks</td><td>debugging only</td></tr>
+  </tbody>
+</table>
+
+<h2 id="s12">12 · Scheduler &amp; async data flow</h2>
+<p class="desc">APScheduler jobs and the async delivery-status webhook path.</p>
+<div class="panel"><pre class="mermaid">
+flowchart TB
+    Lifespan["server.py lifespan startup"] --> Sched["APScheduler — AsyncIOScheduler&lt;br/&gt;max_instances=1 · coalesce=true"]
+
+    Sched -->|"CronTrigger 00:00 UTC"| LoyJob["core/loyalty_jobs.py&lt;br/&gt;Daily Loyalty Jobs"]
+    Sched -->|"CronTrigger every minute&lt;br/&gt;gate: CAMPAIGN_SCHEDULER_ENABLED"| CampJob["core/campaign_jobs.py&lt;br/&gt;process_due_campaigns()"]
+
+    LoyJob -->|"W points expiry (update_many)"| PT[("points_transactions")]
+    LoyJob -->|"W balance/tier"| Cust[("customers")]
+
+    CampJob -->|"1 · atomic claim (update_one status)"| Camps[("campaigns")]
+    CampJob -->|"2 · resolve audience"| BCQ["core/helpers.py&lt;br/&gt;build_customer_query()"]
+    BCQ -.R filters + tags.-> Cust
+    CampJob -->|"3 · batch send"| Send["core/whatsapp.py&lt;br/&gt;send_bulk_messages()&lt;br/&gt;15s httpx timeout"]
+    Send -->|per recipient| AK["AuthKey.io"]
+    Send -->|"W row per recipient&lt;br/&gt;key: (message_id, customer_phone)"| WML[("whatsapp_message_logs")]
+    CampJob -->|"4 · W run log"| CJL[("cron_job_logs")]
+
+    AK -.->|async delivery status| CB["/api/whatsapp/callback"]
+    CB -->|"composite lookup (CR-039)&lt;br/&gt;state-machine gate (CR-041)"| WML
+    CB -->|"W raw payload"| WCL[("whatsapp_callback_logs")]
+</pre></div>
+<div class="note"><b>Async safety</b> — atomic claim prevents double-fire across restarts · <code>max_instances=1 + coalesce</code> prevents overlap · composite webhook lookup prevents cross-recipient status corruption · timestamps gated behind the status state machine.</div>
+
+</div>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose', flowchart: { curve: 'basis' } });
+</script>
+</body>
+</html>
