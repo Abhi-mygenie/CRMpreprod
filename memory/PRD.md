@@ -44,3 +44,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - From INV-017/018. 084 dev_otp leak (P1 HIGH) · 085 phone normalisation (P1 CRITICAL) · 086 migration creates customers (P1 HIGH) · 087 backfill+merge (P1 CRITICAL, conflicts no-backfill rule) · 088 /scan hygiene (P2) · 089 skip-otp guard rails (P2) · 090 OTP delivery + reset-password (P2, 🔴 blocked on channel).
 - Blockers for Customer App next phase: CR-084, CR-085. Recommended before UAT sign-off: CR-086, CR-087.
 - Intake doc: `crm/crm_roi_sprint/discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md`. Dashboard + register updated.
+
+## 2026-09-15 — Session handover written
+- `crm/crm_roi_sprint/handoff/SESSION_2026_09_15_HANDOVER_INV017_INV018_INTAKE_CR084_CR090.md` — next agent presents the 7-step decision table; owner pending: 5 restaurant IDs (Aug recon), CR-084 approval, CR-085 direction (leaning no-normalise), CR-086 Q1-Q2, CR-087 rule lift.
