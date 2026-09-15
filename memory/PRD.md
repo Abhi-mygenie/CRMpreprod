@@ -32,5 +32,5 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 ## 2026-09-15 — INV-017 Customer App ↔ CRM v2 contract verification (READ-ONLY, no code changed)
 - Role: INVESTIGATION (10/10 steps). Source: `crm/inbox/CRM_CONTRACT_VERIFICATION_REQUEST.md`.
 - Result: orders/points/wallet v2 routes EXIST under `/scan/*` (`/scan/orders`, `/scan/loyalty`, `/scan/points/history`, `/scan/wallet/history`); Customer App probed wrong paths + expects different field names. Password reset for customers does NOT exist. OTP is dev-only (`dev_otp` returned, no SMS provider).
-- Reports: `crm/crm_roi_sprint/investigations/INV_017_CUSTOMER_APP_CONTRACT_GAPS.md`, `.../INV_017_CRM_CONTRACT_REPLY_TO_CUSTOMER_APP.md`.
+- Reports: `crm/crm_roi_sprint/investigations/INV_017_CUSTOMER_APP_CONTRACT_GAPS.md`, `.../INV_017_CRM_CONTRACT_REPLY_TO_CUSTOMER_APP.md`, `.../INV_017_CUSTOMER_SCAN_API_CONTRACT_v2.md` (formal as-built contract + PROPOSED P-1..P-6), `.../INV_017_openapi_scan_v2.json` (OpenAPI export).
 - Next: INTAKE for GAP-05 (`dev_otp` in prod, P1 security) + optional CR (skip pagination, expiring_soon); owner decisions on SMS provider & skip-otp guard rails.

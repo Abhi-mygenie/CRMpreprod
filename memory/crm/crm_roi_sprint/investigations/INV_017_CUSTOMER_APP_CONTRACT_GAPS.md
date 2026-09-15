@@ -135,3 +135,12 @@ POS orders land in `db.orders` with `user_id` = tenant id and `customer_id` reso
 | Part C item 3 (URLs) | Owner | Production CRM URL is UNKNOWN to this codebase (addendum §15 Q1). |
 
 **Next role:** INTAKE (register GAP-05 `dev_otp` as P1 security item + optional pagination CR) → owner decisions on GAP-04/06.
+
+---
+
+## 6. Attached artifacts (for records)
+| File | Purpose |
+|---|---|
+| `INV_017_CRM_CONTRACT_REPLY_TO_CUSTOMER_APP.md` | Their questionnaire with "CRM answer" filled — send as-is |
+| `INV_017_CUSTOMER_SCAN_API_CONTRACT_v2.md` | Formal as-built contract for `/api/scan/*` (+ §6 PROPOSED changes P-1…P-6) |
+| `INV_017_openapi_scan_v2.json` | Machine-readable OpenAPI 3 export, filtered to 21 `/api/scan/*` paths + 14 schemas (from live app) |
