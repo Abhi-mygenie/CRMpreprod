@@ -23,6 +23,21 @@
 | Duplicate customers (same tenant, same last-10 digits, different format) | **38 groups / 45 extra records** |
 | …of which orders are split across the duplicate records | **31 of 38** |
 
+### 1.1 Re-verification (owner request, 2026-09-15)
+
+**Claim 1 (GAP-13):** all 3,517 phone-present unlinked orders have `mygenie_synced` (migration marker); 0 have `loyalty_idempotency_key` (realtime marker). CONFIRMED.
+
+**Claim 2 (phone shapes) — by ingest path:**
+
+| Path | Orders | Clean 10-digit | Odd shapes |
+|---|---|---|---|
+| Migration (POS order-history API) | 66,149 (98.8%) | 16,800 | `+…` 743 · leading-0 323 · spaces 295 · 11–16 digits ~560 · `91…` 31 · junk (1–3 chars, up to 47 chars) ~215 |
+| Realtime webhook | 1,038 (1.2%) | 461 (95%) | `+…` 6 · 9-digit 11 · 11-digit 6 · 1-char 1 |
+
+Nuance: format chaos is overwhelmingly in **historical POS data**; the live webhook is ~95% clean but not validated. Realtime ingest has only been live since ~2026-06.
+
+**Claim 3 (restaurant 689 / Kunafa Mahal):** 9,327 orders · 2,970 linked (31%) · 6,357 unlinked — **100% empty phone, 0 phone-but-unlinked**. `order_type` of the empty-phone orders: `pos` 6,292 · `dinein` 55 · `take_away` 10. 2,288 customers. Phone shapes clean (2,837 10-digit, ~47 odd). Meaning: two-thirds of bills are anonymous counter sales — POS/cashier process, **not a CRM defect**; GAP-13/14 barely present on this tenant → good UAT tenant.
+
 ---
 
 ## 2. Code trace
