@@ -15,7 +15,7 @@ All root causes were confirmed in INV-017/018, so each item enters the register 
 |---|---|---|---|---|---|---|---|
 | **CR-084** | Remove `dev_otp` from non-dev `request-otp` responses | BUG (security) | **P1** | HIGH (auth-adjacent, `scan.py`) | ~20 min | GAP-05 | **YES** — anyone can mint a customer token for any phone |
 | **CR-085** | Canonical phone normalisation at every entry point | CR | **P1** | **CRITICAL** (`pos.py` customer identity — hotspot) | ~4 hrs | GAP-14 | **YES** — format mismatch = empty profile / 0 orders in app |
-| **CR-086** | Migration/sync creates customers for unknown phones (parity with realtime) | BUG | P1 | HIGH (`migration.py`) | ~1.5 hrs | GAP-13 | Recommended (history completeness) |
+| **CR-086** | POS customers missing from CRM — customer sync fails on large tenants (541/665/474) + order sync does not create missing customer | BUG | P1 | HIGH (`customers.py` sync, `migration.py`) | ~3 hrs | GAP-13 | Recommended (₹21.9L of history invisible) |
 | **CR-087** | Backfill orphaned orders + merge duplicate customers (dry-run first) | DATA CR | P1 | **CRITICAL** (production data write) | ~3 hrs + owner review | GAP-13/14 | Recommended; **conflicts with sprint rule "no historical backfill approved"** → owner decision |
 | **CR-088** | `/scan/*` list hygiene: `skip` pagination, consistent `total`, `expiring_soon`, expose `/api/openapi.json` | CR | P2 | LOW–MEDIUM (`scan.py`, `server.py`) | ~2 hrs | GAP-12, P-2, P-3, P-6 | No (app can adapt) |
 | **CR-089** | `skip-otp` guard rails (rate-limit + `Retry-After`, password-holder handling) | CR (security) | P2 | MEDIUM (auth) | ~1.5 hrs | GAP-06 | Owner decision |
@@ -54,18 +54,20 @@ All root causes were confirmed in INV-017/018, so each item enters the register 
   - **Q2** Values that remain invalid after normalisation (junk like 1–3 chars): (a) reject the create/order with clear error · (b) accept order, store customer with `phone_invalid=true`, exclude from WhatsApp
   - **Q3** Should POS also be asked to normalise on their side (belt-and-braces)? (recommended yes — see INV-018 §5 Q5)
 
-## 3. CR-086 — Migration/sync creates customers for unknown phones
+## 3. CR-086 — POS customers missing from CRM: customer sync fails on large tenants + order sync does not self-heal (REVISED after owner challenge 2026-09-15)
 
-- **Classification:** BUG · **Severity: P1** · **Risk: HIGH** (`routers/migration.py`; creates customer docs → downstream loyalty/analytics counts)
-- **Symptom:** 3,517 migrated orders have a phone but `customer_id: null`; ~98% of those phones have no customer record at all.
-- **Root cause (CONFIRMED, INV-018 GAP-13):** `migration.py:210-225, 304` — looks up by `pos_customer_id` then exact phone; if not found writes `customer_id: None`. Realtime path (`pos.py:665-712`) creates the customer.
-- **Fix direction (for Planning):** call the same find-or-create helper as realtime (after CR-085 normalisation), with `first_visit_bonus` suppressed for historical imports; set `customer_id` on the order.
-- **Duplicate check:** DISTINCT — CR-075 (hotel doc migration) touches the same file but different concern.
-- **Code reality:** PARTIAL (lookup exists, create missing).
-- **Blast radius:** MEDIUM — new customer docs per tenant; affects customer counts/analytics; no financial writes if bonus suppressed.
-- **Evidence:** INV-018 §1 (3,517 all `mygenie_synced`, 0 realtime).
-- **Owner questions:** **Q1** Customers created from historical orders: (a) Bronze, 0 points, no bonus, `source:"migration"` · (b) also back-compute `total_visits`/`total_spent` from their orders (overlaps CR-087)
-- **Dependency:** after CR-085 (otherwise creates more format duplicates).
+- **Classification:** BUG · **Severity: P1** · **Risk: HIGH** (`routers/customers.py` customer_sync, `routers/migration.py` order_sync; creates customer docs)
+- **Owner challenge:** "I don't think there is any issue in migrated customers." **Correct** — migrated customers are fine. The issue is POS customers that were **never migrated**.
+- **Symptom:** 3,517 migrated orders have a phone AND a `pos_customer_id` (POS knows the customer) but `customer_id: null` in CRM. 0/300 sampled have any CRM customer with that `pos_customer_id` (nor by phone). Total value ₹21.9 lakh. Concentrated in tenants 541 (1,426), 665 (1,332), 474 (658).
+- **Root cause A (CONFIRMED):** customer sync is incomplete/failing for these tenants — `migration_sync_logs`: latest `customer_sync` status **failed** for 541 (2026-08-05 and 2026-05-27), 665 (2026-08-05), 474 (2026-08-05). CRM holds 313 / 200 / 52 customers vs ≥322 / ≥921 / ≥490 distinct POS customers seen on orders alone. Likely the pre-existing 60 s timeout on the POS customer-migration endpoint noted in CR-075 QA.
+- **Root cause B (CONFIRMED):** `migration.py:210-225, 304` — order sync looks up by `pos_customer_id` then phone; if not found writes `customer_id: None` instead of creating the customer from the order's own `pos_customer_id` + `cust_mobile` + `cust_name` (realtime `pos.py:665-712` does create).
+- **Fix direction (for Planning):** (A) investigate failed sync logs → make customer_sync resumable/paginated so large tenants complete; (B) order sync creates the missing customer (parity with realtime; bonus suppressed; `source:"order_sync"`), sets `customer_id`.
+- **Duplicate check:** RELATED to CR-075 (same file, doc migration; timeout noted there) — DISTINCT.
+- **Code reality:** PARTIAL.
+- **Blast radius:** MEDIUM — new customer docs for 3 tenants (~1,700+); customer counts/analytics change; no financial writes.
+- **Evidence:** INV-018 §1; recheck 2026-09-15 (pos_customer_id present on 3,517/3,517; sync logs).
+- **Owner questions:** **Q1** created-from-order customers: (a) Bronze, 0 pts, no bonus, `source:"order_sync"` · (b) also back-compute `total_visits/total_spent` (overlaps CR-087) · **Q2** re-run customer_sync for 541/665/474 after fix A (yes recommended)
+- **Dependency:** CR-085 decision (format) first, so re-synced customers land in the agreed shape.
 
 ## 4. CR-087 — Backfill orphaned orders + merge duplicate customers
 
