@@ -39,3 +39,8 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - 28% of 66,977 orders linked to a customer. 93% of unlinked = POS sent empty phone (DATA). GAP-13: migration never creates customers (3,517 orphaned). GAP-14: zero phone normalisation → 38 duplicate customer groups, split histories; Customer App `skip-otp` format mismatch → 0 orders.
 - Proposed P-8 (normalise phone everywhere, CRITICAL hotspot), P-9 (migration creates customers), P-10 (backfill/merge, dry-run first). Awaiting owner approval.
 - Report + POS/Customer-App briefs: `crm/crm_roi_sprint/investigations/INV_018_ORDER_LINKAGE_GAPS.md`.
+
+## 2026-09-15 — INTAKE: CR-084 → CR-090 registered (docs only, zero code)
+- From INV-017/018. 084 dev_otp leak (P1 HIGH) · 085 phone normalisation (P1 CRITICAL) · 086 migration creates customers (P1 HIGH) · 087 backfill+merge (P1 CRITICAL, conflicts no-backfill rule) · 088 /scan hygiene (P2) · 089 skip-otp guard rails (P2) · 090 OTP delivery + reset-password (P2, 🔴 blocked on channel).
+- Blockers for Customer App next phase: CR-084, CR-085. Recommended before UAT sign-off: CR-086, CR-087.
+- Intake doc: `crm/crm_roi_sprint/discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md`. Dashboard + register updated.

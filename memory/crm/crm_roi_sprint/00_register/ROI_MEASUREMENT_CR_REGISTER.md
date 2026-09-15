@@ -133,6 +133,13 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 32 | `CR-082 Anonymous Coupon Application (customer_id optional)` | Enhancement — coupon engine | Intake: `../discovery/CR_082_ANONYMOUS_COUPON_INTAKE.md` | `cr082_impact_analysis_complete_ready_for_impl_plan` |
 
 | 33 | `CR-083 Customer Block / Deactivate — CRM Frontend` | New feature — frontend UI for existing is_blocked | Intake: `../discovery/CR_083_CUSTOMER_DEACTIVATE_INTAKE.md` | `cr083_intake_closed_q1a_q2a_ready_for_planning` |
+| 34 | `CR-084 Remove dev_otp from non-dev request-otp (SECURITY)` | Bug — auth-adjacent | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §1 | `cr084_registered_p1_high_awaiting_owner_approval_to_plan` |
+| 35 | `CR-085 Canonical phone normalisation at every entry point` | CR — customer identity (CRITICAL hotspot pos.py) | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §2 | `cr085_registered_p1_critical_q1_q3_pending` |
+| 36 | `CR-086 Migration creates customers for unknown phones` | Bug — migration parity | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §3 | `cr086_registered_p1_high_q1_pending_depends_cr085` |
+| 37 | `CR-087 Backfill orphan orders + merge duplicate customers` | Data CR — one-off script (conflicts §1 no-backfill rule) | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §4 | `cr087_registered_p1_critical_q1_q3_pending_owner_must_lift_no_backfill_rule` |
+| 38 | `CR-088 /scan list hygiene (skip, total, expiring_soon, /api/openapi.json)` | CR — additive read routes | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §5 | `cr088_registered_p2_low_medium_no_questions` |
+| 39 | `CR-089 skip-otp guard rails` | CR — auth security | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §6 | `cr089_registered_p2_medium_q1_q2_owner_risk_decision` |
+| 40 | `CR-090 Customer OTP delivery + forgot/reset-password` | CR — new integration | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §7 | `cr090_blocked_p2_high_q1_channel_decision` |
 
 ## 6. Next Immediate Action
 
