@@ -75,6 +75,20 @@ Canonical form to agree across POS / Customer App / CRM: **10-digit national num
 
 ---
 
+## 4.1 Canonical phone format (de-facto, from code — no formal spec exists)
+
+```
+phone        : exactly 10 digits, digits only — no "+", no country code, no spaces/dashes, no leading 0
+country_code : "+91" (separate field; default when omitted)
+```
+✅ `9876543210` · ❌ `+919876543210` · ❌ `919876543210` · ❌ `09876543210` · ❌ `98765 43210`
+
+Evidence: `models/schemas.py:234-235,458-459` (phone + separate `country_code="+91"`); `routers/customers.py:110-116` (CSV import — the ONLY validation in CRM: strip spaces/`-`/`+`, drop leading `91` if 12 digits, require exactly 10 digits); `core/whatsapp.py:63-64,620-621` (send = `country_code` digits + `phone` → a `+91…` phone would break WhatsApp delivery); live data 98% of customers and 95% of realtime orders already 10-digit.
+
+Open decisions before P-8: (a) non-Indian numbers — every entry point hardcodes `+91`; need "national digits + real country code", not "last 10 digits"; (b) reject vs quarantine values that remain non-10-digit after normalisation (~215 junk values in migrated data).
+
+---
+
 ## 5. Brief for POS (MyGenie) agent — questions to answer
 
 **1. Phone capture — why is `cust_mobile` empty on 44,682 orders?**
