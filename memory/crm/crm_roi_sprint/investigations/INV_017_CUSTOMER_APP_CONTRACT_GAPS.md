@@ -2,7 +2,7 @@
 
 **Source:** `memory/crm/inbox/CRM_CONTRACT_VERIFICATION_REQUEST.md` (Customer App team, ref INV-2026-09-15-001)
 **Role:** INVESTIGATION · **Risk:** HIGH (API contract / auth-adjacent) · **Code changed:** NONE
-**Steps used:** 10/10 · **Date:** 2026-09-15
+**Steps used:** 10/10 (+2 validation probes for Customer App follow-ups D1/D4) · **Date:** 2026-09-15
 **Codebase truth:** `routers/scan.py` (879 LOC), `core/auth.py`, `routers/pos.py:880-1039`, `models/schemas.py`, live Mongo (aggregates only)
 
 ---
@@ -98,6 +98,12 @@ Claims: `customer_id`, `restaurant_id` (= `pos_0001_restaurant_{rid}`), `phone`,
 - Transport/auth/validation → HTTP 4xx `{detail}` (401 bad/expired token, 403 missing header, 422 body, 429 OTP rate-limit).
 - Business outcomes → HTTP 200 `{success:false, message, data:null}` (invalid credentials, invalid/expired OTP, not found, phone already registered).
 Customer App's dual handling is correct; canonical rule above.
+
+### GAP-11 · 401 vs 403 on missing header — environment drift (INFO, raised by Customer App as D1)
+Live `crm.mygenie.online` → **401** `"Not authenticated"` (all 7 authenticated `/scan/*` routes, verified 2026-09-15). Preprod pod → **403** (repo pins `fastapi==0.110.1`; HTTPBearer changed to 401 in FastAPI 0.122). Implication: **live is running a different FastAPI version than this repo pins** — deployment provenance question for owner (addendum §15 Q1). Contract now says: treat 401/403 identically.
+
+### GAP-12 · `total` semantics inconsistent across list routes (LOW, raised as D4)
+`/scan/orders.total` = `count_documents` (full); `/scan/points/history.total` and `/scan/wallet/history.total` = `len(rows)` (≤50). Folded into PROPOSED P-2.
 
 ### GAP-09 · OpenAPI unreachable externally (INFO)
 FastAPI serves `/openapi.json` and `/docs` at **root**, but ingress routes only `/api/*` to backend → external `/openapi.json` hits the SPA, `/api/openapi.json` is 404 (confirmed on pod). Export can be generated internally on request.

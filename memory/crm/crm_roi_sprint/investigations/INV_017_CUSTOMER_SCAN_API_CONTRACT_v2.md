@@ -18,9 +18,9 @@
 | `restaurant_id` on public auth routes | Accepts short id (`"689"`) or full (`"pos_0001_restaurant_689"`); short is normalised to full. |
 | Envelope | `{ "success": bool, "message": string, "data": object \| null }` — always unwrap `data`. |
 | Business errors | HTTP **200** with `success:false`, `data:null`, human `message`. |
-| Transport errors | HTTP **4xx** with `{ "detail": string \| array }`: 401 invalid/expired token · 403 missing Authorization header · 422 body validation (pydantic array) · 429 OTP request cap · 404 unknown path. |
+| Transport errors | HTTP **4xx** with `{ "detail": string \| array }`: **401** missing header (`"Not authenticated"`) · **401** invalid/expired token (`"Invalid customer token"` / `"Token expired"`) · 422 body validation (pydantic array) · 429 OTP request cap · 404 unknown path. ⚠️ **Environment note:** on live `crm.mygenie.online` a missing/malformed `Authorization` header returns **401** (FastAPI ≥ 0.122 behaviour). The preprod pod pins `fastapi==0.110.1` and returns **403** for the same case. Treat **401 and 403 identically** (= re-authenticate). |
 | Timestamps | ISO-8601 UTC strings, e.g. `"2026-09-15T10:22:31.123456+00:00"`. |
-| Pagination | `limit` query only (default 20, **hard cap 50**). **No `skip`/`offset`.** |
+| Pagination | `limit` query only (default 20, **hard cap 50**). **No `skip`/`offset`.** ⚠️ `total` semantics are **inconsistent**: `/scan/orders` → full count of the customer's orders; `/scan/points/history` and `/scan/wallet/history` → **rows returned** (≤50), not the full ledger size. Do not use `total` from the ledgers for "has more" logic. |
 | IDs | Customer/order/transaction ids are UUID strings; address ids `addr_<12hex>`. |
 
 ### 0.1 Customer JWT
@@ -152,7 +152,7 @@ Visibility rule: only orders where POS supplied the customer's phone at ingest a
 ## 4. Points & Wallet ledgers (Bearer)
 
 ### 4.1 `GET /scan/points/history?limit=50`
-200 → `data: { "transactions": [ PointsTx ], "total": <int> }` (`total` = rows returned, ≤50)
+200 → `data: { "transactions": [ PointsTx ], "total": <int> }` (⚠️ `total` = **rows returned**, ≤50 — not the full ledger count; see §0)
 
 **PointsTx**
 
@@ -170,7 +170,7 @@ App mapping: `earned` ← `earn`,`bonus` · `redeemed` ← `redeem` · `expired`
 `expiring_soon` — **not available** (see PROPOSED §6).
 
 ### 4.2 `GET /scan/wallet/history?limit=50`
-200 → `data: { "transactions": [ WalletTx ], "total": <int> }`
+200 → `data: { "transactions": [ WalletTx ], "total": <int> }` (⚠️ `total` = **rows returned**, ≤50 — same caveat as points)
 
 **WalletTx**: `id`, `amount` (float, ≥0), `transaction_type` (`credit` \| `debit`), `description`, `created_at`.
 Balance → `/scan/loyalty.wallet_balance`; lifetime totals → `/scan/auth/me.total_wallet_received` / `total_wallet_used`.
@@ -201,15 +201,17 @@ Not found → 200 `success:false` `"Address not found"`. First address auto-beco
 | Id | Change | Where | Risk |
 |---|---|---|---|
 | P-1 | Gate `dev_otp` behind `ENV=dev` / `OTP_DEV_MODE=true`; omit in prod responses | `scan.py:227` | LOW code / **P1 security** |
-| P-2 | Add `skip` query param to `/scan/orders`, `/scan/points/history`, `/scan/wallet/history`; keep cap 50 | `scan.py` | LOW |
+| P-2 | Add `skip` query param to `/scan/orders`, `/scan/points/history`, `/scan/wallet/history`; keep cap 50; **make `total` = full `count_documents` on all three** (fixes D4 inconsistency) | `scan.py` | LOW |
 | P-3 | Add `expiring_soon: { points, expires_at }` to `/scan/loyalty` (reuse staff `points/expiring` logic) | `scan.py` | LOW–MEDIUM |
 | P-4 | Rate-limit `skip-otp` (e.g. 5/phone/10 min → 429 + `Retry-After`) and/or return `success:false,"Password required"` when customer has `password_hash` | `scan.py` | MEDIUM (auth-adjacent, owner approval) |
 | P-5 | Real OTP delivery (SMS/WhatsApp provider) → then `POST /scan/auth/forgot-password` `{phone, restaurant_id}` + `POST /scan/auth/reset-password` `{phone, otp, new_password, restaurant_id}` | new | HIGH (owner decision on provider) |
 | P-6 | Expose OpenAPI at `/api/openapi.json` | `server.py` | LOW |
+| P-7 | Align preprod pod FastAPI with live (`0.110.1` → live's ≥0.122) or pin live to 0.110.1 so 401/403 behaviour matches across environments (D1) | `requirements.txt` / deploy | MEDIUM (dependency bump, full regression) |
 
 ---
 
 ## 7. Change log
 | Date | Version | Change |
 |---|---|---|
+| 2026-09-15 | 2.0.1 | D1: missing-header status corrected to 401 on live (403 only on preprod pod, FastAPI version drift). D4: `total` semantics inconsistency documented; folded into P-2. Added P-7. |
 | 2026-09-15 | 2.0 (as-built) | First formal capture of the `/scan/*` customer contract from code + live probe (INV-017). Replaces Customer App's assumed `/customer/me/*` contract. |

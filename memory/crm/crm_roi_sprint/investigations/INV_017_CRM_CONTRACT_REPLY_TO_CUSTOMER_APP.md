@@ -21,7 +21,7 @@
 | Item | CRM answer |
 |---|---|
 | Q-O-1 | **`GET /scan/orders?limit=50`** (Bearer). `limit` capped at 50. **No `skip`** — only the latest ≤50 orders are retrievable today. Detail: `GET /scan/orders/{id}`. |
-| Q-O-2 | `data = { orders: [...], total: <int> }` (`total` = all orders for this customer at this restaurant). Each order: `id` (CRM), `pos_order_id`, `restaurant_order_id`, `created_at` (ISO, CRM ingest), `order_created_at` (POS time), `order_amount`, `order_sub_total`, `order_type`, `order_status`, `points_earned`, `coupon_code`, `coupon_discount`, `loyalty_points_used`, `wallet_used`, `payment_method`, `items[]`. **Line items use POS names: `item_name`, `item_qty`, `item_price`** (plus `variant`, `add_ons`, `item_category`). `order_type` is raw POS text — live values: `dinein`, `takeaway`, `take_away`, `delivery`, `WalkIn`, `pos` (normalise on your side). |
+| Q-O-2 | `data = { orders: [...], total: <int> }` (`total` = **full count** of this customer's orders — note: the points/wallet ledgers' `total` is only rows returned, see Q-PT-2/Q-W-2). Each order: `id` (CRM), `pos_order_id`, `restaurant_order_id`, `created_at` (ISO, CRM ingest), `order_created_at` (POS time), `order_amount`, `order_sub_total`, `order_type`, `order_status`, `points_earned`, `coupon_code`, `coupon_discount`, `loyalty_points_used`, `wallet_used`, `payment_method`, `items[]`. **Line items use POS names: `item_name`, `item_qty`, `item_price`** (plus `variant`, `add_ons`, `item_category`). `order_type` is raw POS text — live values: `dinein`, `takeaway`, `take_away`, `delivery`, `WalkIn`, `pos` (normalise on your side). |
 | Q-O-3 | **Restaurant-scoped by token** (`restaurant_id` claim). Do not pass `restaurant_id`. |
 | Q-O-4 | **Yes** — POS orders are ingested into CRM (`POST /api/pos/orders`) and linked to the customer by phone at ingest time; they appear in `/scan/orders`. Caveat: only orders where POS supplied the customer phone get linked (live: ~28% of all orders). Unlinked walk-in orders are not retrievable per customer. |
 
@@ -29,14 +29,14 @@
 | Item | CRM answer |
 |---|---|
 | Q-PT-1 | **Yes, two calls:** balance → `GET /scan/loyalty`; ledger → `GET /scan/points/history?limit=50` (Bearer, cap 50, no `skip`). Probed paths `/scan/points`, `/scan/auth/points` are wrong. |
-| Q-PT-2 | `/scan/loyalty` → `{ total_points, points_monetary_value, tier, next_tier, points_to_next_tier, wallet_balance, total_visits, total_spent, earn_rate_percent, redemption_value_per_point }`. `/scan/points/history` → `{ transactions:[{ id, points, transaction_type, description, bill_amount, balance_after, created_at }], total }`. **`transaction_type` values: `earn`, `redeem`, `bonus`, `expired`** (not `earned/redeemed`). **`points` is always positive**; direction comes from `transaction_type`. Field is `transaction_type` only (no `type`). |
+| Q-PT-2 | `/scan/loyalty` → `{ total_points, points_monetary_value, tier, next_tier, points_to_next_tier, wallet_balance, total_visits, total_spent, earn_rate_percent, redemption_value_per_point }`. `/scan/points/history` → `{ transactions:[{ id, points, transaction_type, description, bill_amount, balance_after, created_at }], total }` (⚠️ `total` = rows returned ≤50, **not** full ledger count). **`transaction_type` values: `earn`, `redeem`, `bonus`, `expired`** (not `earned/redeemed`). **`points` is always positive**; direction comes from `transaction_type`. Field is `transaction_type` only (no `type`). |
 | Q-PT-3 | Built. **Not available:** `expiring_soon` (no customer-facing route yet — CRM can add to `/scan/loyalty` on request). Map `points_value` ← `points_monetary_value`. |
 
 ### A4. Wallet tab
 | Item | CRM answer |
 |---|---|
 | Q-W-1 | **Yes:** balance → `GET /scan/loyalty` (`wallet_balance`) or `/scan/auth/me`; ledger → `GET /scan/wallet/history?limit=50` (cap 50, no `skip`). |
-| Q-W-2 | `{ transactions:[{ id, amount, transaction_type, description, created_at }], total }`; `transaction_type` = `credit` \| `debit`. `total_received` / `total_used` ← `/scan/auth/me` → `total_wallet_received` / `total_wallet_used`. |
+| Q-W-2 | `{ transactions:[{ id, amount, transaction_type, description, created_at }], total }` (⚠️ `total` = rows returned, not full count); `transaction_type` = `credit` \| `debit`. `total_received` / `total_used` ← `/scan/auth/me` → `total_wallet_received` / `total_wallet_used`. |
 | Q-W-3 | Built, but wallet is **per-tenant opt-in** (`wallet_enabled`, default off) and effectively unused in preprod today. Recommend showing the tab only when `GET /scan/config/{restaurant_id}` → `showWallet` is true. |
 
 ### A5. Addresses — **confirmed unchanged**
@@ -55,7 +55,7 @@
 | Q-O5 | `name` **is mandatory** (422 if missing). Response `{ token, customer_id }`. Phone already registered with password → 200 `{success:false}`. Existing OTP/POS customer without password is upgraded in place. |
 | Q-O6 | **No customer password-reset endpoint exists** (all 4 probed paths correctly 404). Will depend on Q-O1 provider decision. Keep "Forgot Password" hidden. |
 | Q-O7 | JWT HS256, **lifetime 24 h**, **no refresh** — re-login via `skip-otp`. Claims: `customer_id`, `restaurant_id`, `phone`, `type:"customer"`, `exp`. ⚠️ The tenant claim is named **`restaurant_id`** (value `pos_0001_restaurant_{rid}`), **not `user_id`**. |
-| Q-O8 | Canonical rule: **transport/auth/validation → HTTP 4xx `{detail}`** (401 invalid/expired token, 403 missing Authorization header, 422 body validation, 429 OTP cap, 404 unknown path). **Business outcomes → HTTP 200 `{success:false, message, data:null}`.** Keep handling both. |
+| Q-O8 | Canonical rule: **transport/auth/validation → HTTP 4xx `{detail}`** (401 missing header *on live* / 403 on preprod pod — FastAPI version drift, treat both as "re-auth"; 401 invalid/expired token; 422 body validation; 429 OTP cap; 404 unknown path). **Business outcomes → HTTP 200 `{success:false, message, data:null}`.** Keep handling both. |
 
 ---
 
@@ -64,3 +64,11 @@
 1. Answers above. OpenAPI: FastAPI serves it at host **root** `/openapi.json`, which the ingress routes to the SPA — CRM can export the JSON internally and share on request.
 2. UAT token: any `phone` + `restaurant_id` via `POST /scan/auth/skip-otp` on the UAT host works today — owner to share a UAT restaurant id via secure channel.
 3. Base URLs: production CRM URL / deployment is **not documented in this codebase** — owner to confirm.
+
+---
+
+## Corrections after Customer App review (2026-09-15)
+| # | Your finding | CRM verdict |
+|---|---|---|
+| D1 | Doc said missing header → 403; live returns 401 on all 7 routes | **Confirmed, doc corrected.** Verified live: all 7 `/scan/*` routes → `401 {"detail":"Not authenticated"}` with no header. Preprod pod (pinned `fastapi==0.110.1`) returns 403 for the same case; live runs FastAPI ≥ 0.122 where HTTPBearer switched to 401 (RFC 7235 alignment). Environment drift, not a contract rule — treat 401/403 identically. Tracked as P-7. |
+| D4 | `total` = full count for orders but rows-returned for points/wallet | **Confirmed, doc corrected.** `scan.py:529` uses `count_documents` for orders; `scan.py:509/519` use `len(txns)` for ledgers. Fix folded into P-2 (pending owner approval). Until then, don't use ledger `total` for pagination. |
