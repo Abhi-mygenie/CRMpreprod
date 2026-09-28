@@ -47,3 +47,9 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-09-15 — Session handover written
 - `crm/crm_roi_sprint/handoff/SESSION_2026_09_15_HANDOVER_INV017_INV018_INTAKE_CR084_CR090.md` — next agent presents the 7-step decision table; owner pending: 5 restaurant IDs (Aug recon), CR-084 approval, CR-085 direction (leaning no-normalise), CR-086 Q1-Q2, CR-087 rule lift.
+
+## 2026-09-28 — INV-021 Digital invoice tax lines (READ-ONLY, no code changed)
+- Owner ask: does the e-invoice ship GST/VAT/SC/GST-on-SC? Checked The Goan Kitchen (r69), customer 7602832329, order 000224.
+- Result: NO. POS never populates `gst_tax`/`vat_tax`/`service_tax` (1/0/0 orders >0 across 67k) and does not send SC base; sends only `tax_amount` + item `gst_amount` + `service_gst_tax_amount`. Invoice reads only the empty fields → no tax rows, badge RECEIPT, GST-on-SC printed as "Service Charge Rs.1". Sample render saved under `investigations/INV_021_assets/`.
+- Secondary P1: `invoices` collection has no new docs since 2026-08-04 while 979 realtime orders arrived → live invoice generation silently failing (needs live logs). Owner's sample link 404s.
+- Report: `crm/crm_roi_sprint/investigations/INV_021_DIGITAL_INVOICE_TAX_LINES_MISSING.md`. Owner decision pending on options A–D.
