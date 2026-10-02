@@ -1,0 +1,49 @@
+# MyGenie CRM — PRD (index)
+
+> **Authoritative state**: `PROJECT_BASELINE_2026-09-08.md` · **Security**: `SECURITY_AUDIT_2026-09-08.md` · **Operating prompt**: `control/MYGENIE_CRM_AGENT_SYSTEM_PROMPT_v0_2.md` · **CR truth**: `CR_STATUS_DASHBOARD.md` + `crm/crm_roi_sprint/00_register/ROI_MEASUREMENT_CR_REGISTER.md` · **Decisions**: `DECISIONS_LOG.md`
+
+## Original problem statement (product)
+Multi-tenant restaurant/hotel CRM for MyGenie POS customers: loyalty points & tiers, coupons (flat/%, item/category, BOGO/BXG, Nth), WhatsApp automation (event → Meta template via AuthKey) and marketing campaigns (segments, scheduled/recurring), POS integration (orders webhook, customer lookup/edit, loyalty/wallet/coupon APIs, reports), e-invoicing (food / hotel room / hotel folio, S3), customer intelligence, hotel guest document capture & migration, scan-and-order customer app.
+
+## Session problem statements (chronological)
+- 2026-05 → 2026-08: `crm_roi_sprint` — CR-002 … CR-083, BUG-001 … 024, INV-001 … 014 (see dashboard).
+- 2026-09-08 (bootstrap): pull `main` into `/app`, configure env, build as-is; S3-only file staging refactor (`routers/auth.py`, `routers/whatsapp.py`) — **uncommitted, unregistered → baseline INC-03**.
+- 2026-09-08 (this session): (1) **Security audit** (Phase 0), (2) **consolidated project baseline** (Phase 1), (3) **agent prompt v0.2** with mode lock, missing-prerequisite protocol, regression gate (Phase 2). Read-only — no application code changed.
+
+## Architecture
+FastAPI + Motor (remote MongoDB `mygenie`, shared live data) · React 19 (craco) · APScheduler in-process (campaign job gated OFF) · AWS S3 · integrations: MyGenie POS (SSO + webhooks), AuthKey.io WhatsApp, Meta Graph v21, Freshmarketer webhook. 20 routers / 26,476 backend LOC / 26 pages. Hotspots and regression map: prompt v0.2 §B7.
+
+## What's been implemented — 2026-09-08
+- `memory/SECURITY_AUDIT_2026-09-08.md` — 24 findings (6 P0 / 7 P1 / 7 P2 / 4 P3), 4 P0/P2 items have no CR yet (skip-otp bypass, OTP-in-response ×2, secrets in `/me` + settings, cross-tenant cron, open registration). Remediation order R1–R4.
+- `memory/PROJECT_BASELINE_2026-09-08.md` — snapshot, local-vs-remote gaps (INC-01…05: **test suites missing on this pod**, coupon suite lost, uncommitted S3 refactor), CR matrix, 15 doc inconsistencies (D-01…15), 8 process gaps (G-01…08), P0/P1/P2 backlog.
+- `memory/control/MYGENIE_CRM_AGENT_SYSTEM_PROMPT_v0_2.md` — new controls + refreshed facts + owner questions B15.
+- `memory/README.md` — banner to new entry points; fixed CR range, testing-agent rule, preview URL.
+- **Test suites restored** (27 files from `main@2089f9f`, unchanged) + `design_guidelines.json`; `test_credentials.md` populated (4 tenants verified). Baseline run: **257 pass / 69 fail / 2 error / 4 skip — 0 confirmed app regressions** (failures = stale hardcoded JWT/API-key fixtures + preprod data state). Report: `/app/test_reports/pytest/BASELINE_2026-09-08_REPORT.md`. New finding SEC-P2-08: credentials (Mongo admin URL, JWT secret, tenant passwords) committed in test files → rotation needed.
+
+## Environment
+Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_credentials.md` **populated 2026-09-08** (4 tenant logins verified).
+
+## Backlog (prioritised — full list baseline §9)
+- **P0**: ~~restore `backend/tests/`~~ ✅ · Security R1 fast-track (6 removals) · owner decision on `skip-otp` · CR-046 DB lockdown/backups · **rotate credentials leaked in test files (SEC-P2-08)** · register + commit S3 refactor
+- **P1**: fix 4 fixture-drift suites (login at setup) · CR-047/048 (HMAC, CORS, remember-me, rate limit) · CR-052 CI (+ secret scanning) · rebuild coupon regression suite · Starlette/FastAPI bump · owner smoke for 15 ✅ items · reconcile CR-026/032/062/067/068
+- **P2**: CR-049…058 platform work · registration gate, security headers, log masking · feature backlog CR-082/025/016/045/064/060/038
+
+
+## 2026-09-15 — INV-017 Customer App ↔ CRM v2 contract verification (READ-ONLY, no code changed)
+- Role: INVESTIGATION (10/10 steps). Source: `crm/inbox/CRM_CONTRACT_VERIFICATION_REQUEST.md`.
+- Result: orders/points/wallet v2 routes EXIST under `/scan/*` (`/scan/orders`, `/scan/loyalty`, `/scan/points/history`, `/scan/wallet/history`); Customer App probed wrong paths + expects different field names. Password reset for customers does NOT exist. OTP is dev-only (`dev_otp` returned, no SMS provider).
+- Reports: `crm/crm_roi_sprint/investigations/INV_017_CUSTOMER_APP_CONTRACT_GAPS.md`, `.../INV_017_CRM_CONTRACT_REPLY_TO_CUSTOMER_APP.md`, `.../INV_017_CUSTOMER_SCAN_API_CONTRACT_v2.md` (formal as-built contract + PROPOSED P-1..P-6), `.../INV_017_openapi_scan_v2.json` (OpenAPI export).
+- Next: INTAKE for GAP-05 (`dev_otp` in prod, P1 security) + optional CR (skip pagination, expiring_soon); owner decisions on SMS provider & skip-otp guard rails.
+
+## 2026-09-15 — INV-018 Order linkage gaps (READ-ONLY, no code changed)
+- 28% of 66,977 orders linked to a customer. 93% of unlinked = POS sent empty phone (DATA). GAP-13: migration never creates customers (3,517 orphaned). GAP-14: zero phone normalisation → 38 duplicate customer groups, split histories; Customer App `skip-otp` format mismatch → 0 orders.
+- Proposed P-8 (normalise phone everywhere, CRITICAL hotspot), P-9 (migration creates customers), P-10 (backfill/merge, dry-run first). Awaiting owner approval.
+- Report + POS/Customer-App briefs: `crm/crm_roi_sprint/investigations/INV_018_ORDER_LINKAGE_GAPS.md`.
+
+## 2026-09-15 — INTAKE: CR-084 → CR-090 registered (docs only, zero code)
+- From INV-017/018. 084 dev_otp leak (P1 HIGH) · 085 phone normalisation (P1 CRITICAL) · 086 migration creates customers (P1 HIGH) · 087 backfill+merge (P1 CRITICAL, conflicts no-backfill rule) · 088 /scan hygiene (P2) · 089 skip-otp guard rails (P2) · 090 OTP delivery + reset-password (P2, 🔴 blocked on channel).
+- Blockers for Customer App next phase: CR-084, CR-085. Recommended before UAT sign-off: CR-086, CR-087.
+- Intake doc: `crm/crm_roi_sprint/discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md`. Dashboard + register updated.
+
+## 2026-09-15 — Session handover written
+- `crm/crm_roi_sprint/handoff/SESSION_2026_09_15_HANDOVER_INV017_INV018_INTAKE_CR084_CR090.md` — next agent presents the 7-step decision table; owner pending: 5 restaurant IDs (Aug recon), CR-084 approval, CR-085 direction (leaning no-normalise), CR-086 Q1-Q2, CR-087 rule lift.
