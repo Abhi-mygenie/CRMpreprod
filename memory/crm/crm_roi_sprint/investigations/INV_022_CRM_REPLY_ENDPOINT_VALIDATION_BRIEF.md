@@ -63,6 +63,20 @@
 
 ---
 
+## Owner round 1 (2026-09-28) — rulings + endpoint re-check
+
+**Owner rulings:** B1/B2 agreed (name-only lookup; points need login) · B3 agreed (CRM names the endpoint) · C1 → Option (a) preferred, impact analysis requested · D1/D2 walkthrough requested · nothing sent until owner approves. **New rule (symmetric):** CRM must never read Customer App collections directly either.
+
+### Existing-endpoint re-check (whole backend, not only `/scan/*`)
+| Need | Existing endpoint? | Verdict |
+|---|---|---|
+| B1/B2 phone → `{exists,name}` | `POST /api/pos/customer-lookup` (pos.py:2041) — needs POS `X-API-Key` (tenant secret) and returns the **full** customer doc + loyalty blob + documents | **Not reusable** by a public web client: would expose the tenant API key in the browser and over-shares. New public `POST /scan/auth/lookup` still required. |
+| B3 loyalty rules | `GET /api/pos/loyalty/settings` (pos_loyalty.py:44, CR-080 L-1) — POS auth, already returns the exact whitelisted subset · `GET /api/loyalty/settings` (points.py:304) — staff JWT, full doc | **Shape exists, auth doesn't fit.** New public `GET /scan/loyalty-rules/{rid}` reusing the L-1 whitelist (+ `min_order_value`, `first_visit_bonus_*`). |
+
+### Symmetric-rule impact on CRM
+- `GET /scan/config/{rid}` and `GET /scan/menu/dietary-tags/{rid}` **read Customer-App-owned collections**. Under the symmetric rule they must go too (Customer App serves its own config). No CRM frontend/backend code reads these collections outside `scan.py` → removal has **zero CRM impact**.
+- `pos_event_logs` is written by CRM (`scan.py` call-waiter/request-bill, `pos.py:2484`) — owner of this collection must be settled in the ownership board before A10 is confirmed.
+
 ## Proposed new CRs arising from this brief (NOT registered — owner decision)
 
 | Proposed | Scope | Est. |
