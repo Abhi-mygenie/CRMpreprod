@@ -1543,3 +1543,18 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 - **source_url**: original POS URL stored for audit trail
 **Source**: Owner question 2026-08-06: "after migration how crm will change the document name to follow convention we made so store it". Answered by code inspection — `routers/pos.py:2175,2190` establishes the convention; migration follows it identically.
 **Locks**: Migration must NOT store POS filename. Must generate new UUID key. Must set `uploaded_by="migration"` and `source_url=<original_pos_url>` for traceability.
+
+### 2026-10-03 [CR-091] D1–D8 — FreshSales Reply Loop design decisions locked
+**Decision**: All 8 design decisions locked from owner verbal (2026-10-03):
+D1=same /status-callback URL · D2=action differs per template · D3=AuthKey parses reply ·
+D4=phone as source of truth · D5=single shared FreshSales key in .env · D6=condition-matched firing only ·
+D7=internal MyGenie infra only · D8=scoped to restaurant 836 exclusively.
+**Locks**: Do NOT make this per-restaurant. Do NOT use JWT auth (no user context on status-callback). FreshSales key goes in backend .env only.
+
+### 2026-10-03 [CR-092] — Template purpose badges (new concept)
+**Decision**: Badges approved as concept. Q1 (both badges simultaneously) + Q2 (label copy) are optional — agent can propose defaults in Planning.
+**Source**: Owner intake session 2026-10-03.
+
+### 2026-10-03 [CR-093] — Sync import + Set Labels on AuthKey cards
+**Decision**: Two-phase approach approved as direction. Q1–Q3 pending owner answer before planning starts.
+**Source**: INV-019-B root cause confirmed. 28/37 templates currently unreachable for direct-send config.
