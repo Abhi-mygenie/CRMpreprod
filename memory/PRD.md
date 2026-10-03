@@ -53,3 +53,10 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Result: NO. POS never populates `gst_tax`/`vat_tax`/`service_tax` (1/0/0 orders >0 across 67k) and does not send SC base; sends only `tax_amount` + item `gst_amount` + `service_gst_tax_amount`. Invoice reads only the empty fields → no tax rows, badge RECEIPT, GST-on-SC printed as "Service Charge Rs.1". Sample render saved under `investigations/INV_021_assets/`.
 - Secondary P1: `invoices` collection has no new docs since 2026-08-04 while 979 realtime orders arrived → live invoice generation silently failing (needs live logs). Owner's sample link 404s.
 - Report: `crm/crm_roi_sprint/investigations/INV_021_DIGITAL_INVOICE_TAX_LINES_MISSING.md`. Owner decision pending on options A–D.
+
+## 2026-09-28 — INV-022 Customer App endpoint-validation brief (READ-ONLY, no code changed)
+- Trigger: Customer App brief INV-2026-09-15-003 (`crm/inbox/CRM_BRIEF_ENDPOINT_VALIDATION.md`) — 30 rows to confirm OK / OK-but / MISSING.
+- Result: A-rows 4 exact + 6 with field/auth differences (no `skip`, no `order_id` on points rows, no `balance_after`, no `expires_at`, feedback token-only + no name/email, `table_id` not `table_no`). B1–B3 MISSING → CRM builds `POST /scan/auth/lookup` + `GET /scan/loyalty-rules/{rid}`; points/tier/wallet stay login-gated. C1/C2: CRM is not the IdP → Customer App auths against MyGenie POS directly (owner Option a). D1/D2 owner YES: `/scan/config` + `/scan/menu/dietary-tags` PUT+GET are orphan, unscoped routes → remove after cutover.
+- Owner rules: symmetric — CRM never reads Customer App collections; Customer App reads CRM only via API; `users` read-freeze retired.
+- Proposed (INTAKE pending): CR-093 lookup · CR-094 loyalty-rules · CR-095 remove 4 routes.
+- Reports: `crm/crm_roi_sprint/investigations/INV_022_CRM_REPLY_ENDPOINT_VALIDATION_BRIEF.md` (final) · `INV_022_CRM_REPLY_TO_CUSTOMER_APP_ENDPOINT_VALIDATION.md` (outbound, send pending owner).

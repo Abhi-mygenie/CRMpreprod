@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-09-15 (INTAKE Agent · CR-084→CR-090 registered from INV-017/INV-018 — Customer App contract + order-linkage gaps)**
+> Last updated: **2026-09-28 (INVESTIGATION Agent · INV-022 closed — Customer App endpoint-validation brief answered; CR-093/094/095 proposed, awaiting INTAKE gate)**
 
 ---
 
@@ -293,6 +293,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | Date | CR | From → To |
 |---|---|---|
+| 2026-09-28 (INVESTIGATION) | **INV-022** | **Closed (9/10 steps, HIGH confidence).** Customer App brief INV-2026-09-15-003 validated row-by-row against `scan.py`/`auth.py`/preprod DB: A1/A3/A7/A8 exact · A2/A4/A5/A6/A9/A10 exist with field/auth differences · **B1–B3 MISSING → CRM builds** (`POST /scan/auth/lookup`, `GET /scan/loyalty-rules/{rid}`; points stay login-gated) · **C1/C2: CRM is not the IdP** — Customer App to auth against MyGenie POS directly (Option a, owner-chosen; kills JWT-overlap P0, retires `users` read-freeze) · **D1/D2 owner YES** — `PUT+GET /scan/config` and `PUT+GET /scan/menu/dietary-tags` are orphan, **unscoped** (URL rid never checked vs token) routes from an unagreed April-2026 "CRM = Customer App admin" assumption; remove all 4 after Customer App cutover. **Owner rule added: symmetric — CRM never reads Customer App collections.** Proposed (not registered): **CR-093** lookup (P1/HIGH) · **CR-094** loyalty-rules (P2/MED) · **CR-095** remove 4 routes (P1/CRITICAL, cutover-gated). Report: `investigations/INV_022_CRM_REPLY_ENDPOINT_VALIDATION_BRIEF.md` · Outbound reply (send pending owner): `investigations/INV_022_CRM_REPLY_TO_CUSTOMER_APP_ENDPOINT_VALIDATION.md`. Next gate: INTAKE. |
 | 2026-09-15 (HANDOVER) | **session** | Handover written: `crm/crm_roi_sprint/handoff/SESSION_2026_09_15_HANDOVER_INV017_INV018_INTAKE_CR084_CR090.md`. Next agent: present 7-step table (§6) to owner — (1) Aug-2026 recon on owner's 5 restaurant IDs, (2) CR-084 approval, (3) CR-085 direction, (4) CR-086 Qs, (5) CR-087 dry-run rule lift, (6) send docs to Customer App + POS agents, (7) 088/089/090 later. |
 | 2026-09-15 (INTAKE) | **CR-084 → CR-090** | — → **📋 REGISTERED ×6 + 🔴 BLOCKED ×1 (CR-090)**. Source: INV-017 (Customer App contract verification, `investigations/INV_017_*`) + INV-018 (order linkage, `investigations/INV_018_ORDER_LINKAGE_GAPS.md`). Recommended order 084 → 085 → 086 → 087(dry-run) → 088; 089/090 after owner decisions. Blockers for Customer App next phase: **CR-084 (security), CR-085 (phone normalisation)**; 086/087 strongly recommended before UAT sign-off. Batch intake: `discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md`. |
 | 2026-09-15 (INVESTIGATION) | **INV-017 / INV-018** | Customer App `/customer/me/*` calls never existed — v2 data lives under `/scan/*` (orders, loyalty, points/history, wallet/history). OTP is dev-only (`dev_otp` in body, no provider). 28% of 66,977 orders linked; 93% of unlinked have empty phone from POS (DATA); 3,517 orphaned by migration (GAP-13); zero phone normalisation → 38 duplicate customers (GAP-14). Reply + as-built contract v2.0.1 + OpenAPI export delivered to Customer App team. |
