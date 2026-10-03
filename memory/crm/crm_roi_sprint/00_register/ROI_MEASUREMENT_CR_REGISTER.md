@@ -140,6 +140,9 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 38 | `CR-088 /scan list hygiene (skip, total, expiring_soon, /api/openapi.json)` | CR — additive read routes | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §5 | `cr088_registered_p2_low_medium_no_questions` |
 | 39 | `CR-089 skip-otp guard rails` | CR — auth security | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §6 | `cr089_registered_p2_medium_q1_q2_owner_risk_decision` |
 | 40 | `CR-090 Customer OTP delivery + forgot/reset-password` | CR — new integration | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §7 | `cr090_blocked_p2_high_q1_channel_decision` |
+| 41 | `CR-093 Public customer lookup POST /scan/auth/lookup ({exists,name}, no create, rate-limited)` | CR — new public auth-adjacent route | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §1 | `cr093_registered_p1_high_q1_q2_pending` |
+| 42 | `CR-094 Public loyalty rules GET /scan/loyalty-rules/{rid}` | CR — new public read route | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §2 | `cr094_registered_p2_medium_q1_pending` |
+| 43 | `CR-095 Remove orphan /scan/config + /scan/menu/dietary-tags routes (4 routes, Customer-App-owned collections)` | BUG — security / ownership | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §3 | `cr095_registered_p1_critical_owner_d1_d2_yes_cutover_gated` |
 
 ## 6. Next Immediate Action
 

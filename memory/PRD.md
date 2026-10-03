@@ -60,3 +60,9 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Owner rules: symmetric — CRM never reads Customer App collections; Customer App reads CRM only via API; `users` read-freeze retired.
 - Proposed (INTAKE pending): CR-093 lookup · CR-094 loyalty-rules · CR-095 remove 4 routes.
 - Reports: `crm/crm_roi_sprint/investigations/INV_022_CRM_REPLY_ENDPOINT_VALIDATION_BRIEF.md` (final) · `INV_022_CRM_REPLY_TO_CUSTOMER_APP_ENDPOINT_VALIDATION.md` (outbound, send pending owner).
+
+## 2026-09-28 — INTAKE: CR-093 → CR-095 registered (docs only, zero code)
+- From INV-022. CR-093 `POST /scan/auth/lookup` (P1/HIGH) · CR-094 `GET /scan/loyalty-rules/{rid}` (P2/MEDIUM) · CR-095 remove 4 orphan `/scan/config` + `/scan/menu/dietary-tags` routes (P1/CRITICAL, GET removal gated on Customer App cutover Q-CA-1).
+- Not CRs: C1 Option (a) — Customer App auths against MyGenie POS directly; `users` read-freeze retired; JWT-secret overlap (Issue 3) closed by design.
+- Still proposed, not registered: CR-091/092 (INV-021 invoice) — await owner.
+- Docs: `crm/crm_roi_sprint/discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` · dashboard rows 093–095 + transition · register rows 41–43.
