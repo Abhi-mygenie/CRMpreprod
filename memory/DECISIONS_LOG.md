@@ -1543,3 +1543,24 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 - **source_url**: original POS URL stored for audit trail
 **Source**: Owner question 2026-08-06: "after migration how crm will change the document name to follow convention we made so store it". Answered by code inspection — `routers/pos.py:2175,2190` establishes the convention; migration follows it identically.
 **Locks**: Migration must NOT store POS filename. Must generate new UUID key. Must set `uploaded_by="migration"` and `source_url=<original_pos_url>` for traceability.
+
+
+### 2026-09-28 [CR-096 / A9-b] Feedback no-token intake = hybrid (resolve-existing, never create)
+**Decision**: `POST /scan/feedback` hybrid intake. (1) token present → use it; (2) no token → accept `{phone(canonical 10-digit), restaurant_id(short)}`, resolve to an EXISTING customer by canonical phone; (3) no match → store feedback UNLINKED (`customer_id: null`) with phone+restaurant_id — never create a customer; (4) `order_id` optional, linked when present.
+**Source**: Owner "My A9-b suggestion ok" (2026-09-28) approving CRM's hybrid recommendation.
+**Locks**: Feedback endpoint must NOT become a customer-creation path. Depends on CR-085 (phone canonicalisation) for safe matching; until then match exact 10-digit. Registered as CR-096. Frozen in CONTRACT v1.0 §4c.
+
+### 2026-09-28 [INV-022 / Q-CA-6] Call Waiter / Pay Bill direction = PARKED
+**Decision**: Confirmed `POST /scan/call-waiter` + `POST /scan/request-bill` are correct CRM endpoints, but they are write-only producers to `pos_event_logs` (CRM never reads). Direction (keep in CRM with POS consuming vs move to POS) parked for later discussion.
+**Source**: Owner "park for now this to be discussed later" (2026-09-28).
+**Locks**: No CRM code change on these endpoints until direction decided. Referred to POS as P6/P7 in CONTRACT v1.0.
+
+### 2026-10-03 [CONTRACT v1.0] CRM signs Part 1 §1–§6; D-1/D-2 ownership ruling accepted
+**Decision**: CRM signs Part 1 (§1–§6) of CONTRACT_CUSTOMER_APP_CRM_v1.0 (RC3). Accepts owner's "owner = sole writer" convention → `pos_event_logs`, `orders`, `order_items` all CRM-owned (CRM's original proposal of POS/Shared withdrawn). D-3 clarified: `otp_tokens` (staff reset, auth.py:608-751) is distinct from `customer_otps` (customer scan OTP). O-8: feedback body `restaurant_id` = short form "689" (CRM normalises via `_normalize_restaurant_id`).
+**Source**: Owner "validate the contract, give the sign off, and let's freeze it" + "send" (2026-10-03).
+**Locks**: Any change to CONTRACT §2/§3/§4 needs written both-team agreement + version bump (C1). Full OWNERSHIP_MAP freeze still blocked by POS (P1/P5/P6/P7) + owner F3 — not CRM's to resolve.
+
+### 2026-10-03 [CONTRACT §1b / C2] CRM agrees to change-notice on six `users` fields
+**Decision**: CRM will give advance notice before renaming/dropping `id`, `email`, `phone`, `password_hash`, `restaurant_id`, `pos_id` on the `users` collection until Customer App confirms its POS-direct admin-login switch (CONTRACT §6 step 3) is complete.
+**Source**: Owner-authorised acceptance of CONTRACT clause C2 / O-10 (2026-10-03).
+**Locks**: Those six field names are frozen-by-notice until step 3 done. Not a hard schema freeze — notice only.
