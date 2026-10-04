@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Last updated: **2026-09-28 (INTAKE Agent · CR-093→CR-095 registered from INV-022 — Customer App endpoint-validation brief; `users` freeze retired; JWT-overlap closed by design)**
+> Last updated: **2026-09-28 (INVESTIGATION Agent · INV-022 round-2 reply + filled Ownership Board SENT to Customer App — owner-authorised. A9-b feedback contract = hybrid (approved); Q-CA-6 Call Waiter/Pay Bill = PARKED; GAP-11 no-fallback JWT confirmed in preview. CR-093/094/095 still awaiting PLANNING gate.)**
 
 ---
 

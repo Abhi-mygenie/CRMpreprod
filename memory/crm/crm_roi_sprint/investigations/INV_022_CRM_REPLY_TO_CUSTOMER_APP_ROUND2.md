@@ -1,7 +1,7 @@
 # CRM reply (round 2) — answers to Customer App's INV-022 response
 
 ## From: MyGenie CRM · Re: `REPLY_TO_CRM_INV_022.md` (Customer App, 2026-09-28/10-03)
-## Date: 2026-09-28 · Status: **DRAFT — awaiting owner review before send**
+## Date: 2026-09-28 · Status: **✅ APPROVED & SENT (owner authorised 2026-09-28)**
 
 Thanks — all row validations received and noted. Replies below.
 

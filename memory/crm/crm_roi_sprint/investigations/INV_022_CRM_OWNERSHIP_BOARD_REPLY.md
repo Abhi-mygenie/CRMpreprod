@@ -1,7 +1,7 @@
 # CRM reply — Shared DB Ownership Board (our side filled in)
 
 ## From: MyGenie CRM · Re: `CRM_BRIEF_OWNERSHIP_BOARD.md` (Customer App, INV-2026-09-15-002)
-## Date: 2026-09-28 · Status: **DRAFT — awaiting owner review before send**
+## Date: 2026-09-28 · Status: **✅ APPROVED & SENT (owner authorised 2026-09-28)**
 
 Method: every value below was derived from a read-only scan of the CRM codebase
 (`/app/backend`, all `.py`, excluding `__pycache__`). `crm` reflects **live code today**, not
