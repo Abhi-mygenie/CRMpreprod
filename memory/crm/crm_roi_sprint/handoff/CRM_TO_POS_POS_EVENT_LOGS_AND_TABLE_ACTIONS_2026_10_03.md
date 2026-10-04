@@ -1,7 +1,11 @@
 # CRM → POS — Brief: `pos_event_logs` consumption + Call Waiter / Pay Bill direction
 
 ## From: MyGenie CRM · To: MyGenie POS team
-## Date: 2026-10-03 · Status: **✅ SENT TO POS (owner-authorised 2026-10-03)**
+## Date: 2026-10-03 · Status: **✅ SENT TO POS · ANSWERS RECEIVED (P1/P6)**
+
+> **POS answers (2026-10-03):** **P1 = NO** — POS does not read `pos_event_logs`. ⇒ with CRM R=0, the
+> collection is **dead for table actions**; Call Waiter / Pay Bill are inert end-to-end (nobody is
+> notified). **P6 = PARKED (TBD).** **P7 = still open.**
 ## Ref: CONTRACT_CUSTOMER_APP_CRM_v1.0 §7 (P1-refined, O-4/P6, O-11/P7) · INV-022
 
 ## Why you're getting this

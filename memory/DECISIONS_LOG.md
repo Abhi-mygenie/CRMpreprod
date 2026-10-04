@@ -1564,3 +1564,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: CRM will give advance notice before renaming/dropping `id`, `email`, `phone`, `password_hash`, `restaurant_id`, `pos_id` on the `users` collection until Customer App confirms its POS-direct admin-login switch (CONTRACT §6 step 3) is complete.
 **Source**: Owner-authorised acceptance of CONTRACT clause C2 / O-10 (2026-10-03).
 **Locks**: Those six field names are frozen-by-notice until step 3 done. Not a hard schema freeze — notice only.
+
+
+### 2026-10-03 [CONTRACT P1/P6] POS answers — pos_event_logs NOT read; Call Waiter/Pay Bill parked
+**Decision**: POS confirmed **P1 = NO** — POS does not read `pos_event_logs`. Combined with CRM's R=0 scan, the collection is **effectively dead for the table-action use case**: `POST /scan/call-waiter` + `POST /scan/request-bill` write events that **no system consumes** (no waiter is notified today). **P6 = PARKED (TBD later)** — direction (keep in CRM vs move to POS) deferred by owner.
+**Source**: Owner relaying POS: "p1 no", "p6 park it as it is tbd later" (2026-10-03).
+**Locks**: No CRM change to the two `/scan/*` table-action routes until P6 is revisited. Finding recorded: Call Waiter / Pay Bill are inert end-to-end today. P7 (Pay-Bill semantics) still open with POS.
