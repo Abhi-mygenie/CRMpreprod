@@ -13,28 +13,28 @@
 ### CR-084 — Customer OTP flow removed
 | Field | Value |
 |---|---|
-| Status | **DRAFT** (planning 2026-10-08) → CONFIRMED on: _____ |
+| Status | **CONFIRMED 2026-10-08** (implemented, self-test 12/12; QA pending) |
 | Audience | Customer App |
-| Removed | `POST /api/scan/auth/request-otp` · `POST /api/scan/auth/verify-otp` → **404** |
+| Removed | `POST /api/scan/auth/request-otp` · `POST /api/scan/auth/verify-otp` → **404** (verified on preview 2026-10-08; pre-change 422) |
 | Unchanged | `POST /api/scan/auth/skip-otp` (today's login) · `POST /api/scan/auth/register` · `POST /api/scan/auth/login` (password) · all token-gated `/scan/*` |
 | Coming | `POST /api/scan/auth/lookup` (CR-093) — exists-check without token/creation |
 | Collections | `customer_otps` no longer written (5 legacy docs remain; drop deferred) |
 | Why | OTP code was returned in the response body (`dev_otp`) → anyone could mint a customer JWT. Owner: Customer App has no OTP step. |
 | Action for Customer App | Remove any residual call to the two routes. No payload changes elsewhere. |
-| Evidence at CONFIRM | curl 404 ×2 · skip-otp 200 · commit hash |
+| Evidence at CONFIRM | curl 404 ×2 ✅ · skip-otp 422-on-`{}` (alive) ✅ · login 200 ✅ · session: `handoff/SESSION_2026_10_08_HANDOVER_WAVE1_CR084_CR097_IMPL.md` |
 
 ### CR-097 — Staff password management removed
 | Field | Value |
 |---|---|
-| Status | **DRAFT** (planning 2026-10-08) → CONFIRMED on: _____ |
+| Status | **CONFIRMED 2026-10-08** (implemented, self-test 12/12; QA pending) |
 | Audience | POS (informational) |
-| Removed | `POST /api/auth/register` · `PUT /api/auth/reset-password` · `POST /api/auth/forgot-password/{request-otp,verify-otp,reset}` → **404** |
+| Removed | `POST /api/auth/register` · `PUT /api/auth/reset-password` · `POST /api/auth/forgot-password/{request-otp,verify-otp,reset}` → **404** (verified on preview 2026-10-08; pre-change 422/403/400) |
 | Unchanged | `POST /api/auth/login` → `mygenie-login` → POS `MYGENIE_LOGIN_ENDPOINT` + profile. Token push `register_crm_token_with_pos` unchanged. |
 | Collections | `otp_tokens` no longer written (0 docs). `users.password_hash` still cached at login, never read. |
 | WhatsApp | `reset_password` CRM automation event removed from `CRM_EVENTS` (no tenant had mapped a template). |
 | Why | CRM has no local credential store in practice — 40/40 users provisioned via POS. Staff OTP was also returned in response body. |
 | Action for POS | None. POS remains the single owner of staff passwords; "forgot password" is a POS-side flow. |
-| Evidence at CONFIRM | curl 404 ×5 · login 200 · commit hash |
+| Evidence at CONFIRM | curl 404 ×5 ✅ · login 200 ✅ · `GET /whatsapp/automation/events` crm_events 15 ✅ · session: `handoff/SESSION_2026_10_08_HANDOVER_WAVE1_CR084_CR097_IMPL.md` |
 
 ### CR-090 — Closed OBSOLETE (no code)
 | Audience | Customer App (informational) |

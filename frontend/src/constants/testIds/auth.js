@@ -1,4 +1,5 @@
-// Test IDs for the auth feature (login, register, password reset, logout).
+// Test IDs for the auth feature (login, logout).
+// CR-097: register / forgot-password IDs removed — staff accounts and passwords are owned by MyGenie POS.
 // Add new keys here as you wire up additional auth UI; see ./index.js for
 // the recipe to add a new feature file.
 //
@@ -15,17 +16,6 @@ export const LOGIN = {
 	emailInput: 'login-email-input',
 	passwordInput: 'login-password-input',
 	submitButton: 'login-submit-button',
-	forgotPasswordLink: 'login-forgot-password-link',
-	registerLink: 'login-register-link',
-};
-
-export const REGISTER = {
-	nameInput: 'register-name-input',
-	emailInput: 'register-email-input',
-	passwordInput: 'register-password-input',
-	passwordConfirmInput: 'register-password-confirm-input',
-	submitButton: 'register-submit-button',
-	loginLink: 'register-login-link',
 };
 
 export const LOGOUT = {

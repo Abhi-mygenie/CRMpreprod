@@ -366,8 +366,7 @@ export function WhatsAppAutomationContent({ embedded = false }) {
     };
 
     // CRM Events Labels
-    const crmEventLabels = {
-        "reset_password": "Reset Password (OTP)",
+    const crmEventLabels = {  // CR-097: reset_password removed
         "welcome_message": "Welcome Message",
         "birthday": "Birthday Wish",
         "anniversary": "Anniversary Wish",
@@ -408,7 +407,6 @@ export function WhatsAppAutomationContent({ embedded = false }) {
 
     // CRM Events descriptions
     const crmEventDescriptions = {
-        "reset_password": "Send OTP for forgot password verification",
         "welcome_message": "Welcome message for new customers",
         "birthday": "Send birthday wishes to customers on their special day",
         "anniversary": "Celebrate customer's anniversary with your business",

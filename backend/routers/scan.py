@@ -5,9 +5,8 @@ All /scan/* endpoints for the customer mobile/web app
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import uuid
-import random
 import logging
 
 from core.database import db
@@ -48,17 +47,6 @@ def _generate_addr_id() -> str:
 # ============================================
 # Request Schemas
 # ============================================
-
-class OTPRequest(BaseModel):
-    phone: str
-    restaurant_id: str
-
-
-class OTPVerify(BaseModel):
-    phone: str
-    otp: str
-    restaurant_id: str
-
 
 class CustomerRegister(BaseModel):
     phone: str
@@ -183,117 +171,7 @@ def _resp(success: bool, message: str, data=None):
 # C1 - Customer Authentication
 # ============================================
 
-@router.post("/auth/request-otp")
-async def request_otp(req: OTPRequest):
-    """Send OTP to customer phone (per restaurant context)."""
-    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
-
-    # Rate limit: max 3 OTPs per phone per 5 minutes
-    five_min_ago = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
-    recent_count = await db.customer_otps.count_documents({
-        "phone": req.phone,
-        "user_id": full_restaurant_id,
-        "created_at": {"$gte": five_min_ago}
-    })
-    if recent_count >= 3:
-        raise HTTPException(status_code=429, detail="Too many OTP requests. Try again in a few minutes.")
-
-    otp = str(random.randint(100000, 999999))
-    now = datetime.now(timezone.utc).isoformat()
-    expires = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
-
-    # Find or prepare customer_id
-    customer = await db.customers.find_one(
-        {"phone": req.phone, "user_id": full_restaurant_id},
-        {"_id": 0, "id": 1}
-    )
-    customer_id = customer["id"] if customer else None
-
-    otp_doc = {
-        "id": str(uuid.uuid4()),
-        "phone": req.phone,
-        "user_id": full_restaurant_id,
-        "otp": otp,
-        "customer_id": customer_id,
-        "expires_at": expires,
-        "verified": False,
-        "created_at": now
-    }
-    await db.customer_otps.insert_one(otp_doc)
-
-    # DEV MODE: log OTP (production would send via WhatsApp/SMS)
-    logger.info(f"[DEV] OTP for {req.phone} at {req.restaurant_id}: {otp}")
-
-    return _resp(True, "OTP sent", {"phone": req.phone, "expires_in_seconds": 600, "dev_otp": otp})
-
-
-@router.post("/auth/verify-otp")
-async def verify_otp(req: OTPVerify):
-    """Verify OTP and return customer token. Auto-creates customer if new."""
-    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
-    now = datetime.now(timezone.utc).isoformat()
-
-    otp_doc = await db.customer_otps.find_one({
-        "phone": req.phone,
-        "user_id": full_restaurant_id,
-        "otp": req.otp,
-        "verified": False
-    }, sort=[("created_at", -1)])
-
-    if not otp_doc:
-        return _resp(False, "Invalid OTP")
-
-    if otp_doc.get("expires_at", "") < now:
-        return _resp(False, "OTP expired")
-
-    # Mark verified
-    await db.customer_otps.update_one({"id": otp_doc["id"]}, {"$set": {"verified": True}})
-
-    # Find or create customer
-    customer = await db.customers.find_one(
-        {"phone": req.phone, "user_id": full_restaurant_id},
-        {"_id": 0, "id": 1, "name": 1}
-    )
-
-    is_new = False
-    if not customer:
-        customer_id = str(uuid.uuid4())
-        customer_doc = {
-            "id": customer_id,
-            "user_id": full_restaurant_id,
-            "name": "",
-            "phone": req.phone,
-            "country_code": "+91",
-            "email": None,
-            "tier": "Bronze",
-            "total_points": 0,
-            "wallet_balance": 0.0,
-            "total_visits": 0,
-            "total_spent": 0.0,
-            "allergies": [],
-            "favorites": [],
-            "customer_type": "normal",
-            "whatsapp_opt_in": False,
-            "is_blocked": False,
-            "created_at": now,
-            "updated_at": now
-        }
-        await db.customers.insert_one(customer_doc)
-        is_new = True
-    else:
-        customer_id = customer["id"]
-
-    # Update OTP doc with customer_id
-    await db.customer_otps.update_one({"id": otp_doc["id"]}, {"$set": {"customer_id": customer_id}})
-
-    token = create_customer_token(customer_id, full_restaurant_id, req.phone)
-    return _resp(True, "OTP verified", {
-        "token": token,
-        "customer_id": customer_id,
-        "is_new_customer": is_new,
-        "phone": req.phone
-    })
-
+# CR-084: customer OTP routes (request-otp / verify-otp) removed 2026-10. Login = skip-otp (CR-089) → lookup (CR-093).
 
 class SkipOTPRequest(BaseModel):
     phone: str

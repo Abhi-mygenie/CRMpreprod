@@ -1251,8 +1251,7 @@ POS_EVENTS = [
 ]
 
 # Automation Events - CRM Events (Customer Relationship Management)
-CRM_EVENTS = [
-    "reset_password",          # OTP for forgot password
+CRM_EVENTS = [  # CR-097: reset_password removed
     "welcome_message",         # Welcome message for new customers
     "birthday",                # Birthday Wish
     "anniversary",             # Anniversary Wish

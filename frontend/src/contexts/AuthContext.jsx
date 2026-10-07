@@ -66,13 +66,7 @@ export const AuthProvider = ({ children }) => {
         return res.data;
     };
 
-    const register = async (data) => {
-        const res = await axios.post(`${API}/auth/register`, data);
-        localStorage.setItem("token", res.data.access_token);
-        setToken(res.data.access_token);
-        setUser(res.data.user);
-        return res.data;
-    };
+    // CR-097: register() and setUserAndToken() removed — staff accounts come from MyGenie POS login only
 
     const logout = () => {
         localStorage.removeItem("token");
@@ -80,13 +74,6 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.removeItem("mygenie_token");
         setToken(null);
         setUser(null);
-    };
-
-    // Direct set user and token (for forgot password auto-login)
-    const setUserAndToken = (userData, accessToken) => {
-        localStorage.setItem("token", accessToken);
-        setToken(accessToken);
-        setUser(userData);
     };
 
     const refreshUser = async () => {
@@ -97,7 +84,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, api, login, register, logout, loading, setUserAndToken, refreshUser }}>
+        <AuthContext.Provider value={{ user, token, api, login, logout, loading, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

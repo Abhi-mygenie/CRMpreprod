@@ -104,8 +104,7 @@ async def get_automation_events():
     }
     
     # CRM Events descriptions
-    crm_event_descriptions = {
-        "reset_password": "Send OTP for forgot password verification",
+    crm_event_descriptions = {  # CR-097: reset_password removed
         "welcome_message": "Welcome message for new customers",
         "birthday": "Send birthday wishes to customers",
         "anniversary": "Send anniversary wishes to customers",

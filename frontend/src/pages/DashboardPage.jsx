@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Users, QrCode, Plus, Star, TrendingUp, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, RotateCcw, ChevronRight, Menu, KeyRound, LogOut, X, ShoppingBag, Wallet, Ticket, UserMinus, Repeat, Calendar, MessageSquare, BarChart3 } from "lucide-react";
+import { Users, QrCode, Plus, Star, TrendingUp, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, RotateCcw, ChevronRight, Menu, LogOut, ShoppingBag, Wallet, Ticket, UserMinus, Repeat, Calendar, MessageSquare, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 import { MigrationOverlay } from "@/components/MigrationOverlay";
@@ -34,43 +33,7 @@ export default function DashboardPage() {
     const [showMigrationOverlay, setShowMigrationOverlay] = useState(false);
     const [migrationChecked, setMigrationChecked] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [showResetPassword, setShowResetPassword] = useState(false);
-    const [currentPassword, setCurrentPassword] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [resetLoading, setResetLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("crm"); // "crm" or "messages"
-
-    const handleResetPassword = async () => {
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            toast.error("Please fill all fields");
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            toast.error("New passwords do not match");
-            return;
-        }
-        if (newPassword.length < 6) {
-            toast.error("Password must be at least 6 characters");
-            return;
-        }
-        setResetLoading(true);
-        try {
-            await api.put("/auth/reset-password", {
-                current_password: currentPassword,
-                new_password: newPassword
-            });
-            toast.success("Password updated successfully");
-            setShowResetPassword(false);
-            setCurrentPassword("");
-            setNewPassword("");
-            setConfirmPassword("");
-        } catch (err) {
-            toast.error(err.response?.data?.detail || "Failed to reset password");
-        } finally {
-            setResetLoading(false);
-        }
-    };
 
     const handleLogout = () => {
         logout();
@@ -247,14 +210,7 @@ export default function DashboardPage() {
                                         <p className="text-xs text-[#52525B] font-body truncate">{user?.email}</p>
                                     </div>
                                     <div className="py-1">
-                                        <button
-                                            onClick={() => { setMenuOpen(false); setShowResetPassword(true); }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
-                                            data-testid="reset-password-btn"
-                                        >
-                                            <KeyRound className="w-4 h-4 text-[#F26B33]" />
-                                            <span className="text-sm text-[#2B2B2B] font-body">Reset Password</span>
-                                        </button>
+                                        {/* CR-097: Reset Password menu item removed — password owned by MyGenie POS */}
                                         <button
                                             onClick={handleLogout}
                                             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
@@ -269,63 +225,6 @@ export default function DashboardPage() {
                         )}
                     </div>
                 </div>
-
-                {/* Reset Password Modal */}
-                {showResetPassword && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                        <div className="bg-white rounded-2xl w-full max-w-sm lg:max-w-md p-6 shadow-xl">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-[#2B2B2B] font-heading">Reset Password</h2>
-                                <button onClick={() => setShowResetPassword(false)} className="p-1 hover:bg-gray-100 rounded-lg">
-                                    <X className="w-5 h-5 text-[#52525B]" />
-                                </button>
-                            </div>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-[#52525B] mb-1 font-body">Current Password</label>
-                                    <input
-                                        type="password"
-                                        value={currentPassword}
-                                        onChange={(e) => setCurrentPassword(e.target.value)}
-                                        className="w-full h-11 px-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F26B33] font-body"
-                                        placeholder="Enter current password"
-                                        data-testid="current-password-input"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#52525B] mb-1 font-body">New Password</label>
-                                    <input
-                                        type="password"
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full h-11 px-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F26B33] font-body"
-                                        placeholder="Enter new password"
-                                        data-testid="new-password-input"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#52525B] mb-1 font-body">Confirm New Password</label>
-                                    <input
-                                        type="password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full h-11 px-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F26B33] font-body"
-                                        placeholder="Confirm new password"
-                                        data-testid="confirm-password-input"
-                                    />
-                                </div>
-                                <Button
-                                    onClick={handleResetPassword}
-                                    disabled={resetLoading}
-                                    className="w-full h-12 rounded-full bg-[#F26B33] hover:bg-[#D85A2A] text-white font-semibold font-body mt-2"
-                                    data-testid="submit-reset-password"
-                                >
-                                    {resetLoading ? "Updating..." : "Update Password"}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Tab Switcher */}
                 <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl max-w-md lg:max-w-lg">

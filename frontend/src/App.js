@@ -5,7 +5,6 @@ import { AuthProvider as AuthProviderComponent } from "@/contexts/AuthContext";
 
 // Pages
 import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
 import CustomersPage from "@/pages/CustomersPage";
 import CustomerDetailPage from "@/pages/CustomerDetailPage";
@@ -41,9 +40,8 @@ function App() {
                 <Toaster position="top-center" richColors />
                 <BrowserRouter>
                     <Routes>
-                        {/* Public Routes */}
+                        {/* Public Routes — CR-097: /register removed, staff accounts come from POS */}
                         <Route path="/login" element={<LoginPage />} />
-                        <Route path="/register" element={<RegisterPage />} />
                         <Route path="/register-customer/:restaurantId" element={<CustomerRegistrationPage />} />
 
                         {/* Protected Routes */}
