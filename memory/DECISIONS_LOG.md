@@ -1595,3 +1595,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: CR-098 (retire customer password routes) and CR-093 (lookup) get **separate Implementation Plans, delivered one after another — 098 first**. Dead `password_hash` on 2 test docs left in place (hygiene CR with D-3 collections). Both plans written 2026-10-08; 098 awaits owner approval to implement; 093 implementation gate opens only after 098 is CLOSED.
 **Source**: Owner D-1 "No, two separate plans one after another", D-2 "Leave it", D-3 "write the plan now; follow gates and rules" (2026-10-08).
 **Locks**: Do not start 093 code before 098 closure. Both still target w/c 13 Oct as communicated to Scan & Order.
+
+### 2026-10-08 [GATE RULE] Consumer-team validation before Closure for `/scan/*` changes
+**Decision**: Any CR that changes endpoints consumed by the Customer App (`/scan/*`) needs Scan & Order agent validation (with evidence) in addition to owner smoke before it moves to Closure. Applied first to CR-098; will apply to CR-093, CR-096, CR-095.
+**Source**: Owner "this needs to be validated by scan and order agent… they consume these end points" (2026-10-08).
+**Locks**: Closure docs for `/scan/*` CRs must cite the consumer confirmation.
