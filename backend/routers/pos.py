@@ -9,6 +9,7 @@ import logging
 import os
 
 from core.database import db
+from core.phone import normalize_phone, phone_match  # CR-085
 from core.auth import get_current_user, generate_api_key, verify_pos_auth
 from core.helpers import calculate_tier, get_earn_percent_for_tier, check_off_peak_bonus, get_redemption_value_for_tier
 from core.loyalty import build_pos_loyalty_blob, redeem_loyalty_points, compute_max_redeemable, calculate_points, default_loyalty_settings
@@ -220,8 +221,9 @@ async def pos_create_customer(
     API for POS (MyGenie/others) to create a customer in our database.
     Requires X-API-Key header for authentication.
     """
-    # Check if phone exists for this user
-    existing = await db.customers.find_one({"user_id": user["id"], "phone": customer_data.phone})
+    # CR-085 W3: canonical phone; POS path never blocks → invalid stored with phone_invalid (F).
+    _ph, _cc, _pst = normalize_phone(customer_data.phone, customer_data.country_code)
+    existing = await db.customers.find_one(phone_match(user["id"], _ph, _cc))
     if existing:
         return POSResponse(
             success=False,
@@ -244,8 +246,10 @@ async def pos_create_customer(
         
         # Basic Info
         "name": customer_data.name,
-        "phone": customer_data.phone,
-        "country_code": customer_data.country_code,
+        "phone": _ph,
+        "country_code": _cc,
+        **({"phone_raw": customer_data.phone} if _pst == "fixed" else {}),
+        **({"phone_invalid": True} if _pst == "invalid" else {}),
         "email": customer_data.email,
         "gender": customer_data.gender,
         
@@ -397,11 +401,16 @@ async def pos_update_customer(
     if "restaurant_id" in update_dict:
         update_dict["pos_restaurant_id"] = update_dict.pop("restaurant_id")
     
-    # Check phone uniqueness if phone is being updated
+    # CR-085 W4: canonical phone on update; POS path never blocks (invalid → flagged).
+    if "phone" in update_dict:
+        _ph, _cc, _pst = normalize_phone(update_dict["phone"], update_dict.get("country_code") or customer.get("country_code"))
+        update_dict["phone"], update_dict["country_code"] = _ph, _cc
+        update_dict["phone_invalid"] = _pst == "invalid"
+        if _pst == "fixed":
+            update_dict["phone_raw"] = update_dict.get("phone_raw") or _ph
     if "phone" in update_dict and update_dict["phone"] != customer.get("phone"):
         existing = await db.customers.find_one({
-            "user_id": user["id"],
-            "phone": update_dict["phone"],
+            **phone_match(user["id"], update_dict["phone"], update_dict["country_code"]),
             "id": {"$ne": customer_id}
         })
         if existing:
@@ -670,10 +679,9 @@ async def _find_or_create_customer(
         if customer:
             return customer, False, 0
     
-    # Then try to find by phone
-    customer = await db.customers.find_one({
-        "user_id": user["id"], "phone": order_data.cust_mobile
-    })
+    # CR-085 W1: canonical phone + unified key. Invalid → record flagged phone_invalid (F); guest-order (G) pending owner (085-A2).
+    _ph, _cc, _pst = normalize_phone(order_data.cust_mobile)
+    customer = await db.customers.find_one(phone_match(user["id"], _ph, _cc))
 
     if customer:
         # Update pos_customer_id if not set and we have it now
@@ -701,9 +709,11 @@ async def _find_or_create_customer(
         "updated_at": now,
         
         # Basic Info
-        "name": order_data.cust_name or f"Customer {order_data.cust_mobile[-4:]}",
-        "phone": order_data.cust_mobile,
-        "country_code": "+91",
+        "name": order_data.cust_name or f"Customer {_ph[-4:]}",
+        "phone": _ph,
+        "country_code": _cc,
+        **({"phone_raw": order_data.cust_mobile} if _pst == "fixed" else {}),
+        **({"phone_invalid": True} if _pst == "invalid" else {}),
         "email": order_data.cust_email,  # Store customer email from order
         "gender": None,
         "dob": None,
@@ -1734,11 +1744,9 @@ async def pos_payment_received(
     Main POS webhook endpoint - processes payments and manages loyalty points
     """
     try:
-        # Find customer by phone
-        customer = await db.customers.find_one({
-            "user_id": user["id"],
-            "phone": webhook_data.customer_phone
-        })
+        # CR-085 W2: canonical phone + unified key. Invalid → flagged (F); guest-order (G) pending owner (085-A2).
+        _ph, _cc, _pst = normalize_phone(webhook_data.customer_phone)
+        customer = await db.customers.find_one(phone_match(user["id"], _ph, _cc))
         
         if not customer:
             # Auto-create customer if not exists
@@ -1752,9 +1760,11 @@ async def pos_payment_received(
                 "updated_at": now,
                 
                 # Basic Info
-                "name": f"Customer {webhook_data.customer_phone[-4:]}",
-                "phone": webhook_data.customer_phone,
-                "country_code": "+91",
+                "name": f"Customer {_ph[-4:]}",
+                "phone": _ph,
+                "country_code": _cc,
+                **({"phone_raw": webhook_data.customer_phone} if _pst == "fixed" else {}),
+                **({"phone_invalid": True} if _pst == "invalid" else {}),
                 "email": None,
                 "gender": None,
                 "dob": None,
@@ -2046,10 +2056,8 @@ async def pos_customer_lookup(
     """
     Look up customer by phone number for POS display
     """
-    customer = await db.customers.find_one({
-        "user_id": user["id"],
-        "phone": lookup_data.phone
-    }, {"_id": 0})
+    _ph, _cc, _ = normalize_phone(lookup_data.phone)  # CR-085 W5
+    customer = await db.customers.find_one(phone_match(user["id"], _ph, _cc), {"_id": 0})
     
     if not customer:
         return POSResponse(
@@ -2424,10 +2432,8 @@ async def pos_event_webhook(
                 )
         
         # 6. Find customer by phone (for customer data in templates)
-        customer = await db.customers.find_one({
-            "user_id": user["id"],
-            "phone": event_data.customer_phone
-        })
+        _ph, _cc, _ = normalize_phone(event_data.customer_phone)  # CR-085 W7
+        customer = await db.customers.find_one(phone_match(user["id"], _ph, _cc))
         
         # 7. Build customer data for template (use found customer or minimal data)
         if customer:
@@ -2777,7 +2783,7 @@ class CrossRestaurantAddressLookup(BaseModel):
 async def pos_cross_restaurant_address_lookup(lookup: CrossRestaurantAddressLookup, user: dict = Depends(verify_pos_auth)):
     """Lookup addresses by phone across all restaurants. Deduped, sorted by recency."""
     pipeline = [
-        {"$match": {"phone": lookup.phone, "addresses": {"$exists": True, "$ne": []}}},
+        {"$match": {"phone": normalize_phone(lookup.phone)[0], "addresses": {"$exists": True, "$ne": []}}},  # CR-085 W6
         {"$project": {"_id": 0, "addresses": 1, "user_id": 1}},
     ]
     results = await db.customers.aggregate(pipeline).to_list(50)

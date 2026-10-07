@@ -17,6 +17,7 @@ from core.s3 import generate_presigned_url, put_private_object  # CR-072 / CR-07
 logger = logging.getLogger("customer_sync")
 
 from core.database import db
+from core.phone import normalize_phone, phone_match  # CR-085
 from core.auth import get_current_user
 from core.helpers import generate_qr_code, build_customer_query, _coerce_pos_id, _pos_id_query_variants
 from core.loyalty import calculate_tier as _calc_tier
@@ -367,11 +368,15 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                         (mygenie_customer.get("name") or "")[:40],
                         mygenie_customer.get("phone"),
                     )
+                    _sync_ph, _sync_cc, _sync_pst = normalize_phone(mygenie_customer.get("phone"), mygenie_customer.get("country_code"))  # CR-085 W8
                     customer_data = {
                         "user_id": user_id,
                         "name": mygenie_customer.get("name") or "Unknown",
-                        "phone": mygenie_customer.get("phone") or "",
-                        "country_code": mygenie_customer.get("country_code") or "+91",
+                        # CR-085 W8: canonical phone (POS sync never blocks; invalid → flagged)
+                        "phone": _sync_ph,
+                        "country_code": _sync_cc,
+                        **({"phone_raw": mygenie_customer.get("phone")} if _sync_pst == "fixed" else {}),
+                        **({"phone_invalid": True} if _sync_pst == "invalid" else {}),
                         "email": mygenie_customer.get("email") or f"customer{pos_customer_id_str}@mygenie.local",
                         "dob": mygenie_customer.get("dob"),
                         "anniversary": mygenie_customer.get("anniversary"),
@@ -453,12 +458,10 @@ async def background_customer_sync(user_id: str, mygenie_token: str):
                     # Prevents NEW duplicates only. Old duplicates remain untouched (Q19).
                     # Dedup key: (user_id, phone, country_code). Per-restaurant scope unchanged.
                     if not existing and customer_data.get("phone"):
-                        phone_match = await db.customers.find_one({
-                            "user_id": user_id,
-                            "phone": customer_data["phone"],
-                            "country_code": customer_data.get("country_code", "+91"),
-                        })
-                        if phone_match:
+                        phone_match_doc = await db.customers.find_one(
+                            phone_match(user_id, customer_data["phone"], customer_data.get("country_code", "+91"))
+                        )
+                        if phone_match_doc:
                             logger.info(
                                 "customer_sync F11 phone+country_code dedup matched user_id=%s phone=%s country_code=%s existing_pos_customer_id=%r incoming_pos_customer_id=%s",
                                 user_id,
@@ -795,8 +798,11 @@ async def get_customer_sync_status(user: dict = Depends(get_current_user)):
 
 @router.post("", response_model=Customer)
 async def create_customer(customer_data: CustomerCreate, request: Request, user: dict = Depends(get_current_user)):
-    # Check if phone exists for this user
-    existing = await db.customers.find_one({"user_id": user["id"], "phone": customer_data.phone})
+    # CR-085 W9: canonical phone; human path → reject invalid (Option A).
+    _ph, _cc, _pst = normalize_phone(customer_data.phone, customer_data.country_code)
+    if _pst == "invalid":
+        raise HTTPException(status_code=422, detail="Enter a valid mobile number")
+    existing = await db.customers.find_one(phone_match(user["id"], _ph, _cc))
     if existing:
         raise HTTPException(status_code=400, detail="Customer with this phone already exists")
     
@@ -867,8 +873,9 @@ async def create_customer(customer_data: CustomerCreate, request: Request, user:
         
         # Basic Information
         "name": customer_data.name,
-        "phone": customer_data.phone,
-        "country_code": customer_data.country_code,
+        "phone": _ph,
+        "country_code": _cc,
+        **({"phone_raw": customer_data.phone} if _pst == "fixed" else {}),
         "email": customer_data.email,
         "gender": customer_data.gender,
         "dob": customer_data.dob,
@@ -1621,7 +1628,7 @@ async def import_customers(
             errors.append(ImportRowError(row=result["row"], reason=result["reason"]))
             continue
 
-        payload = {"name": result["name"], "phone": result["phone"]}
+        payload = {"name": result["name"], "phone": result["phone"], "country_code": "+91"}  # CR-085 W11 (G2)
         for field in ("email", "dob", "city", "address"):
             if result.get(field):
                 payload[field] = result[field]
@@ -1801,10 +1808,14 @@ async def update_customer(customer_id: str, update_data: CustomerUpdate, request
     
     update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
     
+    if "phone" in update_dict:  # CR-085 W10: canonical phone; human path → reject invalid
+        _ph, _cc, _pst = normalize_phone(update_dict["phone"], update_dict.get("country_code") or customer.get("country_code"))
+        if _pst == "invalid":
+            raise HTTPException(status_code=422, detail="Enter a valid mobile number")
+        update_dict["phone"], update_dict["country_code"] = _ph, _cc
     if "phone" in update_dict and update_dict["phone"] != customer.get("phone"):
         existing = await db.customers.find_one({
-            "user_id": user["id"], 
-            "phone": update_dict["phone"],
+            **phone_match(user["id"], update_dict["phone"], update_dict["country_code"]),
             "id": {"$ne": customer_id}
         })
         if existing:
@@ -1908,7 +1919,11 @@ async def register_via_qr(restaurant_id: str, customer_data: CustomerCreate):
     if not user:
         raise HTTPException(status_code=404, detail="Restaurant not found")
     
-    existing = await db.customers.find_one({"user_id": restaurant_id, "phone": customer_data.phone})
+    # CR-085 W12: canonical phone; human path → reject invalid (Option A).
+    _ph, _cc, _pst = normalize_phone(customer_data.phone, customer_data.country_code)
+    if _pst == "invalid":
+        raise HTTPException(status_code=422, detail="Enter a valid mobile number")
+    existing = await db.customers.find_one(phone_match(restaurant_id, _ph, _cc))
     if existing:
         raise HTTPException(status_code=400, detail="Customer already registered")
     
@@ -1929,8 +1944,9 @@ async def register_via_qr(restaurant_id: str, customer_data: CustomerCreate):
         
         # Basic Information
         "name": customer_data.name,
-        "phone": customer_data.phone,
-        "country_code": customer_data.country_code,
+        "phone": _ph,
+        "country_code": _cc,
+        **({"phone_raw": customer_data.phone} if _pst == "fixed" else {}),
         "email": customer_data.email,
         "gender": customer_data.gender,
         "dob": customer_data.dob,

@@ -11,6 +11,7 @@ import logging
 import re
 
 from core.database import db
+from core.phone import normalize_phone, phone_match
 from core.auth import (
     verify_customer_token, create_customer_token,
     get_current_user
@@ -214,8 +215,13 @@ async def skip_otp_login(req: SkipOTPRequest, request: Request):
             raise HTTPException(status_code=429, detail="Too many login attempts", headers={"Retry-After": str(retry)})
     now = datetime.now(timezone.utc).isoformat()
 
+    # CR-085 W13: canonical phone; diner is present → reject invalid (Option A).
+    phone, cc, pstatus = normalize_phone(req.phone)
+    if pstatus == "invalid":
+        raise HTTPException(status_code=400, detail="Enter a valid mobile number")
+
     customer = await db.customers.find_one(
-        {"phone": req.phone, "user_id": full_restaurant_id},
+        phone_match(full_restaurant_id, phone, cc),
         {"_id": 0, "id": 1, "name": 1}
     )
 
@@ -226,8 +232,8 @@ async def skip_otp_login(req: SkipOTPRequest, request: Request):
             "id": customer_id,
             "user_id": full_restaurant_id,
             "name": "",
-            "phone": req.phone,
-            "country_code": "+91",
+            "phone": phone,
+            "country_code": cc,
             "email": None,
             "tier": "Bronze",
             "total_points": 0,
@@ -242,12 +248,14 @@ async def skip_otp_login(req: SkipOTPRequest, request: Request):
             "created_at": now,
             "updated_at": now
         }
+        if pstatus == "fixed":
+            customer_doc["phone_raw"] = req.phone
         await db.customers.insert_one(customer_doc)
         is_new = True
     else:
         customer_id = customer["id"]
 
-    token = create_customer_token(customer_id, full_restaurant_id, req.phone)
+    token = create_customer_token(customer_id, full_restaurant_id, phone)
     return _resp(True, "Login successful", {
         "token": token,
         "customer_id": customer_id,
@@ -272,9 +280,8 @@ async def get_me(auth: dict = Depends(verify_customer_token)):
 @router.post("/auth/lookup")
 async def lookup_customer(req: LookupRequest, request: Request):
     """CR-093: public, read-only existence check. Never creates, never returns a token."""
-    phone = re.sub(r"\D", "", req.phone or "")
-    cc = (req.country_code or "+91").strip()
-    if not (6 <= len(phone) <= 15) or not re.fullmatch(r"\+\d{1,4}", cc):
+    phone, cc, pstatus = normalize_phone(req.phone, req.country_code)  # CR-085 W14: shared helper
+    if pstatus == "invalid":
         raise HTTPException(status_code=400, detail="Invalid phone or country_code")
     full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
     for key, (limit, window) in (
@@ -285,7 +292,7 @@ async def lookup_customer(req: LookupRequest, request: Request):
         if retry:
             raise HTTPException(status_code=429, detail="Too many lookups", headers={"Retry-After": str(retry)})
     customer = await db.customers.find_one(
-        {"user_id": full_restaurant_id, "phone": phone, "country_code": cc, "is_blocked": {"$ne": True}},
+        {"user_id": full_restaurant_id, "phone": phone, "country_code": cc, "is_blocked": {"$ne": True}, "phone_invalid": {"$ne": True}},
         {"_id": 0, "name": 1},
         sort=[("created_at", 1)],  # Q4: oldest record
     )

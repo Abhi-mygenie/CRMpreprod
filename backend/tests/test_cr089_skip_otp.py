@@ -149,6 +149,10 @@ def test_S4_phone_limiter():
 
 # ---------- S4b phone key normalisation ----------
 @pytest.mark.skip(reason="CR-085 W13: skip-otp find-or-create still matches raw phone; spaced variant creates a duplicate. Re-enable when CR-085-A lands.")
+def test_S4b_phone_key_normalisation_legacy_skip():
+    pass
+
+
 def test_S4b_phone_key_normalisation():
     # Use a different unused phone. Pick one that has NOT been used by S3 (first 31 phones) or S4 (idx 33).
     base_phone = EXISTING_PHONES[34]  # e.g., '9838777712'

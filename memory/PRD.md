@@ -101,3 +101,5 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 ## 2026-10-09 — PLANNING + IMPLEMENTATION: CR-089 skip-otp rate limit (owner-approved); CR-085 Impact Analysis CLOSED (Q1 intl, Q2 Option A, Q4 forward-only — all data ops deferred to end of batch, Q5 +91)
 - CR-089: `scan.py` limiter on skip-otp (30/min/IP, 5/5min/phone, separate buckets). Self-test 10/10. QA + Scan & Order validation pending.
 - CR-085: `planning/CR_085_IMPACT_ANALYSIS.md` — 14 write/match points, 390 junk phones hold 4,658 orders / 41,002 pts; design `core/phone.py normalize_phone()`; 085-A forward-only plan not yet opened.
+
+## 2026-10-09 — IMPLEMENTATION: CR-085-A canonical phone (owner-approved). Helper `core/phone.py` at all 15 write/match points; CRM/skip-otp reject invalid, POS/sync flag `phone_invalid`. DEVIATION: W1/W2 invalid → flag (F) not guest-order (G) — owner decision 085-A2 pending. QA pending.

@@ -424,6 +424,7 @@ async def run_coupon_expiry_reminders(user_id: str) -> dict:
     customers = await db.customers.find({
         "user_id": user_id,
         "phone": {"$exists": True, "$ne": ""},
+        "phone_invalid": {"$ne": True},  # CR-085
         "$or": [
             {"last_order_at": {"$gte": cutoff_90d}},
             {"updated_at": {"$gte": cutoff_90d}},
@@ -465,6 +466,7 @@ async def run_inactive_customer_reminders(user_id: str) -> dict:
     customers = await db.customers.find({
         "user_id": user_id,
         "phone": {"$exists": True, "$ne": ""},
+        "phone_invalid": {"$ne": True},  # CR-085
         "$or": [
             {"last_order_at": {"$exists": True, "$lt": inactive_cutoff}},
             {

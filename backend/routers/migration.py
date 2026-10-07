@@ -8,6 +8,7 @@ import asyncio
 import logging
 
 from core.database import db
+from core.phone import normalize_phone, phone_match  # CR-085
 from core.auth import get_current_user
 from core.helpers import _coerce_pos_id, _pos_id_query_variants
 from core.loyalty import calculate_points as _calc_points, calculate_tier as _calc_tier
@@ -215,10 +216,8 @@ async def background_order_sync(user_id: str, mygenie_token: str):
                             })
                         
                         if not customer and cust_mobile:
-                            customer = await db.customers.find_one({
-                                "user_id": user_id,
-                                "phone": cust_mobile
-                            })
+                            _ph, _cc, _ = normalize_phone(cust_mobile)  # CR-085 W15
+                            customer = await db.customers.find_one(phone_match(user_id, _ph, _cc))
                         
                         order_doc = {
                             "user_id": user_id,
