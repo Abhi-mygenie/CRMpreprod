@@ -66,6 +66,28 @@
 | `whatsapp_event_template_map` | 0 rows with `event_key: reset_password` | no tenant ever mapped a template to it → safe to remove the event. |
 | `customers.password_hash` | 2 docs | from `POST /scan/auth/register` (customer, **stays**). Unaffected. |
 
+### 2.4 Live probe — preview, 2026-10-08, read-only (owner asked: "probe should be part of planning")
+Method: `{}` bodies so routes prove existence with a validation error, never a 200 → **zero DB writes**. Control: a known-missing route returns 404.
+
+| Route | Probe | Result | Verdict |
+|---|---|---|---|
+| `POST /api/scan/auth/request-otp` | `{}` | **422** "phone Field required" | LIVE → to remove (CR-084) |
+| `POST /api/scan/auth/verify-otp` | `{}` | **422** | LIVE → to remove (CR-084) |
+| `POST /api/auth/forgot-password/request-otp` | `{}` | **400** "Email is required" | LIVE → to remove (CR-097) |
+| `POST /api/auth/forgot-password/verify-otp` | `{}` | **400** | LIVE → to remove (CR-097) |
+| `POST /api/auth/forgot-password/reset` | `{}` | **400** | LIVE → to remove (CR-097) |
+| `PUT /api/auth/reset-password` | no token | **403** "Not authenticated" | LIVE → to remove (CR-097) |
+| `POST /api/auth/register` | `{}` | **422** "email Field required" | LIVE → to remove (CR-097) |
+| `POST /api/scan/auth/skip-otp` | `{}` | **422** | LIVE → STAYS |
+| `POST /api/scan/auth/lookup` (control) | `{}` | **404** | confirms 404 is what "removed" looks like |
+| `POST /api/auth/login` owner creds | real | **200** + `access_token` | BASELINE PASS |
+| `GET /api/auth/me` | JWT | **200** `owner@thegoankitchen.com`, `pos_id 0001` | BASELINE PASS |
+| `GET /api/whatsapp/automation/events` | JWT | `crm_events` **contains `reset_password`** (16 events), `crm_descriptions` too | LIVE → to remove (CR-097 E3/E4) |
+| `GET /api/whatsapp/message-filters` | JWT | response **mentions `reset_password`** | LIVE → cleared by E3 |
+
+Correction to plan: the WA events route is `GET /api/whatsapp/automation/events` (whatsapp.py:87), not `/whatsapp/events` — V6 updated.
+Credentials used are now recorded in `/app/memory/test_credentials.md` (was empty).
+
 ---
 
 ## 3. Data-flow trace — what the removals sever

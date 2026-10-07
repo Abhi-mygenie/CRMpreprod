@@ -32,6 +32,7 @@ curl -s -X POST "$API/api/auth/login" -H "Content-Type: application/json" \
   -d '{"email":"owner@thegoankitchen.com","password":"Qplazm@10"}' | python3 -c "import sys,json;d=json.load(sys.stdin);print('BASELINE LOGIN', 'PASS' if d.get('access_token') else 'FAIL')"
 ```
 If any anchor is off by more than a few lines → stop, re-verify against the Impact Analysis, do not improvise.
+**Planning-time baseline (2026-10-08, Impact Analysis §2.4)**: all 7 target routes LIVE (422/400/403), `skip-otp` LIVE, login 200, `reset_password` present in WA events. Implementation Agent re-runs the same set pre- and post-edit; the post-edit expectation is 404 for the 7 routes and unchanged for the rest.
 
 ---
 
@@ -97,7 +98,7 @@ Delete the line `"reset_password",          # OTP for forgot password`. Add trai
 
 ### E4 — `backend/routers/whatsapp.py` L108
 Delete `"reset_password": "Send OTP for forgot password verification",`.
-**Self-test**: `GET /api/whatsapp/events` (with staff JWT) → `crm_events` has no `reset_password`; `GET /api/whatsapp/message-filters` → no `reset_password` in event list.
+**Self-test**: `GET /api/whatsapp/automation/events` (with staff JWT) → `crm_events` and `crm_descriptions` have no `reset_password`; `GET /api/whatsapp/message-filters` → no `reset_password` in event list.
 
 **Backend gate**: `sudo supervisorctl restart backend` → `tail -n 30 /var/log/supervisor/backend.err.log` clean → V1/V2/V5 curl PASS (see §5).
 
@@ -164,7 +165,7 @@ E3 → E4 → E2 → E1 → restart backend → V1-V6 curl → E9 → E8 → E7 
 | V3 | `POST /api/scan/auth/request-otp` · `POST /api/scan/auth/verify-otp` | 404 | impl + QA |
 | V4 | `POST /api/auth/forgot-password/request-otp` · `/verify-otp` · `/reset` · `PUT /api/auth/reset-password` (with JWT) · `POST /api/auth/register` | 404 / 405 | impl + QA |
 | V5 | `POST /api/scan/auth/skip-otp` `{"phone":"9999900001","restaurant_id":"689"}` | 200, `data.token` present | impl + QA |
-| V6 | `GET /api/whatsapp/events` + `/message-filters` | no `reset_password` | impl + QA |
+| V6 | `GET /api/whatsapp/automation/events` (`crm_events` + `crm_descriptions`) + `GET /api/whatsapp/message-filters` | no `reset_password` (pre-change: present, 16 crm_events → expect 15) | impl + QA |
 | V7 | Dashboard profile menu (desktop + mobile) | only Logout; Logout works | screenshot + QA |
 | V8 | Navigate to `/register` | redirects to `/` (fallback route), no crash | QA |
 | V9 | `/login` renders; WhatsApp Automation page CRM-events list has no "Reset Password (OTP)" | PASS | screenshot + QA |
