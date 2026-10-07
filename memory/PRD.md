@@ -87,3 +87,8 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Owner rulings: skip-otp is the ONLY diner identity path; customer password routes retired → **CR-098** (w/c 13 Oct with CR-093); skip-otp = find-or-create, lookup = read-only; CR-096 w/c 27 Oct. CR-093 Q1–Q7 all FINAL (Q3 null · Q4 oldest · Q6 index · Q7 `{phone, country_code?}`).
 - Root cause of duplicates/junk phones = CRM-side (importer double-insert, importer drops `country_code`, webhook exact-string + create-on-blank, no normalisation on any write path). POS shape already correct. → CR-085 scope, zero POS dependency. Import bugs to register later.
 - Docs: `handoff/CRM_REPLY_TO_SCAN_ORDER_QA_IDENTITY_PATH_2026_10_08.md` (owner sends) · `DECISIONS_LOG.md` +4 · dashboard rows 093/098 · `CR_093_IMPACT_ANALYSIS.md` §8–§10a. **No code.** Next gate (when owner opens): Implementation Plan for CR-093 + CR-098.
+
+## 2026-10-08 — IMPLEMENTATION: CR-098 retire customer password routes (owner-approved)
+- `scan.py`: removed `POST /scan/auth/register`, `POST /scan/auth/login`, `CustomerRegister`/`CustomerLogin`, dead hashing imports; `CR-098` markers. Self-test 9/9 (404 ×2, skip-otp alive, password-holder still logs in via skip-otp, staff login 200). QA handover `qa/CR_098_QA_HANDOVER.md`. Change-log Wave 2 row CONFIRMED. Next: QA → smoke → closure → open CR-093 implementation (plan already written).
+
+## 2026-10-08 — QA PASS: CR-098 (13/13, `test_reports/iteration_2.json`). Awaiting owner smoke → closure → CR-093 implementation gate.

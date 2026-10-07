@@ -42,8 +42,20 @@
 
 ---
 
-## Wave 2 — Customer App unblockers *(rows added when each CR is planned)*
-_CR-093 lookup · CR-094 loyalty-rules · CR-098 retire customer password routes_
+## Wave 2 — Customer App unblockers
+### CR-098 — Customer password routes removed
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-08** (implemented, self-test 9/9; QA pending) |
+| Audience | Customer App |
+| Removed | `POST /api/scan/auth/register` · `POST /api/scan/auth/login` (phone + password) → **404** (verified on preview 2026-10-08; pre-change 422) |
+| Unchanged | `POST /api/scan/auth/skip-otp` (the only identity path) · `GET /api/scan/auth/me` · all token-gated `/scan/*` |
+| Coming | `POST /api/scan/auth/lookup` (CR-093, next) |
+| Why | Owner ruling (a)/(b) 2026-10-08: skip-otp is the only path; 2 password-holders, both test data; no reset flow; `register` could set a password on any existing customer by phone. |
+| Action for Customer App | Remove `/password-setup` and any call to the two routes. Retire per-restaurant `skipOtp*` flags. |
+| Evidence | curl 404 ×2 · skip-otp 200 for the former password-holder (no lock-out) · staff login 200 |
+
+_CR-093 lookup · CR-094 loyalty-rules — rows added when implemented_
 
 ### POS-facing note 2026-10-08 (owner-corrected: gaps are CRM-side; POS ask is optional)
 | Field | Value |

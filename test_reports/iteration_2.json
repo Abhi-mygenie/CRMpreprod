@@ -1,0 +1,41 @@
+{
+  "summary": "Independent QA re-verification of CR-098 (customer /api/scan/auth/register and /api/scan/auth/login routes deleted). 13/13 pytest checks PASS against preview URL. All 9 P-items in the review request pass: P3 both routes 404 with {} and full body (and bodies are exactly {detail: 'Not Found'}, satisfying P10); P4 skip-otp {} returns 422 (route alive); P5 skip-otp with pre-existing password-having customer {phone:1234567890, restaurant_id:test_restaurant} returns 200 with data.token (no lock-out), and {8888888888, test_restaurant} also 200; P6 /auth/me with that token returns 200, data.name == 'Security Researcher', and no 'password_hash' key anywhere in the body; P6b /auth/me without a token returns 403; P7 staff /api/auth/login with owner creds returns 200 with access_token (core/auth.py untouched); P9 /api/scan/profile with customer token returns 200 and /api/customers?limit=1 with staff JWT returns 200; P9b skip-otp {9876543210, 689} returns 200 with token. Backend only — frontend skipped per request.",
+  "verification_matrix": {
+    "P3_register_empty_404": "PASS",
+    "P3_register_full_body_404": "PASS",
+    "P3_login_empty_404": "PASS",
+    "P3_login_full_body_404": "PASS",
+    "P4_skip_otp_empty_422": "PASS",
+    "P5_skip_otp_existing_password_customer_1234567890": "PASS",
+    "P5_skip_otp_8888888888": "PASS",
+    "P6_me_name_security_researcher_no_password_hash": "PASS",
+    "P6b_me_no_token_401_or_403": "PASS (403)",
+    "P7_staff_login_access_token": "PASS",
+    "P9_scan_profile_customer_token_200": "PASS",
+    "P9_customers_list_staff_200": "PASS",
+    "P9b_skip_otp_9876543210_689": "PASS",
+    "P10_404_bodies_are_detail_not_found": "PASS (asserted in P3 tests)"
+  },
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_cr098.py",
+    "/app/test_reports/pytest/cr098.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/routers/scan.py L228-230: two '# CR-098:' comment markers correctly flag the deletion sites; no residual code paths remain and skip-otp (L167) + /auth/me (L215) + /profile (L236) are intact. /auth/me and /profile both exclude password_hash via projection {'_id':0,'password_hash':0} — defensive and correct even though no code now writes password_hash on customers.",
+    "No regressions observed in staff login (core/auth.py untouched) or in customer read endpoints."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr098.py (new)",
+    "/app/test_reports/iteration_2.json (new)"
+  ],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "skipped per request"},
+  "test_credentials": "Staff: owner@thegoankitchen.com (password from env CRM_TEST_OWNER_PASSWORD). Customer tokens minted via skip-otp as specified.",
+  "seed_data_creation": "P5 called skip-otp with phones 1234567890 and 8888888888 at restaurant_id='test_restaurant' and P9b with 9876543210 at '689'. The 1234567890/test_restaurant customer pre-existed (Security Researcher, P6 verified). The other two may create/keep seed customers — within the phone-number allowlist in the review request.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "CR-098 is fully verified. Regression file /app/backend/tests/test_cr098.py can be rerun as-is: `CRM_TEST_OWNER_PASSWORD='<pw>' REACT_APP_BACKEND_URL=<url> python3 -m pytest backend/tests/test_cr098.py -v`. Earlier CR-084/CR-097 regression at /app/backend/tests/test_cr084_cr097.py still passes. Lookup route /api/scan/auth/lookup returning 404 is expected (CR-093 not built yet).",
+  "rca of the issue": "N/A — no issues. All 9 P-items (P3, P4, P5, P6, P6b, P7, P9, P9b, P10) pass independently; deletions are clean and no adjacent regression detected."
+}
