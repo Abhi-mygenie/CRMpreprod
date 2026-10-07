@@ -43,7 +43,16 @@
 ---
 
 ## Wave 2 — Customer App unblockers *(rows added when each CR is planned)*
-_CR-093 lookup · CR-094 loyalty-rules_
+_CR-093 lookup · CR-094 loyalty-rules · CR-098 retire customer password routes_
+
+### POS-facing ask raised 2026-10-08 (owner direction, feeds CR-085 → new POS contract)
+| Field | Value |
+|---|---|
+| Status | **ASK — not yet sent** (goes with consolidated POS contract) |
+| Audience | POS |
+| Ask | Send `country_code` and a **digits-only `phone` as separate fields** on every channel: customer sync object, order webhook (`customer_phone` today has no country code), `POST /api/pos/customers`, `POST /api/pos/customer-lookup`. Validate phone at entry (no placeholders like `0000000000`, no spaces, no `+` inside `phone`). |
+| Evidence | 7,383/7,385 synced customers carry `country_code:"+91"` incl. `phone:"+61 404668073"` (r541 has 143 foreign/odd numbers); webhook hardcodes `+91` (`pos.py:1757`); CRM copies `phone` verbatim (`customers.py:373`). |
+| CRM side | Will store as sent and default nothing silently once POS complies (CR-085). `lookup` (CR-093) matches on `{user_id, phone, country_code}`. |
 
 ## Wave 3 — Customer identity foundation
 _CR-085 · CR-086 · CR-087 · CR-096_
