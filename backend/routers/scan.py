@@ -2,12 +2,13 @@
 Scan & Order Customer-Facing API
 All /scan/* endpoints for the customer mobile/web app
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 import logging
+import re
 
 from core.database import db
 from core.auth import (
@@ -42,6 +43,32 @@ def _short_restaurant_id(restaurant_id: str) -> str:
 
 def _generate_addr_id() -> str:
     return f"addr_{uuid.uuid4().hex[:12]}"
+
+
+_LOOKUP_IP_LIMIT = (10, 60)      # CR-093 Q1: 10 per 60 s per IP
+_LOOKUP_PHONE_LIMIT = (5, 300)   # CR-093 Q1: 5 per 300 s per phone+restaurant
+
+
+def _client_ip(request: Request) -> str:
+    xff = request.headers.get("x-forwarded-for", "")
+    return xff.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+
+
+async def _lookup_rate_limited(key: str, limit: int, window_s: int) -> Optional[int]:
+    """CR-093 Q5: Mongo-backed sliding window. Returns Retry-After seconds when over limit, else None."""
+    now = datetime.now(timezone.utc)
+    since = (now - timedelta(seconds=window_s)).isoformat()
+    n = await db.scan_lookup_attempts.count_documents({"key": key, "created_at": {"$gte": since}})
+    if n >= limit:
+        oldest = await db.scan_lookup_attempts.find_one(
+            {"key": key, "created_at": {"$gte": since}}, {"_id": 0, "created_at": 1}, sort=[("created_at", 1)]
+        )
+        elapsed = (now - datetime.fromisoformat(oldest["created_at"])).total_seconds()
+        return max(1, window_s - int(elapsed))
+    await db.scan_lookup_attempts.insert_one(
+        {"key": key, "created_at": now.isoformat(), "expires_at": now + timedelta(seconds=window_s)}
+    )
+    return None
 
 
 # ============================================
@@ -164,6 +191,12 @@ class SkipOTPRequest(BaseModel):
     restaurant_id: str
 
 
+class LookupRequest(BaseModel):  # CR-093
+    phone: str
+    restaurant_id: str
+    country_code: Optional[str] = "+91"
+
+
 @router.post("/auth/skip-otp")
 async def skip_otp_login(req: SkipOTPRequest):
     """Silent login without OTP. Finds or creates customer by phone, returns full token."""
@@ -223,6 +256,32 @@ async def get_me(auth: dict = Depends(verify_customer_token)):
         return _resp(False, "Customer not found")
 
     return _resp(True, "Profile loaded", customer)
+
+
+@router.post("/auth/lookup")
+async def lookup_customer(req: LookupRequest, request: Request):
+    """CR-093: public, read-only existence check. Never creates, never returns a token."""
+    phone = re.sub(r"\D", "", req.phone or "")
+    cc = (req.country_code or "+91").strip()
+    if not (6 <= len(phone) <= 15) or not re.fullmatch(r"\+\d{1,4}", cc):
+        raise HTTPException(status_code=400, detail="Invalid phone or country_code")
+    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
+    for key, (limit, window) in (
+        (f"ip:{_client_ip(request)}", _LOOKUP_IP_LIMIT),
+        (f"ph:{full_restaurant_id}:{cc}{phone}", _LOOKUP_PHONE_LIMIT),
+    ):
+        retry = await _lookup_rate_limited(key, limit, window)
+        if retry:
+            raise HTTPException(status_code=429, detail="Too many lookups", headers={"Retry-After": str(retry)})
+    customer = await db.customers.find_one(
+        {"user_id": full_restaurant_id, "phone": phone, "country_code": cc, "is_blocked": {"$ne": True}},
+        {"_id": 0, "name": 1},
+        sort=[("created_at", 1)],  # Q4: oldest record
+    )
+    if not customer:
+        return _resp(True, "Not found", {"exists": False, "name": None})
+    name = (customer.get("name") or "").strip() or None  # Q3: blank → null
+    return _resp(True, "Found", {"exists": True, "name": name})
 
 
 # CR-098: customer password register removed 2026-10 (could set a password on any existing customer by phone).

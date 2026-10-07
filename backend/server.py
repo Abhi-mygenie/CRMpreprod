@@ -80,6 +80,13 @@ async def lifespan(app: FastAPI):
         await db.customers.create_index("user_id", name="idx_customers_user_id")
     except Exception as e:
         logging.getLogger(__name__).warning(f"CR-078 customers.user_id index skipped: {e}")
+    # CR-093: lookup hot path + rate-limiter TTL
+    try:
+        await db.customers.create_index([("user_id", 1), ("phone", 1)], name="idx_customers_user_phone")
+        await db.scan_lookup_attempts.create_index([("key", 1), ("created_at", 1)], name="idx_lookup_key_created")
+        await db.scan_lookup_attempts.create_index("expires_at", name="ttl_scan_lookup_attempts", expireAfterSeconds=0)
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"CR-093 indexes skipped: {e}")
     # CR-002: create indexes for pos_request_logs only when logging is enabled
     if POS_LOG_CONFIG["enabled"]:
         await ensure_pos_request_logs_indexes(db, POS_LOG_CONFIG["ttl_days"])
