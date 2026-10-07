@@ -72,6 +72,9 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Parked at PLANNING gate: CR-093 lookup · CR-094 loyalty-rules · CR-095 remove 4 orphan routes · CR-096 feedback hybrid. Owner must open gate.
 - Handover with pending-from-Customer-App list (CA-1…CA-9), POS (P5/P6/P7) and owner items: `crm/crm_roi_sprint/handoff/SESSION_2026_10_03_HANDOVER_CONTRACT_V1_CUSTOMER_APP.md`.
 
+## 2026-10-08 — CLOSURE: Wave 1 CR-084 + CR-097 🔒 CLOSED
+- Owner smoke PASS. Closure doc `final/CR_084_CR_097_CLOSURE.md`. Not yet released to production (next release batch). Wave 2 next: CR-093 (Q3/Q4/Q6/Q7 pending) → CR-094 (Q1 pending).
+
 ## 2026-10-08 — QA PASS (testing agent, independent): Wave 1 CR-084 + CR-097
 - Backend 15/15 pytest PASS, Frontend 18/18 Playwright PASS (desktop 1920 + mobile 390). Report: `/app/test_reports/iteration_1.json`. Dashboard rows 084/097 → 🟢 QA PASS, awaiting owner smoke → closure.
 
