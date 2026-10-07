@@ -12,7 +12,7 @@ import logging
 from core.database import db
 from core.auth import (
     verify_customer_token, create_customer_token,
-    get_current_user, hash_password, verify_password
+    get_current_user
 )
 from core.helpers import calculate_tier, get_earn_percent_for_tier
 from models.schemas import CustomerAddressCreate, CustomerAddressUpdate
@@ -47,20 +47,6 @@ def _generate_addr_id() -> str:
 # ============================================
 # Request Schemas
 # ============================================
-
-class CustomerRegister(BaseModel):
-    phone: str
-    name: str
-    password: str
-    restaurant_id: str
-    email: Optional[str] = None
-
-
-class CustomerLogin(BaseModel):
-    phone: str
-    password: str
-    restaurant_id: str
-
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
@@ -239,74 +225,9 @@ async def get_me(auth: dict = Depends(verify_customer_token)):
     return _resp(True, "Profile loaded", customer)
 
 
-@router.post("/auth/register")
-async def register_customer(req: CustomerRegister):
-    """Register customer with password (alternative to OTP)."""
-    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
+# CR-098: customer password register removed 2026-10 (could set a password on any existing customer by phone).
 
-    existing = await db.customers.find_one(
-        {"phone": req.phone, "user_id": full_restaurant_id},
-        {"_id": 0, "id": 1, "password_hash": 1}
-    )
-    if existing and existing.get("password_hash"):
-        return _resp(False, "Phone already registered")
-
-    now = datetime.now(timezone.utc).isoformat()
-    pwd_hash = hash_password(req.password)
-
-    if existing:
-        # Customer exists (from OTP or POS) but no password — add password
-        await db.customers.update_one(
-            {"id": existing["id"]},
-            {"$set": {"password_hash": pwd_hash, "name": req.name, "email": req.email, "updated_at": now}}
-        )
-        customer_id = existing["id"]
-    else:
-        customer_id = str(uuid.uuid4())
-        customer_doc = {
-            "id": customer_id,
-            "user_id": full_restaurant_id,
-            "name": req.name,
-            "phone": req.phone,
-            "country_code": "+91",
-            "email": req.email,
-            "password_hash": pwd_hash,
-            "tier": "Bronze",
-            "total_points": 0,
-            "wallet_balance": 0.0,
-            "total_visits": 0,
-            "total_spent": 0.0,
-            "allergies": [],
-            "favorites": [],
-            "customer_type": "normal",
-            "is_blocked": False,
-            "created_at": now,
-            "updated_at": now
-        }
-        await db.customers.insert_one(customer_doc)
-
-    token = create_customer_token(customer_id, full_restaurant_id, req.phone)
-    return _resp(True, "Registration successful", {"token": token, "customer_id": customer_id})
-
-
-@router.post("/auth/login")
-async def login_customer(req: CustomerLogin):
-    """Login with phone + password."""
-    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
-
-    customer = await db.customers.find_one(
-        {"phone": req.phone, "user_id": full_restaurant_id},
-        {"_id": 0, "id": 1, "password_hash": 1}
-    )
-    if not customer or not customer.get("password_hash"):
-        return _resp(False, "Invalid credentials")
-
-    if not verify_password(req.password, customer["password_hash"]):
-        return _resp(False, "Invalid credentials")
-
-    token = create_customer_token(customer["id"], full_restaurant_id, req.phone)
-    return _resp(True, "Login successful", {"token": token, "customer_id": customer["id"]})
-
+# CR-098: customer password login removed 2026-10 — skip-otp is the only diner identity path.
 
 # ============================================
 # C2 - Customer Profile
