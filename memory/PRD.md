@@ -110,3 +110,7 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Owner ruled W1/W2 (realtime + webhook) invalid phone → `customer_id:null` guest order, no customer created/credited; `pos_customer_id` match still first. Shipped F = deviation → follow-up **085-A2 Implementation Plan** required (§14 realtime path, `customer` optional) before CR-085-A closure. W3/W4/sync keep F. Open sub-Q: hide `phone_invalid` in POS `customer-lookup`.
 - CR-085-B data cleanup re-confirmed as the final item of this batch (after 096/094/086/087/095/088).
 - Updated: `DECISIONS_LOG.md`, `CR_STATUS_DASHBOARD.md` (row 085 + transition), `CR_085A_IMPLEMENTATION_PLAN.md` amendment, wave change-log POS row.
+
+## 2026-10-09 — DECISION: 085-A2 sub-Q YES (POS lookup hides flagged, later) · 085-B report-first (docs only, no code)
+- POS `customer-lookup` will hide `phone_invalid` records → bundled into the 085-A2 Implementation Plan (W1/W2 guest order + W5 hide).
+- CR-085-B: before any data write, CRM sends a per-restaurant report of every customer needing correction (phone, raw, cc, reason, dup-group, orders, points, proposed action) for owner/restaurant review. Still last in batch.

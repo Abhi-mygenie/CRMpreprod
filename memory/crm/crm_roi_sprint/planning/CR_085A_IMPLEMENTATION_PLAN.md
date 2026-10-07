@@ -129,5 +129,6 @@ I will not proceed until owner approves.
 ## Amendment 085-A2 (owner ruling 2026-10-09)
 - **W1/W2 invalid phone → G (guest order)** is FINAL. Implementation shipped **F** (deviation, see `SESSION_2026_10_09_HANDOVER_CR089_CR085A.md` §085-A2). A separate **085-A2 Implementation Plan** must be written and owner-approved before code: make `customer` optional across the realtime order/loyalty path (`pos.py` §14 files), `_find_or_create_customer` returns `(None, False, 0)` on invalid phone when no `pos_customer_id` match, webhook W2 skips create + loyalty block when no customer.
 - W3/W4 (POS create/update) + `customer_sync` keep **F**. R paths unchanged.
-- Open sub-question: W5 POS `customer-lookup` hide `phone_invalid` records — not ruled.
+- **W5 POS `customer-lookup` → hide `phone_invalid` records (treat as not found)** — owner YES 2026-10-09; in scope of the 085-A2 plan, not implemented yet.
 - 085-B (data cleanup) re-confirmed as **last CR of the batch**.
+- **085-B is report-first**: deliverable = per-restaurant report (restaurant · customer id · `phone`/`phone_raw`/`country_code` · reason · dup-group · linked orders · points · proposed action) sent to owner/restaurants for review; only the reviewed list is cleaned.
