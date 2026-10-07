@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockups — CR-060 Import Modal · CR-062 Formatting Toolbar (2026-07-12)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f3f4f6;color:#111827;padding:32px 16px}
+  .wrap{max-width:1200px;margin:0 auto}
+  h1{font-size:22px;margin-bottom:4px}
+  .sub{color:#6b7280;font-size:13px;margin-bottom:28px}
+  h2{font-size:17px;margin:36px 0 6px;color:#F26B33}
+  .note{font-size:13px;color:#6b7280;margin-bottom:14px}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .col{flex:1;min-width:340px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:99px;margin-bottom:10px}
+  .before{background:#fee2e2;color:#b91c1c}.after{background:#dcfce7;color:#15803d}
+  .modal{background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:20px;border:1px solid #e5e7eb}
+  .m-sm{max-width:400px}.m-lg{max-width:640px}
+  .mtitle{font-weight:700;font-size:16px}
+  .msub{font-size:11px;color:#9ca3af;margin-top:2px}
+  .steps{display:flex;align-items:center;gap:8px;margin:12px 0;font-size:11px;color:#9ca3af}
+  .step{width:24px;height:24px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0}
+  .s-on{background:#F26B33;color:#fff}.s-off{background:#e5e7eb;color:#9ca3af}.s-done{background:#22c55e;color:#fff}
+  .bar{flex:1;height:2px;background:#e5e7eb}.bar.g{background:#22c55e}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+  .stat{border-radius:12px;padding:10px;text-align:center;border:1px solid}
+  .stat b{display:block;font-size:18px}.stat span{font-size:10px}
+  .st-gray{background:#f9fafb;border-color:#e5e7eb}.st-green{background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+  .st-blue{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.st-red{background:#fef2f2;border-color:#fecaca;color:#dc2626}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#f9fafb;text-align:left;padding:6px 10px;color:#6b7280;font-size:10px}
+  td{padding:6px 10px;border-top:1px solid #f3f4f6}
+  .tbl{border:1px solid #f3f4f6;border-radius:12px;overflow:hidden;margin:8px 0}
+  .err-strip{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:8px 10px;font-size:11px;color:#dc2626;margin:8px 0}
+  .tabs{display:flex;gap:4px;border-bottom:2px solid #f3f4f6;margin:12px 0 0}
+  .tab{padding:8px 16px;font-size:12px;font-weight:600;color:#6b7280;border-radius:8px 8px 0 0;cursor:default}
+  .tab.on{color:#F26B33;border-bottom:2px solid #F26B33;margin-bottom:-2px;background:#fff7f2}
+  .pill-badge{background:#fecaca;color:#b91c1c;border-radius:99px;font-size:10px;padding:1px 7px;font-weight:700;margin-left:4px}
+  .btns{display:flex;gap:10px;margin-top:14px}
+  .btn{flex:1;text-align:center;border-radius:99px;padding:9px;font-size:12px;font-weight:600}
+  .b-line{border:1px solid #e5e7eb;color:#374151}.b-solid{background:#F26B33;color:#fff}
+  .rowchip{display:inline-block;background:#fee2e2;color:#dc2626;border-radius:5px;padding:1px 6px;font-family:monospace;font-size:10px;font-weight:600;margin-right:6px}
+  .callout{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 16px;font-size:13px;margin:14px 0;color:#9a3412}
+  .dl-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;border-radius:99px;padding:5px 12px;font-size:11px;font-weight:600;color:#374151}
+  /* builder */
+  .builder{display:flex;gap:0;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.10)}
+  .b-left{flex:1.2;padding:18px}
+  .b-right{flex:1;background:#075e54;padding:16px}
+  .lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;margin-bottom:8px}
+  .toolbar{display:flex;gap:6px;margin-bottom:6px}
+  .tb{width:30px;height:30px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;color:#374151;cursor:default}
+  .tb:hover{border-color:#F26B33}
+  .tb.on{background:#fff7f2;border-color:#F26B33;color:#F26B33}
+  .ta{width:100%;border:1px solid #e5e7eb;border-radius:12px;padding:10px;font-size:12.5px;font-family:inherit;min-height:110px;line-height:1.5;color:#111827;background:#fff}
+  .hint{font-size:10.5px;color:#9ca3af;margin-top:6px}
+  .wa{background:#dcf8c6;border-radius:12px;padding:12px;max-width:290px;margin:24px auto;box-shadow:0 1px 2px rgba(0,0,0,.2);font-size:12.5px;line-height:1.55}
+  .wa .time{text-align:right;font-size:10px;color:#4b5563;margin-top:6px}
+  .wa-h{color:#fff;font-size:12px;font-weight:600;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:4px}
+  code.mono{background:#eef2f7;border-radius:4px;padding:0 4px;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Mockups — 2026-07-12 batch</h1>
+  <p class="sub">CR-060 Import Modal (Q1 = option b "Errors tab" + Q2 bigger width) &nbsp;·&nbsp; CR-062 Formatting Toolbar (Q7 approved). Static mockups — no code changed.</p>
+
+  <!-- ============ CR-060 ============ -->
+  <h2>1 · CR-060 — Customer Import modal</h2>
+  <p class="note">AFTER: modal widened to <b>max-w-3xl (~768px)</b> · new <b>tab bar</b> on the preview step — "Preview" tab (unchanged first-5 table) and <b>"Errors (N)" tab</b> listing every bad row with its reason BEFORE you import. Data already comes from the server today; nothing new to upload.</p>
+  <div class="row">
+    <div class="col">
+      <span class="tag before">BEFORE — today</span>
+      <div class="modal m-sm">
+        <div class="mtitle">Import Customers</div>
+        <div class="msub">customers_june.xlsx · 148 rows detected</div>
+        <div class="steps"><div class="step s-done">✓</div><div class="bar g"></div><div class="step s-on">2</div><div class="bar"></div><div class="step s-off">3</div><span>Step 2 of 3</span></div>
+        <div class="cards">
+          <div class="stat st-gray"><b>148</b><span>Total rows</span></div>
+          <div class="stat st-green"><b>121</b><span>Will create</span></div>
+          <div class="stat st-blue"><b>15</b><span>Will update</span></div>
+          <div class="stat st-red"><b>12</b><span>Errors</span></div>
+        </div>
+        <div style="font-size:10px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px">Preview — first 5 rows</div>
+        <div class="tbl"><table>
+          <tr><th>#</th><th>Name</th><th>Phone</th><th>Status</th></tr>
+          <tr><td>1</td><td>Ravi Kumar</td><td>9811657657</td><td style="color:#16a34a;font-weight:600">New</td></tr>
+          <tr><td>2</td><td>Anita S</td><td>9035133228</td><td style="color:#2563eb;font-weight:600">Update</td></tr>
+          <tr style="background:#fef2f2"><td>3</td><td>Mohan</td><td style="color:#ef4444">missing</td><td style="color:#ef4444;font-weight:600">Phone required</td></tr>
+          <tr><td>4</td><td>Priya N</td><td>7505242126</td><td style="color:#16a34a;font-weight:600">New</td></tr>
+          <tr><td>5</td><td>Dev Bhat</td><td>9900011223</td><td style="color:#16a34a;font-weight:600">New</td></tr>
+        </table></div>
+        <div class="err-strip">⚠ <b>12 rows will be skipped</b> due to errors. Valid rows (136) will still import.<br><span style="color:#b91c1c;opacity:.75">← count only — the other 11 error rows are invisible until AFTER import</span></div>
+        <div class="btns"><div class="btn b-line">← Back</div><div class="btn b-solid">Import 136 rows</div></div>
+      </div>
+    </div>
+
+    <div class="col" style="flex:1.5">
+      <span class="tag after">AFTER — proposed</span>
+      <div class="modal m-lg">
+        <div class="mtitle">Import Customers</div>
+        <div class="msub">customers_june.xlsx · 148 rows detected</div>
+        <div class="steps"><div class="step s-done">✓</div><div class="bar g"></div><div class="step s-on">2</div><div class="bar"></div><div class="step s-off">3</div><span>Step 2 of 3</span></div>
+        <div class="cards">
+          <div class="stat st-gray"><b>148</b><span>Total rows</span></div>
+          <div class="stat st-green"><b>121</b><span>Will create</span></div>
+          <div class="stat st-blue"><b>15</b><span>Will update</span></div>
+          <div class="stat st-red" style="outline:2px solid #f87171"><b>12</b><span>Errors — see tab ↓</span></div>
+        </div>
+        <div class="tabs">
+          <div class="tab">Preview (first 5)</div>
+          <div class="tab on">Errors <span class="pill-badge">12</span></div>
+        </div>
+        <div class="tbl" style="max-height:190px;overflow-y:auto"><table>
+          <tr><th style="width:70px">Row</th><th>Name</th><th>Phone</th><th>Why it will be skipped</th></tr>
+          <tr><td><span class="rowchip">Row 3</span></td><td>Mohan</td><td style="color:#ef4444">—</td><td>Phone number is required</td></tr>
+          <tr><td><span class="rowchip">Row 17</span></td><td>—</td><td>98110</td><td>Phone must be 10 digits</td></tr>
+          <tr><td><span class="rowchip">Row 25</span></td><td>Sana K</td><td>9811657657</td><td>Duplicate phone in file (row 1)</td></tr>
+          <tr><td><span class="rowchip">Row 31</span></td><td>Faiz</td><td>abcde12345</td><td>Phone contains letters</td></tr>
+          <tr><td><span class="rowchip">Row 48</span></td><td>—</td><td>—</td><td>Empty row</td></tr>
+          <tr><td><span class="rowchip">Row 52</span></td><td>Leela</td><td>12345</td><td>Phone must be 10 digits</td></tr>
+          <tr><td><span class="rowchip">Row 77</span></td><td colspan="3" style="color:#9ca3af">… scrolls — all 12 error rows listed …</td></tr>
+        </table></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <span style="font-size:11px;color:#6b7280">Fix these rows in your file and re-upload, or import the 136 valid rows now.</span>
+          <span class="dl-btn">⬇ Download error rows (CSV)</span>
+        </div>
+        <div class="btns"><div class="btn b-line">← Back</div><div class="btn b-solid">Import 136 valid rows</div></div>
+      </div>
+      <p class="note" style="margin-top:10px">Clicking the red <b>Errors card</b> also jumps to the Errors tab. Optional extra shown above: "Download error rows (CSV)" — say yes/no. Result step (step 3) stays as-is.</p>
+    </div>
+  </div>
+
+  <!-- ============ CR-062 ============ -->
+  <h2>2 · CR-062 — Template Builder formatting toolbar</h2>
+  <p class="note">Select text in the Body → click <b>B</b> / <b><i>I</i></b> / <b><s>S</s></b> / <b>&lt;/&gt;</b> → the Meta markers (<code class="mono">*bold*</code> <code class="mono">_italic_</code> <code class="mono">~strike~</code> <code class="mono">```mono```</code>) are wrapped around it. WhatsApp preview on the right now RENDERS the formatting instead of showing raw asterisks. Body only (Meta does not render formatting in header/footer).</p>
+  <div class="builder">
+    <div class="b-left">
+      <div class="lbl">Body (required)</div>
+      <div class="toolbar">
+        <div class="tb on"><b>B</b></div>
+        <div class="tb"><i>I</i></div>
+        <div class="tb"><s>S</s></div>
+        <div class="tb" style="font-size:10px;font-family:monospace">&lt;/&gt;</div>
+        <span style="font-size:10.5px;color:#9ca3af;align-self:center;margin-left:6px">select text, then click to format</span>
+      </div>
+      <div class="ta">Hi {{1}}, 🎉<br><br>Your *Weekend Special* is here — get _flat 20% off_ on your next visit to {{2}}.<br><br>Offer valid till ~Sunday~ Monday!</div>
+      <div class="hint">Formatting uses WhatsApp's own markers (*bold* _italic_ ~strikethrough~ ```mono```) — approved by Meta, works in the body text.</div>
+    </div>
+    <div class="b-right">
+      <div class="wa-h">WhatsApp Preview</div>
+      <div class="wa">
+        Hi <span style="background:#fff3bf;border-radius:3px;padding:0 3px">Ravi</span>, 🎉<br><br>
+        Your <b>Weekend Special</b> is here — get <i>flat 20% off</i> on your next visit to <span style="background:#fff3bf;border-radius:3px;padding:0 3px">Kunafa Mahal</span>.<br><br>
+        Offer valid till <s>Sunday</s> Monday!
+        <div class="time">10:42 ✓✓</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout"><b>Reminder:</b> nothing is blocked today — you can already type <code class="mono">*text*</code> manually and Meta renders it bold. This CR only adds the buttons + live preview rendering.</div>
+</div>
+</body>
+</html>
