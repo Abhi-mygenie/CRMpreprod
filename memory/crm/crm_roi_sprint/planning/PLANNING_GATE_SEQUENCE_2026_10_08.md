@@ -51,3 +51,26 @@
 1. Open Implementation Plan gate for CR-084 + CR-097? (yes/no)
 2. Close CR-090 as obsolete? (yes/no)
 3. CR-093 Q3 (`name: null` for blank names), Q4 (oldest record wins on duplicate phone), Q6 (`{user_id, phone}` index), Q7 (strict 10-digit only)
+
+---
+## E. Revised sequence — 2026-10-08 evening (after Wave 1 closed, CR-098 registered, all CR-093 rulings FINAL, dates committed)
+
+| Order | CR | Why here | Gate state | Owner input still needed |
+|---|---|---|---|---|
+| 1 | **CR-093** lookup + **CR-098** retire password routes (one plan, one ship) | Promised w/c 13 Oct. All decisions FINAL. No POS dependency. Unblocks Customer App's #1 ask. | IA complete → **open Impl Plan** | none |
+| 2 | **CR-089** skip-otp guard rails (rate-limit + Retry-After) | skip-otp is now the ONLY identity path and it creates records — a public, unlimited create endpoint. Small (~1.5 h). Can ship inside the same week as 093. | 📋 → IA | Q1 accept-risk vs implement · Q2 limiter only (password-holder handling is moot after CR-098) |
+| 3 | **CR-085** canonical phone + country_code at every write path (incl. the 4 live duplicate gaps G1–G4) | Foundation for 086/087/096 and for lookup finding foreign diners. Entirely CRM-side. Biggest owner-time item. | 📋 → IA | Q1–Q3 from intake (canonical rule, migration of 390 non-standard, country_code default) |
+| 4 | **CR-096** feedback hybrid intake | Promised w/c 27 Oct; safe only after 085 matching exists. Design already frozen in Contract v1.0. | 📋 → IA | none |
+| 5 | **CR-094** loyalty-rules endpoint | Read-only, ~1 h, no dependency. Slot it anywhere there's a gap; Customer App "nice to have". | 📋 → IA | Q1 per-tier redemption values |
+| 6 | **CR-086** POS customers missing in CRM (sync fix) | Needs 085's rule to decide what "same customer" means. | 📋 | Q1–Q2 |
+| 7 | **CR-087** backfill orphan orders + merge duplicate groups (dry-run first) | Needs 085 + 086 landed; production data write; owner must lift no-backfill rule. | 📋 | Q1–Q3 |
+| 8 | **CR-095** remove 4 orphan cross-tenant routes | PUTs can go anytime (write hole); GETs wait for Customer App cutover. Not blocking anyone this week. | 📋 | Q1–Q2 + cutover date from Customer App |
+| 9 | **CR-088** /scan list hygiene | Low risk, anytime. | 📋 | none |
+| — | Import bugs (G1 double-insert, G2 missing country_code) | Owner: register **later**; naturally fixed inside CR-085. | not registered | — |
+| — | CR-076 / CR-077 lifecycle items | Unrelated to Customer App stream; schedule after the above or in parallel if a second agent session is available. | 📋 | Q1–Q5 each |
+
+**Suggested calendar**
+- w/c 13 Oct: 1 (093+098) → 2 (089)
+- w/c 20 Oct: 3 (085) planning + implementation
+- w/c 27 Oct: 4 (096) → 5 (094)
+- Nov: 6 → 7 → 8 → 9
