@@ -1590,3 +1590,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: POS sends `phone` + `country_code` separately on sync and create (webhook/lookup send phone only; CRM defaults `+91` — not a duplicate cause). All four live duplicate gaps (G1 importer double-insert · G2 importer drops `country_code` so sync F11 misses · G3 webhook exact-string + create-on-blank · G4 cross-channel format mismatch) and the verbatim-storage of dirty phones are **CRM-only fixes → CR-085 scope, zero POS dependency**. POS ask downgraded to optional (add `country_code` to webhook + lookup). Import bugs to be registered **later** (owner).
 **Source**: Owner "what POS is sending right now is right… the gap is at our end" (2026-10-08). Evidence: `planning/CR_093_IMPACT_ANALYSIS.md` §9–§10a.
 **Locks**: Do not send POS a phone-format "ask" as a requirement; only the optional note in the wave change-log. CR-093 lookup has no POS dependency.
+
+### 2026-10-08 [CR-098 / CR-093] Sequential delivery, 098 first
+**Decision**: CR-098 (retire customer password routes) and CR-093 (lookup) get **separate Implementation Plans, delivered one after another — 098 first**. Dead `password_hash` on 2 test docs left in place (hygiene CR with D-3 collections). Both plans written 2026-10-08; 098 awaits owner approval to implement; 093 implementation gate opens only after 098 is CLOSED.
+**Source**: Owner D-1 "No, two separate plans one after another", D-2 "Leave it", D-3 "write the plan now; follow gates and rules" (2026-10-08).
+**Locks**: Do not start 093 code before 098 closure. Both still target w/c 13 Oct as communicated to Scan & Order.
