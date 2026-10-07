@@ -31,6 +31,35 @@ Nothing else moved:
 - `/auth/me` and `/profile` with a customer token → 200; `/auth/me` without token → 403.
 - CRM staff login (POS-delegated) → 200, untouched.
 
+## Where to validate — preview environment
+**Base URL**: `https://preprod-crm-app-1.preview.emergentagent.com`
+All routes are under `/api`. No auth needed for the identity routes; customer-token routes take `Authorization: Bearer <token>` from `skip-otp`.
+
+```bash
+BASE=https://preprod-crm-app-1.preview.emergentagent.com
+
+# 1. Removed routes → expect 404 {"detail":"Not Found"}
+curl -i -X POST $BASE/api/scan/auth/register -H 'Content-Type: application/json' \
+  -d '{"phone":"9876543210","name":"Test","password":"x","restaurant_id":"689"}'
+curl -i -X POST $BASE/api/scan/auth/login -H 'Content-Type: application/json' \
+  -d '{"phone":"9876543210","password":"x","restaurant_id":"689"}'
+
+# 2. Only identity path → expect 200 + data.token
+curl -s -X POST $BASE/api/scan/auth/skip-otp -H 'Content-Type: application/json' \
+  -d '{"phone":"9876543210","restaurant_id":"689"}'
+
+# 3. Token routes → expect 200 (replace <token>)
+curl -s $BASE/api/scan/auth/me  -H 'Authorization: Bearer <token>'
+curl -s $BASE/api/scan/profile  -H 'Authorization: Bearer <token>'
+
+# 4. Guard intact → expect 403
+curl -i $BASE/api/scan/auth/me
+
+# 5. Not yet built (CR-093) → expect 404 today
+curl -i -X POST $BASE/api/scan/auth/lookup -H 'Content-Type: application/json' -d '{}'
+```
+Note: `skip-otp` creates the customer if the phone is unknown to that restaurant — use a phone you're happy to have as a test record, or an existing one.
+
 ## What we need from you — please validate from the Customer App side
 1. From your app on preprod, hit `POST /api/scan/auth/register` and `POST /api/scan/auth/login` → confirm you see **404** and your UI handles it (or, better, no longer calls them).
 2. Confirm `/password-setup` is removed / unreachable, and the `skipOtp*` per-restaurant flags are retired (everyone goes `skip-otp`).
