@@ -89,7 +89,14 @@ _CR-094 loyalty-rules — row added when implemented_
 | Evidence | 7,383/7,385 synced carry `country_code:"+91"` incl. `phone:"+61 404668073"` — CRM stored it verbatim (`customers.py:373`). Every real-phone duplicate group: POS held 1 record, CRM made the extras. |
 
 ## Wave 3 — Customer identity foundation
-### CR-085 — canonical phone (PLANNED, not yet implemented) — informational for POS
+### CR-085-A — canonical phone (IMPLEMENTED 2026-10-09; QA pending)
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-09** (implemented; QA + consumer validation pending) |
+| Audience | **Both** |
+| Customer App | `skip-otp` and `lookup` now normalise `phone` (spaces/dashes/`+91`/leading 0 removed; foreign `+cc` → `country_code`) and match on `{restaurant, phone, country_code}` → a diner typed as `"98387 77712"` logs into the **same** record as `9838777712`. **Invalid phone → `400 "Enter a valid mobile number"`** on `skip-otp` (new). |
+| POS | All POS routes accept exactly what they accept today; **nothing is rejected**. Stored `phone` is now digits-only + `country_code`; `phone_raw` kept when we changed it; junk phones (`0000000000`, 9-digit…) stored with `phone_invalid:true` and excluded from WhatsApp/loyalty jobs/lookup. ⚠️ Bills with junk phone **still credit a (flagged) customer** for now — the "guest order" behaviour previously drafted is pending owner decision (085-A2). |
+| Evidence | A2/A5/A6/A8/A13 in `qa/CR_085A_QA_HANDOVER.md` |
 | Field | Value |
 |---|---|
 | Status | **DRAFT** (IA closed 2026-10-09) → CONFIRMED at implementation |

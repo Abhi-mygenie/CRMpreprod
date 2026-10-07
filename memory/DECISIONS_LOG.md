@@ -1610,3 +1610,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: Q1 international (national digits + real `country_code`). **Q2 Option A**: POS paths never block — invalid/blank phone → guest order (`customer_id:null`) unless `pos_customer_id` matches; sync junk stored `phone_invalid:true` and excluded from WhatsApp/lookup/loyalty messaging; CRM Add/Update + `/register-customer` reject with clear error. Q4: **085-A forward-only now; ALL data operations (085-B cleanup, CR-087 backfill/merge) deferred until every CR in this batch is complete.** Q5 default `+91`. Q3 moot. Single helper `core/phone.py normalize_phone()`, unified match key `{user_id, phone, country_code}` at 14 write/match points.
 **Source**: Owner 2026-10-09 ("option A"; "all data operations should be different after all CR in this batch are completed").
 **Locks**: No bulk data change under 085-A. `pos.py` identity + webhook edits require explicit owner approval at Impl Plan gate (addendum §14). Behaviour change (placeholder bills → guest orders) must be in the POS informational note.
+
+### 2026-10-09 [CR-089 / CR-085-A] Implemented; 085-A2 decision opened
+**Decision**: CR-089 skip-otp limiter live (30/min/IP, 5/5min/phone, separate buckets) — QA 14/14. CR-085-A live: `core/phone.py` single normaliser at all 15 write/match points; unified key `{user_id, phone, country_code}`; CRM screens + skip-otp reject invalid; POS/sync never reject (flag `phone_invalid`); import writes `country_code` — QA 16/17 + 13/13.
+**Deviation recorded (not decided)**: W1/W2 invalid-phone bills → **F (flag)** implemented instead of planned **G (guest order)**; POS `customer-lookup` still returns flagged records. → **085-A2 owner decision** before closure.
+**Source**: Owner approvals 2026-10-09; QA iteration_4/5.
+**Locks**: No further identity-path change without 085-A2 ruling. Baseline customers = 7700 after QA removed 37 `TEST_*` orphans.

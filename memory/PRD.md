@@ -103,3 +103,5 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - CR-085: `planning/CR_085_IMPACT_ANALYSIS.md` — 14 write/match points, 390 junk phones hold 4,658 orders / 41,002 pts; design `core/phone.py normalize_phone()`; 085-A forward-only plan not yet opened.
 
 ## 2026-10-09 — IMPLEMENTATION: CR-085-A canonical phone (owner-approved). Helper `core/phone.py` at all 15 write/match points; CRM/skip-otp reject invalid, POS/sync flag `phone_invalid`. DEVIATION: W1/W2 invalid → flag (F) not guest-order (G) — owner decision 085-A2 pending. QA pending.
+
+## 2026-10-09 — QA PASS: CR-085-A (16/17 + 13/13, `test_reports/iteration_5.json`). Open owner decision 085-A2: (1) invalid-phone bills → guest order (G) vs current flag (F); (2) should POS customer-lookup hide `phone_invalid` records. Baseline customers now 7700 (QA removed 37 TEST_* orphans).
