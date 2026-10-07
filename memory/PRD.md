@@ -92,3 +92,8 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - `scan.py`: removed `POST /scan/auth/register`, `POST /scan/auth/login`, `CustomerRegister`/`CustomerLogin`, dead hashing imports; `CR-098` markers. Self-test 9/9 (404 ×2, skip-otp alive, password-holder still logs in via skip-otp, staff login 200). QA handover `qa/CR_098_QA_HANDOVER.md`. Change-log Wave 2 row CONFIRMED. Next: QA → smoke → closure → open CR-093 implementation (plan already written).
 
 ## 2026-10-08 — QA PASS: CR-098 (13/13, `test_reports/iteration_2.json`). Awaiting owner smoke → closure → CR-093 implementation gate.
+
+## 2026-10-08 — IMPLEMENTATION: CR-093 `POST /scan/auth/lookup` (owner-approved, D-1 overridden)
+- New read-only public route with Mongo TTL rate limiter + `{user_id,phone}` index. Self-test 12/12 (never creates, oldest-dup, blank→null, 429 both keys, IXSCAN). QA + Scan & Order validation pending. Docs: `qa/CR_093_QA_HANDOVER.md`, consumer note, change-log row.
+
+## 2026-10-08 — QA PASS: CR-093 (18/18, `test_reports/iteration_3.json`). Closure gated on Scan & Order validation + owner smoke. Both Wave-2 consumer notes (098, 093) ready for owner to send.

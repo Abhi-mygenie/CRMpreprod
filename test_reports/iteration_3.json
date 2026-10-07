@@ -1,0 +1,29 @@
+{
+  "summary": "CR-093 POST /api/scan/auth/lookup independently verified. 18/18 executed tests PASS; L13 (blocked-customer) SKIPPED because no customer in DB currently has is_blocked:true (spec allows N/A). All 13 scenarios from the review request were covered. Customer collection count remained 7737 before/after the unknown-phone probe, confirming the endpoint is read-only. IP limiter (10/60s) and phone+restaurant limiter (5/300s) both trip on the correct call with Retry-After integer > 0 and detail 'Too many lookups'. Mongo indexes idx_customers_user_phone, idx_lookup_key_created, and ttl_scan_lookup_attempts (expireAfterSeconds=0) all present; explain() of the hot query uses IXSCAN with idx_customers_user_phone. Regressions (skip-otp 422, /auth/me 403, staff login 200, scan register/login 404) all green.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr093_lookup.py",
+    "/app/test_reports/pytest/cr093_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "scan.py lookup rate-limit sliding-window uses an insert on each allowed call but relies on a TTL field 'expires_at' for cleanup — current record also persists past the sliding window; harmless but increases collection size until TTL fires (set to window end). Minor; TTL covers it.",
+    "L7 regression noted (country_code '+61' with phone stored as '+61 404668073' not found) — flagged in the CR for CR-085 follow-up; current behaviour (exists:false) is intentional for CR-093 scope."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "N/A"},
+  "test_credentials": "owner@thegoankitchen.com (password via env CRM_TEST_OWNER_PASSWORD per SEC-P2-08).",
+  "seed_data_creation": "None. Verified via mongo count that customers collection unchanged (7737 before and after lookup probes). Rate-limit tests inserted documents into scan_lookup_attempts collection only (TTL-managed, auto-expires).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reusable regression suite: /app/backend/tests/test_cr093_lookup.py. Run with: CRM_TEST_OWNER_PASSWORD='<pw>' REACT_APP_BACKEND_URL='<preview>' python3 -m pytest backend/tests/test_cr093_lookup.py -v. Uses dotenv to read Mongo creds from backend/.env for the read-only count/index checks. Uses unique X-Forwarded-For prefixes (10.77.9.*, 10.77.1.*, 10.77.2.*) to avoid colliding with other QA runs; pick a different /16 if re-running within 60s. L13 will auto-skip until a blocked customer exists.",
+  "rca of the issue": "No issues to RCA — CR-093 passes independent verification."
+}

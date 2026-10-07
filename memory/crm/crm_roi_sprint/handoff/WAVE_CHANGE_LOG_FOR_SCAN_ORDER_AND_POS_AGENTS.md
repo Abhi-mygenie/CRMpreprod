@@ -55,7 +55,18 @@
 | Action for Customer App | Remove `/password-setup` and any call to the two routes. Retire per-restaurant `skipOtp*` flags. |
 | Evidence | curl 404 ×2 · skip-otp 200 for the former password-holder (no lock-out) · staff login 200 |
 
-_CR-093 lookup · CR-094 loyalty-rules — rows added when implemented_
+### CR-093 — `POST /scan/auth/lookup` LIVE
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-08** (implemented, self-test 12/12; QA + consumer validation pending) |
+| Audience | Customer App |
+| New | `POST /api/scan/auth/lookup` `{phone, country_code?="+91", restaurant_id}` → `200 {exists, name\|null}` · 400 invalid · 429 + `Retry-After` (10/min/IP, 5/5min/phone+rid). Read-only, never creates, no token. Duplicates → oldest. Blocked → `exists:false`. |
+| Unchanged | `skip-otp`, `/auth/me`, all other `/scan/*` |
+| Known gap | stored phones with embedded `+cc`/spaces or missing `country_code` don't match until CR-085 |
+| Evidence | L1–L12 in `qa/CR_093_QA_HANDOVER.md`; customers count unchanged 7737; IXSCAN on `idx_customers_user_phone` |
+| Validation note | `handoff/CRM_TO_SCAN_ORDER_CR093_LOOKUP_LIVE_PLEASE_VALIDATE_2026_10_08.md` (owner sends) |
+
+_CR-094 loyalty-rules — row added when implemented_
 
 ### POS-facing note 2026-10-08 (owner-corrected: gaps are CRM-side; POS ask is optional)
 | Field | Value |
