@@ -124,3 +124,10 @@ Risk: CRITICAL
 Proposed next step: Implementation role — T0 → W14 → W13 → CRM → import → sync → POS CRUD → W2 → W1 → W15 → filters; self-test A1–A19; QA full POS regression on 3 tenants; consumer notes to Scan & Order + POS
 I will not proceed until owner approves.
 ```
+
+
+## Amendment 085-A2 (owner ruling 2026-10-09)
+- **W1/W2 invalid phone → G (guest order)** is FINAL. Implementation shipped **F** (deviation, see `SESSION_2026_10_09_HANDOVER_CR089_CR085A.md` §085-A2). A separate **085-A2 Implementation Plan** must be written and owner-approved before code: make `customer` optional across the realtime order/loyalty path (`pos.py` §14 files), `_find_or_create_customer` returns `(None, False, 0)` on invalid phone when no `pos_customer_id` match, webhook W2 skips create + loyalty block when no customer.
+- W3/W4 (POS create/update) + `customer_sync` keep **F**. R paths unchanged.
+- Open sub-question: W5 POS `customer-lookup` hide `phone_invalid` records — not ruled.
+- 085-B (data cleanup) re-confirmed as **last CR of the batch**.

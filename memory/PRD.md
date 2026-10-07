@@ -105,3 +105,8 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 ## 2026-10-09 — IMPLEMENTATION: CR-085-A canonical phone (owner-approved). Helper `core/phone.py` at all 15 write/match points; CRM/skip-otp reject invalid, POS/sync flag `phone_invalid`. DEVIATION: W1/W2 invalid → flag (F) not guest-order (G) — owner decision 085-A2 pending. QA pending.
 
 ## 2026-10-09 — QA PASS: CR-085-A (16/17 + 13/13, `test_reports/iteration_5.json`). Open owner decision 085-A2: (1) invalid-phone bills → guest order (G) vs current flag (F); (2) should POS customer-lookup hide `phone_invalid` records. Baseline customers now 7700 (QA removed 37 TEST_* orphans).
+
+## 2026-10-09 — DECISION 085-A2: invalid-phone bills → GUEST ORDER (G); 085-B last in batch (docs only, no code)
+- Owner ruled W1/W2 (realtime + webhook) invalid phone → `customer_id:null` guest order, no customer created/credited; `pos_customer_id` match still first. Shipped F = deviation → follow-up **085-A2 Implementation Plan** required (§14 realtime path, `customer` optional) before CR-085-A closure. W3/W4/sync keep F. Open sub-Q: hide `phone_invalid` in POS `customer-lookup`.
+- CR-085-B data cleanup re-confirmed as the final item of this batch (after 096/094/086/087/095/088).
+- Updated: `DECISIONS_LOG.md`, `CR_STATUS_DASHBOARD.md` (row 085 + transition), `CR_085A_IMPLEMENTATION_PLAN.md` amendment, wave change-log POS row.
