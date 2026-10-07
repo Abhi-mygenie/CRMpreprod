@@ -1,0 +1,55 @@
+{
+  "summary": "Independent QA re-verification of CR-084 (customer scan OTP routes removed) and CR-097 (staff password-management removed). All 12 verification items PASS. Backend: 15/15 pytest checks pass against preview URL. Frontend: 18/18 Playwright checks pass across desktop (1920x800) and mobile (390x844) viewports; profile dropdown shows ONLY tenant name/email + Logout (no Reset Password control), /register logged-out -> /login, /register logged-in -> dashboard, /whatsapp-automation CRM Events tab shows 'All (15)' with 'Welcome Message' first and no 'Reset Password (OTP)' card, /login shows no forgot-password UI, /customers /coupons /profile load clean. V1 login via MyGenie POS preprod returned 200 with both access_token and mygenie_token.",
+  "verification_matrix": {
+    "V1_login_200_with_tokens": "PASS",
+    "V2_me_200_owner_email": "PASS",
+    "V3_scan_request_otp_404": "PASS",
+    "V3_scan_verify_otp_404": "PASS",
+    "V4_forgot_pw_request_otp_404": "PASS",
+    "V4_forgot_pw_verify_otp_404": "PASS",
+    "V4_forgot_pw_reset_404": "PASS",
+    "V4_reset_password_PUT_404": "PASS",
+    "V4_register_404": "PASS",
+    "V5a_skip_otp_200_with_token": "PASS",
+    "V5b_skip_otp_empty_body_422": "PASS",
+    "V6_crm_events_15_no_reset_password": "PASS",
+    "V6_crm_descriptions_no_reset_password": "PASS",
+    "V6_message_filters_no_reset_password": "PASS",
+    "V7_desktop_dropdown_only_tenant_email_logout": "PASS",
+    "V7_desktop_reset_password_absent": "PASS",
+    "V7_mobile_dropdown_only_tenant_email_logout": "PASS",
+    "V7_mobile_reset_password_absent": "PASS",
+    "V7b_logout_lands_on_login": "PASS",
+    "V8_logged_out_register_redirects_login": "PASS",
+    "V8_logged_in_register_redirects_dashboard_no_blank": "PASS",
+    "V9_login_page_no_forgot_password_no_register_link": "PASS",
+    "V9_whatsapp_crm_events_All_15_Welcome_first_no_reset": "PASS",
+    "V12_customers_api_200": "PASS",
+    "V12_coupons_api_200": "PASS",
+    "V12b_customers_renders_no_console_errors": "PASS",
+    "V12b_coupons_renders_no_console_errors": "PASS",
+    "V12b_profile_renders_no_console_errors": "PASS"
+  },
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_cr084_cr097.py",
+    "/app/test_reports/pytest/cr084_cr097.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Note (not in CR scope, pre-existing): /app/frontend/src/pages/DashboardPage.jsx has eslint react-hooks/exhaustive-deps warnings per handover doc — out of scope for CR-084/CR-097.",
+    "Mobile viewport (390x844) note for future test authors: the profile-dropdown shadcn/Radix trigger does NOT open when clicked with Playwright force=True (which skips actionability + proper pointer events). Use a regular click (await locator.click()) so Radix receives real pointerdown; otherwise the menu never mounts and logout-btn appears missing — a false negative, not a product bug."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr084_cr097.py (new)",
+    "/app/test_reports/iteration_1.json (new)"
+  ],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% (18/18)"},
+  "test_credentials": "owner@thegoankitchen.com / Qplazm@10 (MyGenie POS preprod delegated login)",
+  "seed_data_creation": "V5a called POST /api/scan/auth/skip-otp once with phone 9876543210, restaurant_id 689 — may have created/kept one test customer as noted in handover (acceptable per spec).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "CR-084 (scan OTP routes removed) and CR-097 (staff password management removed) are fully verified. Regression file at /app/backend/tests/test_cr084_cr097.py can be rerun as-is for any future fork. For UI, Data Migration overlay typically appears ~2-10s after dashboard loads (first shows 'Loading migration status...' then real card with 'Skip for Now'); wait up to 20s and dismiss. On mobile, do NOT use force=True on the profile-dropdown Radix trigger — use plain click().",
+  "rca of the issue": "N/A — no issues found. All 12 verification items in the review request pass independently."
+}

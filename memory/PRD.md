@@ -71,3 +71,11 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Filled shared-DB ownership board (38+ collections, R/W evidence), answered Customer App round 2 (Q-CA-1/5/6, A9-b hybrid, GAP-11), signed Part 1 §1–§6 of `CONTRACT_CUSTOMER_APP_CRM_v1.0` (RC3). D-1/D-2 owner ruling (owner=writer) accepted. CR-096 registered (feedback hybrid). POS brief sent: P1=NO (nobody reads `pos_event_logs` → Call Waiter/Pay Bill inert), P6 parked, P7 open.
 - Parked at PLANNING gate: CR-093 lookup · CR-094 loyalty-rules · CR-095 remove 4 orphan routes · CR-096 feedback hybrid. Owner must open gate.
 - Handover with pending-from-Customer-App list (CA-1…CA-9), POS (P5/P6/P7) and owner items: `crm/crm_roi_sprint/handoff/SESSION_2026_10_03_HANDOVER_CONTRACT_V1_CUSTOMER_APP.md`.
+
+## 2026-10-08 — QA PASS (testing agent, independent): Wave 1 CR-084 + CR-097
+- Backend 15/15 pytest PASS, Frontend 18/18 Playwright PASS (desktop 1920 + mobile 390). Report: `/app/test_reports/iteration_1.json`. Dashboard rows 084/097 → 🟢 QA PASS, awaiting owner smoke → closure.
+
+- **CR-084** (scope expanded by owner: "remove otp flow entirely"): deleted `POST /scan/auth/request-otp`, `POST /scan/auth/verify-otp`, `OTPRequest`/`OTPVerify` from `routers/scan.py`. `skip-otp` + customer `/auth/register` untouched.
+- **CR-097** (new; owner: "CRM user logs in from POS creds", "no change password anywhere in CRM"): deleted `POST /auth/register`, `PUT /auth/reset-password`, 3× `/auth/forgot-password/*`, Dashboard Reset-Password modal, `RegisterPage` + `/register`, LoginPage forgot modal, WA `reset_password` event (CRM_EVENTS 16→15). 11 files, deletions only, code markers at each site.
+- **CR-090** closed OBSOLETE. `test_credentials.md` populated. Owner rules: live read-only probe is part of Planning; keep running change-log for Scan&Order/POS agents (`handoff/WAVE_CHANGE_LOG_FOR_SCAN_ORDER_AND_POS_AGENTS.md`) → new contracts after all waves.
+- Self-test 12/12 PASS (7 routes 404, login 200, WA list clean, dashboard dropdown Logout-only). **Next: QA** (`qa/CR_084_CR_097_QA_HANDOVER.md`), then Wave 2 (CR-093 Q3/Q4/Q6/Q7 → CR-094). Sequence: `planning/PLANNING_GATE_SEQUENCE_2026_10_08.md`.
