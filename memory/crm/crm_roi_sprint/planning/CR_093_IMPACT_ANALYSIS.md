@@ -217,3 +217,6 @@ No channel normalises phone except the importer's own validator (which then forg
 | `POST /api/pos/customers` | `phone` + `country_code` (default `+91`) | stores as sent, exact-string dedup | same: digits-only `phone`, real `country_code` |
 | `POST /api/pos/customer-lookup` | `phone` only | exact-string match | add `country_code`; digits-only `phone` |
 CRM side (CR-085): accept as sent, validate `phone` `^\d{6,15}$` + `country_code` `^\+\d{1,4}$`, store both, dedup/match on `{user_id, phone, country_code}` on **every** channel (today only sync does). `lookup` (CR-093) adopts the same shape on day one.
+
+### 10a. Owner correction (2026-10-08): "POS already sends country_code + phone; the gap is at CRM end" — AGREED
+POS sync and `POST /api/pos/customers` already deliver `phone` and `country_code` separately. Webhook and customer-lookup send `phone` only (CRM defaults `+91`; not a duplicate cause). Dirty `phone` content is staff typing, but **CRM chooses to store it verbatim** — that is our gap. All five fixes (normalise on every write path · importer `country_code` · importer double-insert · one dedup key everywhere · no create on blank phone) are CRM-only = **CR-085 scope, zero POS dependency**. POS ask downgraded to optional (add `country_code` to webhook + lookup). CR-093 `lookup` has **no POS dependency**.

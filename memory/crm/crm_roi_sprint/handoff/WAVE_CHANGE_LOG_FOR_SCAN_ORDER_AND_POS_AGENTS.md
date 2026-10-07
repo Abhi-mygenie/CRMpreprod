@@ -45,14 +45,15 @@
 ## Wave 2 — Customer App unblockers *(rows added when each CR is planned)*
 _CR-093 lookup · CR-094 loyalty-rules · CR-098 retire customer password routes_
 
-### POS-facing ask raised 2026-10-08 (owner direction, feeds CR-085 → new POS contract)
+### POS-facing note 2026-10-08 (owner-corrected: gaps are CRM-side; POS ask is optional)
 | Field | Value |
 |---|---|
-| Status | **ASK — not yet sent** (goes with consolidated POS contract) |
+| Status | **INFO / optional ask — not yet sent** (goes with consolidated POS contract) |
 | Audience | POS |
-| Ask | Send `country_code` and a **digits-only `phone` as separate fields** on every channel: customer sync object, order webhook (`customer_phone` today has no country code), `POST /api/pos/customers`, `POST /api/pos/customer-lookup`. Validate phone at entry (no placeholders like `0000000000`, no spaces, no `+` inside `phone`). |
-| Evidence | 7,383/7,385 synced customers carry `country_code:"+91"` incl. `phone:"+61 404668073"` (r541 has 143 foreign/odd numbers); webhook hardcodes `+91` (`pos.py:1757`); CRM copies `phone` verbatim (`customers.py:373`). |
-| CRM side | Will store as sent and default nothing silently once POS complies (CR-085). `lookup` (CR-093) matches on `{user_id, phone, country_code}`. |
+| What POS already does right | Customer sync object and `POST /api/pos/customers` send `phone` **and** `country_code` as separate fields. |
+| Optional ask | Add `country_code` to the order webhook (`customer_phone` only today) and to `POST /api/pos/customer-lookup` (`phone` only). Nice-to-have; CRM defaults `+91`. Entry-screen validation (no `+`, spaces, placeholders in `phone`) welcome but CRM will normalise regardless. |
+| CRM-side fixes (CR-085, no POS dependency) | (1) normalise `phone` on every write path (sync, webhook, POS-create, skip-otp, Add Customer); (2) importer writes `country_code`; (3) importer same-phone double insert; (4) one dedup key `{user_id, phone, country_code}` on every channel (today only sync); (5) webhook must not create on blank phone. |
+| Evidence | 7,383/7,385 synced carry `country_code:"+91"` incl. `phone:"+61 404668073"` — CRM stored it verbatim (`customers.py:373`). Every real-phone duplicate group: POS held 1 record, CRM made the extras. |
 
 ## Wave 3 — Customer identity foundation
 _CR-085 · CR-086 · CR-087 · CR-096_

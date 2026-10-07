@@ -38,8 +38,8 @@ Known side-effects, all registered: abuse limiter → CR-089; blank-name records
 | Index | `customers {user_id, phone}` non-unique index added with this CR (Q6 final) |
 
 ## Phone format — the honest picture (affects you)
-96% of stored phones are plain 10 digits. The other 4% (390) came in **verbatim from POS** with no validation: placeholders (`0000000000`), 11–14 digit typos, `+91…` typed into the phone box, and **genuine foreign diners** (`+61 …`, `+44 …`, `+34 …`; restaurant 541 has 143 of them) all stored with `country_code: "+91"`. CRM copies what POS sends and defaults `country_code` to `+91`.
-Owner direction (CR-085): POS must send **`country_code` and a digits-only `phone` as separate fields** on every channel; CRM stores as sent; `lookup` matches the same way. Until POS does that, `lookup` will only find diners whose POS record is a clean 10-digit Indian number. Please send `phone` as digits only and `country_code` separately from day one so you are not affected when POS catches up.
+96% of stored phones are plain 10 digits. The other 4% (390) are stored verbatim as typed at the POS counter — placeholders (`0000000000`), 11–14 digit typos, `+91…` or spaces inside the phone, and **genuine foreign diners** (`+61 …`, `+44 …`; restaurant 541 has 143). POS sends `phone` and `country_code` as separate fields; **CRM has been storing `phone` without normalising it — that is a CRM gap, fixed in CR-085** (canonical phone on every write path, one dedup key `{restaurant, phone, country_code}`).
+What this means for you: send `phone` as **digits only** and `country_code` separately (default `+91`) on `lookup`, `skip-otp` and `feedback`. `lookup` will normalise the same way CR-085 does, so foreign diners become findable as soon as the stored data is cleaned — no POS change required.
 
 ## Your "not sent yet" item
 Understood: you delete your quarantined OTP code (CR-2026-10-07-002) first, then confirm with evidence. CRM's side (`request-otp`/`verify-otp` → 404) is already CONFIRMED in the change-log.
