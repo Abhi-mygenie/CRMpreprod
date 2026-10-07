@@ -47,6 +47,8 @@ def _generate_addr_id() -> str:
 
 _LOOKUP_IP_LIMIT = (10, 60)      # CR-093 Q1: 10 per 60 s per IP
 _LOOKUP_PHONE_LIMIT = (5, 300)   # CR-093 Q1: 5 per 300 s per phone+restaurant
+_SKIP_OTP_IP_LIMIT = (30, 60)      # CR-089 D-1: 30 per 60 s per IP (restaurant shared Wi-Fi)
+_SKIP_OTP_PHONE_LIMIT = (5, 300)   # CR-089 D-1: 5 per 300 s per phone+restaurant
 
 
 def _client_ip(request: Request) -> str:
@@ -198,9 +200,18 @@ class LookupRequest(BaseModel):  # CR-093
 
 
 @router.post("/auth/skip-otp")
-async def skip_otp_login(req: SkipOTPRequest):
+async def skip_otp_login(req: SkipOTPRequest, request: Request):
     """Silent login without OTP. Finds or creates customer by phone, returns full token."""
     full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
+    # CR-089: rate-limit the only identity path. Separate buckets from lookup (D-2). Key normalised to digits; stored value untouched (CR-085).
+    phone_key = re.sub(r"\D", "", req.phone or "")
+    for key, (limit, window) in (
+        (f"so-ip:{_client_ip(request)}", _SKIP_OTP_IP_LIMIT),
+        (f"so-ph:{full_restaurant_id}:{phone_key}", _SKIP_OTP_PHONE_LIMIT),
+    ):
+        retry = await _lookup_rate_limited(key, limit, window)
+        if retry:
+            raise HTTPException(status_code=429, detail="Too many login attempts", headers={"Retry-After": str(retry)})
     now = datetime.now(timezone.utc).isoformat()
 
     customer = await db.customers.find_one(

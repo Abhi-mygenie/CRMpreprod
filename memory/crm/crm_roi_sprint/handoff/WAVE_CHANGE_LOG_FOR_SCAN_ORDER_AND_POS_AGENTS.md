@@ -66,6 +66,16 @@
 | Evidence | L1–L12 in `qa/CR_093_QA_HANDOVER.md`; customers count unchanged 7737; IXSCAN on `idx_customers_user_phone` |
 | Validation note | `handoff/CRM_TO_SCAN_ORDER_CR093_LOOKUP_LIVE_PLEASE_VALIDATE_2026_10_08.md` (owner sends) |
 
+### CR-089 — `skip-otp` rate-limited
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-09** (implemented, self-test 10/10; QA + consumer validation pending) |
+| Audience | Customer App |
+| Changed | `POST /api/scan/auth/skip-otp` may now return `429 {"detail":"Too many login attempts"}` + `Retry-After`. Limits: **30/min per IP**, **5 per 5 min per phone+restaurant**. Separate buckets from `lookup`. |
+| Unchanged | request shape, success response, find-or-create, 24 h token |
+| Evidence | S3 31st call 429 `retry-after: 24`; S4 6th call 429; lookup from throttled IP 200; customers count unchanged |
+| Validation note | `handoff/CRM_TO_SCAN_ORDER_CR089_SKIP_OTP_RATE_LIMIT_PLEASE_VALIDATE_2026_10_09.md` (owner sends) |
+
 _CR-094 loyalty-rules — row added when implemented_
 
 ### POS-facing note 2026-10-08 (owner-corrected: gaps are CRM-side; POS ask is optional)

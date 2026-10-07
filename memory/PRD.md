@@ -97,3 +97,7 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - New read-only public route with Mongo TTL rate limiter + `{user_id,phone}` index. Self-test 12/12 (never creates, oldest-dup, blank→null, 429 both keys, IXSCAN). QA + Scan & Order validation pending. Docs: `qa/CR_093_QA_HANDOVER.md`, consumer note, change-log row.
 
 ## 2026-10-08 — QA PASS: CR-093 (18/18, `test_reports/iteration_3.json`). Closure gated on Scan & Order validation + owner smoke. Both Wave-2 consumer notes (098, 093) ready for owner to send.
+
+## 2026-10-09 — PLANNING + IMPLEMENTATION: CR-089 skip-otp rate limit (owner-approved); CR-085 Impact Analysis CLOSED (Q1 intl, Q2 Option A, Q4 forward-only — all data ops deferred to end of batch, Q5 +91)
+- CR-089: `scan.py` limiter on skip-otp (30/min/IP, 5/5min/phone, separate buckets). Self-test 10/10. QA + Scan & Order validation pending.
+- CR-085: `planning/CR_085_IMPACT_ANALYSIS.md` — 14 write/match points, 390 junk phones hold 4,658 orders / 41,002 pts; design `core/phone.py normalize_phone()`; 085-A forward-only plan not yet opened.
