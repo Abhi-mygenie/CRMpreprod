@@ -1,0 +1,39 @@
+{
+  "summary": "CR-089 skip-otp rate limit independently verified (iteration_4). 14/15 PASS. CRITICAL FAILURE on S7: customers collection count went 7737 -> 7738 because S4b (phone-key normalisation scenario) actually creates a new customer. S1/S2/S3/S3b/S4/S4b (rate-limiter 429 behaviour)/S5/S6/S8/S10 all pass. The rate limiter itself is correct (30/60s IP bucket trips at call 31 with Retry-After=24s<=60; 5/300s phone bucket trips at call 6 with Retry-After<=300; keys so-ip:* and so-ph:* present; buckets separate from /lookup; lookup still 200 from throttled IP). But the data-integrity invariant from the review (and the main agent's own self-test claim 'customers 7737 -> 7737') is violated by the exact S4b scenario the handover asks us to run.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/scan/auth/skip-otp",
+        "issue": "Phone-key normalisation is applied ONLY to the rate-limiter key (digits-only, so-ph bucket) but NOT to the find-or-create customer lookup. db.customers.find_one({'phone': req.phone, ...}) uses the RAW phone, so sending '98387 77712' (spaced form of an existing r689 customer '9838777712') does NOT match the existing document and the endpoint CREATES a brand-new customer with phone='98387 77712'. This directly breaks S7 (customers count 7737 -> 7738 reproduced; new doc id=730a2719-630c-4e31-b603-7876a2033e2e cleaned up by QA post-run). It also means the Customer App can silently fork duplicate customer records for the same person depending on how the client formats the phone — a real production data-quality bug, not just a QA artifact. Fix: normalise req.phone to digits (or match on digit-normalised key / country_code pair) before find/insert, mirroring the CR-093 lookup normalisation. The limiter already proves normalisation is intended here.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/scan/auth/skip-otp",
+        "issue": "CR-089 limiter inserts a scan_lookup_attempts doc on EVERY allowed call (same pattern as CR-093). Harmless because of ttl_scan_lookup_attempts TTL, but noted."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_cr089_skip_otp.py",
+    "/app/test_reports/pytest/cr089_results.xml"
+  ],
+  "action_items": [
+    "Main agent: in backend/routers/scan.py skip_otp_login, normalise phone (digits-only, as already done for phone_key) before db.customers.find_one and before inserting the new customer_doc, OR match on digit-normalised phone (e.g. store a derived phone_digits field) — same normalisation that CR-093 lookup already applies. Current behaviour allows duplicate customer creation via trivially different phone formatting (space, dash) and violates CR-089 QA S4b/S7.",
+    "After fix, re-run /app/backend/tests/test_cr089_skip_otp.py — the S4b test will then both trip the 429 AND leave customers count unchanged."
+  ],
+  "critical_code_review_comments": [
+    "scan.py L207-220: digit-normalisation is correctly applied to the limiter bucket key (phone_key = re.sub(r'\\D','',req.phone)) but is NOT reused for the customers lookup/insert — the two code paths disagree on identity. This is the root cause of the S7 regression.",
+    "The 'Known / out of scope' note in CR_089_QA_HANDOVER.md ('Stored phone still raw (CR-085); only the limiter key is digit-normalised.') explicitly acknowledges the gap, but the same handover's self-test S7 (7737 -> 7737) is incompatible with S4b's exact scenario — one of the two must be wrong. QA confirms S7 fails."
+  ],
+  "updated_files": ["/app/backend/tests/test_cr089_skip_otp.py"],
+  "success_rate": {"backend": "93% (14/15)", "frontend": "N/A"},
+  "test_credentials": "owner@thegoankitchen.com (password via env CRM_TEST_OWNER_PASSWORD per SEC-P2-08).",
+  "seed_data_creation": "None intended. S4b inadvertently created 1 customer (id=730a2719-630c-4e31-b603-7876a2033e2e, phone='98387 77712', user_id=pos_0001_restaurant_689) due to the bug above; QA deleted it post-run so customers.count_documents({}) is back to 7737.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reusable: CRM_TEST_OWNER_PASSWORD='Qplazm@10' REACT_APP_BACKEND_URL='<preview>' python3 -m pytest backend/tests/test_cr089_skip_otp.py -v. Uses fresh X-Forwarded-For prefix 10.55.x (iteration_1..3 used 10.9.x/10.89.x/10.77.x). S3b sleeps ~26s for Retry-After; whole run ~95s. If re-run within 60s pick a different /16 for IPs. After main agent fixes the normalisation bug, S7 should pass without any manual customer cleanup; also verify S4b still trips 429 at the 6th call. If re-running before fix, QA script leaves one orphaned customer with phone='98387 77712' at user_id=pos_0001_restaurant_689 — delete it to restore baseline 7737.",
+  "rca of the issue": "Reproduction: POST /api/scan/auth/skip-otp with body {\"phone\":\"98387 77712\",\"restaurant_id\":\"689\"} (space-separated form of existing customer 9838777712) returns 200 + token and silently inserts a NEW customers document with phone='98387 77712'. Verified via `db.customers.find({phone:/ /}).sort(created_at:-1).limit(1)` immediately after S4b. Root cause: in backend/routers/scan.py skip_otp_login (L203-230), phone_key = re.sub(r'\\D','',req.phone) is used ONLY to build the so-ph limiter bucket key; the customer lookup uses the raw req.phone verbatim ({'phone': req.phone, 'user_id': full_restaurant_id}), so any whitespace/formatting variation misses the existing row and falls into the find-or-create branch. Mitigation: apply the same digits-only normalisation (or add a persisted phone_digits index field) in BOTH the find_one filter and the inserted customer_doc. The CR-093 lookup already demonstrates the correct normalisation pattern and must be reused."
+}

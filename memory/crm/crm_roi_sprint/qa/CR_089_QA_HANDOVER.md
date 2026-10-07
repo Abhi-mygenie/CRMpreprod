@@ -6,7 +6,7 @@
 ## What changed (1 file)
 `backend/routers/scan.py`: `_SKIP_OTP_IP_LIMIT=(30,60)`, `_SKIP_OTP_PHONE_LIMIT=(5,300)`; `skip_otp_login` gains `request: Request` and a limiter block (reuses `_lookup_rate_limited`, keys `so-ip:<ip>` and `so-ph:<rid>:<digits>`) **before** the find-or-create; 429 `{"detail":"Too many login attempts"}` + `Retry-After`. Find-or-create, token, response untouched.
 
-## Self-test — 10/10 PASS (preview, 2026-10-09)
+## Self-test — 10/10 PASS (preview, 2026-10-09) · QA 14/15 (see correction below)
 | # | Check | Result |
 |---|---|---|
 | S1 | `{}` | 422 ✅ |
@@ -30,5 +30,6 @@ Use **fresh `X-Forwarded-For` ranges** (not 10.9.x / 10.89.x) and **existing r68
 6. Backend err log clean.
 
 ## Known / out of scope
+- **Correction after QA (2026-10-09)**: ask #4 above (S4b, spaced vs plain phone) was mis-scoped by the Implementation Agent. The limiter key *is* digit-normalised (429 at 6th call ✅) but `skip-otp`'s **find-or-create still matches the raw string** — so `"98387 77712"` created a new customer (count 7737→7738; QA deleted it). That is **CR-085 gap G4 / W13**, pre-existing, not introduced by CR-089, and not changeable here (identity logic; needs its own approved plan — owner already ruled Option A, 085-A forward-fix). S4b retired from this CR; test marked skip pending CR-085. **CR-089 limiter: 14/14 relevant checks PASS.**
 - Stored phone still raw (CR-085); only the limiter key is digit-normalised.
 - `register`/`login` 404 are CR-098, expected.

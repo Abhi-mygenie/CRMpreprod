@@ -110,3 +110,6 @@ Preview (= prod copy): 390 junk-phone customers carry **4,658 orders** and **41,
 
 ### Behaviour change to make explicit to POS (informational, with the consolidated contract)
 A bill with phone `0000000000` (or any invalid number) and no `pos_customer_id` becomes a **guest order** in CRM instead of a visit on the placeholder customer. If a restaurant wants a shared walk-in bucket, POS should send its `pos_customer_id` — CRM honours that first.
+
+### Live reproduction of G4/W13 (QA, 2026-10-09, during CR-089 QA)
+`POST /scan/auth/skip-otp {"phone":"98387 77712","restaurant_id":"689"}` where `9838777712` already exists → **new customer created** with `phone:"98387 77712"` (count 7737→7738; QA deleted doc `730a2719…`). Confirms W13 stores/matches raw string. Fix belongs to **085-A** (normalise before find-or-create at W13). Not patched under CR-089 (identity logic; owner plan gate).
