@@ -1600,3 +1600,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: Any CR that changes endpoints consumed by the Customer App (`/scan/*`) needs Scan & Order agent validation (with evidence) in addition to owner smoke before it moves to Closure. Applied first to CR-098; will apply to CR-093, CR-096, CR-095.
 **Source**: Owner "this needs to be validated by scan and order agent… they consume these end points" (2026-10-08).
 **Locks**: Closure docs for `/scan/*` CRs must cite the consumer confirmation.
+
+### 2026-10-09 [CR-089] skip-otp rate-limit decisions
+**Decision**: Implement (Q1 a). Limits: **IP 30/min** (restaurant shared Wi-Fi), **phone+restaurant 5 per 5 min**. **Separate counters** from `lookup` (`so-ip:`/`so-ph:` prefixes). Q2 (block password-holders) moot after CR-098. Impact Analysis gate closed; Implementation Plan **not** opened (owner hold).
+**Source**: Owner 2026-10-09.
+**Locks**: skip-otp find-or-create behaviour unchanged; only a 429 path added when implemented.
