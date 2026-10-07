@@ -114,3 +114,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 ## 2026-10-09 — DECISION: 085-A2 sub-Q YES (POS lookup hides flagged, later) · 085-B report-first (docs only, no code)
 - POS `customer-lookup` will hide `phone_invalid` records → bundled into the 085-A2 Implementation Plan (W1/W2 guest order + W5 hide).
 - CR-085-B: before any data write, CRM sends a per-restaurant report of every customer needing correction (phone, raw, cc, reason, dup-group, orders, points, proposed action) for owner/restaurant review. Still last in batch.
+
+## 2026-10-09 — PLANNING: CR-085-A2 Implementation Plan written (no code)
+- `planning/CR_085A2_IMPLEMENTATION_PLAN.md`: G on W1 (`_find_or_create_customer` returns None on invalid; `is_guest` branches through `/pos/orders`; `_save_order_and_transactions` None-safe), W2 early guest return, W5 lookup hides invalid + `phone_invalid` records; 6 new tests; verification V1–V14 + 3-tenant regression. Only `routers/pos.py` + test file change. Risk CRITICAL (§14). Awaiting owner approval; proposed defaults (a) wallet on guest accepted/not debited (b) invoice yes/WhatsApp no (c) coupon usage `customer_id:null`.
