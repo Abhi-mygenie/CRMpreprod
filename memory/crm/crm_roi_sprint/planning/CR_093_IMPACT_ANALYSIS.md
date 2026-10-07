@@ -199,3 +199,21 @@ Next: Owner answers Q1–Q7 → Implementation Plan → Gate approval
 | New | **CR-098** registered: retire `POST /scan/auth/register` + `/login` (password). Ships with 093. | — |
 | Dates | 093 + 098 **w/c 13 Oct 2026**; 096 w/c 27 Oct (after 085) | owner-committed |
 Reply draft to Scan & Order: `handoff/CRM_REPLY_TO_SCAN_ORDER_QA_IDENTITY_PATH_2026_10_08.md`.
+
+## 9. Owner Q (2026-10-08): "as of today's code, can duplicates still happen, and can I reproduce?" — YES, 4 live gaps
+| # | Live gap (current code) | Repro on preprod |
+|---|---|---|
+| G1 | CSV importer: same phone on two rows → two inserts. `phone_to_doc` built once (`customers.py:1600`), never updated per row; both rows classified `new` → two `InsertOne` (`:1648-1663`). | Import CSV with rows `A,9000000001` and `B,9000000001` → 2 customers |
+| G2 | CSV importer writes **no `country_code`** (`new_doc` `:1648`). Sync F11 dedup needs `{user_id, phone, country_code}` (`:456-460`) → no match → sync inserts a second record for the same phone. | Import `A,<phone that exists in POS>` → run Sync Customers → 2 customers |
+| G3 | Order webhook matches `phone` **exact string** and creates with `+91` (`pos.py:1737-1757`). Blank or differently-formatted phone → new record. | `POST /api/pos/webhook` `customer_phone:""` → "Customer " created; or `customer_phone:"+91 9000000002"` when CRM holds `9000000002` → 2nd record |
+| G4 | Format mismatch across channels: `skip-otp` stores digits (`9000000003`); POS sync delivers whatever staff typed (`+91 90000 00003`) → different strings → 2 records. | `skip-otp {phone:"9000000003"}` then sync a POS customer typed as `+91 90000 00003` |
+No channel normalises phone except the importer's own validator (which then forgets `country_code`). POS held one record in every real-phone duplicate group; the extras were CRM-made.
+
+## 10. Q7 — present wire shape per channel vs change needed from POS
+| Channel | Present shape (what arrives) | CRM today | Change needed (POS) |
+|---|---|---|---|
+| Customer sync (CRM pulls MyGenie list) | object has `phone` (free text as typed: `"+61 404668073"`, `"95034 05081"`, `"0000000000"`) **and** `country_code` (always `"+91"`/null) | copies `phone` verbatim; `country_code` → `+91` if null | `phone` = digits only, validated at entry; `country_code` = real dial code (`+61`), never a constant |
+| Order/payment webhook `POST /api/pos/webhook` | `customer_phone` only — **no country code field** | hardcodes `country_code:"+91"` | add `country_code`; send `customer_phone` digits only |
+| `POST /api/pos/customers` | `phone` + `country_code` (default `+91`) | stores as sent, exact-string dedup | same: digits-only `phone`, real `country_code` |
+| `POST /api/pos/customer-lookup` | `phone` only | exact-string match | add `country_code`; digits-only `phone` |
+CRM side (CR-085): accept as sent, validate `phone` `^\d{6,15}$` + `country_code` `^\+\d{1,4}$`, store both, dedup/match on `{user_id, phone, country_code}` on **every** channel (today only sync does). `lookup` (CR-093) adopts the same shape on day one.
