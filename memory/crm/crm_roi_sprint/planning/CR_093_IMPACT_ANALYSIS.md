@@ -6,7 +6,7 @@
 **Risk**: **HIGH** (verified, see §5) — new public unauthenticated route in the `/scan/auth/*` block
 **Intake doc**: `discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §1
 **Contract**: `CONTRACT_CUSTOMER_APP_CRM_v1.0` §4c (B1/B2) — CRM signed Part 1 on 2026-10-03
-**Status**: ⏸ **OPEN — 7 owner decisions pending (§7). Nothing below is assumed.**
+**Status**: ✅ **IMPACT ANALYSIS COMPLETE 2026-10-08 — all 7 owner decisions FINAL (§8). Held at Impact Analysis gate per owner; Implementation Plan not yet opened. No POS dependency (§10a).**
 
 ---
 
@@ -193,9 +193,9 @@ Next: Owner answers Q1–Q7 → Implementation Plan → Gate approval
 |---|---|---|
 | Q1, Q2, Q5 | as agreed 2026-10-07 | FINAL |
 | Q3 blank name | return `name: null` | **FINAL** |
-| Q4 duplicate phone | return **oldest** (`created_at` asc). Owner asked *why* duplicates exist → CRM-side: CSV importer double-inserts same phone in one file + never writes `country_code`, so sync F11 dedup `{user_id, phone, country_code}` misses it; POS held one record. Blank-phone groups: POS walk-in `6759` + CRM order-webhook re-create. Import bugs to be registered **later** (owner). | ⏳ pending owner nod on "oldest" |
+| Q4 duplicate phone | return **oldest** (`created_at` asc). Owner asked *why* duplicates exist → CRM-side: CSV importer double-inserts same phone in one file + never writes `country_code`, so sync F11 dedup `{user_id, phone, country_code}` misses it; POS held one record. Blank-phone groups: POS walk-in `6759` + CRM order-webhook re-create. Import bugs to be registered **later** (owner). | **FINAL** (owner "4 k") |
 | Q6 index | add `customers {user_id, phone}` non-unique | **FINAL** |
-| Q7 phone format | Owner direction: POS sends `country_code` + digits-only `phone` **separately**; CRM accepts as sent; `lookup` takes `{phone, country_code? (default "+91"), restaurant_id}` and matches `{user_id, phone, country_code}`. Strict digits-only `phone`; `country_code` `^\+\d{1,4}$`. Foreign diners (r541: 143) become findable once POS splits the fields (CR-085). | ⏳ pending owner nod on shape |
+| Q7 phone format | Owner direction: POS sends `country_code` + digits-only `phone` **separately**; CRM accepts as sent; `lookup` takes `{phone, country_code? (default "+91"), restaurant_id}` and matches `{user_id, phone, country_code}`. Strict digits-only `phone`; `country_code` `^\+\d{1,4}$`. Foreign diners (r541: 143) become findable once POS splits the fields (CR-085). | **FINAL** (owner "7 ok") |
 | New | **CR-098** registered: retire `POST /scan/auth/register` + `/login` (password). Ships with 093. | — |
 | Dates | 093 + 098 **w/c 13 Oct 2026**; 096 w/c 27 Oct (after 085) | owner-committed |
 Reply draft to Scan & Order: `handoff/CRM_REPLY_TO_SCAN_ORDER_QA_IDENTITY_PATH_2026_10_08.md`.

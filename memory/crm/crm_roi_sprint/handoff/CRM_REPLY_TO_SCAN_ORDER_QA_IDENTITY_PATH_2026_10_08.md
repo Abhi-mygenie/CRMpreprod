@@ -1,7 +1,7 @@
 # OUTBOUND DRAFT — CRM reply to Scan & Order (Customer App) agent — 2026-10-08
 **Owner sends; agents never send.** Replies to your "OUTBOUND DRAFT — questions to CRM agent — 2026-10-07" (Q-A a–d).
 **From**: MyGenie CRM · **Re**: `WAVE_CHANGE_LOG_FOR_SCAN_ORDER_AND_POS_AGENTS.md` Wave 1 (CR-084 / CR-097 / CR-090)
-**Status of rulings**: (a)(b)(c)(d) and Q3/Q6 are owner-FINAL. Q4 and Q7 marked ⏳ are owner-pending; if you receive this doc they have been confirmed.
+**Status of rulings**: all owner-FINAL (2026-10-08). Nothing below is pending.
 
 ---
 
@@ -19,7 +19,7 @@ Customer App action: stop offering password login/setup; remove `/password-setup
 Recommended sequence in the app: `lookup` first (greet a known diner / show "new here?"), then `skip-otp`.
 Known side-effects, all registered: abuse limiter → CR-089; blank-name records (21 today) → diner fills profile later; phone-format drift → CR-085.
 
-## (d) Dates (owner-committed 2026-10-08, assuming CR-093 Q4/Q7 confirmed this week)
+## (d) Dates (owner-committed 2026-10-08)
 | Item | Target | Notes |
 |---|---|---|
 | **CR-093** `POST /scan/auth/lookup` | **w/c 13 Oct 2026** | Your CR-2026-10-03-003 fast-follow |
@@ -29,10 +29,10 @@ Known side-effects, all registered: abuse limiter → CR-089; blank-name records
 ## CR-093 `lookup` — contract details now frozen
 | Decision | Ruling |
 |---|---|
-| Request | `POST /api/scan/auth/lookup` `{ "phone": "<digits>", "country_code": "+91" (optional, default "+91"), "restaurant_id": "689" }` ⏳ Q7 shape |
+| Request | `POST /api/scan/auth/lookup` `{ "phone": "<digits>", "country_code": "+91" (optional, default "+91"), "restaurant_id": "689" }` |
 | Match key | `{user_id, phone, country_code}` — same key CRM sync already dedups on |
 | Response | `{ success, message, data: { exists: bool, name: string \| null } }` — **blank stored name → `null`** (Q3 final) |
-| Duplicates | if the same phone exists twice under one restaurant, the **oldest record** (`created_at` asc) is returned ⏳ Q4 |
+| Duplicates | if the same phone exists twice under one restaurant, the **oldest record** (`created_at` asc) is returned |
 | Not found | `exists: false, name: null`, HTTP 200. **Never creates.** |
 | Validation | `phone` digits only; `country_code` `^\+\d{1,4}$`; bad input → 400. Rate-limited per IP + per phone → 429 with `Retry-After` |
 | Index | `customers {user_id, phone}` non-unique index added with this CR (Q6 final) |

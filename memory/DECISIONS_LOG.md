@@ -1570,3 +1570,23 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: POS confirmed **P1 = NO** — POS does not read `pos_event_logs`. Combined with CRM's R=0 scan, the collection is **effectively dead for the table-action use case**: `POST /scan/call-waiter` + `POST /scan/request-bill` write events that **no system consumes** (no waiter is notified today). **P6 = PARKED (TBD later)** — direction (keep in CRM vs move to POS) deferred by owner.
 **Source**: Owner relaying POS: "p1 no", "p6 park it as it is tbd later" (2026-10-03).
 **Locks**: No CRM change to the two `/scan/*` table-action routes until P6 is revisited. Finding recorded: Call Waiter / Pay Bill are inert end-to-end today. P7 (Pay-Bill semantics) still open with POS.
+
+### 2026-10-08 [CR-084/CR-097] Remove customer OTP flow + all staff password management; CR-090 obsolete
+**Decision**: Customer OTP routes deleted (`scan.py`). Staff forgot-password OTP, `PUT /auth/reset-password`, `POST /auth/register`, Dashboard Reset-Password, `RegisterPage`, WA `reset_password` event deleted. CRM login = MyGenie POS creds only; CRM holds no local credential path. CR-090 closed OBSOLETE. Both CRs 🔒 CLOSED same day (QA 15/15 + 18/18, owner smoke PASS).
+**Source**: Owner "we want to remove otp flow entirely", "CRM user logs in from pos creds", "we dont need change password in UI or backend anywhere in CRM", "go, follow gate", "its working".
+**Locks**: No OTP or password feature may return to CRM without a new CR. Owner rule: live read-only probe is part of Planning. Owner rule: every implementation amends `handoff/WAVE_CHANGE_LOG_FOR_SCAN_ORDER_AND_POS_AGENTS.md`; consolidated into new Customer App + POS contracts after all waves.
+
+### 2026-10-08 [IDENTITY PATH] skip-otp is the ONLY diner identity path; customer password routes retired (CR-098)
+**Decision**: (a) `skip-otp` is the sole Customer App login — password page dropped entirely, per-restaurant `skipOtp*` flags retired. (b) CRM retires `POST /scan/auth/register` + `POST /scan/auth/login` (password) → **CR-098** (2 test-only password holders, no reset, bypassed by skip-otp). (c) `skip-otp` = login, find-or-**create** by design; `lookup` (CR-093) = read-only, never creates. (d) Dates: CR-093 + CR-098 w/c 13 Oct 2026; CR-096 w/c 27 Oct (after CR-085).
+**Source**: Owner rulings on Scan & Order Q-A (a)–(d), 2026-10-08. Reply draft: `handoff/CRM_REPLY_TO_SCAN_ORDER_QA_IDENTITY_PATH_2026_10_08.md` (owner sends).
+**Locks**: Customer App must not offer password login after CR-098. Any "no-create" change to skip-otp needs a new CR (would strand new diners).
+
+### 2026-10-08 [CR-093] All seven lookup decisions FINAL
+**Decision**: Q1/Q2/Q5 as 2026-10-07. **Q3** blank stored name → `name: null`. **Q4** duplicate phone under one restaurant → return **oldest** (`created_at` asc). **Q6** add `customers {user_id, phone}` non-unique index. **Q7** request `{phone: digits-only, country_code?: default "+91", restaurant_id}`; normalise; match `{user_id, phone, country_code}`; `country_code` `^\+\d{1,4}$`; bad input → 400.
+**Source**: Owner "3 a", "6 a", "4 k", "7 ok" (2026-10-08) after root-cause walk-through.
+**Locks**: Impact Analysis for CR-093 is complete; stays at IMPACT ANALYSIS gate per owner ("stay in impact analysis"). Implementation Plan not yet opened.
+
+### 2026-10-08 [PHONE DATA] Duplicates + non-standard phones are CRM-side gaps; POS shape is already correct
+**Decision**: POS sends `phone` + `country_code` separately on sync and create (webhook/lookup send phone only; CRM defaults `+91` — not a duplicate cause). All four live duplicate gaps (G1 importer double-insert · G2 importer drops `country_code` so sync F11 misses · G3 webhook exact-string + create-on-blank · G4 cross-channel format mismatch) and the verbatim-storage of dirty phones are **CRM-only fixes → CR-085 scope, zero POS dependency**. POS ask downgraded to optional (add `country_code` to webhook + lookup). Import bugs to be registered **later** (owner).
+**Source**: Owner "what POS is sending right now is right… the gap is at our end" (2026-10-08). Evidence: `planning/CR_093_IMPACT_ANALYSIS.md` §9–§10a.
+**Locks**: Do not send POS a phone-format "ask" as a requirement; only the optional note in the wave change-log. CR-093 lookup has no POS dependency.
