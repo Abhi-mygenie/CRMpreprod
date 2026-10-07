@@ -66,3 +66,8 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Not CRs: C1 Option (a) — Customer App auths against MyGenie POS directly; `users` read-freeze retired; JWT-secret overlap (Issue 3) closed by design.
 - Still proposed, not registered: CR-091/092 (INV-021 invoice) — await owner.
 - Docs: `crm/crm_roi_sprint/discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` · dashboard rows 093–095 + transition · register rows 41–43.
+
+## 2026-09-28 → 2026-10-03 — Customer App ↔ CRM CONTRACT v1.0 Part 1 SIGNED (READ-ONLY, no code changed)
+- Filled shared-DB ownership board (38+ collections, R/W evidence), answered Customer App round 2 (Q-CA-1/5/6, A9-b hybrid, GAP-11), signed Part 1 §1–§6 of `CONTRACT_CUSTOMER_APP_CRM_v1.0` (RC3). D-1/D-2 owner ruling (owner=writer) accepted. CR-096 registered (feedback hybrid). POS brief sent: P1=NO (nobody reads `pos_event_logs` → Call Waiter/Pay Bill inert), P6 parked, P7 open.
+- Parked at PLANNING gate: CR-093 lookup · CR-094 loyalty-rules · CR-095 remove 4 orphan routes · CR-096 feedback hybrid. Owner must open gate.
+- Handover with pending-from-Customer-App list (CA-1…CA-9), POS (P5/P6/P7) and owner items: `crm/crm_roi_sprint/handoff/SESSION_2026_10_03_HANDOVER_CONTRACT_V1_CUSTOMER_APP.md`.
