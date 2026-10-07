@@ -1605,3 +1605,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: Implement (Q1 a). Limits: **IP 30/min** (restaurant shared Wi-Fi), **phone+restaurant 5 per 5 min**. **Separate counters** from `lookup` (`so-ip:`/`so-ph:` prefixes). Q2 (block password-holders) moot after CR-098. Impact Analysis gate closed; Implementation Plan **not** opened (owner hold).
 **Source**: Owner 2026-10-09.
 **Locks**: skip-otp find-or-create behaviour unchanged; only a 429 path added when implemented.
+
+### 2026-10-09 [CR-085] Canonical phone — all decisions FINAL; Impact Analysis closed
+**Decision**: Q1 international (national digits + real `country_code`). **Q2 Option A**: POS paths never block — invalid/blank phone → guest order (`customer_id:null`) unless `pos_customer_id` matches; sync junk stored `phone_invalid:true` and excluded from WhatsApp/lookup/loyalty messaging; CRM Add/Update + `/register-customer` reject with clear error. Q4: **085-A forward-only now; ALL data operations (085-B cleanup, CR-087 backfill/merge) deferred until every CR in this batch is complete.** Q5 default `+91`. Q3 moot. Single helper `core/phone.py normalize_phone()`, unified match key `{user_id, phone, country_code}` at 14 write/match points.
+**Source**: Owner 2026-10-09 ("option A"; "all data operations should be different after all CR in this batch are completed").
+**Locks**: No bulk data change under 085-A. `pos.py` identity + webhook edits require explicit owner approval at Impl Plan gate (addendum §14). Behaviour change (placeholder bills → guest orders) must be in the POS informational note.

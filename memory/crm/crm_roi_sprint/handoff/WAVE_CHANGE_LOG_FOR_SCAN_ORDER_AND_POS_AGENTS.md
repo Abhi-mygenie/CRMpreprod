@@ -79,7 +79,15 @@ _CR-094 loyalty-rules — row added when implemented_
 | Evidence | 7,383/7,385 synced carry `country_code:"+91"` incl. `phone:"+61 404668073"` — CRM stored it verbatim (`customers.py:373`). Every real-phone duplicate group: POS held 1 record, CRM made the extras. |
 
 ## Wave 3 — Customer identity foundation
-_CR-085 · CR-086 · CR-087 · CR-096_
+### CR-085 — canonical phone (PLANNED, not yet implemented) — informational for POS
+| Field | Value |
+|---|---|
+| Status | **DRAFT** (IA closed 2026-10-09) → CONFIRMED at implementation |
+| Audience | POS (informational) · Customer App (informational) |
+| Behaviour change | Bills arriving with an **invalid/placeholder phone** (`0000000000`, 9-digit, etc.) and **no `pos_customer_id`** will be stored as **guest orders** (`customer_id: null`) instead of adding a visit to a placeholder customer. Bills with `pos_customer_id` are unaffected (matched on it first). Valid phones are normalised (spaces/`+91`/leading 0 removed; foreign `+cc` kept as `country_code`). |
+| Ask (optional) | If a restaurant wants a shared walk-in bucket, send its `pos_customer_id`. |
+| No change | All POS routes, payloads and response shapes unchanged. Nothing is ever rejected on POS paths. |
+_CR-086 · CR-087 · CR-096 — rows added when planned_
 
 ## Wave 4 — Cleanup + hardening
 _CR-095 · CR-089 · CR-088_
