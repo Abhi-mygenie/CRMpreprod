@@ -1,5 +1,5 @@
 # CR-096 — Impact Analysis: `POST /scan/feedback` hybrid intake (token **or** phone; never create)
-**Date**: 2026-10-09 · **Role**: Planning Agent · **Design frozen**: Contract v1.0 §4c / A9-b (owner-approved; Customer App CA-3 ✅ 2026-10-09) · **Owner date**: w/c 27 Oct · **Status**: ⏸ OWNER APPROVAL REQUIRED (Q1–Q4) · **No code changed.**
+**Date**: 2026-10-09 · **Role**: Planning Agent · **Design frozen**: Contract v1.0 §4c / A9-b (owner-approved; Customer App CA-3 ✅ 2026-10-09) · **Owner date**: w/c 27 Oct · **Status**: ✅ IA CLOSED 2026-10-09 (Q1 401 · Q2 phone optional / 400 on invalid supplied · Q3 order_id null · Q4 no) — Impl Plan gate NOT yet opened · **No code changed.**
 
 ## 1. Frozen design (not up for change)
 (1) token present → use it (today's path); (2) no token → body carries `{phone, restaurant_id(short)}` → resolve **existing** customer by canonical phone; (3) no match → store **unlinked** `customer_id: null`; (4) **never create a customer**; (5) `order_id` optional. Customer App already posts with token and shows a sign-in card for no-token diners until this ships; their local `POST /api/config/feedback` is deleted.
@@ -60,5 +60,18 @@ Next: owner answers → Implementation Plan (ship target w/c 27 Oct)
 - **Phone is optional** on the no-token path. `{restaurant_id}` alone is valid → anonymous feedback, `customer_id:null`, `identity_source:"none"`, `linked:false`.
 - **Q2 → 400 on invalid supplied phone** (not store-unlinked). Customer App validates client-side and sends canonical digits + `country_code`; CRM applies the same validity rule as skip-otp. Junk phones are never stored.
 - **Q4 → No** (bonus award = separate CR).
-- Q1 (401) and Q3 (store `order_id:null`) — explained, awaiting owner confirmation.
+- **Q1 → 401** on expired/invalid token (FINAL 2026-10-09). **Q3 → store `order_id:null`** + `order_id_raw` (FINAL 2026-10-09).
 Validation matrix therefore: no token + no phone → 200 unlinked (V4a); no token + invalid phone → 400 (V4b); no token + valid unknown phone → 200 unlinked with `customer_phone` (V3); no token + valid known phone → 200 linked (V2). `restaurant_id` required when no token (422 otherwise).
+
+## Behavioural spec — diner cases (frozen 2026-10-09)
+| Case | Input | Result |
+|---|---|---|
+| A logged-in (token valid) | token | linked; `feedback_count` +1 |
+| B token expired/invalid | bad token | **401** → app re-runs skip-otp, resubmits |
+| C existing customer, no token, valid phone | `{restaurant_id, phone, country_code}` | linked by canonical phone; no create |
+| D unknown phone, no token | same | unlinked `customer_id:null`, phone kept; **no create** |
+| E no phone, no token | `{restaurant_id}` | anonymous unlinked, `identity_source:"none"` |
+| F invalid supplied phone | junk phone | **400 "Enter a valid mobile number"**; nothing stored |
+| G blocked customer | match has `is_blocked` | stored unlinked |
+| any | `order_id` missing/other tenant | stored, `order_id:null`, `order_id_raw` kept |
+| any | no token and no `restaurant_id` | 422 |
