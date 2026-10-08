@@ -150,3 +150,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — Scan & Order validations accepted (docs only)
 - CR-098/093/089/085-A consumer-validated (Scan & Order half); CA-3/6/7 accepted → CR-096 + CR-094 planning unblocked. CA-2/4/5/8 bounced back (their items); CA-1 → owner. New gap → propose **CR-102** (`skip-otp` accept `country_code`). Baseline 7705 (POS till traffic). Reply draft in handoff/.
+
+## 2026-10-09 — INTAKE: CR-102 registered (docs only)
+- `skip-otp` must accept `country_code` (Customer App sends it; schema drops it). P2/LOW, may ride with BUG-025 (owner Q-B). CR-100/085-B scope +10 docs with `country_code:""` (63 total + 13 twins).

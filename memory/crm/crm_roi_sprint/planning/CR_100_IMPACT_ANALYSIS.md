@@ -63,3 +63,7 @@ Owner decisions: Q1 A/B · Q2 twin preference · Q3 +91-only
 Docs: planning/CR_100_IMPACT_ANALYSIS.md
 Next: owner opens Implementation Plan gate for CR-100 (after BUG-025/026 implementation)
 ```
+
+
+## Addendum 2026-10-09 (Intake CR-102 probe)
+**10 further docs have `country_code: ""`** (empty string) — same silent-duplicate behaviour as `null`. Tolerant match must use `country_code: {"$in": [cc, None, ""]}` when `cc == "+91"`. CR-085-B report scope: 53 null + 10 empty = **63 docs** (+13 twins).

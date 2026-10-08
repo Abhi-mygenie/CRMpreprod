@@ -154,6 +154,7 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 52 | `BUG-029 /scan/auth/lookup 400s before IP bucket — invalid-phone probes bypass limiter` | BUG — limiter consistency | same intake | `bug029_registered_p3_low_may_ride_with_bug025` |
 | 53 | `BUG-030 _normalize_restaurant_id('69') maps to non-existent tenant (r69 non-standard user id)` | BUG — tenant resolution | same intake | `bug030_registered_p3_low_owner_a_or_b` |
 | 54 | `PROC-001 Complete validation test on PRODUCTION DB after all data changes (085-B / 087 / 101 / 100)` | PROCESS — owner rule 2026-10-09 | same intake | `proc001_mandatory_closure_step` |
+| 55 | `CR-102 skip-otp accept country_code (Customer App already sends it; schema drops it → +91 assumed)` | CR — contract gap on identity path | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR102.md` | `cr102_registered_p2_low_may_ride_with_bug025` |
 
 ## 6. Next Immediate Action
 
