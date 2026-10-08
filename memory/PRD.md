@@ -144,3 +144,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — DECISIONS: BUG-025/026 plan approved (Q1 A, Q2 yes, Q3 yes); CR-100 registered + IA (no code)
 - CR-100 = tolerant identity match for 53 legacy `country_code:null` docs (`+91` only); probe: 0 active 90d, 13 twins; Impl Plan gate closed by owner. New owner rule: complete validation test on production DB after all data changes (085-B/087). Docs: `DECISIONS_LOG.md`, `planning/CR_100_IMPACT_ANALYSIS.md`, register row, dashboard board + transition.
+
+## 2026-10-09 — INTAKE: CR-101 · BUG-029 · BUG-030 · PROC-001 registered (docs only)
+- CR-101 data hygiene (2 dead `password_hash`, 3 orphan-tenant customers, drop `customer_otps`) end of batch · BUG-029 lookup IP-bucket order (mirror of 025) · BUG-030 r69 short-id → non-existent tenant · PROC-001 production-DB validation rule. CR-085-B scope +53 null-cc, +13 twins, +legacy phone "" doc. Owner Qs: CR-101 deletions, BUG-029 ride with 025, BUG-030 a/b.

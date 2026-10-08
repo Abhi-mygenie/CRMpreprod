@@ -570,3 +570,21 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 **Reported**: 2026-10-09 (iteration_7, F9) · **Severity**: P3 · **Risk**: LOW · **Status**: 📋 REGISTERED  
 **Symptom**: `scrollWidth 473 > 390`, 3 offenders — stats chips (`Total/Bronze/Silver/Gold`, `CustomersPage.jsx` ~L919) and Sync/Export/Import/Add cluster. Other pages clean. Not introduced by Waves 1–3.
 **Fix**: `flex-wrap` + `min-w-0` / `overflow-x-hidden`; verify 390×844.
+
+---
+
+## BUG-029: `/scan/auth/lookup` rejects invalid phones before its IP bucket — probes are free
+
+**Reported**: 2026-10-09 (BUG-025 planning §1.4) · **Severity**: P3 · **Risk**: LOW · **Status**: 📋 REGISTERED
+**Where**: `routers/scan.py:283-293` — `normalize_phone` → 400 → then `ip:`/`ph:` limiters. Mirror of BUG-025 (owner chose IP-bucket-first for skip-otp).
+**Fix**: move the `ip:` check above normalisation (3 lines) + 1 test. May ride with BUG-025 implementation (owner Q-A).
+**Intake**: `crm/crm_roi_sprint/discovery/SESSION_2026_10_09_INTAKE_CR101_BUG029_BUG030_PROC001.md`
+
+---
+
+## BUG-030: `_normalize_restaurant_id("69")` → non-existent tenant `pos_0001_restaurant_69`
+
+**Reported**: 2026-10-09 · **Severity**: P3 · **Risk**: LOW · **Status**: 📋 REGISTERED
+**Where**: `routers/scan.py:31-35`. Owner test tenant r69 is the only user with a non-standard id (`pos_owner_69_bdd4513c`). Customer App skip-otp at "69" created 1 orphan customer (`9035133228`, 2026-09-08) invisible to CRM/POS for r69.
+**Fix options**: (a) resolve short id via `users.restaurant_id` lookup; (b) leave (test tenant only). Orphan doc deletion → CR-101.
+**Intake**: same doc.

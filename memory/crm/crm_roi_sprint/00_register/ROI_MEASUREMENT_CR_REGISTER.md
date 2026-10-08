@@ -150,6 +150,10 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 48 | `CR-099 Allow formatted phone input in CRM Add/Edit Customer (server normalises)` | CR — UX | same intake | `cr099_registered_p3_low_owner_decision_a_or_b_pending` |
 | 49 | `ENV-001 Test tenant r69 loyalty_enabled:false → points>0 path not live-exercised` | ENVIRONMENT — test coverage | same intake | `env001_registered_owner_decision_pending` |
 | 50 | `CR-100 Tolerate legacy customers with country_code:null in identity match (+91 only, forward-fix; 53 docs r635/r689, 13 twins)` | CR — identity rule (§14) | IA: `../planning/CR_100_IMPACT_ANALYSIS.md` | `cr100_planning_ia_done_impl_plan_gate_closed_owner_hold` |
+| 51 | `CR-101 Data hygiene (D-3): unset 2 dead password_hash · delete 3 orphan-tenant customers (test_restaurant ×2, pos_0001_restaurant_69 ×1) · drop customer_otps (5)` | CR — data hygiene (prod write, end of batch, PROC-001) | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR101_BUG029_BUG030_PROC001.md` | `cr101_registered_p3_medium_end_of_batch_owner_confirm_deletions` |
+| 52 | `BUG-029 /scan/auth/lookup 400s before IP bucket — invalid-phone probes bypass limiter` | BUG — limiter consistency | same intake | `bug029_registered_p3_low_may_ride_with_bug025` |
+| 53 | `BUG-030 _normalize_restaurant_id('69') maps to non-existent tenant (r69 non-standard user id)` | BUG — tenant resolution | same intake | `bug030_registered_p3_low_owner_a_or_b` |
+| 54 | `PROC-001 Complete validation test on PRODUCTION DB after all data changes (085-B / 087 / 101 / 100)` | PROCESS — owner rule 2026-10-09 | same intake | `proc001_mandatory_closure_step` |
 
 ## 6. Next Immediate Action
 
