@@ -1147,8 +1147,8 @@ class Feedback(BaseModel):
     id: str
     user_id: str
     customer_id: Optional[str] = None
-    customer_name: str
-    customer_phone: str
+    customer_name: Optional[str] = None   # CR-096 E4: scan feedback rows have null name
+    customer_phone: Optional[str] = None  # CR-096 E4: scan feedback rows have null phone
     rating: int
     message: Optional[str] = None
     status: str = "pending"

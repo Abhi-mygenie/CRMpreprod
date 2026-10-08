@@ -191,3 +191,11 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — INTAKE: ENV-002 production edge verification (docs only, no code)
 - Infra team checks I1–I6 on `crm.mygenie.online`: `Cache-Control` passthrough, `X-Forwarded-For` trust for scan IP limiters, edge latency. CRM follow-up CR only if XFF is spoofable in prod. Intake: `crm/crm_roi_sprint/discovery/SESSION_2026_10_09_INTAKE_ENV002_PROD_EDGE_CHECK.md`.
+
+## 2026-10-09 — IMPLEMENTATION: CR-096 `POST /scan/feedback` hybrid intake (owner-approved, plan Q5 yes / Q6 yes)
+- `scan.py`: `FeedbackSubmit` +3 fields (`restaurant_id`, `phone`, `country_code`); + `_FEEDBACK_IP_LIMIT (10,60)` + `_FEEDBACK_PHONE_LIMIT (3,600)`; + `optional_customer_token` dep (reuses `optional_security` from `core.auth`; `import jwt`/`JWT_SECRET`/`JWT_ALGORITHM` added); route rewritten for 3-path logic (token / phone / anonymous): IP limit → phone normalise → phone limit → DB match → never-create → `identity_source` / `linked` / `order_id_raw`.
+- `models/schemas.py` (E4): `Feedback.customer_name` + `Feedback.customer_phone` → `Optional[str] = None` — fixes live 500 on `GET /api/feedback` for r478/672/762 (scan feedback rows had `customer_name:None`; schema required `str`).
+- `server.py` (E5): `db.feedback.create_index([("user_id",1),("created_at",-1)])` at startup.
+- `tests/test_cr096_feedback.py` (new, 15 tests F-A…F-M + F-K2 + F-ZZ): sync requests + pymongo pattern.
+- Self-test **15/15 PASS** (38 s). Shared-limiter regression 39 pass / 2 skip / 1 fail (transient log-cleanliness check from E3→E2 ordering gap; backend clean).
+- Docs: `qa/CR_096_QA_HANDOVER.md`, change-log Wave 3 row, `handoff/SESSION_2026_10_09_HANDOVER_CR096_IMPL.md`. **Next: QA role.**

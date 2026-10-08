@@ -14,8 +14,10 @@ from core.database import db
 from core.phone import normalize_phone, phone_match
 from core.auth import (
     verify_customer_token, create_customer_token,
-    get_current_user
+    get_current_user, optional_security,  # CR-096
+    JWT_SECRET, JWT_ALGORITHM,            # CR-096
 )
+import jwt  # CR-096
 from core.helpers import calculate_tier, get_earn_percent_for_tier, get_redemption_value_for_tier  # CR-094
 from core.loyalty import default_loyalty_settings  # CR-094
 from models.schemas import CustomerAddressCreate, CustomerAddressUpdate
@@ -75,6 +77,29 @@ async def _lookup_rate_limited(key: str, limit: int, window_s: int) -> Optional[
     return None
 
 
+_FEEDBACK_IP_LIMIT    = (10, 60)   # CR-096: 10/min per IP
+_FEEDBACK_PHONE_LIMIT = (3, 600)   # CR-096: 3/10 min per phone+restaurant
+
+
+async def optional_customer_token(credentials=Depends(optional_security)) -> Optional[dict]:
+    """CR-096: returns None when no token; raises 401 on expired/invalid (Q1)."""
+    if credentials is None:
+        return None
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "customer":
+            raise HTTPException(status_code=401, detail="Invalid customer token")
+        customer_id  = payload.get("customer_id")
+        restaurant_id = payload.get("restaurant_id")
+        if not customer_id or not restaurant_id:
+            raise HTTPException(status_code=401, detail="Invalid customer token")
+        return {"customer_id": customer_id, "restaurant_id": restaurant_id, "phone": payload.get("phone")}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid customer token")
+
+
 # ============================================
 # Request Schemas
 # ============================================
@@ -95,8 +120,11 @@ class ProfileUpdate(BaseModel):
 
 class FeedbackSubmit(BaseModel):
     rating: int
-    message: Optional[str] = None
+    message: Optional[str] = None            # CR-096: cap 500 chars in route
     order_id: Optional[str] = None
+    restaurant_id: Optional[str] = None      # CR-096: required when no token
+    phone: Optional[str] = None              # CR-096: optional; canonical digits
+    country_code: Optional[str] = "+91"      # CR-096 (CR-102 lesson)
 
 
 class TableAction(BaseModel):
@@ -725,33 +753,94 @@ async def update_dietary_tags(restaurant_id: str, data: DietaryTagsUpdate, user:
 # ============================================
 
 @router.post("/feedback")
-async def submit_feedback(data: FeedbackSubmit, auth: dict = Depends(verify_customer_token)):
-    """Submit feedback."""
+async def submit_feedback(
+    data: FeedbackSubmit,
+    request: Request,
+    auth: Optional[dict] = Depends(optional_customer_token),  # CR-096
+):
+    """CR-096: hybrid feedback intake — token, phone, or anonymous; never creates a customer."""
     if data.rating < 1 or data.rating > 5:
-        return _resp(False, "Rating must be between 1 and 5")
-
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+    message = (data.message or "")[:500]  # CR-096: 500-char cap
     now = datetime.now(timezone.utc).isoformat()
+
+    # ── Auth branch (Case A) ─────────────────────────────────────────────────
+    if auth:
+        rid            = auth["restaurant_id"]
+        customer_id    = auth["customer_id"]
+        phone          = auth.get("phone")
+        cc             = None
+        customer_name  = None
+        identity_source = "token"
+    else:
+        # ── No-token branch ──────────────────────────────────────────────────
+        if not data.restaurant_id:
+            raise HTTPException(status_code=422, detail="restaurant_id required when not logged in")
+        rid = _normalize_restaurant_id(data.restaurant_id)
+        if not await db.users.find_one({"id": rid}, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=404, detail="Restaurant not found")
+
+        # IP bucket first (BUG-025 order) — CR-096
+        retry = await _lookup_rate_limited(f"fb-ip:{_client_ip(request)}", *_FEEDBACK_IP_LIMIT)
+        if retry:
+            raise HTTPException(status_code=429, detail="Too many requests", headers={"Retry-After": str(retry)})
+
+        customer_id = None; customer_name = None; phone = None; cc = None
+
+        if data.phone:
+            # Cases C / D / F / G
+            phone, cc, pstatus = normalize_phone(data.phone, data.country_code)
+            if pstatus == "invalid":
+                raise HTTPException(status_code=400, detail="Enter a valid mobile number")
+            retry = await _lookup_rate_limited(f"fb-ph:{rid}:{cc}{phone}", *_FEEDBACK_PHONE_LIMIT)
+            if retry:
+                raise HTTPException(status_code=429, detail="Too many requests", headers={"Retry-After": str(retry)})
+            cust = await db.customers.find_one(
+                {**phone_match(rid, phone, cc), "is_blocked": {"$ne": True}},
+                {"_id": 0, "id": 1, "name": 1},
+            )
+            customer_id   = cust["id"] if cust else None  # CR-096
+            customer_name = (cust.get("name") or None) if cust else None  # CR-096
+            identity_source = "phone"
+        else:
+            # Case E: anonymous
+            identity_source = "none"
+
+    # ── order_id: store null + raw on mismatch (Q3) ──────────────────────────
+    order_id = data.order_id; order_id_raw = None
+    if order_id:
+        if not await db.orders.find_one({"id": order_id, "user_id": rid}):
+            order_id_raw = order_id; order_id = None
+
     feedback_doc = {
         "id": str(uuid.uuid4()),
-        "user_id": auth["restaurant_id"],
-        "customer_id": auth["customer_id"],
-        "customer_phone": auth["phone"],
+        "user_id": rid,
+        "customer_id": customer_id,
+        "customer_name": customer_name,
+        "customer_phone": phone,
+        "country_code": cc,
         "rating": data.rating,
-        "message": data.message or "",
-        "order_id": data.order_id,
+        "message": message,
+        "order_id": order_id,
+        "order_id_raw": order_id_raw,
         "status": "pending",
         "source": "scan_and_order",
-        "created_at": now
-    }
+        "identity_source": identity_source,
+        "linked": customer_id is not None,
+        "created_at": now,
+    }  # CR-096
     await db.feedback.insert_one(feedback_doc)
 
-    # Update customer feedback stats
-    await db.customers.update_one(
-        {"id": auth["customer_id"]},
-        {"$set": {"last_rating": data.rating}, "$inc": {"feedback_count": 1}}
-    )
+    if customer_id:
+        await db.customers.update_one(
+            {"id": customer_id},
+            {"$set": {"last_rating": data.rating}, "$inc": {"feedback_count": 1}},
+        )
 
-    return _resp(True, "Feedback submitted", {"feedback_id": feedback_doc["id"]})
+    return _resp(True, "Feedback submitted", {
+        "feedback_id": feedback_doc["id"],
+        "linked": feedback_doc["linked"],
+    })  # CR-096
 
 
 @router.post("/call-waiter")

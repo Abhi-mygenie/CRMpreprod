@@ -144,6 +144,14 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # CR-096: feedback index (staff list hot path)
+    try:
+        await db.feedback.create_index(
+            [("user_id", 1), ("created_at", -1)], name="idx_feedback_user_created"
+        )
+    except Exception:
+        pass
+
     # CR-024 Phase 3: backfill next_run_at for any pre-existing scheduled/recurring rows
     try:
         from core.campaign_jobs import backfill_next_run_at

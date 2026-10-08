@@ -115,7 +115,22 @@
 | Behaviour change | Bills arriving with an **invalid/placeholder phone** (`0000000000`, 9-digit, etc.) and **no `pos_customer_id`** will be stored as **guest orders** (`customer_id: null`) instead of adding a visit to a placeholder customer. Bills with `pos_customer_id` are unaffected (matched on it first). Valid phones are normalised (spaces/`+91`/leading 0 removed; foreign `+cc` kept as `country_code`). |
 | Ask (optional) | If a restaurant wants a shared walk-in bucket, send its `pos_customer_id`. |
 | No change | All POS routes, payloads and response shapes unchanged. Nothing is ever rejected on POS paths. |
-_CR-086 · CR-087 · CR-096 — rows added when planned_
+_CR-086 · CR-087 — rows added when planned_
+
+### CR-096 — `POST /scan/feedback` hybrid intake (IMPLEMENTED 2026-10-09)
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-09** (implemented, self-test 15/15 PASS; QA + consumer validation pending) |
+| Audience | Customer App |
+| Changed | `POST /api/scan/feedback` now works **without a token**. Three paths: **(A)** valid token → linked as today + `feedback_count +1`; **(C)** no token + valid known phone → resolved to existing customer, linked, **no new customer created**; **(D)** no token + valid unknown phone → stored unlinked, `customer_phone` kept; **(E)** no token + no phone → anonymous unlinked; **(F)** invalid supplied phone → `400 "Enter a valid mobile number"`, nothing stored; bad/expired token → `401`. |
+| Request (no-token) | `{rating, restaurant_id, phone?, country_code?="+91", message?, order_id?}` |
+| Response | `200 {success:true, message:"Feedback submitted", data:{feedback_id, linked:bool}}` |
+| Rate limits | IP `fb-ip:` 10/min, phone `fb-ph:{rid}:{cc}{digits}` 3/10 min (no-token path only) |
+| order_id | Optional; if given but not found/other tenant → `order_id:null` + `order_id_raw` stored |
+| Never creates | Customers are NEVER created by this route regardless of path |
+| Pre-existing fix | `GET /api/feedback` (staff list) was 500-crashing for scan-feedback tenants (r478/672/762) — `customer_name`/`customer_phone` are now `Optional` on the `Feedback` response model. |
+| Evidence | F-A…F-M + F-K2 + F-ZZ in `tests/test_cr096_feedback.py`, 15/15 PASS, 38 s |
+| Validation note | To be drafted after QA (owner sends to Customer App) |
 
 ## Wave 4 — Cleanup + hardening
 _CR-095 · CR-089 · CR-088_
