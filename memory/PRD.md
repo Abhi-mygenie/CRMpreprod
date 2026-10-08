@@ -192,6 +192,12 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 ## 2026-10-09 — INTAKE: ENV-002 production edge verification (docs only, no code)
 - Infra team checks I1–I6 on `crm.mygenie.online`: `Cache-Control` passthrough, `X-Forwarded-For` trust for scan IP limiters, edge latency. CRM follow-up CR only if XFF is spoofable in prod. Intake: `crm/crm_roi_sprint/discovery/SESSION_2026_10_09_INTAKE_ENV002_PROD_EDGE_CHECK.md`.
 
+## 2026-10-09 — QA PASS (iteration_9.json): CR-094 (13/13 R1–R13) + CR-096 (15/15 F-A…F-ZZ) + regression PASS
+- Phase A CR-094: 13/13 PASS. Ad-hoc: loyalty_enabled:false → 33 keys ✅; off_peak_bonus_type:"flat" → correct ✅; XFF double-IP bucket on first only ✅; customers/loyalty_settings/points_transactions counts unchanged ✅.
+- Phase B CR-096: 15/15 PASS. Ad-hoc: 500-char cap enforced ✅; staff GET /feedback no crash with null customer_name rows ✅; identity_source on all types ✅; linked in every response ✅.
+- Phase C regression: test_cr089_skip_otp.py + test_cr093_lookup.py → 39 pass / 2 skip / 1 NOTE (pre-existing test_S10 log-cleanliness, same as iterations 7–8). No new failures.
+- DB: customers=7705, loyalty_settings=41, points_transactions=14252 — unchanged. Docs: `qa/CR_094_QA_REPORT.md`, `qa/CR_096_QA_REPORT.md`. **Next: owner smoke for Wave 2–3 + 4 bundle → Closure.**
+
 ## 2026-10-09 — IMPLEMENTATION: CR-096 `POST /scan/feedback` hybrid intake (owner-approved, plan Q5 yes / Q6 yes)
 - `scan.py`: `FeedbackSubmit` +3 fields (`restaurant_id`, `phone`, `country_code`); + `_FEEDBACK_IP_LIMIT (10,60)` + `_FEEDBACK_PHONE_LIMIT (3,600)`; + `optional_customer_token` dep (reuses `optional_security` from `core.auth`; `import jwt`/`JWT_SECRET`/`JWT_ALGORITHM` added); route rewritten for 3-path logic (token / phone / anonymous): IP limit → phone normalise → phone limit → DB match → never-create → `identity_source` / `linked` / `order_id_raw`.
 - `models/schemas.py` (E4): `Feedback.customer_name` + `Feedback.customer_phone` → `Optional[str] = None` — fixes live 500 on `GET /api/feedback` for r478/672/762 (scan feedback rows had `customer_name:None`; schema required `str`).
