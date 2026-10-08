@@ -137,3 +137,4 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — Customer App confirmed CR-084 (docs only)
 - Their OTP code fully deleted; CR-084 closed both sides; recorded in closure doc + change-log. Reply drafted (owner sends) listing still-open consumer items: CR-098/093/089/085-A validations + contract CA-1…CA-9.
+- Consolidated Scan & Order bundle (all pending asks in one doc, owner sends): `handoff/CRM_TO_SCAN_ORDER_CONSOLIDATED_BUNDLE_2026_10_09.md`.
