@@ -143,6 +143,12 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 41 | `CR-093 Public customer lookup POST /scan/auth/lookup ({exists,name}, no create, rate-limited)` | CR — new public auth-adjacent route | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §1 | `cr093_registered_p1_high_q1_q2_pending` |
 | 42 | `CR-094 Public loyalty rules GET /scan/loyalty-rules/{rid}` | CR — new public read route | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §2 | `cr094_registered_p2_medium_q1_pending` |
 | 43 | `CR-095 Remove orphan /scan/config + /scan/menu/dietary-tags routes (4 routes, Customer-App-owned collections)` | BUG — security / ownership | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §3 | `cr095_registered_p1_critical_owner_d1_d2_yes_cutover_gated` |
+| 44 | `BUG-025 skip-otp limiter phone bucket evaded by +91 / leading-0 prefix (key not canonical)` | BUG — security/abuse gap (CR-089) | Intake: `../discovery/SESSION_2026_10_09_BATCH_INTAKE_BUG025_BUG028_CR099.md` | `bug025_registered_p2_low` |
+| 45 | `BUG-026 test_cr098.py fixture phone 8888888888 invalid under canonical rule` | BUG — test hygiene | same intake | `bug026_registered_p3_low_tests_only` |
+| 46 | `BUG-027 QA suites leak skip-otp-created customers (no cleanup)` | BUG — test hygiene | same intake | `bug027_registered_p3_low_tests_only` |
+| 47 | `BUG-028 /customers horizontal overflow at 390px (pre-existing)` | BUG — UI | same intake | `bug028_registered_p3_low` |
+| 48 | `CR-099 Allow formatted phone input in CRM Add/Edit Customer (server normalises)` | CR — UX | same intake | `cr099_registered_p3_low_owner_decision_a_or_b_pending` |
+| 49 | `ENV-001 Test tenant r69 loyalty_enabled:false → points>0 path not live-exercised` | ENVIRONMENT — test coverage | same intake | `env001_registered_owner_decision_pending` |
 
 ## 6. Next Immediate Action
 

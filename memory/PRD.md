@@ -130,3 +130,7 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Owner-approved plan (a). Backend Phase A (085-A2 independent, 32/32 — A16 fixed) + Phase B (cross-item 18/18 + all suites) → `iteration_6.json`; frontend Phase C 9/9 desktop+mobile → `iteration_7.json`. Baseline 7700.
 - MINOR ×4: CR-089 limiter bucket evasion by prefix (candidate CR-099) · `test_cr098.py` stale phone data · older suites leak 2 customers · `/customers` overflow @390 (pre-existing). NOTE ×3. Report `qa/BATCH_QA_REGRESSION_REPORT_2026_10_09.md`.
 - Next: owner smoke (5 steps, plan §5) → closure 098/093/089/085-A/A2; owner decision on F1–F4 follow-ups; then CR-096/094 planning.
+
+## 2026-10-09 — INTAKE (Role 1): batch QA findings registered (docs only, no code)
+- **BUG-025** P2/LOW skip-otp limiter bucket evaded by `+91`/leading-0 prefix (`scan.py:208`; key on canonical phone, 1 line) · **BUG-026** P3 stale `test_cr098.py` phone · **BUG-027** P3 suites leak customers · **BUG-028** P3 `/customers` overflow @390 (pre-existing) · **CR-099** P3 formatted phone input in Add/Edit (owner a/b pending) · **ENV-001** r69 loyalty off (owner). N3 handover path corrected.
+- Docs: `discovery/SESSION_2026_10_09_BATCH_INTAKE_BUG025_BUG028_CR099.md`, `BUG_REGISTRY_CAMPAIGNS.md`, CR register rows, dashboard board + transition. Next: Planning BUG-025 (owner opens gate); owner decisions CR-099, ENV-001.

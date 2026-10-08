@@ -533,3 +533,40 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 
 **Fix**: Add import block in `sync_authkey_templates()` — for each AuthKey template with no matching `custom_templates` entry, create a new stub doc and (if Meta WABA configured) populate button data from Meta API.
  API.
+
+---
+
+## BUG-025: skip-otp rate-limit phone bucket evaded by `+91` / leading-`0` prefixes
+
+**Reported**: 2026-10-09 (Batch QA iteration_6, I1)  
+**Severity**: P2 · **Risk**: LOW · **Status**: 📋 REGISTERED  
+**Intake**: `crm/crm_roi_sprint/discovery/SESSION_2026_10_09_BATCH_INTAKE_BUG025_BUG028_CR099.md`
+
+**Symptom**: 5× `9838777712` → 200; `+91 9838777712` → 200 (expected 429); `09838777712` → 200; plain → 429. One diner = three buckets.
+**Root cause**: `routers/scan.py:208` keys `so-ph:` on digits-only (`re.sub(r"\D","",phone)`), written in CR-089 before CR-085-A canonical `normalize_phone()`. Identity match is canonical (no duplicate customer); only the limiter key is stale.
+**Fix sketch**: key on `f"{cc}{digits}"` from `normalize_phone()`. 1 line + 1 test. Not §14.
+**Blast radius**: SMALL — skip-otp only; IP bucket 30/min still applies.
+
+---
+
+## BUG-026: `tests/test_cr098.py` fixture phone `8888888888` now rejected by canonical validity rule
+
+**Reported**: 2026-10-09 (iteration_6, I9) · **Severity**: P3 · **Risk**: LOW · **Status**: 📋 REGISTERED · tests only  
+**Symptom**: 1 FAIL + 3 ERRORS; skip-otp 400 "Enter a valid mobile number" (all-same-digit rule, CR-085-A). Product correct.
+**Fix**: valid fixture phone (e.g. `8888800001`) + teardown.
+
+---
+
+## BUG-027: QA suites create customers via skip-otp without cleanup (baseline drift 7700→7701)
+
+**Reported**: 2026-10-09 (iteration_6) · **Severity**: P3 · **Risk**: LOW · **Status**: 📋 REGISTERED · tests only  
+**Where**: `tests/test_cr098.py:122`, `tests/test_cr084_cr097.py:64` (`9876543210` r689); `9795554734` r478 ad-hoc. QA deleted both leaked docs.
+**Fix**: use an existing phone or delete in teardown; add `ZZ_cleanup` count assertion.
+
+---
+
+## BUG-028: `/customers` horizontal overflow at 390 px (pre-existing)
+
+**Reported**: 2026-10-09 (iteration_7, F9) · **Severity**: P3 · **Risk**: LOW · **Status**: 📋 REGISTERED  
+**Symptom**: `scrollWidth 473 > 390`, 3 offenders — stats chips (`Total/Bronze/Silver/Gold`, `CustomersPage.jsx` ~L919) and Sync/Export/Import/Add cluster. Other pages clean. Not introduced by Waves 1–3.
+**Fix**: `flex-wrap` + `min-w-0` / `overflow-x-hidden`; verify 390×844.

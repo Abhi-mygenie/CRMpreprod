@@ -46,3 +46,5 @@ Baseline customers **7700** before/after. No `qa085*` orders left. Backend log c
 
 ## Rollback
 Single commit, code-only, `git revert`. Guest orders written meanwhile remain `customer_id:null` (same shape as 48k existing migration orders).
+
+> **Correction (Intake 2026-10-09, N3)**: W12 QR registration route is `POST /api/qr/register/{user_id}` (not `/customers/register-customer/{rid}`). Verified in `iteration_6` I7.
