@@ -29,3 +29,7 @@
 
 ## Release
 Not yet released to production — sits on preprod. Goes with the next release batch (RELEASE role, owner approval).
+
+
+## Consumer confirmation — Customer App (received 2026-10-08, recorded 2026-10-09)
+Scan & Order confirmed all OTP-DEFERRED code permanently deleted (frontend `crmSendOtp/crmVerifyOtp/crmForgotPassword/crmResetPassword`, `PasswordSetup.jsx` OTP blocks, `AuthContext.sendOTP`, admin OTP toggle; backend `OTPRequest`, `otp_store/generate_otp/verify_otp`, `POST /api/auth/send-otp`, `POST /api/auth/reset-password`, OTP branch in `unified_login`, `otpRequired*` config). grep verification 0 results; build clean. `CR-2026-09-14-001` voided. **Their side of CR-084: CLOSED.** CRM reply + open-items list: `handoff/CRM_REPLY_TO_SCAN_ORDER_CR084_CONFIRMED_AND_OPEN_ITEMS_2026_10_09.md`.

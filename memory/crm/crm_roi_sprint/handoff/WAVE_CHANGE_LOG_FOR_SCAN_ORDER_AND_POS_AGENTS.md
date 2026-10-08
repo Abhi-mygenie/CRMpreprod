@@ -13,7 +13,7 @@
 ### CR-084 — Customer OTP flow removed
 | Field | Value |
 |---|---|
-| Status | **CONFIRMED 2026-10-08** (implemented, self-test 12/12; QA pending) |
+| Status | **CLOSED both sides** — CRM 🔒 2026-10-08 (QA 15/15, owner smoke) · **Customer App confirmed 2026-10-08**: residual OTP code deleted, grep 0 results |
 | Audience | Customer App |
 | Removed | `POST /api/scan/auth/request-otp` · `POST /api/scan/auth/verify-otp` → **404** (verified on preview 2026-10-08; pre-change 422) |
 | Unchanged | `POST /api/scan/auth/skip-otp` (today's login) · `POST /api/scan/auth/register` · `POST /api/scan/auth/login` (password) · all token-gated `/scan/*` |

@@ -134,3 +134,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 ## 2026-10-09 — INTAKE (Role 1): batch QA findings registered (docs only, no code)
 - **BUG-025** P2/LOW skip-otp limiter bucket evaded by `+91`/leading-0 prefix (`scan.py:208`; key on canonical phone, 1 line) · **BUG-026** P3 stale `test_cr098.py` phone · **BUG-027** P3 suites leak customers · **BUG-028** P3 `/customers` overflow @390 (pre-existing) · **CR-099** P3 formatted phone input in Add/Edit (owner a/b pending) · **ENV-001** r69 loyalty off (owner). N3 handover path corrected.
 - Docs: `discovery/SESSION_2026_10_09_BATCH_INTAKE_BUG025_BUG028_CR099.md`, `BUG_REGISTRY_CAMPAIGNS.md`, CR register rows, dashboard board + transition. Next: Planning BUG-025 (owner opens gate); owner decisions CR-099, ENV-001.
+
+## 2026-10-09 — Customer App confirmed CR-084 (docs only)
+- Their OTP code fully deleted; CR-084 closed both sides; recorded in closure doc + change-log. Reply drafted (owner sends) listing still-open consumer items: CR-098/093/089/085-A validations + contract CA-1…CA-9.
