@@ -1,0 +1,49 @@
+{
+  "summary": "CR-085-A2 Phase A independent QA + Phase B cross-item regression completed, backend-only. PHASE A: Q1 ran existing test_cr085a_normalization.py suite — 22/22 PASS. Custom Q2..Q9 tests all PASS (test_iter6_phase_a.py — 10/10). Verified: (Q2) POS /orders with coupon+invalid phone creates guest order with customer_id=null, coupon_usage.recorded=true and Mongo coupon_usage row has customer_id=null; (Q3) duplicate replay returns success:false with 'Duplicate order', orders count stays 1; (Q4) CRM /customers and POS /customers/{id}/orders tolerate null-customer orders (200); (Q5) 0 whatsapp_message_logs for guest order; invoices doc present with customer_id null; (Q6) /pos/webhook/payment-received with invalid phone + coupon returns guest_order=true, customer_id=null, coupon_applied discount=10, final=90, original=100 — no customer created; (Q7) valid-phone loyalty regression: order linked to customer, visits+1 spent+500, loyalty_enabled=false so points_earned=0 — matches tenant config, response has is_new_customer:bool; (Q8) pos_customer_id match wins over invalid phone (customer_id resolved correctly); (Q9) A16 re-verify PASSES — POS /customer-lookup correctly hides phone_invalid customers and still returns valid ones (CR-085-A2 E5 fix confirmed). PHASE B: test_iter6_phase_b.py — 18/18 PASS. I1 rate-limiter buckets: first-five [200,200,200,200,200]; 6th +91 → 200 (bucket evasion by prefix — MINOR finding, known design gap); 7th '09…' → 200 (second evasion); 8th plain 9838777712 → 429 Retry-After=292 (limiter working for same-format). No new customer created in r689. I3: all 9 deleted endpoints return 404 {detail:'Not Found'} with both empty and plausible bodies. I4: skip-otp spaced phone 200 with token (no new customer in r689); /scan/auth/me, /scan/orders both 200; /scan/auth/lookup +91 7505242126 → exists=true name 'Abhishek Jain'; lookup 0000000000 → 400. I5: CRM POST normalises +91 to phone='9876543911' cc='+91' phone_raw preserved; duplicate variant 400; PUT invalid 422 'Enter a valid mobile number'; PUT normalising variant 200 no duplicate. I6: CSV import — 1 customer created, phone='9876500002' country_code='+91' (dedup held). I7: POS /customers idempotent across phone format variants; PUT name preserves total_points; /api/qr/register/{user_id} 200 for valid, 422 for invalid phone (note: handover path '/customers/register-customer/{user_id}' does not exist — actual route is '/api/qr/register/{user_id}'). I8: /api/auth/login returns access_token and mygenie_token; /pos/customer-lookup with bad X-API-Key → 401. I9: ran test_cr084_cr097.py (15 pass), test_cr093_lookup.py (18 pass 1 skip), test_phone_normalize.py (13 pass), test_cr085a_normalization.py (22 pass). test_cr098.py has 1 failure + 3 errors (test_p5_skip_otp_second_phone uses phone '8888888888' which CR-085-A canonical normalisation now rejects — pre-existing test issue, NOT a product regression; needs test data update). Baseline customers=7701 at run start; after cleanup=7700 (deleted 2 leaked customers that the external regression suites created without cleanup: id 5cd74442… phone 9876543210 r689, id bbb6ce57… phone 9795554734 r478).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/scan/auth/skip-otp",
+        "issue": "Rate-limiter bucket evasion by phone prefix (CR-089 known gap, severity MINOR). Observed: 5x '9838777712' from distinct IPs → 200,200,200,200,200. 6th call with '+91 9838777712' → 200 (should be 429 if limiter normalised to canonical digits). 7th with '09838777712' → 200 (same evasion). 8th plain '9838777712' → 429 Retry-After=292 (limiter does work when exact format matches). Root cause: scan.py skip_otp_login limiter key is digits-only prefix match — '+91 9838777712' flattens to '919838777712' which lives in a different bucket from '9838777712'. Fix suggestion: run normalize_phone() first, then key the limiter on canonical phone+country_code."
+      },
+      {
+        "endpoint": "backend/tests/test_cr098.py::test_p5_skip_otp_second_phone and dependents",
+        "issue": "Test uses phone '8888888888' which CR-085-A normalize_phone() now classifies as invalid (status 400 'Enter a valid mobile number'). This cascades to 3 ERROR'd dependent tests (test_p5_skip_otp_existing_password_customer, test_p6_me_with_token, test_p9_scan_profile). NOT a product regression — pre-existing test data needs to be updated to a valid 10-digit number (e.g., 7000000888) by main agent."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter6_phase_a.py",
+    "/app/backend/tests/test_iter6_phase_b.py",
+    "/app/test_reports/pytest/iter6_cr085a.xml",
+    "/app/test_reports/pytest/iter6_phase_a.xml",
+    "/app/test_reports/pytest/iter6_phase_b.xml"
+  ],
+  "action_items": [
+    "Update test_cr098.py::test_p5_skip_otp_second_phone (and the 3 dependents) to use a valid 10-digit mobile — '8888888888' is now rejected by canonical normalisation. One-line test data fix, no product change needed.",
+    "Address CR-089 limiter bucket evasion gap: normalise phone (canonical digits + country_code) BEFORE using it as the limiter bucket key in scan.py skip_otp_login (~L203). Low priority / known design gap per handover.",
+    "External regression suites (test_cr084_cr097.py, test_cr098.py) leak customers under r689/r478 via skip-otp without cleaning up — add teardown that removes TEST customers by phone pattern, or run against isolated restaurant_id."
+  ],
+  "critical_code_review_comments": [
+    "pos.py pos_customer_lookup (~L2060/L2075): CR-085-A2 E5 fix verified — now excludes phone_invalid=True records. Confirmed by Q9 (A16 re-verify PASS).",
+    "pos.py pos_order_webhook (~L1636-1687): guest branch correctly passes customer_id=None to record_coupon_usage_for_order; coupon_usage row persists with customer_id=null; verified via Q2.",
+    "pos.py pos_payment_received webhook (~L1760-2070): guest coupon application returns coupon_applied/discount/final_bill_amount/original_bill_amount correctly for guest; verified via Q6.",
+    "scan.py skip_otp_login limiter (~L203): phone_key is digits-only without canonicalisation → '+91 ..' and '09..' live in different buckets (MINOR).",
+    "customers.py register-customer path mismatch: handover doc references '/api/customers/register-customer/{user_id}' but the actual mounted route is '/api/qr/register/{restaurant_id}' (qr_router prefix /qr). Verified 404 on former, 200 on latter. Doc/handover should be corrected.",
+    "External regression suites create r689/r478 customers via skip-otp without cleanup; drift risk — the pos_0001_restaurant_689 bucket accumulated across iterations."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter6_phase_a.py",
+    "/app/backend/tests/test_iter6_phase_b.py"
+  ],
+  "success_rate": {"backend": "100% on CR-085-A2 (22+10 PASS) and Phase B (18 PASS). Known pre-existing noise in test_cr098.py (1 fail + 3 errors) is a test-data issue not a product bug.", "frontend": "N/A (backend-only)"},
+  "test_credentials": "owner@thegoankitchen.com / Qplazm@10 (env CRM_TEST_OWNER_PASSWORD). POS X-API-Key via users.api_key for pos_owner_69_bdd4513c.",
+  "seed_data_creation": "None retained. All test data cleaned up: Q2 coupon QA085A2, guest orders qa085a2_v5/q6/q8, loyalty order qa085a2_q7, customers TEST_Q7/TEST_Q9_junk/TEST_I5/TEST_I7/TEST_I7_rc, order_items/invoices/coupon_usage/points_transactions for same, plus two leaked customers from external suites (phone 9876543210 r689, 9795554734 r478). scan_lookup_attempts cleared.",
+  "final_customers_count": 7700,
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Baseline customers count = 7700 after iter 6 cleanup (same as iter 5). The pre-existing CR-085-A2 fix verified end-to-end: guest-order flow (Phase A Q2..Q9) + A16 flagged-customer lookup suppression. The only backend MINOR finding reproducible is CR-089 limiter bucket evasion by '+91'/'09' prefixes (I1). test_cr098.py has outdated test data (phone '8888888888') — expect 1 fail + 3 errors until updated. For re-run of iter6 suites: `REACT_APP_BACKEND_URL=<preview> CRM_TEST_OWNER_PASSWORD='Qplazm@10' python3 -m pytest tests/test_iter6_phase_a.py tests/test_iter6_phase_b.py -q -n 1`. Clear scan_lookup_attempts between skip-otp-related suites (`db.scan_lookup_attempts.delete_many({})`).",
+  "rca of the issue": "CR-085-A2 E5 fix for A16 (POS /customer-lookup not leaking phone_invalid customers) is confirmed WORKING in Q9. Previously: pos.py pos_customer_lookup did find_one(phone_match(...)) without excluding phone_invalid=True, letting flagged customers surface with registered:true. Now Q9 asserts registered:false for '0000000000' and '000-000-0000' while still returning registered:true for valid phone '9000000777'. Fix in place as per iteration_5 action item."
+}
