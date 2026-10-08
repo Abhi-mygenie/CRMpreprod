@@ -142,3 +142,50 @@ I will not proceed until owner approves.
 
 ## Owner rulings (2026-10-09)
 Q1 **A** · Q2 **Yes** (E4 + count assertions in scope) · Q3 **Yes** (recorded in `DECISIONS_LOG.md`) · Q4 **alternative** → `CR-100` registered, `planning/CR_100_IMPACT_ANALYSIS.md`, plan gate closed. Owner rule: full validation test on production DB after all data changes.
+
+---
+## Amendment A (2026-10-09) — optional ride-alongs BUG-029 + CR-102 (same `scan.py` block; owner Q-A / Q-B pending)
+Both items were registered after this plan was approved. They touch the same ~40 lines and follow the same pattern, so they are planned here as **opt-in** sub-edits; nothing below runs unless the owner says yes.
+
+### E5 — BUG-029: `/scan/auth/lookup` IP bucket before normalisation (`scan.py:283-293`)
+```python
+retry = await _lookup_rate_limited(f"ip:{_client_ip(request)}", *_LOOKUP_IP_LIMIT)          # moved up (BUG-029)
+if retry: raise HTTPException(429, "Too many lookups", headers={"Retry-After": str(retry)})
+phone, cc, pstatus = normalize_phone(req.phone, req.country_code)
+if pstatus == "invalid": raise HTTPException(400, "Invalid phone or country_code")
+full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
+retry = await _lookup_rate_limited(f"ph:{full_restaurant_id}:{cc}{phone}", *_LOOKUP_PHONE_LIMIT)  # unchanged key
+```
+Test: `test_L_invalid_counts_toward_ip` in `test_cr093_lookup.py` — 1× junk phone from a fresh IP → 400; `ip:<ip>` row exists, no `ph:` row. Existing lookup suite 18/18 unchanged (limits/keys/messages identical).
+
+### E6 — CR-102: `skip-otp` accepts `country_code` (`scan.py:192-194`, `:219`)
+```python
+class SkipOTPRequest(BaseModel):
+    phone: str
+    restaurant_id: str
+    country_code: Optional[str] = "+91"   # CR-102
+…
+phone, cc, pstatus = normalize_phone(req.phone, req.country_code)   # CR-102 (was: normalize_phone(req.phone))
+```
+Downstream already uses `cc` (match key, stored doc, limiter key after E1). Response unchanged. Tests in `test_cr089_skip_otp.py`: `test_C102a_cc_omitted_defaults_91` (existing r689 phone → same doc, no create) · `test_C102b_foreign_cc_stored` (`{"phone":"412345678","country_code":"+61","restaurant_id":"689"}` → 200, doc stored `phone:"412345678"`, `country_code:"+61"`; second call same body → no duplicate; cleanup deletes it) · `test_C102c_bad_cc_400` (`country_code:"abc"` → 400).
+Note for CR-096 planning: its request schema must carry `country_code` too.
+
+### Impact of the ride-alongs
+| | Files | Risk | Extra time |
+|---|---|---|---|
+| E5 BUG-029 | `scan.py` lookup block · `test_cr093_lookup.py` | LOW (order only; keys/limits same) | +10 min |
+| E6 CR-102 | `scan.py` schema + 1 arg · `test_cr089_skip_otp.py` | LOW (default preserves today's behaviour; Customer App already sends the field) | +15 min |
+Verification adds V12 (lookup invalid consumes IP), V13 (cc default), V14 (foreign cc stored + idempotent), V15 (bad cc 400). Full matrix then runs once for E1–E6.
+
+### Edit order (amended)
+E3 + E4 (tests) → E1 (skip-otp reorder + canonical key) → **E6** (cc arg, same block) → E2 (tests) → **E5** (lookup reorder) → suites one at a time, `scan_lookup_attempts` cleared between: 089 · 098 · 084/097 · 093 · 085a (A2/A3) · phone → QA handover.
+
+```
+Planning amendment: BUG-025 · BUG-026 (+ BUG-027 tests) · opt-in BUG-029 · opt-in CR-102
+Stage: Implementation Plan (approved core + amendment awaiting Q-A / Q-B)
+Risk: LOW (all)
+Files WILL change: routers/scan.py (skip-otp block [+ lookup block if Q-A]; SkipOTPRequest if Q-B) · tests/test_cr089_skip_otp.py · tests/test_cr098.py · tests/test_cr084_cr097.py · tests/test_cr093_lookup.py (if Q-A)
+Files WILL NOT touch: core/phone.py · routers/pos.py · routers/customers.py · frontend · stored data
+Owner decisions: Q-A (fold BUG-029) · Q-B (fold CR-102)
+Next: owner answers → "choose implementation role for BUG-025 + BUG-026 (+029, +102)"
+```
