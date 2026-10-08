@@ -71,3 +71,17 @@ Docs updated: this file · BUG_REGISTRY_CAMPAIGNS.md (031–033) · 00_register/
 Owner decisions: CR-094 Q4 (a/b) · Q5 (r689 yes/no) · Q6 (birthday/anniversary yes/no) · CR-103 Q-A (with 094 / after batch) · CR-104 Q-B (a/b/c)
 Next: owner answers → "choose planning role: amend CR-094 plan (+ CR-103 IA if Q-A = with 094)" → then implementation gate
 ```
+
+## 8. Owner rulings (2026-10-09, verbatim in `DECISIONS_LOG.md`)
+| Q | Ruling | Effect |
+|---|---|---|
+| CR-094 Q4 (BUG-031) | **(b)** | per-tier `*_redemption_value` resolved server-side via `get_redemption_value_for_tier`; `max_redemption_amount` stays null = no cap |
+| CR-094 Q5 (BUG-032) | **ok** | R6 + V10 → r689 |
+| CR-094 Q6 | **payload open, scheduler cut** | +`birthday_/anniversary_bonus_enabled/points` → 33 keys; diner may set DOB/anniversary via `PUT /scan/profile` (already accepts both); **no scheduler enabled this batch** — awarding job is a separate item |
+| CR-103 Q-A | **not this batch** | ⏸ PARKED; **no POS API or contract changes of any kind in this batch** |
+| CR-104 Q-B | **(c)** | decide at CR-096 closure; `feedback_bonus_*` remain in CR-094 |
+| BUG-033 | **ok** | CA-side notes → CR-094 consumer note; POS-side → parked with CR-103 |
+
+**Fact surfaced for owner** (not registered — awaiting owner report): `server.py:25` starts APScheduler unconditionally; `daily_loyalty_jobs` (birthday/anniversary/expiry) has **no env gate** (unlike campaigns' `CAMPAIGN_SCHEDULER_ENABLED`). Last `cron_job_logs` entry 2026-05-26 → not running on the preview pod; production unknown. If "no scheduler for now" must be guaranteed, an env gate is a small LOW-risk CR — owner to confirm.
+
+**Next**: "choose planning role: amend CR-094 plan" → Planning edits plan (E1 whitelist 33 + resolution, R6 r689, §6 note) → implementation gate.

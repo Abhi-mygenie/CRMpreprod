@@ -176,3 +176,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — INTAKE: CR-103 · CR-104 · BUG-031 → 033 from CR-094 vs POS-contract validation (docs only, no code)
 - Owner asked to validate CR-094 against the POS L-1 contract. Shared 15 fields identical ✅. Gaps: **CR-103** POS parity (+14 fields, P2) · **CR-104** feedback bonus never awarded (P3/HIGH, owner confirm/cancel) · **BUG-031** plan null semantics (per-tier redemption null 40/41) · **BUG-032** R6 fixture r69→404 (BUG-030) · **BUG-033** POS contract doc gaps. **CR-094 implementation gate PAUSED** pending amendment Q4/Q5/Q6. Intake: `crm/crm_roi_sprint/discovery/SESSION_2026_10_09_INTAKE_CR103_CR104_BUG031_BUG033.md`.
+
+## 2026-10-09 — DECISIONS: CR-094 Q4 (b) server-side per-tier resolution · Q5 r689 · Q6 +4 birthday/anniversary fields (33 keys), scheduler NOT enabled · CR-103 PARKED (no POS changes this batch) · CR-104 Q-B (c) defer to 096 closure · BUG-033 accepted (docs only)
+- Finding: `daily_loyalty_jobs` has no env gate but last ran 2026-05-26 — surfaced to owner. Next: "choose planning role: amend CR-094 plan". No code.
