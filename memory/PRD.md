@@ -171,3 +171,5 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — PLANNING: CR-094 + CR-096 Implementation Plans (no code)
 - 094: whitelist public route, 9 tests, LOW. 096: hybrid route per case table, limits, index, 14 tests, MEDIUM; finding: `Feedback` response model requires name/phone → staff list 500s for scan-feedback tenants today (Q5 fold fix). Q6 keep `linked`. Awaiting approval.
+
+## 2026-10-09 — APPROVAL: CR-094 + CR-096 Implementation Plans approved (Q5 yes, Q6 yes); order 094 → 096; gate not opened. Docs only.
