@@ -1,5 +1,5 @@
 # CR-094 — Implementation Plan: `GET /scan/loyalty-rules/{restaurant_id}`
-**Date**: 2026-10-09 · **Role**: Planning Agent · **IA**: `planning/CR_094_IMPACT_ANALYSIS.md` (closed: Q1 yes · Q2 yes · Q3 flat) · **Risk**: LOW (read-only, whitelisted, not §14) · **Status**: ✅ OWNER APPROVED 2026-10-09 — implementation gate opens on "choose implementation role" · **No code changed.**
+**Date**: 2026-10-09 · **Role**: Planning Agent · **IA**: `planning/CR_094_IMPACT_ANALYSIS.md` (closed: Q1 yes · Q2 yes · Q3 flat) · **Risk**: LOW (read-only, whitelisted, not §14) · **Status**: ✅ OWNER APPROVED 2026-10-09 → ⏸ **UNDER AMENDMENT 2026-10-09** (pre-implementation validation vs POS L-1 contract; `discovery/SESSION_2026_10_09_INTAKE_CR103_CR104_BUG031_BUG033.md`): **Q4** null handling for `*_redemption_value` (BUG-031: a raw null + rule / b resolve server-side via `get_redemption_value_for_tier`, rec.) · **Q5** R6/V10 fixture r69 → **r689** (BUG-032; r69 = `pos_owner_69_bdd4513c` → 404) · **Q6** add `birthday_/anniversary_bonus_enabled/points` (+4 → 33 keys)? · consumer note must state constants/tz/`0`=never/`null`=no cap/`loyalty_enabled:false` rule (BUG-033). Implementation gate re-opens after owner answers + plan edit. · **No code changed.**
 
 ## 1. Edits
 **E1 — `routers/scan.py`** (after `lookup_customer`, ~line 300): new route, no auth.

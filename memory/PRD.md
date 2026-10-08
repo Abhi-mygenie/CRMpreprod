@@ -173,3 +173,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - 094: whitelist public route, 9 tests, LOW. 096: hybrid route per case table, limits, index, 14 tests, MEDIUM; finding: `Feedback` response model requires name/phone → staff list 500s for scan-feedback tenants today (Q5 fold fix). Q6 keep `linked`. Awaiting approval.
 
 ## 2026-10-09 — APPROVAL: CR-094 + CR-096 Implementation Plans approved (Q5 yes, Q6 yes); order 094 → 096; gate not opened. Docs only.
+
+## 2026-10-09 — INTAKE: CR-103 · CR-104 · BUG-031 → 033 from CR-094 vs POS-contract validation (docs only, no code)
+- Owner asked to validate CR-094 against the POS L-1 contract. Shared 15 fields identical ✅. Gaps: **CR-103** POS parity (+14 fields, P2) · **CR-104** feedback bonus never awarded (P3/HIGH, owner confirm/cancel) · **BUG-031** plan null semantics (per-tier redemption null 40/41) · **BUG-032** R6 fixture r69→404 (BUG-030) · **BUG-033** POS contract doc gaps. **CR-094 implementation gate PAUSED** pending amendment Q4/Q5/Q6. Intake: `crm/crm_roi_sprint/discovery/SESSION_2026_10_09_INTAKE_CR103_CR104_BUG031_BUG033.md`.

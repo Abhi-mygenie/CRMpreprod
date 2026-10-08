@@ -155,6 +155,12 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 53 | `BUG-030 _normalize_restaurant_id('69') maps to non-existent tenant (r69 non-standard user id)` | BUG — tenant resolution | same intake | `bug030_registered_p3_low_owner_a_or_b` |
 | 54 | `PROC-001 Complete validation test on PRODUCTION DB after all data changes (085-B / 087 / 101 / 100)` | PROCESS — owner rule 2026-10-09 | same intake | `proc001_mandatory_closure_step` |
 | 55 | `CR-102 skip-otp accept country_code (Customer App already sends it; schema drops it → +91 assumed)` | CR — contract gap on identity path | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR102.md` | `cr102_registered_p2_low_may_ride_with_bug025` |
+| 56 | `CR-103 POS L-1 parity: add the 14 CR-094 fields (per-tier redemption, max_redemption_*, min_order_value, bonuses, off-peak type/value, expiry) to GET /pos/loyalty/settings` | CR — POS API contract (additive) | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR103_CR104_BUG031_BUG033.md` §1 | `cr103_registered_p2_medium_owner_qa_with_094_or_after_batch` |
+| 57 | `CR-104 Feedback bonus award — feedback_bonus_enabled/points configured + shown in UI but no code path awards them` | CR — loyalty feature gap (§14) | same intake §2 | `cr104_registered_p3_high_owner_qb_confirm_cancel_defer` |
+| 58 | `BUG-031 CR-094 plan silent on null handling for *_redemption_value (40/41 null) / max_redemption_amount (38/41 null)` | BUG — PLAN_GAP (CR-094) | same intake §3 | `bug031_registered_p2_low_cr094_amendment_q4` |
+| 59 | `BUG-032 CR-094 plan test R6 targets r69 → 404 (pos_owner_69_bdd4513c; BUG-030) — fixture must be r689` | BUG — PLAN_GAP (CR-094, tests only) | same intake §4 | `bug032_registered_p3_low_cr094_amendment_q5` |
+| 60 | `BUG-033 POS contract v1 §3.1 doc gaps (10/15 fields described, off_peak_bonus_type constants, tz, expiry 0)` | BUG — DOC | same intake §5 | `bug033_registered_p3_low_docs_fold_into_cr103_and_cr094_note` |
+
 
 ## 6. Next Immediate Action
 
