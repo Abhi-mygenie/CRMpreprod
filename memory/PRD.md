@@ -147,3 +147,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — INTAKE: CR-101 · BUG-029 · BUG-030 · PROC-001 registered (docs only)
 - CR-101 data hygiene (2 dead `password_hash`, 3 orphan-tenant customers, drop `customer_otps`) end of batch · BUG-029 lookup IP-bucket order (mirror of 025) · BUG-030 r69 short-id → non-existent tenant · PROC-001 production-DB validation rule. CR-085-B scope +53 null-cc, +13 twins, +legacy phone "" doc. Owner Qs: CR-101 deletions, BUG-029 ride with 025, BUG-030 a/b.
+
+## 2026-10-09 — Scan & Order validations accepted (docs only)
+- CR-098/093/089/085-A consumer-validated (Scan & Order half); CA-3/6/7 accepted → CR-096 + CR-094 planning unblocked. CA-2/4/5/8 bounced back (their items); CA-1 → owner. New gap → propose **CR-102** (`skip-otp` accept `country_code`). Baseline 7705 (POS till traffic). Reply draft in handoff/.

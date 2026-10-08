@@ -116,3 +116,6 @@ _CR-095 · CR-089 · CR-088_
 - [ ] Customer App contract v2 drafted from Customer-App rows (supersedes v1.0 §4a/§4b/§4c)
 - [ ] POS contract addendum drafted from POS rows
 - [ ] Owner sign-off → send
+
+
+> **2026-10-09 — Customer App validation received and accepted** for CR-098, CR-093, CR-089, CR-085-A (Scan & Order half). Details: `VALIDATION_OF_SCAN_ORDER_REPLY_2026_10_09.md`. Pending: POS half of 085-A/A2; owner smoke.
