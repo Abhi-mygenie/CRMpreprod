@@ -1,0 +1,156 @@
+"""
+APScheduler-based cron scheduler for automated loyalty jobs.
+Runs daily for all users: birthday bonus, anniversary bonus, expiry reminders, points expiry.
+"""
+import asyncio
+import logging
+from datetime import datetime, timezone
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+from core.database import db
+from core.loyalty_jobs import (
+    run_birthday_bonus,
+    run_anniversary_bonus,
+    run_expiry_reminders,
+    run_points_expiry,
+    run_coupon_expiry_reminders,
+    run_inactive_customer_reminders,
+    run_vip_auto_promote,    # CR-077
+)
+from core.campaign_jobs import process_due_campaigns
+
+logger = logging.getLogger(__name__)
+
+scheduler = AsyncIOScheduler()
+
+# Store last run results for status endpoint
+last_run_results = {}
+
+
+async def _get_all_users_with_settings():
+    """Fetch all users and their loyalty settings."""
+    users = await db.users.find({}, {"_id": 0, "id": 1}).to_list(10000)
+    result = []
+    for user in users:
+        settings = await db.loyalty_settings.find_one({"user_id": user["id"]}, {"_id": 0})
+        if settings:
+            result.append((user["id"], settings))
+    return result
+
+
+async def daily_loyalty_jobs():
+    """Master job that runs all loyalty tasks for every user."""
+    start = datetime.now(timezone.utc)
+    logger.info("=== Starting daily loyalty cron jobs ===")
+
+    users_settings = await _get_all_users_with_settings()
+    logger.info(f"Processing {len(users_settings)} users")
+
+    summary = {
+        "started_at": start.isoformat(),
+        "users_processed": len(users_settings),
+        "birthday": {"total_awarded": 0, "total_points": 0},
+        "anniversary": {"total_awarded": 0, "total_points": 0},
+        "expiry_reminders": {"total_reminded": 0},
+        "expiry": {"total_expired": 0, "customers_affected": 0},
+        "coupon_expiry_reminders": {"coupons_expiring": 0, "customers_notified": 0},
+        "inactive_customer_reminders": {"customers_notified": 0},
+        "vip_auto_promote": {"promoted": 0, "evaluated": 0},   # CR-077
+        "errors": [],
+    }
+
+    for user_id, settings in users_settings:
+        try:
+            # Birthday bonus
+            bday = await run_birthday_bonus(user_id, settings)
+            summary["birthday"]["total_awarded"] += bday["customers_awarded"]
+            summary["birthday"]["total_points"] += bday["total_points_awarded"]
+
+            # Anniversary bonus
+            anniv = await run_anniversary_bonus(user_id, settings)
+            summary["anniversary"]["total_awarded"] += anniv["customers_awarded"]
+            summary["anniversary"]["total_points"] += anniv["total_points_awarded"]
+
+            # Expiry reminders
+            reminders = await run_expiry_reminders(user_id, settings)
+            summary["expiry_reminders"]["total_reminded"] += reminders["customers_to_remind"]
+
+            # Points expiry
+            expiry = await run_points_expiry(user_id, settings)
+            summary["expiry"]["total_expired"] += expiry["total_expired"]
+            summary["expiry"]["customers_affected"] += expiry["customers_affected"]
+
+            # Coupon expiry reminders (no settings dependency)
+            cpn_expiry = await run_coupon_expiry_reminders(user_id)
+            summary["coupon_expiry_reminders"]["coupons_expiring"] += cpn_expiry["coupons_expiring"]
+            summary["coupon_expiry_reminders"]["customers_notified"] += cpn_expiry["customers_notified"]
+
+            # Inactive customer win-back (no settings dependency)
+            inactive = await run_inactive_customer_reminders(user_id)
+            summary["inactive_customer_reminders"]["customers_notified"] += inactive["customers_notified"]
+
+            # CR-077: VIP auto-promotion (gated by settings toggle, default OFF)
+            vip = await run_vip_auto_promote(user_id, settings)
+            summary["vip_auto_promote"]["promoted"]  += vip.get("promoted", 0)
+            summary["vip_auto_promote"]["evaluated"] += vip.get("evaluated", 0)
+
+        except Exception as e:
+            logger.error(f"Error processing user {user_id}: {e}")
+            summary["errors"].append({"user_id": user_id, "error": str(e)})
+
+    end = datetime.now(timezone.utc)
+    summary["finished_at"] = end.isoformat()
+    summary["duration_seconds"] = (end - start).total_seconds()
+
+    # Persist run log to DB
+    await db.cron_job_logs.insert_one({
+        "job_name": "daily_loyalty_jobs",
+        "status": "completed",
+        **summary
+    })
+
+    last_run_results["daily_loyalty_jobs"] = summary
+    logger.info(f"=== Daily loyalty cron jobs finished in {summary['duration_seconds']:.1f}s ===")
+    logger.info(f"  Birthday: {summary['birthday']['total_awarded']} awarded")
+    logger.info(f"  Anniversary: {summary['anniversary']['total_awarded']} awarded")
+    logger.info(f"  Expiry reminders: {summary['expiry_reminders']['total_reminded']} reminded")
+    logger.info(f"  Expired: {summary['expiry']['total_expired']} points from {summary['expiry']['customers_affected']} customers")
+    logger.info(f"  Coupon expiry reminders: {summary['coupon_expiry_reminders']['coupons_expiring']} coupons, {summary['coupon_expiry_reminders']['customers_notified']} notified")
+    logger.info(f"  Inactive customer win-back: {summary['inactive_customer_reminders']['customers_notified']} notified")
+
+    return summary
+
+
+def start_scheduler():
+    """Start the APScheduler with daily cron triggers."""
+    # Run daily at 00:00 UTC (midnight) for birthday/anniversary/expiry
+    scheduler.add_job(
+        daily_loyalty_jobs,
+        CronTrigger(hour=0, minute=0),
+        id="daily_loyalty_jobs",
+        name="Daily Loyalty Jobs (Birthday, Anniversary, Expiry)",
+        replace_existing=True,
+    )
+    # CR-024 Phase 3: Process due scheduled + recurring campaigns every 1 minute.
+    # Job is gated internally by CAMPAIGN_SCHEDULER_ENABLED env flag (default false).
+    scheduler.add_job(
+        process_due_campaigns,
+        CronTrigger(minute="*"),
+        id="process_due_campaigns",
+        name="CR-024 Process Due Campaigns (Scheduled + Recurring)",
+        replace_existing=True,
+        coalesce=True,
+        max_instances=1,
+    )
+    scheduler.start()
+    logger.info("Loyalty cron scheduler started — daily jobs at 00:00 UTC (midnight)")
+    logger.info("Campaign scheduler registered — process_due_campaigns every 1 min")
+
+
+def stop_scheduler():
+    """Gracefully shut down the scheduler."""
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
+        logger.info("Loyalty cron scheduler stopped")
