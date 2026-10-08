@@ -141,3 +141,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — PLANNING: BUG-025 + BUG-026 Impact Analysis + Implementation Plan (no code)
 - `planning/BUG_025_BUG_026_IMPACT_AND_IMPL_PLAN.md`. BUG-025 fix = reorder skip-otp: IP bucket → normalise/400 → phone bucket keyed `{cc}{digits}` (~12 lines `scan.py`, +2 tests). BUG-026 = tests-only: `test_cr098.py` fixtures use now-invalid phones; new root cause for BUG-027: legacy r689 doc `9876543210` lacks `country_code` → skip-otp duplicates each run (53 missing-cc docs DB-wide → 085-B). Switch tests to `9838777712` + count assertions. Owner Q1–Q4 pending.
+
+## 2026-10-09 — DECISIONS: BUG-025/026 plan approved (Q1 A, Q2 yes, Q3 yes); CR-100 registered + IA (no code)
+- CR-100 = tolerant identity match for 53 legacy `country_code:null` docs (`+91` only); probe: 0 active 90d, 13 twins; Impl Plan gate closed by owner. New owner rule: complete validation test on production DB after all data changes (085-B/087). Docs: `DECISIONS_LOG.md`, `planning/CR_100_IMPACT_ANALYSIS.md`, register row, dashboard board + transition.

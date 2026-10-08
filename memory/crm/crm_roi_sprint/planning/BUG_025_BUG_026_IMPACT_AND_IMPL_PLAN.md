@@ -1,5 +1,5 @@
 # BUG-025 + BUG-026 — Impact Analysis & Implementation Plan
-**Date**: 2026-10-09 · **Role**: Planning Agent · **Intake**: `discovery/SESSION_2026_10_09_BATCH_INTAKE_BUG025_BUG028_CR099.md` · **Status**: ⏸ OWNER APPROVAL REQUIRED · **No code changed.**
+**Date**: 2026-10-09 · **Role**: Planning Agent · **Intake**: `discovery/SESSION_2026_10_09_BATCH_INTAKE_BUG025_BUG028_CR099.md` · **Status**: ✅ OWNER APPROVED 2026-10-09 (Q1 = A · Q2 = Yes · Q3 = Yes · Q4 → CR-100, IA only) — implementation gate opens on "choose implementation role" · **No code changed.**
 
 ---
 ## PART 1 — BUG-025: skip-otp per-phone limiter bucket not canonical
@@ -138,3 +138,7 @@ Reason: changes request handling on the only diner identity path (`/scan/auth/sk
 Risk: LOW
 Proposed next step: answer Q1–Q3 (Q4 info) → "choose implementation role for BUG-025 + BUG-026".
 I will not proceed until owner approves.
+
+
+## Owner rulings (2026-10-09)
+Q1 **A** · Q2 **Yes** (E4 + count assertions in scope) · Q3 **Yes** (recorded in `DECISIONS_LOG.md`) · Q4 **alternative** → `CR-100` registered, `planning/CR_100_IMPACT_ANALYSIS.md`, plan gate closed. Owner rule: full validation test on production DB after all data changes.

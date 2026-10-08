@@ -149,6 +149,7 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 47 | `BUG-028 /customers horizontal overflow at 390px (pre-existing)` | BUG — UI | same intake | `bug028_registered_p3_low` |
 | 48 | `CR-099 Allow formatted phone input in CRM Add/Edit Customer (server normalises)` | CR — UX | same intake | `cr099_registered_p3_low_owner_decision_a_or_b_pending` |
 | 49 | `ENV-001 Test tenant r69 loyalty_enabled:false → points>0 path not live-exercised` | ENVIRONMENT — test coverage | same intake | `env001_registered_owner_decision_pending` |
+| 50 | `CR-100 Tolerate legacy customers with country_code:null in identity match (+91 only, forward-fix; 53 docs r635/r689, 13 twins)` | CR — identity rule (§14) | IA: `../planning/CR_100_IMPACT_ANALYSIS.md` | `cr100_planning_ia_done_impl_plan_gate_closed_owner_hold` |
 
 ## 6. Next Immediate Action
 
