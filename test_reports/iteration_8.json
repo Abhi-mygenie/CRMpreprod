@@ -1,0 +1,84 @@
+{
+  "summary": "Iteration 8 — Independent backend verification of BUG-025 (canonical skip-otp per-phone bucket keyed on {cc}{digits}), BUG-029 (lookup IP bucket before phone validation), and CR-102 (SkipOTPRequest.country_code honoured). Executed Q1..Q8 + Q10 via /app/backend/tests/test_iter8_bug025_cr102_bug029.py (10/10 PASS) and Q9 by re-running all 6 existing suites one at a time with scan_lookup_attempts cleared before each (105/105 passed, 2 skipped — matches expected counts exactly). Baseline customers.count_documents({}) = 7705 at start AND at end. No stray +61/412345678 doc left behind. scan_lookup_attempts collection cleared at end. No application code was modified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_matrix": {
+    "Q1_bug025_canonical_bucket": {
+      "status": "PASS",
+      "details": "5x POST skip-otp phone='7897180051' from 10.66.1.1..5 → all 200. 6th '+91 7897180051'/10.66.1.6 → 429 + Retry-After + detail 'Too many login attempts'. 7th '07897180051' → 429. 8th '78971 80051' → 429. Mongo exact key 'so-ph:pos_0001_restaurant_689:+917897180051' has 5 rows; zero rows matching so-ph:*:917897180051 or :07897180051. Customers count for r689 unchanged."
+    },
+    "Q2_bug025_ip_first_invalid": {
+      "status": "PASS",
+      "details": "Fresh IP 10.66.2.9 + phone '0000000000' → 400 'Enter a valid mobile number'. Mongo: 1 row key='so-ip:10.66.2.9', 0 rows matching ^so-ph:.*0000000000$."
+    },
+    "Q3_bug025_ip_before_validation": {
+      "status": "PASS",
+      "details": "IP 10.66.3.3 sent 30 skip-otp with distinct existing r689 phones → 30x 200. 31st call with phone='abc' same IP → 429 (not 400), confirming IP bucket runs before normalize_phone. r689 customers count unchanged."
+    },
+    "Q4_cr102_default_cc": {
+      "status": "PASS",
+      "details": "skip-otp phone=9838777712 no country_code → 200 token. Same with country_code='+91' explicit → 200 same customer_id. Customers count unchanged."
+    },
+    "Q5_cr102_foreign_cc": {
+      "status": "PASS",
+      "details": "{phone:'412345678', cc:'+61'} → 200 is_new_customer=true, exactly 1 doc user_id=pos_0001_restaurant_689 phone='412345678' country_code='+61'. Repeat → 200 is_new_customer=false, still 1 doc. {phone:'412345678', cc:'+91'} → 400 (9-digit invalid under +91 — confirms cc honoured). {phone:'9838777712', cc:'abc'} → 400. GET /api/scan/auth/me with +61 token → 200, data.phone='412345678', no 'password_hash' in body. CLEANUP delete_many(+61) → deleted_count=1, 0 remaining."
+    },
+    "Q6_bug029_lookup_ip_first": {
+      "status": "PASS",
+      "details": "Fresh IP 10.66.6.1 + phone='abc' → 400 'Invalid phone or country_code'. Mongo: 1 row key='ip:10.66.6.1', 0 'ph:' rows for abc. Fresh IP 10.66.6.2: 10 lookups with distinct valid-unknown phones (900000100x) → 10x 200 exists:false. 11th 'abc' same IP → 429 + Retry-After."
+    },
+    "Q7_lookup_regression": {
+      "status": "PASS",
+      "details": "{phone:'9579504871', cc:'+91'} → 200 exists:true, name:'MYGENieT'. '+91 9579504871' → same. Customers count unchanged. 6th lookup same phone from distinct IP → 429 (5/300s phone bucket works)."
+    },
+    "Q8_skip_otp_regression": {
+      "status": "PASS",
+      "details": "'98387 77712' r689 → 200 token, no new 9838777712 doc. /api/scan/auth/me → 200. /api/scan/orders → 200. skip-otp {} → 422. Deleted routes /api/scan/auth/{register,login,request-otp,verify-otp} POST → 404 each."
+    },
+    "Q9_full_suite_regressions": {
+      "status": "PASS",
+      "details": "All 6 suites re-run one at a time with scan_lookup_attempts.delete_many({}) before each — exact expected counts matched: test_cr089_skip_otp.py 20 passed 1 skipped; test_cr098.py 15 passed; test_cr084_cr097.py 15 passed; test_cr093_lookup.py 20 passed 1 skipped; test_cr085a_normalization.py 22 passed; test_phone_normalize.py 13 passed. Total 105 passed + 2 skipped."
+    },
+    "Q10_data_integrity": {
+      "status": "PASS",
+      "details": "customers.count_documents({}) = 7705 at Q10a (baseline) AND after Q10b (final) AND after Q9 re-run (final shell check) — exact match. No doc with phone='412345678' remains for r689. scan_lookup_attempts cleared at the very end."
+    }
+  },
+  "observed_mongo_keys_for_Q1": {
+    "canonical_key": "so-ph:pos_0001_restaurant_689:+917897180051",
+    "row_count": 5,
+    "non_canonical_variants_found": 0,
+    "ip_bucket_rows": "one per distinct X-Forwarded-For (10.66.1.1..8)"
+  },
+  "classification": {"BLOCKER": [], "MAJOR": [], "MINOR": [], "NOTE": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter8_bug025_cr102_bug029.py",
+    "/app/test_reports/pytest/iter8_main.xml",
+    "/app/test_reports/pytest/iter8_test_cr089_skip_otp.xml",
+    "/app/test_reports/pytest/iter8_test_cr098.xml",
+    "/app/test_reports/pytest/iter8_test_cr084_cr097.xml",
+    "/app/test_reports/pytest/iter8_test_cr093_lookup.xml",
+    "/app/test_reports/pytest/iter8_test_cr085a_normalization.xml",
+    "/app/test_reports/pytest/iter8_test_phone_normalize.xml",
+    "/app/run_iter8_q9.sh"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "scan.py L11 keeps `import re  # noqa: F401` with a comment about BUG-025 removing the only call — the module is actually clean of direct re usage now; the import can be dropped on next refactor pass. Non-blocking.",
+    "normalize_phone() in core/phone.py L32: `unchanged = digits == raw_s and (cc_in or INDIA_CC) == cc` compares digits to the raw string before strip of + and spaces, so status will almost always be 'fixed' for anything other than a plain 10-digit input. The code uses `pstatus == 'fixed'` only to persist phone_raw; behaviour is correct and all tests pass, but the 'ok' branch is effectively unreachable for any input that had a leading + or 0. Worth clarifying in comments or renaming the status enum. Non-blocking.",
+    "Lookup IP bucket key is 'ip:<ip>' while skip-otp uses 'so-ip:<ip>' / 'so-ph:<...>' — two different prefix conventions for the same collection. Not a bug (regexes in tests disambiguate), but a single convention (lu-ip/lu-ph vs so-ip/so-ph) would be more consistent."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter8_bug025_cr102_bug029.py (new, 10 tests)",
+    "/app/run_iter8_q9.sh (new, Q9 driver)",
+    "/app/test_reports/iteration_8.json (new)"
+  ],
+  "success_rate": {"backend": "100% (10/10 iter8 + 105/105 regression; 2 pre-existing skips)", "frontend": "N/A (backend-only run per request)"},
+  "test_credentials": "owner@thegoankitchen.com / Qplazm@10 (read from /app/memory/test_credentials.md; not needed in this iter — skip-otp/lookup are public). Mongo creds read from /app/backend/.env via python-dotenv.",
+  "seed_data_creation": "Transient only — one customer doc (phone='412345678', country_code='+61') created in Q5 and deleted inside the same test (deleted_count=1 verified). No other writes to customers. scan_lookup_attempts rows written by rate-limit tests are cleared at end of run.",
+  "final_customers_count": 7705,
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Baseline customers count is now 7705 (confirmed twice this run). BUG-025, BUG-029, CR-102 fully verified green. Fresh X-Forwarded-For ranges consumed by this iter: 10.66.1.x, 10.66.2.9, 10.66.3.3, 10.66.4.x, 10.66.5.x, 10.66.6.x, 10.66.7.x, 10.66.8.1 — future runs should use 10.67+ to avoid shared-bucket interference. Suite expected counts (used to detect regression): cr089=20p+1s, cr098=15p, cr084_cr097=15p, cr093=20p+1s, cr085a=22p, phone_normalize=13p. Always run scan_lookup_attempts.delete_many({}) between suites.",
+  "rca of the issue": "N/A — all fixes verified working as designed. BUG-025 canonical bucket proven by exact Mongo key assertion; BUG-029 IP-first ordering proven by 11th invalid-phone call returning 429 (not 400) after 10 valid lookups from same IP; CR-102 country_code wired end-to-end from request body → normalize_phone → phone_match → customer doc → /me response."
+}

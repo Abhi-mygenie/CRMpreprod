@@ -158,3 +158,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — PLANNING: BUG-029 + CR-102 IA + Impl Plans (separate docs, no code)
 - BUG-029 lookup IP-bucket-first (+2 tests). CR-102 skip-otp `country_code` Option A (+4 tests), contract v1.1 note, CR-096 must carry cc. Both LOW; implement with BUG-025/026 once approved.
+
+## 2026-10-09 — IMPLEMENTED + QA: BUG-025 · 026 · 027 · 029 · CR-102 (bundled, `scan.py`)
+- skip-otp: IP bucket → normalise → 400 → canonical `so-ph:{rid}:{cc}{digits}`; `country_code` accepted (default +91); lookup IP bucket before validation; stale/leaking fixtures fixed. Self-test 105+2s; independent QA `iteration_8.json` PASS (10/10 + 105/105), baseline 7705. Report `qa/BUG025_029_CR102_QA_REPORT.md`; change-log entry for Customer App; contract v1.1 additive note. Next: owner smoke → Closure.

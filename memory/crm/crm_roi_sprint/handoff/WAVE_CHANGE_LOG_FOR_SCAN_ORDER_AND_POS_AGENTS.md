@@ -119,3 +119,13 @@ _CR-095 · CR-089 · CR-088_
 
 
 > **2026-10-09 — Customer App validation received and accepted** for CR-098, CR-093, CR-089, CR-085-A (Scan & Order half). Details: `VALIDATION_OF_SCAN_ORDER_REPLY_2026_10_09.md`. Pending: POS half of 085-A/A2; owner smoke.
+
+
+### BUG-025 · BUG-029 · CR-102 — skip-otp / lookup hardening (IMPLEMENTED + QA PASS 2026-10-09)
+| Field | Value |
+|---|---|
+| Audience | Customer App (informational — no change required) |
+| `POST /scan/auth/skip-otp` | now accepts `country_code` (optional, default `"+91"`) and honours it — **keep sending it**. Per-phone limit (5 / 5 min) now keyed on the canonical `{cc}{digits}` → `+91 98387…`, `098387…`, `98387 …` share one bucket. Invalid phones still count against the IP limit (30 / min) and return `400 "Enter a valid mobile number"`. |
+| `POST /scan/auth/lookup` | IP limit (10 / min) now checked **before** phone validation → an invalid phone can return `429` instead of `400` once the IP quota is spent. Response shapes unchanged. |
+| Contract | v1.1 additive note: skip-otp request `{phone, restaurant_id, country_code?}` |
+| Evidence | `test_reports/iteration_8.json` · `qa/BUG025_029_CR102_QA_REPORT.md` |
