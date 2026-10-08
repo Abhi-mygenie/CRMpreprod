@@ -185,22 +185,40 @@ def test_A8_pos_webhook_payment_received(mongo, api_key):
     CREATED_ORDERS.append("qa085a8")
 
 
-# ---------- A9: webhook invalid phone matches flagged A6 customer ----------
+# ---------- A7b (CR-085-A2 E5): customer-lookup hides invalid / flagged ----------
 
-def test_A9_webhook_invalid_matches_flagged(mongo, api_key):
-    # A6 customer id
+def test_A7b_pos_customer_lookup_hides_flagged(mongo, api_key):
+    assert mongo.customers.find_one({"user_id": POS_USER_ID, "phone": "0000000000", "phone_invalid": True})
+    r = requests.post(f"{API}/pos/customer-lookup",
+                      json={"pos_id": "0001", "restaurant_id": "69", "phone": "0000000000"},
+                      headers=_h({"X-API-Key": api_key}), timeout=15)
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j.get("success") is False and (j.get("data") or {}).get("registered") is False, j
+
+
+# ---------- A9 (CR-085-A2 E4): webhook invalid phone → guest, no customer credited ----------
+
+def test_A9_webhook_invalid_is_guest(mongo, api_key):
     doc_a6 = mongo.customers.find_one({"user_id": POS_USER_ID, "phone": "0000000000"})
     assert doc_a6 is not None
     before_count = mongo.customers.count_documents({"user_id": POS_USER_ID, "phone": "0000000000"})
+    before_tx = mongo.points_transactions.count_documents({"customer_id": doc_a6["id"]})
+    before_visits = doc_a6.get("total_visits", 0)
     body = {"pos_id": "0001", "restaurant_id": "69",
             "customer_phone": "0000000000",
             "bill_amount": 50, "order_id": "qa085a9"}
     r = requests.post(f"{API}/pos/webhook/payment-received", json=body,
                       headers=_h({"X-API-Key": api_key}), timeout=20)
     assert r.status_code == 200, r.text
-    assert r.json().get("success") is True
-    after_count = mongo.customers.count_documents({"user_id": POS_USER_ID, "phone": "0000000000"})
-    assert after_count == before_count, "duplicate invalid-phone customer created"
+    j = r.json()
+    assert j.get("success") is True
+    d = j.get("data") or {}
+    assert d.get("customer_id") is None and d.get("guest_order") is True, d
+    assert d.get("final_bill_amount") == 50
+    assert mongo.customers.count_documents({"user_id": POS_USER_ID, "phone": "0000000000"}) == before_count
+    assert mongo.points_transactions.count_documents({"customer_id": doc_a6["id"]}) == before_tx
+    assert mongo.customers.find_one({"id": doc_a6["id"]}).get("total_visits", 0) == before_visits
     CREATED_ORDERS.append("qa085a9")
 
 
@@ -225,6 +243,80 @@ def test_A10_pos_orders_cust_mobile(mongo, api_key):
     after = mongo.customers.count_documents({"user_id": POS_USER_ID, "phone": "9000000123"})
     assert after == before, "duplicate customer created on POS order"
     CREATED_ORDERS.append("qa085a10")
+
+
+# ---------- A11 (CR-085-A2 E1/E2/E3): /pos/orders invalid phone → guest order ----------
+
+def _order_body(order_id, phone, **extra):
+    body = {
+        "pos_id": "0001", "restaurant_id": "69", "order_id": order_id,
+        "cust_mobile": phone, "order_amount": 120, "bill_amount": 120,
+        "items": [{"item_name": "Coffee", "qty": 1, "price": 120}],
+    }
+    body.update(extra)
+    return body
+
+
+def _assert_guest(mongo, r, order_id):
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j.get("success") is True, j
+    d = j.get("data") or {}
+    assert d.get("guest_order") is True and d.get("guest_reason") == "invalid_phone", d
+    assert d.get("customer_id") is None and d.get("customer_name") is None, d
+    assert d.get("points_earned") == 0 and d.get("is_new_customer") is False, d
+    o = mongo.orders.find_one({"pos_order_id": order_id, "user_id": POS_USER_ID})
+    assert o is not None and o.get("customer_id") is None, o
+    assert mongo.order_items.count_documents({"order_id": o["id"], "customer_id": {"$ne": None}}) == 0
+    assert mongo.points_transactions.count_documents({"order_id": o["id"]}) == 0
+    assert mongo.wallet_transactions.count_documents({"order_id": o["id"]}) == 0
+    assert mongo.whatsapp_message_logs.count_documents({"reference_id": o["id"]}) == 0
+    return d, o
+
+
+def test_A11_pos_orders_invalid_guest(mongo, api_key):
+    before = mongo.customers.count_documents({"user_id": POS_USER_ID})
+    r = requests.post(f"{API}/pos/orders", json=_order_body("qa085a11", "0000000000"),
+                      headers=_h({"X-API-Key": api_key}), timeout=20)
+    _assert_guest(mongo, r, "qa085a11")
+    assert mongo.customers.count_documents({"user_id": POS_USER_ID}) == before
+    CREATED_ORDERS.append("qa085a11")
+
+
+def test_A11b_pos_orders_blank_phone_guest(mongo, api_key):
+    before = mongo.customers.count_documents({"user_id": POS_USER_ID})
+    before_blank = mongo.customers.count_documents({"user_id": POS_USER_ID, "phone": ""})  # pre-existing legacy doc may exist
+    r = requests.post(f"{API}/pos/orders", json=_order_body("qa085a11b", ""),
+                      headers=_h({"X-API-Key": api_key}), timeout=20)
+    _assert_guest(mongo, r, "qa085a11b")
+    assert mongo.customers.count_documents({"user_id": POS_USER_ID}) == before
+    assert mongo.customers.count_documents({"user_id": POS_USER_ID, "phone": ""}) == before_blank
+    CREATED_ORDERS.append("qa085a11b")
+
+
+def test_A11c_guest_with_loyalty_and_wallet_never_blocks(mongo, api_key):
+    r = requests.post(f"{API}/pos/orders",
+                      json=_order_body("qa085a11c", "0000000000", loyalty_points_used=10,
+                                       loyalty_discount=5, wallet_used=20),
+                      headers=_h({"X-API-Key": api_key}), timeout=20)
+    d, _ = _assert_guest(mongo, r, "qa085a11c")
+    assert d.get("loyalty_redeem") is None and d.get("wallet_used") == 0, d
+    assert mongo.loyalty_mismatch_logs.count_documents({"pos_order_id": "qa085a11c"}) == 0
+    CREATED_ORDERS.append("qa085a11c")
+
+
+def test_A12_pos_orders_invalid_with_pos_customer_id_links(mongo, api_key):
+    a5 = mongo.customers.find_one({"user_id": POS_USER_ID, "phone": "9000000123"})
+    assert a5 is not None
+    pos_cid = f"qa085a12_{uuid.uuid4().hex[:6]}"
+    mongo.customers.update_one({"id": a5["id"]}, {"$set": {"pos_customer_id": pos_cid}})
+    r = requests.post(f"{API}/pos/orders",
+                      json=_order_body("qa085a12", "0000000000", user_id=pos_cid),
+                      headers=_h({"X-API-Key": api_key}), timeout=20)
+    assert r.status_code == 200, r.text
+    d = r.json().get("data") or {}
+    assert d.get("guest_order") is False and d.get("customer_id") == a5["id"], d
+    CREATED_ORDERS.append("qa085a12")
 
 
 # ---------- A13: CRM human-path reject ----------
@@ -311,6 +403,11 @@ def test_ZZ_cleanup_and_baseline(mongo, baseline):
     # Delete orders
     for oid in CREATED_ORDERS:
         mongo.pos_orders.delete_many({"order_id": oid})
+        for o in mongo.orders.find({"pos_order_id": oid, "user_id": POS_USER_ID}, {"id": 1}):
+            mongo.order_items.delete_many({"order_id": o["id"]})
+            mongo.coupon_usage.delete_many({"order_id": o["id"]})
+            mongo.invoices.delete_many({"order_id": o["id"]})
+        mongo.orders.delete_many({"pos_order_id": oid, "user_id": POS_USER_ID})
         mongo.orders.delete_many({"order_id": oid})
     # Delete customers created
     for uid, phone in CREATED_PHONES:

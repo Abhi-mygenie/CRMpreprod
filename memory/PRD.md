@@ -120,3 +120,8 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — DECISION 085-A2 (c1): guest-bill coupon usage recorded with `customer_id:null` (docs only, no code)
 - Per-user / specific-users limits skipped for guests (no customer); `core/coupon.py` untouched. CR-082 `requires_customer` per-coupon flag remains queued. Defaults (a)/(b) stand. Plan `CR_085A2_IMPLEMENTATION_PLAN.md` awaiting owner approval to implement.
+
+## 2026-10-09 — IMPLEMENTATION: CR-085-A2 guest orders + lookup hides flagged (owner-approved)
+- `routers/pos.py` only (18 `# CR-085-A2` markers): invalid/blank phone on `/pos/orders` or `payment-received` → guest (`customer_id:null`, no points/wallet/stats/WhatsApp; invoice yes; coupon usage `customer_id:null`); `pos_customer_id` still wins; `customer-lookup` hides invalid/`phone_invalid`. `_apply_coupon_discount` helper extracted (legacy maths unchanged).
+- Tests: A9 rewritten, +A7b/A11/A11b/A11c/A12. Self-test **68/68**. Baseline 7700. Legacy `Customer ` `phone:""` doc (34 visits) noted for 085-B report.
+- Docs: `qa/CR_085A2_QA_HANDOVER.md`, `handoff/SESSION_2026_10_09_HANDOVER_CR085A2_IMPL.md`, wave change-log POS row updated. **Next: QA** (V5 coupon, V12 replay, V13 orders page, R1–R4).

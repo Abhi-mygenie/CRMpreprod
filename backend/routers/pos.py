@@ -668,7 +668,8 @@ async def _find_or_create_customer(
     order_data: "POSOrderWebhook", user: dict, settings: dict, now: str
 ) -> tuple:
     """Lookup customer by phone or pos_customer_id; auto-create if missing.
-    Returns (customer_doc, is_new, first_visit_bonus_points)."""
+    Returns (customer_doc, is_new, first_visit_bonus_points).
+    CR-085-A2 (G): returns (None, False, 0) when phone invalid/blank and no pos_customer_id match → guest order."""
     
     # First try to find by pos_customer_id if provided
     if order_data.user_id:
@@ -679,8 +680,11 @@ async def _find_or_create_customer(
         if customer:
             return customer, False, 0
     
-    # CR-085 W1: canonical phone + unified key. Invalid → record flagged phone_invalid (F); guest-order (G) pending owner (085-A2).
+    # CR-085 W1: canonical phone + unified key.
     _ph, _cc, _pst = normalize_phone(order_data.cust_mobile)
+    # CR-085-A2 E1 (G, owner 2026-10-09): invalid/blank phone → guest order; never match or create by phone.
+    if _pst == "invalid":
+        return None, False, 0
     customer = await db.customers.find_one(phone_match(user["id"], _ph, _cc))
 
     if customer:
@@ -713,7 +717,6 @@ async def _find_or_create_customer(
         "phone": _ph,
         "country_code": _cc,
         **({"phone_raw": order_data.cust_mobile} if _pst == "fixed" else {}),
-        **({"phone_invalid": True} if _pst == "invalid" else {}),
         "email": order_data.cust_email,  # Store customer email from order
         "gender": None,
         "dob": None,
@@ -867,7 +870,7 @@ def _calculate_points(*args, **kwargs):
 async def _save_order_and_transactions(
     order_data: "POSOrderWebhook",
     user: dict,
-    customer: dict,
+    customer: Optional[dict],
     points_earned: int,
     new_points: int,
     wallet_used: float,
@@ -877,8 +880,10 @@ async def _save_order_and_transactions(
     crm_loyalty_points_redeemed: int = 0,
     crm_loyalty_discount: float = 0.0,
 ) -> str:
-    """Persist order, points transaction, and wallet transaction. Returns order id."""
+    """Persist order, points transaction, and wallet transaction. Returns order id.
+    CR-085-A2 E3: `customer` may be None (guest order) → customer_id null everywhere."""
     order_id = str(uuid.uuid4())
+    _cid = customer["id"] if customer else None  # CR-085-A2
     
     # Prepare embedded items array with all fields
     items_embedded = []
@@ -890,7 +895,7 @@ async def _save_order_and_transactions(
     order_doc = {
         "id": order_id,
         "user_id": user["id"],
-        "customer_id": customer["id"],
+        "customer_id": _cid,
         
         # POS Identification
         "pos_id": order_data.pos_id,
@@ -1008,7 +1013,7 @@ async def _save_order_and_transactions(
             order_items_docs.append({
                 "id": str(uuid.uuid4()),
                 "order_id": order_id,
-                "customer_id": customer["id"],
+                "customer_id": _cid,
                 "user_id": user["id"],
                 
                 # Item Identification
@@ -1055,7 +1060,7 @@ async def _save_order_and_transactions(
         await db.points_transactions.insert_one({
             "id": str(uuid.uuid4()),
             "user_id": user["id"],
-            "customer_id": customer["id"],
+            "customer_id": _cid,
             "points": points_earned,
             "transaction_type": "earn",
             "description": desc,
@@ -1068,7 +1073,7 @@ async def _save_order_and_transactions(
         await db.wallet_transactions.insert_one({
             "id": str(uuid.uuid4()),
             "user_id": user["id"],
-            "customer_id": customer["id"],
+            "customer_id": _cid,
             "amount": wallet_used,
             "transaction_type": "debit",
             "description": f"Used on order {order_data.order_id}",
@@ -1356,6 +1361,8 @@ async def pos_order_webhook(
         customer, is_new, first_visit_bonus = await _find_or_create_customer(
             order_data, user, settings, now
         )
+        # CR-085-A2 E2: guest order (invalid/blank phone, no pos_customer_id match) → no loyalty side-effects.
+        is_guest = customer is None
 
         # 3b. CR-007 (2026-05-27): Loyalty redemption — ORDER IS NEVER REJECTED.
         # If POS embedded a loyalty redemption, CRM back-calculates points from
@@ -1366,7 +1373,12 @@ async def pos_order_webhook(
         loyalty_redeemed_value = 0.0
         crm_loyalty_points_redeemed = 0
         crm_loyalty_discount = 0.0
-        if order_data.loyalty_points_used and order_data.loyalty_points_used > 0:
+        if is_guest and order_data.loyalty_points_used and order_data.loyalty_points_used > 0:
+            logging.getLogger(__name__).warning(
+                "loyalty_redeem_skipped_guest pos_order=%s points_used=%s — guest order (CR-085-A2)",
+                order_data.order_id, order_data.loyalty_points_used,
+            )
+        elif order_data.loyalty_points_used and order_data.loyalty_points_used > 0:
             idem_key = (
                 order_data.loyalty_idempotency_key
                 or f"order_{order_data.order_id}"
@@ -1435,7 +1447,7 @@ async def pos_order_webhook(
         # helper. Old `_calculate_points` wrapper removed.
         loyalty_enabled = bool(settings.get("loyalty_enabled", False))
         earn_base_amount = max(0.0, order_data.order_amount - loyalty_redeemed_value)
-        if loyalty_enabled:
+        if loyalty_enabled and not is_guest:  # CR-085-A2: guests earn nothing
             pts = calculate_points(earn_base_amount, customer, settings)
             points_earned = pts["total_points"]
         else:
@@ -1450,65 +1462,81 @@ async def pos_order_webhook(
 
         # 5. Wallet validation
         wallet_used = order_data.wallet_used or 0.0
-        current_wallet = customer.get("wallet_balance", 0.0)
-        if wallet_used > current_wallet:
-            return POSResponse(
-                success=False,
-                message=f"Insufficient wallet balance. Available: {current_wallet}, Requested: {wallet_used}",
-                data={"available_balance": current_wallet},
-            )
+        if is_guest:
+            # CR-085-A2 default (a): never block POS; wallet not debited on a guest order.
+            if wallet_used > 0:
+                logging.getLogger(__name__).warning(
+                    "wallet_used_on_guest_order pos_order=%s wallet_used=%s — ignored (CR-085-A2)",
+                    order_data.order_id, wallet_used,
+                )
+            wallet_used = 0.0
+            current_wallet = 0.0
+        else:
+            current_wallet = customer.get("wallet_balance", 0.0)
+            if wallet_used > current_wallet:
+                return POSResponse(
+                    success=False,
+                    message=f"Insufficient wallet balance. Available: {current_wallet}, Requested: {wallet_used}",
+                    data={"available_balance": current_wallet},
+                )
         new_wallet_balance = current_wallet - wallet_used
 
-        # 6. Update customer stats
-        current_points = customer.get("total_points", 0)
-        new_points = current_points + points_earned
-        # CR-001C-L Phase L2 (C1, 2026-05-22): tier is only recomputed
-        # when loyalty is enabled. When OFF, preserve the customer's
-        # existing tier verbatim (no implicit downgrade/upgrade).
-        if loyalty_enabled:
-            new_tier = calculate_tier(new_points, settings)
+        # 6. Update customer stats (skipped for guest orders — CR-085-A2)
+        if is_guest:
+            new_points = 0
+            new_tier = None
+            new_total_visits = 0
+            new_total_spent = 0.0
         else:
-            new_tier = customer.get("tier", "Bronze")
+            current_points = customer.get("total_points", 0)
+            new_points = current_points + points_earned
+            # CR-001C-L Phase L2 (C1, 2026-05-22): tier is only recomputed
+            # when loyalty is enabled. When OFF, preserve the customer's
+            # existing tier verbatim (no implicit downgrade/upgrade).
+            if loyalty_enabled:
+                new_tier = calculate_tier(new_points, settings)
+            else:
+                new_tier = customer.get("tier", "Bronze")
 
-        new_total_visits = customer.get("total_visits", 0) + 1
-        new_total_spent = customer.get("total_spent", 0) + order_data.order_amount
-        new_avg_order_value = round(new_total_spent / new_total_visits, 2)
+            new_total_visits = customer.get("total_visits", 0) + 1
+            new_total_spent = customer.get("total_spent", 0) + order_data.order_amount
+            new_avg_order_value = round(new_total_spent / new_total_visits, 2)
 
-        # CR-001C-L Phase L2 (C4, 2026-05-22): grow lifetime
-        # total_points_earned via $inc so it is independent of the
-        # spendable total_points (which can be reduced by redemption).
-        # When loyalty is OFF or no points were earned this order, the
-        # $inc is skipped entirely (kill-switch + zero-noise).
-        customer_update_set = {
-            "total_points": new_points,
-            "tier": new_tier,
-            "wallet_balance": new_wallet_balance,
-            "total_visits": new_total_visits,
-            "total_spent": new_total_spent,
-            "avg_order_value": new_avg_order_value,
-            "last_visit": now,
-        }
-        # BUG-021: update demographic fields from order when POS sends them
-        if order_data.cust_name:
-            customer_update_set["name"] = order_data.cust_name
-        if order_data.cust_email:
-            customer_update_set["email"] = order_data.cust_email
-        # CR-071: B2B field pass-through from order
-        # Guard: only update when non-empty; never downgrade corporate→normal or is_b2b→False
-        if order_data.gst_name:
-            customer_update_set["gst_name"] = order_data.gst_name
-        if order_data.gst_number:
-            customer_update_set["gst_number"] = order_data.gst_number
-            customer_update_set["is_b2b"] = True
-            customer_update_set["customer_type"] = "corporate"
-        customer_update_doc: Dict[str, Any] = {"$set": customer_update_set}
-        if loyalty_enabled and points_earned > 0:
-            customer_update_doc["$inc"] = {"total_points_earned": points_earned}
+            # CR-001C-L Phase L2 (C4, 2026-05-22): grow lifetime
+            # total_points_earned via $inc so it is independent of the
+            # spendable total_points (which can be reduced by redemption).
+            # When loyalty is OFF or no points were earned this order, the
+            # $inc is skipped entirely (kill-switch + zero-noise).
+            customer_update_set = {
+                "total_points": new_points,
+                "tier": new_tier,
+                "wallet_balance": new_wallet_balance,
+                "total_visits": new_total_visits,
+                "total_spent": new_total_spent,
+                "avg_order_value": new_avg_order_value,
+                "last_visit": now,
+            }
+            # BUG-021: update demographic fields from order when POS sends them
+            if order_data.cust_name:
+                customer_update_set["name"] = order_data.cust_name
+            if order_data.cust_email:
+                customer_update_set["email"] = order_data.cust_email
+            # CR-071: B2B field pass-through from order
+            # Guard: only update when non-empty; never downgrade corporate→normal or is_b2b→False
+            if order_data.gst_name:
+                customer_update_set["gst_name"] = order_data.gst_name
+            if order_data.gst_number:
+                customer_update_set["gst_number"] = order_data.gst_number
+                customer_update_set["is_b2b"] = True
+                customer_update_set["customer_type"] = "corporate"
+            customer_update_doc: Dict[str, Any] = {"$set": customer_update_set}
+            if loyalty_enabled and points_earned > 0:
+                customer_update_doc["$inc"] = {"total_points_earned": points_earned}
 
-        await db.customers.update_one(
-            {"id": customer["id"]},
-            customer_update_doc,
-        )
+            await db.customers.update_one(
+                {"id": customer["id"]},
+                customer_update_doc,
+            )
 
         # 7. Save order + transactions
         order_id = await _save_order_and_transactions(
@@ -1517,8 +1545,8 @@ async def pos_order_webhook(
             crm_loyalty_points_redeemed, crm_loyalty_discount,
         )
 
-        # Update customer with latest data for triggers
-        updated_customer = {
+        # Update customer with latest data for triggers (None for guest — CR-085-A2)
+        updated_customer = None if is_guest else {
             **customer,
             "total_points": new_points,
             "tier": new_tier,
@@ -1530,7 +1558,7 @@ async def pos_order_webhook(
         # CR-015 T3 (2026-05-29): build a single event_data context shared by all
         # POS order-triggered events. See core.whatsapp.build_order_event_context.
         order_ctx = build_order_event_context(
-            order_data, updated_customer,
+            order_data, updated_customer or {},
             points_earned=points_earned,
             new_points=new_points,
             wallet_used=wallet_used,
@@ -1554,22 +1582,24 @@ async def pos_order_webhook(
         except Exception as _inv_err:
             logging.getLogger(__name__).warning(f"CR-014: Invoice generation failed for order {order_id}: {_inv_err}")
 
-        # send_bill trigger - for every order
-        asyncio.create_task(trigger_whatsapp_event(
-            db, user["id"], "send_bill", updated_customer,
-            {
-                **order_ctx,
-                "einvoice_link": einvoice_link,
-                "einvoice_token": einvoice_token,
-                # CR-004 P3.5: idempotency + reference enrichment (per-event override)
-                "idempotency_key": f"{order_data.order_id}_send_bill",
-                "reference_type": "order",
-                "reference_id": order_id,
-            }
-        ))
+        # send_bill trigger - for every order with an identified customer
+        # CR-085-A2 default (b): guest order → no WhatsApp (no valid number to send to).
+        if not is_guest:
+            asyncio.create_task(trigger_whatsapp_event(
+                db, user["id"], "send_bill", updated_customer,
+                {
+                    **order_ctx,
+                    "einvoice_link": einvoice_link,
+                    "einvoice_token": einvoice_token,
+                    # CR-004 P3.5: idempotency + reference enrichment (per-event override)
+                    "idempotency_key": f"{order_data.order_id}_send_bill",
+                    "reference_type": "order",
+                    "reference_id": order_id,
+                }
+            ))
 
         # welcome_message trigger - only for new customers
-        if is_new:
+        if is_new and not is_guest:
             asyncio.create_task(trigger_whatsapp_event(
                 db, user["id"], "welcome_message", updated_customer,
                 {
@@ -1582,8 +1612,8 @@ async def pos_order_webhook(
             ))
 
         # tier_upgrade trigger - if tier changed
-        old_tier = customer.get("tier", "Bronze")
-        if new_tier != old_tier and _tier_rank_pos(new_tier) > _tier_rank_pos(old_tier):
+        old_tier = customer.get("tier", "Bronze") if not is_guest else None
+        if not is_guest and new_tier != old_tier and _tier_rank_pos(new_tier) > _tier_rank_pos(old_tier):
             asyncio.create_task(trigger_whatsapp_event(
                 db, user["id"], "tier_upgrade", updated_customer,
                 {
@@ -1631,7 +1661,7 @@ async def pos_order_webhook(
                     db,
                     user_id=user["id"],
                     restaurant_id=order_data.restaurant_id,
-                    customer_id=customer["id"],
+                    customer_id=customer["id"] if customer else None,  # CR-085-A2 (c1): guest → null
                     code=order_data.coupon_code,
                     order_id=order_id,
                     pos_order_id=order_data.order_id,
@@ -1710,8 +1740,11 @@ async def pos_order_webhook(
             data={
                 "order_id": order_id,
                 "pos_order_id": order_data.order_id,
-                "customer_id": customer["id"],
-                "customer_name": customer.get("name"),
+                "customer_id": customer["id"] if customer else None,
+                "customer_name": customer.get("name") if customer else None,
+                # CR-085-A2: additive guest flags
+                "guest_order": is_guest,
+                "guest_reason": "invalid_phone" if is_guest else None,
                 "is_new_customer": is_new,
                 "first_visit_bonus_awarded": first_visit_bonus if is_new else 0,
                 "order_amount": order_data.order_amount,
@@ -1735,6 +1768,23 @@ async def pos_order_webhook(
         raise HTTPException(status_code=500, detail=f"Order processing failed: {str(e)}")
 
 
+async def _apply_coupon_discount(user_id: str, code: str, amount: float) -> tuple:
+    """CR-085-A2 E4: legacy payment-received coupon maths (unchanged logic). Returns (amount_after, block|None)."""
+    coupon = await db.coupons.find_one({"user_id": user_id, "code": code.upper(), "is_active": True})
+    if not coupon:
+        return amount, None
+    now = datetime.now(timezone.utc).isoformat()
+    if not (coupon["start_date"] <= now <= coupon["end_date"]):
+        return amount, None
+    if coupon["discount_type"] == "percentage":
+        discount = (amount * coupon["discount_value"]) / 100
+        if coupon.get("max_discount"):
+            discount = min(discount, coupon["max_discount"])
+    else:
+        discount = min(coupon["discount_value"], amount)
+    return amount - discount, {"code": code, "discount": round(discount, 2)}
+
+
 @router.post("/webhook/payment-received", response_model=POSResponse)
 async def pos_payment_received(
     webhook_data: POSPaymentWebhook,
@@ -1744,8 +1794,29 @@ async def pos_payment_received(
     Main POS webhook endpoint - processes payments and manages loyalty points
     """
     try:
-        # CR-085 W2: canonical phone + unified key. Invalid → flagged (F); guest-order (G) pending owner (085-A2).
+        # CR-085 W2: canonical phone + unified key.
         _ph, _cc, _pst = normalize_phone(webhook_data.customer_phone)
+        # CR-085-A2 E4 (G, owner 2026-10-09): invalid/blank phone → guest, no customer created/credited.
+        if _pst == "invalid":
+            guest_bill_amount = webhook_data.bill_amount
+            guest_resp: Dict[str, Any] = {
+                "customer_id": None, "customer_name": None,
+                "guest_order": True, "guest_reason": "invalid_phone",
+                "transactions": [],
+            }
+            if webhook_data.coupon_code:
+                guest_bill_amount, guest_coupon = await _apply_coupon_discount(
+                    user["id"], webhook_data.coupon_code, guest_bill_amount
+                )
+                if guest_coupon:
+                    guest_resp["coupon_applied"] = guest_coupon
+                    guest_resp["transactions"].append({
+                        "type": "coupon", "amount": guest_coupon["discount"],
+                        "description": f"Coupon {webhook_data.coupon_code} applied",
+                    })
+            guest_resp["final_bill_amount"] = round(guest_bill_amount, 2)
+            guest_resp["original_bill_amount"] = webhook_data.bill_amount
+            return POSResponse(success=True, message="Payment processed (guest - invalid phone)", data=guest_resp)
         customer = await db.customers.find_one(phone_match(user["id"], _ph, _cc))
         
         if not customer:
@@ -1764,7 +1835,6 @@ async def pos_payment_received(
                 "phone": _ph,
                 "country_code": _cc,
                 **({"phone_raw": webhook_data.customer_phone} if _pst == "fixed" else {}),
-                **({"phone_invalid": True} if _pst == "invalid" else {}),
                 "email": None,
                 "gender": None,
                 "dob": None,
@@ -1889,34 +1959,18 @@ async def pos_payment_received(
         
         final_bill_amount = webhook_data.bill_amount
         
-        # Process coupon if provided
+        # Process coupon if provided (CR-085-A2 E4: maths extracted to _apply_coupon_discount)
         if webhook_data.coupon_code:
-            coupon = await db.coupons.find_one({
-                "user_id": user["id"],
-                "code": webhook_data.coupon_code.upper(),
-                "is_active": True
-            })
-            
-            if coupon:
-                now = datetime.now(timezone.utc).isoformat()
-                if coupon["start_date"] <= now <= coupon["end_date"]:
-                    if coupon["discount_type"] == "percentage":
-                        discount = (final_bill_amount * coupon["discount_value"]) / 100
-                        if coupon.get("max_discount"):
-                            discount = min(discount, coupon["max_discount"])
-                    else:
-                        discount = min(coupon["discount_value"], final_bill_amount)
-                    
-                    final_bill_amount -= discount
-                    response_data["coupon_applied"] = {
-                        "code": webhook_data.coupon_code,
-                        "discount": round(discount, 2)
-                    }
-                    response_data["transactions"].append({
-                        "type": "coupon",
-                        "amount": round(discount, 2),
-                        "description": f"Coupon {webhook_data.coupon_code} applied"
-                    })
+            final_bill_amount, _coupon_block = await _apply_coupon_discount(
+                user["id"], webhook_data.coupon_code, final_bill_amount
+            )
+            if _coupon_block:
+                response_data["coupon_applied"] = _coupon_block
+                response_data["transactions"].append({
+                    "type": "coupon",
+                    "amount": _coupon_block["discount"],
+                    "description": f"Coupon {webhook_data.coupon_code} applied"
+                })
         
         # Process points redemption if requested
         # CR-001C-LR correction (2026-05-23): legacy embedded redeem block
@@ -2056,8 +2110,13 @@ async def pos_customer_lookup(
     """
     Look up customer by phone number for POS display
     """
-    _ph, _cc, _ = normalize_phone(lookup_data.phone)  # CR-085 W5
-    customer = await db.customers.find_one(phone_match(user["id"], _ph, _cc), {"_id": 0})
+    _ph, _cc, _pst = normalize_phone(lookup_data.phone)  # CR-085 W5
+    # CR-085-A2 E5 (owner 2026-10-09): invalid phone or phone_invalid record → not found.
+    if _pst == "invalid":
+        return POSResponse(success=False, message="Customer not found", data={"registered": False})
+    customer = await db.customers.find_one(
+        {**phone_match(user["id"], _ph, _cc), "phone_invalid": {"$ne": True}}, {"_id": 0}
+    )
     
     if not customer:
         return POSResponse(

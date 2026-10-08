@@ -89,13 +89,13 @@ _CR-094 loyalty-rules — row added when implemented_
 | Evidence | 7,383/7,385 synced carry `country_code:"+91"` incl. `phone:"+61 404668073"` — CRM stored it verbatim (`customers.py:373`). Every real-phone duplicate group: POS held 1 record, CRM made the extras. |
 
 ## Wave 3 — Customer identity foundation
-### CR-085-A — canonical phone (IMPLEMENTED 2026-10-09; QA pending)
+### CR-085-A + 085-A2 — canonical phone + guest orders (IMPLEMENTED 2026-10-09; A2 QA pending)
 | Field | Value |
 |---|---|
 | Status | **CONFIRMED 2026-10-09** (implemented; QA + consumer validation pending) |
 | Audience | **Both** |
 | Customer App | `skip-otp` and `lookup` now normalise `phone` (spaces/dashes/`+91`/leading 0 removed; foreign `+cc` → `country_code`) and match on `{restaurant, phone, country_code}` → a diner typed as `"98387 77712"` logs into the **same** record as `9838777712`. **Invalid phone → `400 "Enter a valid mobile number"`** on `skip-otp` (new). |
-| POS | All POS routes accept exactly what they accept today; **nothing is rejected**. Stored `phone` is now digits-only + `country_code`; `phone_raw` kept when we changed it; junk phones (`0000000000`, 9-digit…) stored with `phone_invalid:true` and excluded from WhatsApp/loyalty jobs/lookup. ⚠️ **Owner ruled 2026-10-09 (085-A2): bills with a junk/invalid phone will become GUEST ORDERS** (`customer_id:null`, no points/wallet/WhatsApp) unless `pos_customer_id` is sent. Preview currently still credits a flagged customer (deviation); the guest-order change ships as follow-up 085-A2 — POS agent will get a second note when it is live. Send `pos_customer_id` on bills to keep attribution for diners with bad phones. |
+| POS | All POS routes accept exactly what they accept today; **nothing is rejected**. Stored `phone` is now digits-only + `country_code`; `phone_raw` kept when we changed it; junk phones (`0000000000`, 9-digit…) stored with `phone_invalid:true` and excluded from WhatsApp/loyalty jobs/lookup. **085-A2 LIVE on preview 2026-10-09**: bills with a junk/blank phone are now **GUEST ORDERS** — `/pos/orders` returns `success:true` with `customer_id:null`, `guest_order:true`, `guest_reason:"invalid_phone"`, `points_earned:0`, `tier:null`; no customer is created or credited, no WhatsApp sent, invoice still generated; coupon usage still recorded (no per-customer limit). `pos_customer_id` match still wins (full loyalty). `payment-received` with junk phone → `customer_id:null, guest_order:true` + coupon maths. **`customer-lookup` now returns `registered:false` for junk phones and for records flagged `phone_invalid`** → capture a fresh number. Send `pos_customer_id` or a valid phone to keep attribution. |
 | Evidence | A2/A5/A6/A8/A13 in `qa/CR_085A_QA_HANDOVER.md` |
 | Field | Value |
 |---|---|
