@@ -138,3 +138,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 ## 2026-10-09 — Customer App confirmed CR-084 (docs only)
 - Their OTP code fully deleted; CR-084 closed both sides; recorded in closure doc + change-log. Reply drafted (owner sends) listing still-open consumer items: CR-098/093/089/085-A validations + contract CA-1…CA-9.
 - Consolidated Scan & Order bundle (all pending asks in one doc, owner sends): `handoff/CRM_TO_SCAN_ORDER_CONSOLIDATED_BUNDLE_2026_10_09.md`.
+
+## 2026-10-09 — PLANNING: BUG-025 + BUG-026 Impact Analysis + Implementation Plan (no code)
+- `planning/BUG_025_BUG_026_IMPACT_AND_IMPL_PLAN.md`. BUG-025 fix = reorder skip-otp: IP bucket → normalise/400 → phone bucket keyed `{cc}{digits}` (~12 lines `scan.py`, +2 tests). BUG-026 = tests-only: `test_cr098.py` fixtures use now-invalid phones; new root cause for BUG-027: legacy r689 doc `9876543210` lacks `country_code` → skip-otp duplicates each run (53 missing-cc docs DB-wide → 085-B). Switch tests to `9838777712` + count assertions. Owner Q1–Q4 pending.
