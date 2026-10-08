@@ -188,3 +188,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — IMPLEMENTATION: CR-094 `GET /scan/loyalty-rules/{rid}` (plan v2, owner-approved)
 - `scan.py` + new route (33-key whitelist, per-tier ₹/pt resolved server-side, IP 60/min, 404 unknown rid, Cache-Control 60 s), `tests/test_cr094_loyalty_rules.py` R1–R13. Self-test 13/13; 093+089 regression 24/1s. Findings: preview edge rewrites `Cache-Control` to no-store (ENV, origin correct); limiter test must be concurrent. BUG-031/032 fixed. Docs: `qa/CR_094_QA_HANDOVER.md`, change-log CA row. **Next: QA role** (testing agent, backend only).
+
+## 2026-10-09 — INTAKE: ENV-002 production edge verification (docs only, no code)
+- Infra team checks I1–I6 on `crm.mygenie.online`: `Cache-Control` passthrough, `X-Forwarded-For` trust for scan IP limiters, edge latency. CRM follow-up CR only if XFF is spoofable in prod. Intake: `crm/crm_roi_sprint/discovery/SESSION_2026_10_09_INTAKE_ENV002_PROD_EDGE_CHECK.md`.

@@ -160,6 +160,8 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 58 | `BUG-031 CR-094 plan silent on null handling for *_redemption_value (40/41 null) / max_redemption_amount (38/41 null)` | BUG — PLAN_GAP (CR-094) | same intake §3 | `bug031_fixed_in_cr094_impl_2026_10_09` |
 | 59 | `BUG-032 CR-094 plan test R6 targets r69 → 404 (pos_owner_69_bdd4513c; BUG-030) — fixture must be r689` | BUG — PLAN_GAP (CR-094, tests only) | same intake §4 | `bug032_fixed_in_cr094_impl_2026_10_09` |
 | 60 | `BUG-033 POS contract v1 §3.1 doc gaps (10/15 fields described, off_peak_bonus_type constants, tz, expiry 0)` | BUG — DOC | same intake §5 | `bug033_accepted_ca_notes_to_cr094_pos_side_parked_with_cr103` |
+| 61 | `ENV-002 Production edge verification for /api/scan/* public reads — Cache-Control passthrough (preview edge forces no-store), X-Forwarded-For trust (IP limiters key on XFF[0]), edge latency` | ENVIRONMENT — infra verification on production | Intake: `../discovery/SESSION_2026_10_09_INTAKE_ENV002_PROD_EDGE_CHECK.md` | `env002_registered_p2_low_owner_hand_to_infra_i1_i6` |
+
 
 
 ## 6. Next Immediate Action

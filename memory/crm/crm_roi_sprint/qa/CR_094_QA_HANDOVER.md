@@ -34,7 +34,7 @@ Keys: `loyalty_enabled wallet_enabled coupon_enabled · bronze/silver/gold/plati
 Regression (shared limiter): `test_cr093_lookup.py` + `test_cr089_skip_otp.py` → 24 pass / 1 skip ✅. r69 → 404 (BUG-030, expected).
 
 ## Findings during self-test (not code defects)
-- **NOTE-1 (ENV)**: the preview edge (Cloudflare → ingress) rewrites `Cache-Control` to `no-store, no-cache, must-revalidate` on **every** route (also `/api/health`). Origin header is correct. Customer App on preview will get no-store; **verify on the production domain** before relying on the 60 s cache. Candidate ENV-002 (owner to confirm registration).
+- **NOTE-1 (ENV)**: the preview edge (Cloudflare → ingress) rewrites `Cache-Control` to `no-store, no-cache, must-revalidate` on **every** route (also `/api/health`). Origin header is correct. Customer App on preview will get no-store; **verify on the production domain** before relying on the 60 s cache. Registered as **ENV-002** (`discovery/SESSION_2026_10_09_INTAKE_ENV002_PROD_EDGE_CHECK.md`) — infra checks I1–I6 on production.
 - **NOTE-2 (test design)**: 61 sequential round-trips through the edge take >60 s → the sliding window empties before call 61; R5 now fires concurrently with a fresh random IP per run. Same constraint applies to any future ≥60/min limiter test.
 
 ## QA asks
