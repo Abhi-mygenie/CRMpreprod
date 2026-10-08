@@ -60,8 +60,9 @@ def test_v4_staff_pw_removed(method, path, needs_auth, auth_headers):
 
 # V5: skip-otp still works
 def test_v5a_skip_otp_valid():
+    # BUG-027: use an r689 doc that has country_code (9876543210 legacy doc lacks it → duplicate per run)
     r = requests.post(f"{BASE_URL}/api/scan/auth/skip-otp",
-                      json={"phone": "9876543210", "restaurant_id": "689"}, timeout=30)
+                      json={"phone": "9838777712", "restaurant_id": "689"}, timeout=30)
     assert r.status_code == 200, r.text
     data = r.json()
     assert data.get("data", {}).get("token"), data

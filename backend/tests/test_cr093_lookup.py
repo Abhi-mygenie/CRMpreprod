@@ -174,6 +174,27 @@ def test_L11_explain_ixscan(mongo):
 
 
 # L12 — regressions
+# L11 (BUG-029) — invalid phone consumes the IP bucket; IP bucket precedes validation
+def test_L11a_invalid_consumes_ip_bucket(mongo):
+    ip = "10.77.11.1"
+    mongo.scan_lookup_attempts.delete_many({"key": f"ip:{ip}"})
+    r = _post({"phone": "abc", "restaurant_id": "689"}, ip=ip)
+    assert r.status_code == 400
+    assert mongo.scan_lookup_attempts.count_documents({"key": f"ip:{ip}"}) == 1
+    assert mongo.scan_lookup_attempts.count_documents({"key": {"$regex": "^ph:.*abc$"}}) == 0
+
+
+def test_L11b_ip_429_precedes_validation(mongo):
+    ip = "10.77.11.2"
+    mongo.scan_lookup_attempts.delete_many({"key": f"ip:{ip}"})
+    for i in range(10):
+        r = _post({"phone": f"90000 0{1000 + i}", "restaurant_id": "689"}, ip=ip)
+        assert r.status_code == 200, r.text
+    r = _post({"phone": "abc", "restaurant_id": "689"}, ip=ip)
+    assert r.status_code == 429, f"11th (invalid) must be 429 not 400: {r.status_code} {r.text}"
+    assert r.headers.get("Retry-After", "").isdigit()
+
+
 def test_L12a_skip_otp_empty_422():
     r = requests.post(f"{BASE_URL}/api/scan/auth/skip-otp", json={}, timeout=30)
     assert r.status_code == 422, r.text

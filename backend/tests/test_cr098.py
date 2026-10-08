@@ -34,11 +34,33 @@ def staff_headers(staff_token):
     return {"Authorization": f"Bearer {staff_token}"}
 
 
+from pymongo import MongoClient
+from dotenv import dotenv_values
+
+_env = dotenv_values("/app/backend/.env")
+# BUG-026: the two test_restaurant password-holders (1234567890 / 8888888888) are unreachable by design
+# (invalid phones under CR-085-A). Use an existing r689 customer that has country_code set.
+SKIP_PHONE = "9838777712"
+SKIP_RID = "689"
+
+
 @pytest.fixture(scope="module")
-def customer_token():
-    """P5 — skip-otp with pre-existing password-having customer (test_restaurant/1234567890)."""
+def mongo():
+    cli = MongoClient(_env["MONGO_URL"])
+    yield cli[_env["DB_NAME"]]
+    cli.close()
+
+
+@pytest.fixture(scope="module")
+def baseline(mongo):
+    return mongo.customers.count_documents({})
+
+
+@pytest.fixture(scope="module")
+def customer_token(baseline):
+    """P5 — skip-otp is the sole identity path; must match the existing doc, never create."""
     r = requests.post(f"{BASE_URL}{SKIP_OTP}",
-                      json={"phone": "1234567890", "restaurant_id": "test_restaurant"}, timeout=30)
+                      json={"phone": SKIP_PHONE, "restaurant_id": SKIP_RID}, timeout=30)
     assert r.status_code == 200, f"skip-otp P5 failed: {r.status_code} {r.text[:300]}"
     data = r.json()
     tok = data.get("data", {}).get("token")
@@ -74,11 +96,21 @@ def test_p5_skip_otp_existing_password_customer(customer_token):
     assert customer_token  # fixture asserts shape
 
 
-def test_p5_skip_otp_second_phone():
+def test_p5_skip_otp_second_phone(mongo):
+    before = mongo.customers.count_documents({"user_id": f"pos_0001_restaurant_{SKIP_RID}"})
     r = requests.post(f"{BASE_URL}{SKIP_OTP}",
-                      json={"phone": "8888888888", "restaurant_id": "test_restaurant"}, timeout=30)
+                      json={"phone": "7505242126", "restaurant_id": SKIP_RID}, timeout=30)
     assert r.status_code == 200, r.text
     assert r.json().get("data", {}).get("token"), r.json()
+    assert mongo.customers.count_documents({"user_id": f"pos_0001_restaurant_{SKIP_RID}"}) == before
+
+
+def test_p5b_password_holders_unreachable_by_design():
+    """BUG-026 / owner Q3: legacy password-holder test phones are invalid → 400, never 500."""
+    for ph in ("1234567890", "8888888888"):
+        r = requests.post(f"{BASE_URL}{SKIP_OTP}",
+                          json={"phone": ph, "restaurant_id": "test_restaurant"}, timeout=30)
+        assert r.status_code == 400, f"{ph}: {r.status_code} {r.text[:200]}"
 
 
 # ---------- P6: /auth/me returns Security Researcher, no password_hash ----------
@@ -88,7 +120,7 @@ def test_p6_me_with_token(customer_token):
     assert r.status_code == 200, r.text
     body = r.json()
     data = body.get("data") or {}
-    assert data.get("name") == "Security Researcher", f"unexpected name: {data.get('name')} full={body}"
+    assert data.get("id") and data.get("phone") == SKIP_PHONE, f"unexpected profile: {body}"
     # No password_hash anywhere in response body
     assert "password_hash" not in r.text, f"password_hash leaked in /auth/me: {r.text[:400]}"
 
@@ -118,7 +150,12 @@ def test_p9_customers_list(staff_headers):
 
 # ---------- P9b: skip-otp with restaurant_id "689" also 200 ----------
 def test_p9b_skip_otp_689():
+    # BUG-027: 9876543210@r689 is a legacy doc without country_code → would create a duplicate each run.
     r = requests.post(f"{BASE_URL}{SKIP_OTP}",
-                      json={"phone": "9876543210", "restaurant_id": "689"}, timeout=30)
+                      json={"phone": SKIP_PHONE, "restaurant_id": SKIP_RID}, timeout=30)
     assert r.status_code == 200, r.text
     assert r.json().get("data", {}).get("token"), r.json()
+
+
+def test_zz_customers_count_unchanged(mongo, baseline):
+    assert mongo.customers.count_documents({}) == baseline

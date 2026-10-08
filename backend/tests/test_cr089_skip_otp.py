@@ -168,13 +168,67 @@ def test_S4b_phone_key_normalisation():
     assert codes[5] == 429, results
 
 
+# ---------- S4c (BUG-025): prefixed variants share the canonical bucket ----------
+def test_S4c_phone_bucket_canonical(mongo):
+    base = EXISTING_PHONES[35]  # '7081138600', unused by S3/S4/S4b
+    mongo.scan_lookup_attempts.delete_many({"key": {"$regex": f"^so-ph:.*{base}$"}})
+    before = mongo.customers.count_documents({"user_id": "pos_0001_restaurant_689"})
+    variants = [base] * 5 + [f"+91 {base}", f"0{base}", f"{base[:5]} {base[5:]}"]
+    codes = [_post_skip({"phone": p, "restaurant_id": "689"}, ip=f"10.55.6.{30+i}").status_code
+             for i, p in enumerate(variants)]
+    assert codes[:5] == [200] * 5, codes
+    assert codes[5:] == [429] * 3, f"prefixed variants must hit the same bucket: {codes}"
+    assert mongo.customers.count_documents({"user_id": "pos_0001_restaurant_689"}) == before
+
+
+# ---------- S4d (BUG-025 Q1=A): invalid phone consumes the IP bucket, never a phone bucket ----------
+def test_S4d_invalid_counts_toward_ip(mongo):
+    ip = "10.55.7.77"
+    mongo.scan_lookup_attempts.delete_many({"key": f"so-ip:{ip}"})
+    r = _post_skip({"phone": "0000000000", "restaurant_id": "689"}, ip=ip)
+    assert r.status_code == 400, r.text
+    assert mongo.scan_lookup_attempts.count_documents({"key": f"so-ip:{ip}"}) == 1
+    assert mongo.scan_lookup_attempts.count_documents({"key": {"$regex": "^so-ph:.*0000000000$"}}) == 0
+
+
+# ---------- C102 (CR-102): country_code honoured ----------
+def test_C102a_cc_omitted_defaults_91(mongo):
+    before = mongo.customers.count_documents({})
+    r = _post_skip({"phone": EXISTING_PHONES[36], "restaurant_id": "689"}, ip="10.55.8.1")
+    assert r.status_code == 200, r.text
+    assert mongo.customers.count_documents({}) == before
+
+
+def test_C102b_foreign_cc_stored_idempotent(mongo):
+    body = {"phone": "412345678", "country_code": "+61", "restaurant_id": "689"}
+    try:
+        r1 = _post_skip(body, ip="10.55.8.2")
+        assert r1.status_code == 200, r1.text
+        assert r1.json()["data"]["is_new_customer"] is True
+        doc = mongo.customers.find_one({"user_id": "pos_0001_restaurant_689", "phone": "412345678"})
+        assert doc and doc.get("country_code") == "+61", doc
+        r2 = _post_skip(body, ip="10.55.8.3")
+        assert r2.status_code == 200 and r2.json()["data"]["is_new_customer"] is False, r2.text
+        assert mongo.customers.count_documents({"user_id": "pos_0001_restaurant_689", "phone": "412345678"}) == 1
+        # same digits under +91 → 9 digits invalid → 400 (proves cc is honoured, not ignored)
+        r3 = _post_skip({"phone": "412345678", "country_code": "+91", "restaurant_id": "689"}, ip="10.55.8.4")
+        assert r3.status_code == 400, r3.text
+    finally:
+        mongo.customers.delete_many({"user_id": "pos_0001_restaurant_689", "phone": "412345678"})
+
+
+def test_C102d_bad_cc_400():
+    r = _post_skip({"phone": EXISTING_PHONES[36], "country_code": "abc", "restaurant_id": "689"}, ip="10.55.8.5")
+    assert r.status_code == 400, r.text
+
+
 # ---------- S6 ----------
 def test_S6_mongo_keys_present(mongo):
-    # Must find both so-ip: and so-ph: keys inserted during this run
+    # Must find both so-ip: and canonical so-ph:<rid>:+<cc><digits> keys inserted during this run
     ip_key = mongo.scan_lookup_attempts.find_one({"key": {"$regex": "^so-ip:"}})
-    ph_key = mongo.scan_lookup_attempts.find_one({"key": {"$regex": "^so-ph:"}})
+    ph_key = mongo.scan_lookup_attempts.find_one({"key": {"$regex": r"^so-ph:.*:\+\d"}})
     assert ip_key is not None, "no so-ip:* keys found"
-    assert ph_key is not None, "no so-ph:* keys found"
+    assert ph_key is not None, "no canonical so-ph:* keys found"
 
 
 # ---------- S7 ----------

@@ -8,7 +8,7 @@ from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 import uuid
 import logging
-import re
+import re  # noqa: F401  (kept: used by other helpers' future edits; BUG-025 removed the only call)
 
 from core.database import db
 from core.phone import normalize_phone, phone_match
@@ -192,6 +192,7 @@ def _resp(success: bool, message: str, data=None):
 class SkipOTPRequest(BaseModel):
     phone: str
     restaurant_id: str
+    country_code: Optional[str] = "+91"  # CR-102: mirror LookupRequest (Customer App sends it)
 
 
 class LookupRequest(BaseModel):  # CR-093
@@ -204,21 +205,20 @@ class LookupRequest(BaseModel):  # CR-093
 async def skip_otp_login(req: SkipOTPRequest, request: Request):
     """Silent login without OTP. Finds or creates customer by phone, returns full token."""
     full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
-    # CR-089: rate-limit the only identity path. Separate buckets from lookup (D-2). Key normalised to digits; stored value untouched (CR-085).
-    phone_key = re.sub(r"\D", "", req.phone or "")
-    for key, (limit, window) in (
-        (f"so-ip:{_client_ip(request)}", _SKIP_OTP_IP_LIMIT),
-        (f"so-ph:{full_restaurant_id}:{phone_key}", _SKIP_OTP_PHONE_LIMIT),
-    ):
-        retry = await _lookup_rate_limited(key, limit, window)
-        if retry:
-            raise HTTPException(status_code=429, detail="Too many login attempts", headers={"Retry-After": str(retry)})
-    now = datetime.now(timezone.utc).isoformat()
+    # CR-089 + BUG-025 (Q1=A): IP bucket first so invalid phones still count; phone bucket keyed on canonical {cc}{digits}.
+    retry = await _lookup_rate_limited(f"so-ip:{_client_ip(request)}", *_SKIP_OTP_IP_LIMIT)
+    if retry:
+        raise HTTPException(status_code=429, detail="Too many login attempts", headers={"Retry-After": str(retry)})
 
-    # CR-085 W13: canonical phone; diner is present → reject invalid (Option A).
-    phone, cc, pstatus = normalize_phone(req.phone)
+    # CR-085 W13: canonical phone; diner is present → reject invalid (Option A). CR-102: honour country_code.
+    phone, cc, pstatus = normalize_phone(req.phone, req.country_code)
     if pstatus == "invalid":
         raise HTTPException(status_code=400, detail="Enter a valid mobile number")
+
+    retry = await _lookup_rate_limited(f"so-ph:{full_restaurant_id}:{cc}{phone}", *_SKIP_OTP_PHONE_LIMIT)  # BUG-025
+    if retry:
+        raise HTTPException(status_code=429, detail="Too many login attempts", headers={"Retry-After": str(retry)})
+    now = datetime.now(timezone.utc).isoformat()
 
     customer = await db.customers.find_one(
         phone_match(full_restaurant_id, phone, cc),
@@ -280,17 +280,17 @@ async def get_me(auth: dict = Depends(verify_customer_token)):
 @router.post("/auth/lookup")
 async def lookup_customer(req: LookupRequest, request: Request):
     """CR-093: public, read-only existence check. Never creates, never returns a token."""
+    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
+    # BUG-029: IP bucket before validation so invalid phones still count (same order as skip-otp).
+    retry = await _lookup_rate_limited(f"ip:{_client_ip(request)}", *_LOOKUP_IP_LIMIT)
+    if retry:
+        raise HTTPException(status_code=429, detail="Too many lookups", headers={"Retry-After": str(retry)})
     phone, cc, pstatus = normalize_phone(req.phone, req.country_code)  # CR-085 W14: shared helper
     if pstatus == "invalid":
         raise HTTPException(status_code=400, detail="Invalid phone or country_code")
-    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
-    for key, (limit, window) in (
-        (f"ip:{_client_ip(request)}", _LOOKUP_IP_LIMIT),
-        (f"ph:{full_restaurant_id}:{cc}{phone}", _LOOKUP_PHONE_LIMIT),
-    ):
-        retry = await _lookup_rate_limited(key, limit, window)
-        if retry:
-            raise HTTPException(status_code=429, detail="Too many lookups", headers={"Retry-After": str(retry)})
+    retry = await _lookup_rate_limited(f"ph:{full_restaurant_id}:{cc}{phone}", *_LOOKUP_PHONE_LIMIT)
+    if retry:
+        raise HTTPException(status_code=429, detail="Too many lookups", headers={"Retry-After": str(retry)})
     customer = await db.customers.find_one(
         {"user_id": full_restaurant_id, "phone": phone, "country_code": cc, "is_blocked": {"$ne": True}, "phone_invalid": {"$ne": True}},
         {"_id": 0, "name": 1},
