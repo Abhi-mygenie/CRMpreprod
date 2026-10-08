@@ -168,3 +168,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 ## 2026-10-09 — DECISIONS CR-094 (Q1 yes, Q2 yes, Q3 flat) · CR-096 (phone optional, 400 on invalid supplied phone, Q4 no; Q1/Q3 pending) — docs only
 
 ## 2026-10-09 — DECISIONS CR-096 Q1 401 · Q3 order_id null → IA closed; case table A–G frozen. CR-094 IA closed. Impl Plan gates not opened (owner). Docs only.
+
+## 2026-10-09 — PLANNING: CR-094 + CR-096 Implementation Plans (no code)
+- 094: whitelist public route, 9 tests, LOW. 096: hybrid route per case table, limits, index, 14 tests, MEDIUM; finding: `Feedback` response model requires name/phone → staff list 500s for scan-feedback tenants today (Q5 fold fix). Q6 keep `linked`. Awaiting approval.
