@@ -182,3 +182,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — PLANNING: CR-094 Implementation Plan v2 (amendment, no code)
 - 33 flat keys (+birthday/anniversary), per-tier redemption resolved server-side (never null), r689 fixture, R1–R13, expanded consumer note. Awaiting owner approval of v2 → "choose implementation role for CR-094".
+
+## 2026-10-09 — Session handover written
+- `crm/crm_roi_sprint/handoff/SESSION_2026_10_09_HANDOVER_CR094_PLAN_V2_AWAITING_APPROVAL.md` — next agent: present the whole batch flow table (Waves 1–5 + data cleanup last), then ask owner to approve CR-094 plan v2 and open the implementation gate. No code changed this session.
