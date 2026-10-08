@@ -161,3 +161,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — IMPLEMENTED + QA: BUG-025 · 026 · 027 · 029 · CR-102 (bundled, `scan.py`)
 - skip-otp: IP bucket → normalise → 400 → canonical `so-ph:{rid}:{cc}{digits}`; `country_code` accepted (default +91); lookup IP bucket before validation; stale/leaking fixtures fixed. Self-test 105+2s; independent QA `iteration_8.json` PASS (10/10 + 105/105), baseline 7705. Report `qa/BUG025_029_CR102_QA_REPORT.md`; change-log entry for Customer App; contract v1.1 additive note. Next: owner smoke → Closure.
+
+## 2026-10-09 — PLANNING: CR-094 + CR-096 Impact Analyses (no code)
+- 094 public loyalty-rules whitelist (Q1 per-tier redemption, Q2 feedback bonus fields, Q3 flat vs nested). 096 hybrid feedback: optional token, phone+cc match existing only, never create, unlinked on miss, limits, index (Q1 invalid token, Q2 invalid phone, Q3 order_id mismatch, Q4 bonus out of scope). Awaiting owner answers.
