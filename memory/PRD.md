@@ -155,3 +155,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - `skip-otp` must accept `country_code` (Customer App sends it; schema drops it). P2/LOW, may ride with BUG-025 (owner Q-B). CR-100/085-B scope +10 docs with `country_code:""` (63 total + 13 twins).
 
 ## 2026-10-09 — PLANNING amendment: BUG-025/026 plan + opt-in E5 (BUG-029) / E6 (CR-102) (no code)
+
+## 2026-10-09 — PLANNING: BUG-029 + CR-102 IA + Impl Plans (separate docs, no code)
+- BUG-029 lookup IP-bucket-first (+2 tests). CR-102 skip-otp `country_code` Option A (+4 tests), contract v1.1 note, CR-096 must carry cc. Both LOW; implement with BUG-025/026 once approved.
