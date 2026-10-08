@@ -164,3 +164,5 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — PLANNING: CR-094 + CR-096 Impact Analyses (no code)
 - 094 public loyalty-rules whitelist (Q1 per-tier redemption, Q2 feedback bonus fields, Q3 flat vs nested). 096 hybrid feedback: optional token, phone+cc match existing only, never create, unlinked on miss, limits, index (Q1 invalid token, Q2 invalid phone, Q3 order_id mismatch, Q4 bonus out of scope). Awaiting owner answers.
+
+## 2026-10-09 — DECISIONS CR-094 (Q1 yes, Q2 yes, Q3 flat) · CR-096 (phone optional, 400 on invalid supplied phone, Q4 no; Q1/Q3 pending) — docs only

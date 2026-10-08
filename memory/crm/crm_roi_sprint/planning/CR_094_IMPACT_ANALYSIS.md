@@ -62,3 +62,7 @@ Owner decisions: Q1 redemption-by-tier · Q2 feedback bonus · Q3 flat vs nested
 Docs: planning/CR_094_IMPACT_ANALYSIS.md
 Next: owner answers → Implementation Plan
 ```
+
+
+## Owner rulings 2026-10-09
+Q1 **yes** · Q2 **yes** (Customer App hides bonus copy until an award CR exists) · Q3 **flat** (CA-6 names). → ready for Implementation Plan.

@@ -54,3 +54,11 @@ Owner decisions: Q1 invalid token · Q2 invalid phone · Q3 order_id mismatch ·
 Docs: planning/CR_096_IMPACT_ANALYSIS.md
 Next: owner answers → Implementation Plan (ship target w/c 27 Oct)
 ```
+
+
+## Owner rulings 2026-10-09 (amend §3/§5)
+- **Phone is optional** on the no-token path. `{restaurant_id}` alone is valid → anonymous feedback, `customer_id:null`, `identity_source:"none"`, `linked:false`.
+- **Q2 → 400 on invalid supplied phone** (not store-unlinked). Customer App validates client-side and sends canonical digits + `country_code`; CRM applies the same validity rule as skip-otp. Junk phones are never stored.
+- **Q4 → No** (bonus award = separate CR).
+- Q1 (401) and Q3 (store `order_id:null`) — explained, awaiting owner confirmation.
+Validation matrix therefore: no token + no phone → 200 unlinked (V4a); no token + invalid phone → 400 (V4b); no token + valid unknown phone → 200 unlinked with `customer_phone` (V3); no token + valid known phone → 200 linked (V2). `restaurant_id` required when no token (422 otherwise).
