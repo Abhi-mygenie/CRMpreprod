@@ -141,7 +141,7 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 39 | `CR-089 skip-otp guard rails` | CR — auth security | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §6 | `cr089_registered_p2_medium_q1_q2_owner_risk_decision` |
 | 40 | `CR-090 Customer OTP delivery + forgot/reset-password` | CR — new integration | Intake: `../discovery/SESSION_2026_09_15_BATCH_INTAKE_CR084_CR090.md` §7 | `cr090_blocked_p2_high_q1_channel_decision` |
 | 41 | `CR-093 Public customer lookup POST /scan/auth/lookup ({exists,name}, no create, rate-limited)` | CR — new public auth-adjacent route | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §1 | `cr093_registered_p1_high_q1_q2_pending` |
-| 42 | `CR-094 Public loyalty rules GET /scan/loyalty-rules/{rid}` | CR — new public read route | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §2 | `cr094_registered_p2_medium_q1_pending` |
+| 42 | `CR-094 Public loyalty rules GET /scan/loyalty-rules/{rid}` | CR — new public read route | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §2 | `cr094_implemented_2026_10_09_self_test_13_13_qa_pending` |
 | 43 | `CR-095 Remove orphan /scan/config + /scan/menu/dietary-tags routes (4 routes, Customer-App-owned collections)` | BUG — security / ownership | Intake: `../discovery/SESSION_2026_09_28_BATCH_INTAKE_CR093_CR095.md` §3 | `cr095_registered_p1_critical_owner_d1_d2_yes_cutover_gated` |
 | 44 | `BUG-025 skip-otp limiter phone bucket evaded by +91 / leading-0 prefix (key not canonical)` | BUG — security/abuse gap (CR-089) | Intake: `../discovery/SESSION_2026_10_09_BATCH_INTAKE_BUG025_BUG028_CR099.md` | `bug025_registered_p2_low` |
 | 45 | `BUG-026 test_cr098.py fixture phone 8888888888 invalid under canonical rule` | BUG — test hygiene | same intake | `bug026_registered_p3_low_tests_only` |
@@ -157,8 +157,8 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 | 55 | `CR-102 skip-otp accept country_code (Customer App already sends it; schema drops it → +91 assumed)` | CR — contract gap on identity path | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR102.md` | `cr102_registered_p2_low_may_ride_with_bug025` |
 | 56 | `CR-103 POS L-1 parity: add the 14 CR-094 fields (per-tier redemption, max_redemption_*, min_order_value, bonuses, off-peak type/value, expiry) to GET /pos/loyalty/settings` | CR — POS API contract (additive) | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR103_CR104_BUG031_BUG033.md` §1 | `cr103_parked_owner_2026_10_09_no_pos_api_or_contract_changes_this_batch` |
 | 57 | `CR-104 Feedback bonus award — feedback_bonus_enabled/points configured + shown in UI but no code path awards them` | CR — loyalty feature gap (§14) | same intake §2 | `cr104_registered_p3_high_qb_c_decide_at_cr096_closure` |
-| 58 | `BUG-031 CR-094 plan silent on null handling for *_redemption_value (40/41 null) / max_redemption_amount (38/41 null)` | BUG — PLAN_GAP (CR-094) | same intake §3 | `bug031_decided_q4_b_server_side_resolution_plan_amendment_pending` |
-| 59 | `BUG-032 CR-094 plan test R6 targets r69 → 404 (pos_owner_69_bdd4513c; BUG-030) — fixture must be r689` | BUG — PLAN_GAP (CR-094, tests only) | same intake §4 | `bug032_decided_q5_r689_plan_amendment_pending` |
+| 58 | `BUG-031 CR-094 plan silent on null handling for *_redemption_value (40/41 null) / max_redemption_amount (38/41 null)` | BUG — PLAN_GAP (CR-094) | same intake §3 | `bug031_fixed_in_cr094_impl_2026_10_09` |
+| 59 | `BUG-032 CR-094 plan test R6 targets r69 → 404 (pos_owner_69_bdd4513c; BUG-030) — fixture must be r689` | BUG — PLAN_GAP (CR-094, tests only) | same intake §4 | `bug032_fixed_in_cr094_impl_2026_10_09` |
 | 60 | `BUG-033 POS contract v1 §3.1 doc gaps (10/15 fields described, off_peak_bonus_type constants, tz, expiry 0)` | BUG — DOC | same intake §5 | `bug033_accepted_ca_notes_to_cr094_pos_side_parked_with_cr103` |
 
 

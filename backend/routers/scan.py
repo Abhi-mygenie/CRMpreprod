@@ -2,7 +2,7 @@
 Scan & Order Customer-Facing API
 All /scan/* endpoints for the customer mobile/web app
 """
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Response  # CR-094: Response
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
@@ -16,7 +16,8 @@ from core.auth import (
     verify_customer_token, create_customer_token,
     get_current_user
 )
-from core.helpers import calculate_tier, get_earn_percent_for_tier
+from core.helpers import calculate_tier, get_earn_percent_for_tier, get_redemption_value_for_tier  # CR-094
+from core.loyalty import default_loyalty_settings  # CR-094
 from models.schemas import CustomerAddressCreate, CustomerAddressUpdate
 
 logger = logging.getLogger(__name__)
@@ -300,6 +301,41 @@ async def lookup_customer(req: LookupRequest, request: Request):
         return _resp(True, "Not found", {"exists": False, "name": None})
     name = (customer.get("name") or "").strip() or None  # Q3: blank → null
     return _resp(True, "Found", {"exists": True, "name": name})
+
+
+_LOYALTY_RULES_IP_LIMIT = (60, 60)  # CR-094: 60/min per IP (no identity data)
+_LOYALTY_RULES_TIERS = ("bronze", "silver", "gold", "platinum")
+_LOYALTY_RULES_FIELDS = (  # CR-094 whitelist = POS L-1 (pos_loyalty.py:44) + Q1/Q2/Q6 additions; flat names (Q3). 33 keys.
+    "loyalty_enabled", "wallet_enabled", "coupon_enabled",
+    "bronze_earn_percent", "silver_earn_percent", "gold_earn_percent", "platinum_earn_percent",
+    "tier_silver_min", "tier_gold_min", "tier_platinum_min",
+    "redemption_value", "bronze_redemption_value", "silver_redemption_value", "gold_redemption_value", "platinum_redemption_value",
+    "min_redemption_points", "max_redemption_percent", "max_redemption_amount", "min_order_value",
+    "first_visit_bonus_enabled", "first_visit_bonus_points",
+    "birthday_bonus_enabled", "birthday_bonus_points",          # Q6 — informational; award scheduler not enabled
+    "anniversary_bonus_enabled", "anniversary_bonus_points",    # Q6 — informational; award scheduler not enabled
+    "feedback_bonus_enabled", "feedback_bonus_points",          # Q2 — informational; nothing awards it (CR-104 deferred)
+    "off_peak_bonus_enabled", "off_peak_bonus_type", "off_peak_bonus_value", "off_peak_start_time", "off_peak_end_time",
+    "points_expiry_months",
+)
+
+
+@router.get("/loyalty-rules/{restaurant_id}")
+async def loyalty_rules(restaurant_id: str, request: Request, response: Response):
+    """CR-094: public, read-only, whitelisted loyalty rules for the Customer App pre-login preview."""
+    retry = await _lookup_rate_limited(f"lr-ip:{_client_ip(request)}", *_LOYALTY_RULES_IP_LIMIT)
+    if retry:
+        raise HTTPException(status_code=429, detail="Too many requests", headers={"Retry-After": str(retry)})
+    rid = _normalize_restaurant_id(restaurant_id)
+    if not await db.users.find_one({"id": rid}, {"_id": 0, "id": 1}):
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    defaults = default_loyalty_settings(rid)
+    settings = {**defaults, **(await db.loyalty_settings.find_one({"user_id": rid}, {"_id": 0}) or {})}
+    data = {k: settings.get(k) for k in _LOYALTY_RULES_FIELDS}
+    for tier in _LOYALTY_RULES_TIERS:  # CR-094 Q4 (b): effective ₹/point per tier, never null
+        data[f"{tier}_redemption_value"] = get_redemption_value_for_tier(tier.capitalize(), settings)
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return _resp(True, "Loyalty rules", data)
 
 
 # CR-098: customer password register removed 2026-10 (could set a password on any existing customer by phone).

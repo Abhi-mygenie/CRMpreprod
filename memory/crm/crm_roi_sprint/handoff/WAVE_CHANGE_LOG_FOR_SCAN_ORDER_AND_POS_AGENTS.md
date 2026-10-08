@@ -76,7 +76,18 @@
 | Evidence | S3 31st call 429 `retry-after: 24`; S4 6th call 429; lookup from throttled IP 200; customers count unchanged |
 | Validation note | `handoff/CRM_TO_SCAN_ORDER_CR089_SKIP_OTP_RATE_LIMIT_PLEASE_VALIDATE_2026_10_09.md` (owner sends) |
 
-_CR-094 loyalty-rules — row added when implemented_
+### Customer-App-facing note 2026-10-09 — CR-094 `GET /api/scan/loyalty-rules/{rid}` (NEW)
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-09** (implemented, self-test 13/13; QA + consumer validation pending) |
+| Audience | Customer App |
+| New | `GET /api/scan/loyalty-rules/{rid}` — public, no auth, `rid` short `689` or full. `200 {success,message,data}` with **33 flat keys** (CA-6 names): `loyalty_enabled wallet_enabled coupon_enabled · bronze/silver/gold/platinum_earn_percent · tier_silver/gold/platinum_min · redemption_value · bronze/silver/gold/platinum_redemption_value · min_redemption_points max_redemption_percent max_redemption_amount min_order_value · first_visit_bonus_enabled/points · birthday_bonus_enabled/points · anniversary_bonus_enabled/points · feedback_bonus_enabled/points · off_peak_bonus_enabled off_peak_bonus_type off_peak_bonus_value off_peak_start_time off_peak_end_time · points_expiry_months`. `404` unknown rid · `429` + `Retry-After` at 60/min per IP. |
+| Semantics | `*_redemption_value` = **effective ₹ per point per tier, already resolved, never null** (do not re-implement fallback). `max_redemption_amount: null` = no cap. `points_expiry_months: 0` = never expires. `off_peak_bonus_type ∈ {"multiplier","flat"}`; times `HH:MM` restaurant-local (Asia/Kolkata). **`loyalty_enabled:false` → show no earn/redeem copy** (numbers still returned). |
+| Bonus fields | **Informational only.** `first_visit_*` is awarded at first order. `birthday_*` / `anniversary_*`: award scheduler **not enabled** this batch. `feedback_*`: **nothing awards it** (CR-104 deferred). Do not promise "+N points" for these three. Diner may set `dob`/`anniversary` via existing `PUT /scan/profile`. |
+| Cache | Origin sends `Cache-Control: public, max-age=60`; preview edge currently rewrites to `no-store` (ENV note) — verify on prod domain. |
+| Known | r69 short id → 404 until BUG-030 decided. |
+| Evidence | R1–R13 `backend/tests/test_cr094_loyalty_rules.py`; r689 per-tier 1/2/3/4; r719 all 1.0; 15 shared keys == POS L-1. |
+| Validation note | to be drafted after QA (owner sends). |
 
 ### POS-facing note 2026-10-08 (owner-corrected: gaps are CRM-side; POS ask is optional)
 | Field | Value |

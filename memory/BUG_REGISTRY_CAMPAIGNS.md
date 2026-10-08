@@ -591,7 +591,7 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 
 ## BUG-031: CR-094 Implementation Plan silent on `null` handling for `*_redemption_value` / `max_redemption_amount`
 
-**Reported**: 2026-10-09 (POS-contract validation) · **Severity**: P2 · **Risk**: LOW · **Status**: ✅ DECIDED 2026-10-09 — Q4 = (b) resolve server-side; plan amendment pending Planning role
+**Reported**: 2026-10-09 (POS-contract validation) · **Severity**: P2 · **Risk**: LOW · **Status**: ✅ FIXED 2026-10-09 — CR-094 implementation (R10 PASS)
 **Where**: `planning/CR_094_IMPLEMENTATION_PLAN.md` E1 `settings.get(k, defaults.get(k))`. Live data: per-tier redemption **null in 40/41** `loyalty_settings` docs (key absent in 11); `max_redemption_amount` null in 38/41 (= no cap).
 **Effect**: Customer App would receive nulls and re-implement the CRM fallback chain (`helpers.get_redemption_value_for_tier`: per-tier → `redemption_value` → 0.25) → parity drift.
 **Fix options**: (a) raw null + documented rule · (b) resolve server-side via existing helper (recommended). `max_redemption_amount` stays null = "no cap" (documented).
@@ -599,7 +599,7 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 
 ## BUG-032: CR-094 plan test R6 (parity vs POS for r69) returns 404 — wrong fixture tenant
 
-**Reported**: 2026-10-09 · **Severity**: P3 · **Risk**: LOW (tests only) · **Status**: ✅ DECIDED 2026-10-09 — Q5 = r689; plan amendment pending Planning role · **Related**: BUG-030 (cause), ENV-001
+**Reported**: 2026-10-09 · **Severity**: P3 · **Risk**: LOW (tests only) · **Status**: ✅ FIXED 2026-10-09 — CR-094 R6 on r689 PASS · **Related**: BUG-030 (cause), ENV-001
 **Where**: plan §1 E2 R6 + §3 V10. r69 user id is `pos_owner_69_bdd4513c` → `/scan/loyalty-rules/69` → `pos_0001_restaurant_69` → 404; r69 loyalty off, no per-tier values.
 **Fix**: R6/V10 → r689 (Kunafa Mahal, `api_key` present, loyalty on, per-tier ₹1/2/3/4). BUG-030 remains separate.
 **Intake**: same doc §4.

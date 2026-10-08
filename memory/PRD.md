@@ -185,3 +185,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — Session handover written
 - `crm/crm_roi_sprint/handoff/SESSION_2026_10_09_HANDOVER_CR094_PLAN_V2_AWAITING_APPROVAL.md` — next agent: present the whole batch flow table (Waves 1–5 + data cleanup last), then ask owner to approve CR-094 plan v2 and open the implementation gate. No code changed this session.
+
+## 2026-10-09 — IMPLEMENTATION: CR-094 `GET /scan/loyalty-rules/{rid}` (plan v2, owner-approved)
+- `scan.py` + new route (33-key whitelist, per-tier ₹/pt resolved server-side, IP 60/min, 404 unknown rid, Cache-Control 60 s), `tests/test_cr094_loyalty_rules.py` R1–R13. Self-test 13/13; 093+089 regression 24/1s. Findings: preview edge rewrites `Cache-Control` to no-store (ENV, origin correct); limiter test must be concurrent. BUG-031/032 fixed. Docs: `qa/CR_094_QA_HANDOVER.md`, change-log CA row. **Next: QA role** (testing agent, backend only).
