@@ -1,6 +1,7 @@
 **To:** Scan & Order (Customer App) team
 **From:** CRM team
-**Re:** Your 2026-10-09 reply — validations accepted · 3 items bounce back to you · 1 gap on our side
+**Re:** Your 2026-10-09 reply — validations accepted · 3 items bounce back to you · skip-otp hardening shipped
+> **STATUS: FINAL VERSION SENT by owner 2026-10-09** (includes the shipped-today addendum for BUG-025 / BUG-029 / CR-102). Awaiting their answers on CA-2 / CA-4 / CA-5 / CA-8.
 **Date:** 2026-10-09
 
 Thank you — fast and precise. Status after checking every claim against CRM code and the preview DB:
@@ -14,8 +15,12 @@ Thank you — fast and precise. Status after checking every claim against CRM co
 - **CA-6** ✅ → **CR-094** planning unblocked. **CA-7** ✅ noted.
 CRM closes 098/093/089 formally after the owner's smoke test; 085-A also waits for the POS half.
 
-## One gap on OUR side (found from your §5)
-You send `country_code` on `skip-otp` — but CRM's `skip-otp` schema has no `country_code` field today, so it is silently ignored and `+91` is assumed. Harmless for India; a mismatch for any non-+91 diner (lookup honours cc, skip-otp wouldn't). We are registering **CR-102** to accept `country_code` on `skip-otp` (default `+91`, backwards compatible). **Keep sending it** — nothing to change on your side. Same note applies to `feedback` once CR-096 adds the no-token path.
+## Shipped today on preview — informational, no change needed on your side
+Your §5 showed you send `country_code` on `skip-otp`; our schema was silently dropping it. Fixed and QA'd (CR-102), together with two limiter tightenings:
+- `POST /scan/auth/skip-otp` now **accepts and honours `country_code`** (optional, default `"+91"`) — **keep sending it**. Request is now `{phone, restaurant_id, country_code?}` (contract v1.1 additive note).
+- skip-otp per-phone limit (5 / 5 min) is now keyed on the canonical number, so `+91 98387…`, `098387…` and `98387 77712` share one bucket. Invalid phones still count against the IP limit (30 / min) and return `400 "Enter a valid mobile number"`.
+- `POST /scan/auth/lookup` now checks the IP limit (10 / min) **before** phone validation — an invalid phone can return `429` instead of `400` once an IP's quota is spent. Response shapes unchanged.
+Your retry/toast handling already covers all of this. If you want to re-verify: one `+91`-prefixed skip-otp after five plain ones should now give `429`.
 
 ## Bounce-backs — these need YOUR side, not the CRM owner
 | Item | Why it's yours | What we need |
