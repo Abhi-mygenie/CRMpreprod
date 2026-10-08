@@ -179,3 +179,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — DECISIONS: CR-094 Q4 (b) server-side per-tier resolution · Q5 r689 · Q6 +4 birthday/anniversary fields (33 keys), scheduler NOT enabled · CR-103 PARKED (no POS changes this batch) · CR-104 Q-B (c) defer to 096 closure · BUG-033 accepted (docs only)
 - Finding: `daily_loyalty_jobs` has no env gate but last ran 2026-05-26 — surfaced to owner. Next: "choose planning role: amend CR-094 plan". No code.
+
+## 2026-10-09 — PLANNING: CR-094 Implementation Plan v2 (amendment, no code)
+- 33 flat keys (+birthday/anniversary), per-tier redemption resolved server-side (never null), r689 fixture, R1–R13, expanded consumer note. Awaiting owner approval of v2 → "choose implementation role for CR-094".
