@@ -3,7 +3,7 @@
 
 **Date**: 2026-10-09 · **Role**: Planning Agent · **Risk**: **CRITICAL** (edits `routers/pos.py` `_find_or_create_customer`, `/pos/orders` realtime path, `/pos/webhook/payment-received`, `/pos/customer-lookup` — addendum §14 "do NOT change POS order ingestion / customer identity rules without owner approval"). Full gate + full POS order regression.
 **Parent**: CR-085-A (implemented 2026-10-09, QA PASS, closure gated on this follow-up). Deviation record: `handoff/SESSION_2026_10_09_HANDOVER_CR089_CR085A.md` §085-A2.
-**Frozen decisions** (`DECISIONS_LOG.md` 2026-10-09 ×2): (1) invalid phone on a bill → `customer_id: null`, no customer created or credited, `pos_customer_id` match still runs first and wins; (2) POS `customer-lookup` must not return `phone_invalid:true` records; (3) W3/W4 POS create/update + `customer_sync` keep **F**; (4) no stored document changed (085-B deferred, report-first).
+**Frozen decisions** (`DECISIONS_LOG.md` 2026-10-09 ×3): (1) invalid phone on a bill → `customer_id: null`, no customer created or credited, `pos_customer_id` match still runs first and wins; (2) POS `customer-lookup` must not return `phone_invalid:true` records; (3) W3/W4 POS create/update + `customer_sync` keep **F**; (4) no stored document changed (085-B deferred, report-first); (5) **c1**: coupon on guest bill → usage recorded `customer_id:null`, per-user/specific-users skipped, `core/coupon.py` untouched (CR-082 `requires_customer` stays queued).
 **Effort**: ~2.5 h impl + 1 h QA (incl. 3-tenant POS regression).
 **Gate**: ⏸ OWNER APPROVAL REQUIRED before implementation.
 
@@ -142,7 +142,7 @@ Code reality: PARTIAL (085-A F behaviour live; G not started; lookup filter abse
 Risk: CRITICAL
 Files WILL change: backend/routers/pos.py · backend/tests/test_cr085a_normalization.py
 Files WILL NOT touch: core/*, services/*, routers/customers.py, routers/scan.py, routers/migration.py, models/schemas.py, frontend/*, stored data
-Owner decisions: none new — defaults proposed: (a) guest bill with wallet_used>0 → accept order, don't debit (never block); (b) guest bill → invoice still generated, WhatsApp skipped; (c) coupon usage recorded with customer_id:null
+Owner decisions: (c) FINAL 2026-10-09 = c1 (coupon usage recorded with customer_id:null; per-user/specific-users skipped; CR-082 stays queued). (a) wallet accept/no-debit and (b) invoice yes / WhatsApp no — proposed defaults, stand unless overridden
 Docs: planning/CR_085A2_IMPLEMENTATION_PLAN.md
 Next: Gate approval → Implementation
 ```

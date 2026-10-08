@@ -117,3 +117,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 
 ## 2026-10-09 — PLANNING: CR-085-A2 Implementation Plan written (no code)
 - `planning/CR_085A2_IMPLEMENTATION_PLAN.md`: G on W1 (`_find_or_create_customer` returns None on invalid; `is_guest` branches through `/pos/orders`; `_save_order_and_transactions` None-safe), W2 early guest return, W5 lookup hides invalid + `phone_invalid` records; 6 new tests; verification V1–V14 + 3-tenant regression. Only `routers/pos.py` + test file change. Risk CRITICAL (§14). Awaiting owner approval; proposed defaults (a) wallet on guest accepted/not debited (b) invoice yes/WhatsApp no (c) coupon usage `customer_id:null`.
+
+## 2026-10-09 — DECISION 085-A2 (c1): guest-bill coupon usage recorded with `customer_id:null` (docs only, no code)
+- Per-user / specific-users limits skipped for guests (no customer); `core/coupon.py` untouched. CR-082 `requires_customer` per-coupon flag remains queued. Defaults (a)/(b) stand. Plan `CR_085A2_IMPLEMENTATION_PLAN.md` awaiting owner approval to implement.
