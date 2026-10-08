@@ -1,0 +1,50 @@
+{
+  "summary": "Batch QA Phase C FRONTEND regression (CR-097, CR-085-A, CR-085-A2) on preprod. All 9 flows PASS at functional level. 1 MINOR UI regression (horizontal overflow on /customers at 390px) and 1 NOTE on UX (phone input in Add/Edit Customer dialog sanitizes to digits-only + maxLength=10 so a literal '+91 98765 43955' cannot be typed into the phone field — country code is a separate dropdown; backend still accepts the formatted string via API when sent). Baseline customers count 7700 confirmed at run start and run end — all test data cleaned up.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CustomersPage mobile layout", "issue": "Horizontal overflow at 390px viewport: document.body.scrollWidth=473 vs clientWidth=390 (3 offending elements overflow right edge). Other pages (/coupons /profile /dashboard) have no overflow at same viewport.", "selector": "/customers at 390x844", "priority": "MINOR"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Add Customer / Edit Customer dialog (CustomersPage)", "issues": ["NOTE (UX, not a regression): the phone <Input> uses onChange=e.target.value.replace(/\\\\D/g,'') and maxLength=10. This means the user cannot type/paste a formatted international number like '+91 98765 43955' into the phone field — spaces, '+' and leading country code are stripped on the fly. Country code is picked from a separate dropdown. Backend normalisation DOES accept the formatted string (verified via direct POST /api/customers), but the UI design prevents end-users from entering it. If Phase C spec intended to test backend normalisation through the UI with '+91 98765 43955', that path is not reachable in the UI — digits-only '9876543955' + '+91' dropdown is the equivalent flow and works correctly, saving phone='9876543955'. Same constraint applies to the Edit dialog (data-testid=edit-list-phone-input). Consider either (a) relaxing input sanitisation to allow '+', spaces and leading-0 (lets normalisation happen server-side as designed) or (b) updating spec to use digits-only input in UI assertions."]}
+    ]
+  },
+  "feature_results": {
+    "F1_login_no_forgot": "PASS (desktop + mobile) — /login contains no 'forgot password' / 'reset password' text. Owner login with owner@thegoankitchen.com/Qplazm@10 redirects to / (dashboard).",
+    "F2_profile_no_reset": "PASS — Sidebar has only Profile and Logout items (data-testid=sidebar-profile, sidebar-logout-btn). ProfilePage body text contains no 'Reset Password' / 'Change Password' / 'Forgot Password'. Verified desktop + mobile. Note: this build uses a sidebar nav (not an avatar dropdown); 'Reset Password menu item removed' comment visible at DashboardPage.jsx L213.",
+    "F3_add_customer_invalid_then_valid": "PASS — Invalid phone '12345' → toast 'Enter a valid mobile number' (POST /api/customers 422 {detail:'Enter a valid mobile number'}), no new row. Valid '9876543955' + cc '+91' → POST 200, row visible in list with phone displayed as '9876543955'. See NOTE above regarding '+91 98765 43955' literal input — backend accepts it (curl POST returns 200 with phone normalised to 9876543955) but UI phone <Input> strips non-digits.",
+    "F4_edit_customer": "PASS — Edit F3 customer, phone '0000000000' → PUT 422 'Enter a valid mobile number', record unchanged. Then variant '09876543955' (11-digit leading-0 form, maxLength bypassed via JS to enter 11 chars) → PUT 200, no duplicate row, phone still displayed as '9876543955'.",
+    "F5_csv_import_dedup": "PASS — Uploaded CSV with 'TEST_F5a,9876500055' and 'TEST_F5b,+91 98765 00055'. Import preview endpoint POST /api/customers/import-preview returned 400 {detail:'Duplicate phone numbers found in file: 9876500055 (rows 2, 3). Each phone may appear only once — please fix and re-upload.'} — dialog shows the error, zero customers imported.",
+    "F6_register_route_removed": "PASS — Logged-in GET /register → redirected to / (dashboard rendered). Logged-out GET /register → redirected to /login (shows Email/Password/Sign In form).",
+    "F7_guest_order_renders": "PASS — Created guest order via POST /api/pos/orders with cust_mobile '0000000000' → 200 {data: {customer_id:null, guest_order:true, guest_reason:'invalid_phone'}}. Owner UI then loaded /dashboard, /customers, /analytics, /coupons, /profile, /wallet, /loyalty — all rendered without blank/crash/error banner (body length >200 chars, no 'Something went wrong'). No standalone /orders page exists in this build (RecentOrders / /orders / Orders route not present). Guest order is NOT surfaced in any customer-named list (customer_id=null means it has no owning customer row to attach to in /customers). Dashboard stats include an Orders counter that still works.",
+    "F8_crm_events_15_cards": "PASS — /whatsapp-automation CRM Events tab shows 'All (15)' chip, 'Welcome Message' card present, 'Reset Password (OTP)' NOT present. (POS Events tab also visible as the other tab, not asserted.)",
+    "F9_smoke_console_errors_and_overflow": "PARTIAL — Desktop (1920x800): 0 filtered console errors across /customers,/coupons,/profile,/dashboard. Mobile (390x844): 0 filtered console errors. HORIZONTAL OVERFLOW: /customers body.scrollWidth=473 > clientWidth=390 (3 offenders) — see ui_bugs.MINOR. /coupons /profile /dashboard overflow=false."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "MINOR: Investigate and fix horizontal overflow on /customers at 390px (3 elements extend beyond clientWidth=390 to right=473). Likely offenders are the stats-chip row (Total: 157 / Bronze / Silver / Gold) or the Export+Import+Add header-button cluster. Add overflow-x:hidden to the page root or make the chip/header row wrap on mobile.",
+    "NOTE: Phase C spec for F3/F4 asked us to type formatted phone '+91 98765 43955' / '0 98765 43955' into the Add/Edit Customer phone field. The field strips non-digits via onChange (CustomersPage.jsx L1910 for Add, L2452 for Edit) and has maxLength=10. Backend normalisation handles formatted input correctly (verified by curl), so either relax the UI sanitiser (allow +, spaces, leading 0 — let backend normalise), or update the QA plan to reflect digits-only UI contract.",
+    "NO ACTION NEEDED for CR-097 removals — verified clean (no /login reset link, no /register route, no 'Reset Password (OTP)' event card, no sidebar/profile Reset Password item)."
+  ],
+  "critical_code_review_comments": [
+    "CustomersPage.jsx L1910 and L2452: onChange sanitiser `value.replace(/\\\\D/g,'')` + maxLength=10 blocks user from entering formatted phone strings. Backend normalize_phone() in /app/backend/core/phone.py already handles +91/0/space-separated forms; the UI sanitiser is redundant and prevents the Phase C regression path from being exercised through the UI.",
+    "CR-097 cleanup verified clean in LoginPage.jsx, DashboardPage.jsx (L213 comment confirming Reset Password removal), ResponsiveLayout.jsx, WhatsAppAutomationContent.jsx (no 'reset password' or 'otp' references), App.js (L43 comment '/register removed, staff accounts come from POS').",
+    "No standalone /orders page in /app/frontend/src/pages — F7 could not assert order rendering in a dedicated orders view. Guest orders are correctly invisible from the customer-centric views since customer_id is null (expected per CR-085-A2 design)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only run per request)", "frontend": "9/9 features functionally PASS. 1 MINOR UI bug (overflow). 1 UX NOTE (phone input constraint)."},
+  "test_credentials": "owner@thegoankitchen.com / Qplazm@10. POS X-API-Key for F7: dp_live_BByDf3Q8ldQovB0pMGDIsRiRObwpKJgixgjvy04S1AY (from users.api_key where id='pos_owner_69_bdd4513c').",
+  "seed_data_creation": "Transient only — cleaned up at end: (1) customer TEST_F3 id d3e271d8-a597-45fa-b5c4-41cec0985e63 (deleted via DELETE /api/customers/{id}); (2) one guest order pos_order_id='qa_f7_guest' id b433e47d-f132-49e3-abaa-e379af99bc04 + its order_items row (deleted via direct Mongo). No TEST_F5* customers created (import was rejected at preview step).",
+  "final_customers_count": 7700,
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "classification": {
+    "BLOCKER": [],
+    "MAJOR": [],
+    "MINOR": ["/customers horizontal overflow at 390px"],
+    "NOTE": ["Phone <Input> digits-only + maxLength=10 in Add/Edit Customer dialogs blocks Phase C 'formatted phone' UI path; backend accepts via API"]
+  },
+  "context_for_next_testing_agent": "Baseline customers count stays at 7700 after this iter 7 run. All CR-097 removals verified clean in UI. CR-085-A canonical phone + CSV dedup verified in UI. CR-085-A2 guest-order creation does not crash any CRM UI page. The only reproducible UI issue is horizontal overflow on /customers at 390px (bodySW=473, 3 offenders). For future UI tests on the Add/Edit Customer phone field: the input only accepts digits (max 10) — fill() formatted strings will be stripped on the fly; use digits-only + separate country code dropdown '[data-testid=\"country-code-select\"]' / '[data-testid=\"edit-country-code-select\"]' or bypass maxLength via `element.maxLength = 15` before fill() to simulate pasting 11-digit leading-0 form.",
+  "rca of the issue": "N/A — no functional regression. The one MINOR UI finding (horizontal overflow on /customers at 390px) is a layout bug: specific elements in the Customers page header or stats-chip row have fixed width or lack flex-wrap/truncate on mobile, pushing document.body.scrollWidth to 473px on a 390px viewport. Reproduction: set viewport {width:390,height:844}, navigate to /customers (logged in), check document.body.scrollWidth > clientWidth. Mitigation: add `overflow-x: hidden` on page root or `flex-wrap: wrap` + `min-width:0` on the Total/Bronze/Silver/Gold chip row and the header button cluster (Sync MyGenie / Export / Import / Add)."
+}

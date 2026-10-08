@@ -125,3 +125,8 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - `routers/pos.py` only (18 `# CR-085-A2` markers): invalid/blank phone on `/pos/orders` or `payment-received` → guest (`customer_id:null`, no points/wallet/stats/WhatsApp; invoice yes; coupon usage `customer_id:null`); `pos_customer_id` still wins; `customer-lookup` hides invalid/`phone_invalid`. `_apply_coupon_discount` helper extracted (legacy maths unchanged).
 - Tests: A9 rewritten, +A7b/A11/A11b/A11c/A12. Self-test **68/68**. Baseline 7700. Legacy `Customer ` `phone:""` doc (34 visits) noted for 085-B report.
 - Docs: `qa/CR_085A2_QA_HANDOVER.md`, `handoff/SESSION_2026_10_09_HANDOVER_CR085A2_IMPL.md`, wave change-log POS row updated. **Next: QA** (V5 coupon, V12 replay, V13 orders page, R1–R4).
+
+## 2026-10-09 — QA + REGRESSION (Roles 4+9): Batch Waves 1–3 PASS (no code changed)
+- Owner-approved plan (a). Backend Phase A (085-A2 independent, 32/32 — A16 fixed) + Phase B (cross-item 18/18 + all suites) → `iteration_6.json`; frontend Phase C 9/9 desktop+mobile → `iteration_7.json`. Baseline 7700.
+- MINOR ×4: CR-089 limiter bucket evasion by prefix (candidate CR-099) · `test_cr098.py` stale phone data · older suites leak 2 customers · `/customers` overflow @390 (pre-existing). NOTE ×3. Report `qa/BATCH_QA_REGRESSION_REPORT_2026_10_09.md`.
+- Next: owner smoke (5 steps, plan §5) → closure 098/093/089/085-A/A2; owner decision on F1–F4 follow-ups; then CR-096/094 planning.
