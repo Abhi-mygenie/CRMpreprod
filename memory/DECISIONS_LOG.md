@@ -1800,3 +1800,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Result**: All 7 items QA PASS. 2 MINOR test-assertion issues fixed: (1) test_baseline_customer_count hardcoded 7695-7715 → updated to sanity-range >7000 / <50000 (DB has grown to ~8900 with POS traffic). (2) test_R5_ip_limiter flaky concurrent test — NOTE (code correct, rate limit verified in self-test; threading timing issue). Pre-existing NOTEs: test_S10, test_S4b, test_A2. BUG-034 keep option (a) confirmed — GET /scan/coupons returns 200.
 **Cleanup**: deleted iteration_10 test customer (9999988881) + space-phone artifact (+91 98765 43201).
 **Source**: Owner 2026-10-09 — approved QA plan, confirmed BUG-034 option (a).
+
+### 2026-10-09 [CR-106] Impact Analysis complete — owner Q1/Q2 pending
+**IA written.** Key finding: applicable_channels includes "pos" value — POS-only coupons currently surface in GET /scan/coupons (pre-existing gap). Q1 (default no-filter vs dine_in) · Q2 (always exclude pos-only from scan route). **Implementation Plan gate NOT opened** (owner answers pending).
+**Source**: Owner 2026-10-09 "choose planning role for impact analysis of cr 106".
