@@ -34,5 +34,10 @@ def normalize_phone(raw: Optional[str], country_code: Optional[str] = None) -> T
 
 
 def phone_match(user_id: str, phone: str, cc: str) -> dict:
-    """Unified identity key — same as sync F11 and /scan/auth/lookup."""
+    """Unified identity key — same as sync F11 and /scan/auth/lookup.
+    CR-100: tolerant for legacy country_code null/"" when cc == "+91".
+    Foreign cc stays exact so +61/+44 diners are never mis-matched.
+    """
+    if cc == "+91":  # CR-100
+        return {"user_id": user_id, "phone": phone, "country_code": {"$in": ["+91", None, ""]}}
     return {"user_id": user_id, "phone": phone, "country_code": cc}

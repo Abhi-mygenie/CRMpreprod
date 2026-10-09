@@ -204,4 +204,11 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - `server.py` (E5): `db.feedback.create_index([("user_id",1),("created_at",-1)])` at startup.
 - `tests/test_cr096_feedback.py` (new, 15 tests F-A…F-M + F-K2 + F-ZZ): sync requests + pymongo pattern.
 - Self-test **15/15 PASS** (38 s). Shared-limiter regression 39 pass / 2 skip / 1 fail (transient log-cleanliness check from E3→E2 ordering gap; backend clean).
+
+## 2026-10-09 — IMPLEMENTATION: CR-100 tolerant phone_match for legacy `country_code: null/""` (owner-approved, plan Q1 A / Q2 accept-either / Q3 +91-only)
+- `core/phone.py` (E1): `phone_match()` returns `{"$in": ["+91", None, ""]}` on `country_code` when `cc == "+91"`. Foreign cc stays exact. All 11 call sites fixed automatically.
+- `routers/scan.py:324` (E2): inline dict in `lookup_customer` migrated to `{**phone_match(...), ...}` — the only call site that bypassed the helper.
+- `tests/test_cr100_tolerant_match.py` (E3, new): V1–VZZ — 8 tests; synthetic null-cc customer inserted/cleaned per test.
+- Self-test **8/8 PASS** (13 s). BUG-027 root cause resolved (test suites no longer create duplicates for the 63 legacy phones). Regression note: test_S4b in cr089 suite shows pre-existing ordering sensitivity when run after cr085a in same invocation — not a CR-100 defect.
+- QA handover: `qa/CR_100_QA_HANDOVER.md`. **Next: QA role.**
 - Docs: `qa/CR_096_QA_HANDOVER.md`, change-log Wave 3 row, `handoff/SESSION_2026_10_09_HANDOVER_CR096_IMPL.md`. **Next: QA role.**

@@ -321,7 +321,7 @@ async def lookup_customer(req: LookupRequest, request: Request):
     if retry:
         raise HTTPException(status_code=429, detail="Too many lookups", headers={"Retry-After": str(retry)})
     customer = await db.customers.find_one(
-        {"user_id": full_restaurant_id, "phone": phone, "country_code": cc, "is_blocked": {"$ne": True}, "phone_invalid": {"$ne": True}},
+        {**phone_match(full_restaurant_id, phone, cc), "is_blocked": {"$ne": True}, "phone_invalid": {"$ne": True}},  # CR-100
         {"_id": 0, "name": 1},
         sort=[("created_at", 1)],  # Q4: oldest record
     )
