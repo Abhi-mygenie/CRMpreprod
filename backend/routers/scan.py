@@ -38,6 +38,20 @@ def _normalize_restaurant_id(restaurant_id: str) -> str:
     return f"pos_0001_restaurant_{restaurant_id}"
 
 
+async def _resolve_restaurant_id(restaurant_id: str) -> str:  # BUG-030
+    """Like _normalize_restaurant_id but falls back to users.restaurant_id lookup.
+    Fast path: standard format (pos_0001_restaurant_N) — zero extra DB query (covers all tenants).
+    Slow path: non-standard id (r69 only today) — one extra users.find_one by restaurant_id field.
+    """
+    if restaurant_id.startswith("pos_"):
+        return restaurant_id
+    standard = f"pos_0001_restaurant_{restaurant_id}"
+    if await db.users.find_one({"id": standard}, {"_id": 0, "id": 1}):
+        return standard
+    fallback = await db.users.find_one({"restaurant_id": restaurant_id}, {"_id": 0, "id": 1})
+    return fallback["id"] if fallback else standard  # unknown rid → standard; route 404s naturally
+
+
 def _short_restaurant_id(restaurant_id: str) -> str:
     """Extract short ID from full format."""
     if restaurant_id.startswith("pos_0001_restaurant_"):
@@ -159,7 +173,7 @@ class LookupRequest(BaseModel):  # CR-093
 @router.post("/auth/skip-otp")
 async def skip_otp_login(req: SkipOTPRequest, request: Request):
     """Silent login without OTP. Finds or creates customer by phone, returns full token."""
-    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
+    full_restaurant_id = await _resolve_restaurant_id(req.restaurant_id)  # BUG-030
     # CR-089 + BUG-025 (Q1=A): IP bucket first so invalid phones still count; phone bucket keyed on canonical {cc}{digits}.
     retry = await _lookup_rate_limited(f"so-ip:{_client_ip(request)}", *_SKIP_OTP_IP_LIMIT)
     if retry:
@@ -235,7 +249,7 @@ async def get_me(auth: dict = Depends(verify_customer_token)):
 @router.post("/auth/lookup")
 async def lookup_customer(req: LookupRequest, request: Request):
     """CR-093: public, read-only existence check. Never creates, never returns a token."""
-    full_restaurant_id = _normalize_restaurant_id(req.restaurant_id)
+    full_restaurant_id = await _resolve_restaurant_id(req.restaurant_id)  # BUG-030
     # BUG-029: IP bucket before validation so invalid phones still count (same order as skip-otp).
     retry = await _lookup_rate_limited(f"ip:{_client_ip(request)}", *_LOOKUP_IP_LIMIT)
     if retry:
@@ -280,7 +294,7 @@ async def loyalty_rules(restaurant_id: str, request: Request, response: Response
     retry = await _lookup_rate_limited(f"lr-ip:{_client_ip(request)}", *_LOYALTY_RULES_IP_LIMIT)
     if retry:
         raise HTTPException(status_code=429, detail="Too many requests", headers={"Retry-After": str(retry)})
-    rid = _normalize_restaurant_id(restaurant_id)
+    rid = await _resolve_restaurant_id(restaurant_id)  # BUG-030
     if not await db.users.find_one({"id": rid}, {"_id": 0, "id": 1}):
         raise HTTPException(status_code=404, detail="Restaurant not found")
     defaults = default_loyalty_settings(rid)
@@ -685,7 +699,7 @@ async def submit_feedback(
         # ── No-token branch ──────────────────────────────────────────────────
         if not data.restaurant_id:
             raise HTTPException(status_code=422, detail="restaurant_id required when not logged in")
-        rid = _normalize_restaurant_id(data.restaurant_id)
+        rid = await _resolve_restaurant_id(data.restaurant_id)  # BUG-030
         if not await db.users.find_one({"id": rid}, {"_id": 0, "id": 1}):
             raise HTTPException(status_code=404, detail="Restaurant not found")
 
