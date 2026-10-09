@@ -1757,3 +1757,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Registered:** BUG-034 (GET /scan/coupons 500, fix applied early — owner to confirm keep/revert) · CR-105 (POST /scan/coupons/validate, P2) · CR-106 (GET /scan/coupons channel filter, P3) · CR-107 (POST /scan/max-redeemable, P2). Full scan surface audited — no other gaps found.
 **Source:** Scan & Order OUTBOUND_TO_CRM_COUPON_API_CONTRACT_REQUEST_2026_10_09.md + read-only code + DB probe.
 **Open owner decisions:** BUG-034 Q(a keep / b revert) · CR-105 Q1 rate-limit · CR-105 Q2 channel in body · CR-107 Q1 endpoint vs formula.
+
+### 2026-10-09 [CR-105 / CR-107] Impact Analysis complete — owner Q answers pending
+**CR-105**: Code reality confirmed — `validate_coupon_for_customer` (core/coupon.py:1643) is the service to reuse; scan route absent; 1 import + 1 schema + 1 route (~30 lines). Q1 rate-limit (rec: 10/min/IP) · Q2 channel in body (rec: yes, default "dine_in"). Error codes from service: INVALID_CODE, INACTIVE, EXPIRED, MIN_ORDER, PER_USER_LIMIT, NOT_APPLICABLE. HTTP 200 always (valid flag tells outcome).
+**CR-107**: Code reality confirmed — `compute_max_redeemable` (core/loyalty.py:160) is pure, tier-aware, no DB writes; POS route (pos.py:471) confirms usage pattern; scan route absent; 1 import + 1 schema + 1 route (~25 lines). Q1 endpoint vs formula — rec A (endpoint prevents client-side drift). Scan response includes projected_points_earned (additive from POS pattern).
+**Source**: Owner 2026-10-09 "choose planning role for impact analysis of CR-105 + CR-107".
+**Locks**: IA at `planning/CR_105_CR_107_IMPACT_ANALYSIS.md`. Impl Plan gate opens after Q answers.
