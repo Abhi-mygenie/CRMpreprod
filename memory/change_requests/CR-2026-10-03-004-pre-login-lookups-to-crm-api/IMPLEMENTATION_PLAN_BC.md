@@ -14,7 +14,7 @@
 
 | D | Decision |
 |---|---|
-| D1 (G2) | Option A — add `loyaltySettings?.loyalty_enabled !== false` to `showLoyalty` memo. Both POS `is_loyalty === 'Yes'` AND CRM not-disabled required. |
+| D1 (G2) | **POS flag only** (owner, 2026-10-09). `showLoyalty` stays as-is — `restaurant.is_loyalty === 'Yes'` is the sole gate. CRM `loyalty_enabled` fetched but not used for gating. **E4 dropped.** |
 | F2 (Part C) | Owner confirmed: no CRM token → no points/tier block. No toast, no retry. |
 
 ---
@@ -129,39 +129,9 @@ import { buildUserId, crmLookupCustomer, crmGetLoyaltyRules } from '../api/servi
 
 ---
 
-### E4 · `ReviewOrder.jsx:489–498` — update `showLoyalty` memo (G2 / D1=Option-A)
+### ~~E4 · `ReviewOrder.jsx:489–498` — DROPPED~~
 
-**Before:**
-```javascript
-  const showLoyalty = useMemo(() => {
-    if (!restaurant) return false;
-
-    // Check API value (support multiple possible field names)
-    const loyaltyEnabled =
-      restaurant.is_loyalty === 'Yes';
-
-
-    // Both conditions must be true + admin config toggle
-    return loyaltyEnabled && isCustomerDetailsFilled && configShowLoyaltyPoints;
-  }, [restaurant, isCustomerDetailsFilled, configShowLoyaltyPoints]);
-```
-
-**After:**
-```javascript
-  const showLoyalty = useMemo(() => {
-    if (!restaurant) return false;
-
-    // POS flag (existing guard)
-    const loyaltyEnabled = restaurant.is_loyalty === 'Yes';
-    // CR-2026-10-03-004 Part B: G2 — CRM loyalty_enabled must not be explicitly false
-    // null loyaltySettings (404 / loading) → undefined !== false → true → defer to POS flag
-    const crmAllows = loyaltySettings?.loyalty_enabled !== false;
-
-    return loyaltyEnabled && crmAllows && isCustomerDetailsFilled && configShowLoyaltyPoints;
-  }, [restaurant, loyaltySettings, isCustomerDetailsFilled, configShowLoyaltyPoints]);
-```
-
-> **Note:** `loyaltySettings` added to dependency array.
+**D1 resolved: POS flag only.** `showLoyalty` memo is not touched. `loyaltySettings?.loyalty_enabled` is not read for gating purposes. No change to this block.
 
 ---
 
@@ -432,7 +402,7 @@ def test_customer_lookup_478_retired(http_client):
 | E1 | `crmService.js` | Add `crmGetLoyaltyRules` (~18 lines) | MEDIUM |
 | E2 | `ReviewOrder.jsx` | Add import | LOW |
 | E3 | `ReviewOrder.jsx:141–155` | Replace fetchLoyaltySettings effect | HIGH |
-| E4 | `ReviewOrder.jsx:489–498` | Add `loyalty_enabled` guard to showLoyalty | MEDIUM |
+| ~~E4~~ | ~~`ReviewOrder.jsx:489–498`~~ | ~~showLoyalty guard~~ | **DROPPED** — D1=POS only |
 | E5 | `ReviewOrder.jsx:859–874` | Fix handleUsePoints (G1 tier + G3 caps) | HIGH |
 | E6 | `ReviewOrder.jsx:1874` | Fix inline rdv (G1 tier) | HIGH |
 | E7 | `ReviewOrder.jsx:400–438` | Delete customer-lookup effect | HIGH |
@@ -443,14 +413,14 @@ def test_customer_lookup_478_retired(http_client):
 | E12 | `smoke/test_cr_2026_10_03_001.py` | Flip 2 assertions | MEDIUM |
 | E13 | `contracts/test_public_config.py` | Flip 2 contract tests, remove snapshots | MEDIUM |
 
-**Net: ~120 lines removed, ~55 lines added, across 6 files.**
+**Net: ~120 lines removed, ~50 lines added, across 6 files. 12 active edits.**
 
 ---
 
 ## Apply order (bottom-up within each file, reduces line-shift risk)
 
 1. `crmService.js` — E1 (add only, no line shift)
-2. `ReviewOrder.jsx` — E7 first (C1, line ~400), then E3 (~141), then E2 (import, ~29), then E4 (~489), then E5 (~859), then E6 (~1874) — **bottom-up within file** to avoid shifting line references
+2. `ReviewOrder.jsx` — E7 first (C1, line ~400), then E3 (~141), then E2 (import, ~29), then E5 (~859), then E6 (~1874) — **bottom-up within file**. E4 skipped.
 3. `LoyaltyRewardsSection.jsx` — E9 first (line 91), then E8 (line 34) — bottom-up
 4. `server.py` — E11 first (line 1006), then E10 (line 971) — bottom-up
 5. `test_cr_2026_10_03_001.py` — E12
@@ -512,11 +482,11 @@ Every changed block must carry:
 
 ```
 Planning complete: CR-2026-10-03-004 Parts B+C
-Stage: Impact Analysis + Implementation Plan
-Code reality: FULL — 13 exact edits with before/after, anchored to current file state
+Stage: Impact Analysis + Implementation Plan (both)
+Code reality: FULL — 12 active edits with before/after, anchored to current file state (E4 dropped)
 Risk: CRITICAL
-Files WILL change: crmService.js (E1) · ReviewOrder.jsx (E2–E7) · LoyaltyRewardsSection.jsx (E8–E9) · server.py (E10–E11) · test_cr_2026_10_03_001.py (E12) · test_public_config.py (E13)
+Files WILL change: crmService.js (E1) · ReviewOrder.jsx (E2–E3, E5–E7) · LoyaltyRewardsSection.jsx (E8–E9) · server.py (E10–E11) · test_cr_2026_10_03_001.py (E12) · test_public_config.py (E13)
 Files WILL NOT touch: AuthContext.jsx · CartContext.js · App.js · LandingPage.jsx · RestaurantConfigContext.jsx
-Owner decisions: D1=Option-A locked; F2=(a) locked
-Next: "Gate 3 accepted for CR-2026-10-03-004 Parts B+C" → Role 3 Implementation
+Owner decisions: D1=POS flag only (resolved 2026-10-09, E4 dropped); F2=(a) locked
+Status: AT GATE — awaiting "Gate 3 accepted for CR-2026-10-03-004 Parts B+C"
 ```

@@ -96,17 +96,17 @@ Source: VALIDATION probe 2026-10-09 against `REACT_APP_CRM_URL`.
 
 ---
 
-## 5. Owner decision required before Gate 3
+## 5. Owner decision — RESOLVED
 
 ### D1 — G2: which flag gates the loyalty section?
 
-**Question:** `showLoyalty` at `ReviewOrder.jsx:489–498` currently gates on `restaurant.is_loyalty === 'Yes'` (POS field). CRM now sends `loyalty_enabled` in the loyalty-rules response. Which is authoritative?
+**Decision (owner, 2026-10-09): POS flag only. `showLoyalty` stays as-is.**
 
-**Option A (recommended):** Use **both** as AND conditions. Add `loyaltySettings?.loyalty_enabled !== false` to `showLoyalty`. Meaning: show loyalty only when POS says yes AND CRM does not say false. If CRM returns null (404 → unknown rid) the `?. !== false` evaluates to `true` — existing POS guard unchanged. If CRM `loyalty_enabled: false` (478 case) → section hidden regardless of POS.
+`restaurant.is_loyalty === 'Yes'` remains the sole gate. CRM's `loyalty_enabled` field is fetched as part of the 33-key loyalty-rules response but is not used for section gating.
 
-**Option B:** Drop POS `is_loyalty` entirely. Show loyalty section iff `loyaltySettings?.loyalty_enabled === true`. Simpler, removes POS dependency, but changes existing gating behavior for all restaurants.
+**Rationale:** POS flag is the single admin-controlled source of truth for all loyalty features across the app, as it has always been. CRM's `loyalty_enabled` is a CRM-internal configuration detail. If the two are ever out of sync, the fix belongs at the data layer, not in the UI. Adding a CRM AND-condition would also introduce a timing edge case (loyalty-rules loading slowly → section flickers) and add `loyaltySettings` to the `showLoyalty` dependency array unnecessarily.
 
-**Implication of no decision:** Plan proceeds with D1=Option-A. If owner wants Option B, one line changes in `showLoyalty` — a safe follow-up edit.
+**Plan impact:** E4 is **dropped**. `showLoyalty` memo in ReviewOrder.jsx is not touched. Plan is now 12 edits.
 
 ---
 
@@ -161,7 +161,7 @@ Code reality: FULL — all 10 touch points confirmed with exact line numbers
 Risk: CRITICAL
 Files WILL change: crmService.js · ReviewOrder.jsx · LoyaltyRewardsSection.jsx · server.py · test_cr_2026_10_03_001.py · test_public_config.py
 Files WILL NOT touch: AuthContext.jsx · CartContext.js · RestaurantConfigContext.jsx · App.js · LandingPage.jsx
-Owner decisions: D1 (G2 flag — recommended Option A; plan proceeds with it)
-Docs: this file
-Next: Implementation Plan → then "Gate 3 accepted for CR-2026-10-03-004 Parts B+C" → Role 3
+Owner decisions: D1 RESOLVED 2026-10-09 — POS flag only; showLoyalty unchanged; E4 dropped
+Docs: IMPACT_ANALYSIS_BC.md · IMPLEMENTATION_PLAN_BC.md
+Next: "Gate 3 accepted for CR-2026-10-03-004 Parts B+C" → Role 3
 ```
