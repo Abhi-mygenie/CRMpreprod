@@ -1713,3 +1713,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [BUG-030] IMPLEMENTATION COMPLETE
 **Decision**: Implemented per plan. E1 new async `_resolve_restaurant_id` + E2–E5 four call-site replacements. Self-test 6/6 PASS: r69 slow path resolves to `pos_owner_69_bdd4513c` on all 4 routes; r689 fast path zero-overhead unchanged. Regression 68/2s PASS. `get_app_config:626` intentionally left unchanged (tries short-form first; CA-2 removal). Orphan customer at `pos_0001_restaurant_69` untouched — CR-101.
 **Locks**: BUG-030 🟢 IMPLEMENTED. QA handover: `qa/BUG_030_QA_HANDOVER.md`. Next: QA role.
+
+### 2026-10-09 [CR-099] Implementation Plan complete — gate open
+**Decision**: Plan written. E1 Add Customer modal (lines 1910/1914) + E2 Edit Customer modal (lines 2447/2451) — remove `replace(/\D/g,'')` and bump `maxLength` 10→15. Backend normalize_phone() is the guard. **Implementation Plan gate OPENED** by owner.
+**Source**: Owner 2026-10-09: "choose planning role for implementation planning of CR-099".
+**Locks**: `CustomersPage.jsx` only (4 lines). No backend changes. Implementation gate opens on "choose implementation role for CR-099".
