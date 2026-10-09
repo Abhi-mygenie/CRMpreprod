@@ -1784,3 +1784,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Import fix**: `calculate_points` is in `core.loyalty` not `core.helpers` — corrected E1 during implementation.
 **Note**: Many r689 coupon codes have trailing spaces in DB (data quality). `validate_coupon_for_customer` strips input but DB lookup is exact-match → trailing-space codes → INVALID_CODE. Pre-existing data issue, not introduced by CR-105. Active code `FLAT100TEST` works correctly.
 **Locks**: QA handover `qa/CR_105_CR_107_QA_HANDOVER.md`. Next: QA role → `iteration_10.json`.
+
+### 2026-10-09 [CA-9] Delivered — full contract v2.1 + CR-107 + CR-105 consumer note sent
+**Decision**: CA-9 delivered in full: complete /scan/* route table (19 routes), contract v2.1 diff (14 changes from v1.0 §4), two new endpoint contracts (CR-107 POST /scan/max-redeemable, CR-105 POST /scan/coupons/validate). Trailing-space coupon code data note included.
+**Source**: Owner 2026-10-09 "send them full contract now at once".
+**File**: handoff/CRM_TO_SCAN_ORDER_FULL_CONTRACT_V2_1_AND_CR105_CR107_2026_10_09.md
+**Locks**: CA-9 CLOSED from CRM side. S&O to validate CR-107 + CR-105 + confirm sign-in card removal.
