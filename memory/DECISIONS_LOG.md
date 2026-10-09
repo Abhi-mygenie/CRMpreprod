@@ -1690,3 +1690,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: No owner questions — all 4 items (skip pagination, true total, expiring_soon, openapi_url) are additive and backward compatible. IA and Implementation Plan written in one shot. **Implementation gate OPENED** by owner ("choose planning role for impact analysis and implementation planning for CR-088").
 **Source**: Owner 2026-10-09: "choose planning role for impact analysis and implementation planning for CR-088".
 **Locks**: 5 edits: E1 `get_orders` (+skip), E2 `get_points_history` (+skip+true-total), E3 `get_wallet_history` (+skip+true-total), E4 `get_loyalty` (+expiring_soon/expiring_date inline from points.py:218-265), E5 `server.py` (+openapi_url="/api/openapi.json"). Files: scan.py + server.py only. No data writes. supervisor restart needed after E5.
+
+### 2026-10-09 [CR-088] IMPLEMENTATION COMPLETE — /scan/* list hygiene shipped
+**Decision**: Implemented per plan (no owner questions — all additive). E1–E4 in scan.py + E5 server.py. Self-test 8/8 PASS. Live evidence: expiring_soon:300 pts expiring 2026-10-16 for r689 Kunafa Mahal (expiry_months:2); openapi.json at /api/openapi.json with 186 paths; pagination skip works across orders (76 total) and points (78 total). Supervisor restart done after E5.
+**Locks**: CR-088 🟢 IMPLEMENTED. QA handover: qa/CR_088_QA_HANDOVER.md. Next: QA role.

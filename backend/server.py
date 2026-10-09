@@ -165,7 +165,7 @@ async def lifespan(app: FastAPI):
     await close_db_connection()
 
 # Create the main app
-app = FastAPI(title="DinePoints - Loyalty & CRM", lifespan=lifespan)
+app = FastAPI(title="DinePoints - Loyalty & CRM", lifespan=lifespan, openapi_url="/api/openapi.json")  # CR-088
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")

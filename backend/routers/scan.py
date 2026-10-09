@@ -351,6 +351,30 @@ async def get_loyalty(auth: dict = Depends(verify_customer_token)):
     }
     next_tier, next_min = tier_thresholds.get(tier, (None, 0))
 
+    # CR-088: expiring_soon — inline staff expiring logic (points.py:218-265)
+    expiry_months = settings.get("points_expiry_months", 6) if settings else 6
+    expiring_soon_pts, expiring_date = 0, None
+    if expiry_months > 0:
+        reminder_days = settings.get("expiry_reminder_days", 30) if settings else 30
+        now_dt = datetime.now(timezone.utc)
+        expiry_cutoff   = now_dt - timedelta(days=expiry_months * 30)
+        reminder_cutoff = now_dt - timedelta(days=(expiry_months * 30) - reminder_days)
+        earn_txns = await db.points_transactions.find(
+            {"customer_id": auth["customer_id"], "user_id": auth["restaurant_id"],
+             "transaction_type": {"$in": ["earn", "bonus"]}},
+            {"_id": 0, "points": 1, "created_at": 1}
+        ).to_list(1000)
+        for tx in earn_txns:
+            tx_date = datetime.fromisoformat(tx["created_at"].replace("Z", "+00:00")) \
+                      if isinstance(tx["created_at"], str) else tx["created_at"]
+            if tx_date.tzinfo is None:
+                tx_date = tx_date.replace(tzinfo=timezone.utc)
+            if expiry_cutoff <= tx_date < reminder_cutoff:
+                expiring_soon_pts += tx["points"]
+                exp_d = tx_date + timedelta(days=expiry_months * 30)
+                if expiring_date is None or exp_d < expiring_date:
+                    expiring_date = exp_d
+
     return _resp(True, "Loyalty summary", {
         "total_points": total_points,
         "points_monetary_value": round(total_points * redemption_value, 2),
@@ -361,39 +385,50 @@ async def get_loyalty(auth: dict = Depends(verify_customer_token)):
         "total_visits": customer.get("total_visits", 0),
         "total_spent": customer.get("total_spent", 0.0),
         "earn_rate_percent": earn_percent,
-        "redemption_value_per_point": redemption_value
+        "redemption_value_per_point": redemption_value,
+        "expiring_soon": max(0, expiring_soon_pts),                          # CR-088
+        "expiring_date": expiring_date.isoformat() if expiring_date else None,  # CR-088
     })
 
 
 @router.get("/points/history")
-async def get_points_history(limit: int = 20, auth: dict = Depends(verify_customer_token)):
+async def get_points_history(limit: int = 20, skip: int = 0, auth: dict = Depends(verify_customer_token)):  # CR-088: +skip, true total
     """My points transaction history."""
+    _limit, _skip = min(limit, 50), max(skip, 0)
     txns = await db.points_transactions.find(
         {"customer_id": auth["customer_id"], "user_id": auth["restaurant_id"]},
         {"_id": 0}
-    ).sort("created_at", -1).limit(min(limit, 50)).to_list(min(limit, 50))
-    return _resp(True, f"{len(txns)} transactions", {"transactions": txns, "total": len(txns)})
+    ).sort("created_at", -1).skip(_skip).limit(_limit).to_list(_limit)
+    total = await db.points_transactions.count_documents(
+        {"customer_id": auth["customer_id"], "user_id": auth["restaurant_id"]}
+    )  # CR-088: true DB count, not len(rows)
+    return _resp(True, f"{total} transactions", {"transactions": txns, "total": total, "skip": _skip, "limit": _limit})
 
 
 @router.get("/wallet/history")
-async def get_wallet_history(limit: int = 20, auth: dict = Depends(verify_customer_token)):
+async def get_wallet_history(limit: int = 20, skip: int = 0, auth: dict = Depends(verify_customer_token)):  # CR-088: +skip, true total
     """My wallet transaction history."""
+    _limit, _skip = min(limit, 50), max(skip, 0)
     txns = await db.wallet_transactions.find(
         {"customer_id": auth["customer_id"], "user_id": auth["restaurant_id"]},
         {"_id": 0}
-    ).sort("created_at", -1).limit(min(limit, 50)).to_list(min(limit, 50))
-    return _resp(True, f"{len(txns)} transactions", {"transactions": txns, "total": len(txns)})
+    ).sort("created_at", -1).skip(_skip).limit(_limit).to_list(_limit)
+    total = await db.wallet_transactions.count_documents(
+        {"customer_id": auth["customer_id"], "user_id": auth["restaurant_id"]}
+    )  # CR-088: true DB count
+    return _resp(True, f"{total} transactions", {"transactions": txns, "total": total, "skip": _skip, "limit": _limit})
 
 
 @router.get("/orders")
-async def get_orders(limit: int = 20, auth: dict = Depends(verify_customer_token)):
+async def get_orders(limit: int = 20, skip: int = 0, auth: dict = Depends(verify_customer_token)):  # CR-088: +skip
     """My order history."""
+    _limit, _skip = min(limit, 50), max(skip, 0)
     orders = await db.orders.find(
         {"customer_id": auth["customer_id"], "user_id": auth["restaurant_id"]},
         {"_id": 0}
-    ).sort("created_at", -1).limit(min(limit, 50)).to_list(min(limit, 50))
+    ).sort("created_at", -1).skip(_skip).limit(_limit).to_list(_limit)
     total = await db.orders.count_documents({"customer_id": auth["customer_id"], "user_id": auth["restaurant_id"]})
-    return _resp(True, f"{len(orders)} orders", {"orders": orders, "total": total})
+    return _resp(True, f"{total} orders", {"orders": orders, "total": total, "skip": _skip, "limit": _limit})
 
 
 @router.get("/orders/{order_id}")

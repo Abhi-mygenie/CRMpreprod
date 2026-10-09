@@ -210,6 +210,12 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Cross-tenant write security hole **CLOSED**. `customer_app_config` (13 docs) and `dietary_tags_mapping` (0 docs) untouched.
 - Self-test V1–V6: PUT /scan/config/689 → 405 · PUT /scan/menu/dietary-tags/689 → 405 · GET routes still 200 · counts unchanged. NOTE: 405 not 404 while GET routes live (correct HTTP — path exists via GET; resolves to 404 after GET half removed at CA-2).
 - GET half stays live pending CA-2 cutover from Scan & Order. **Next: QA (optional, LOW risk) → GET half after CA-2.**
+
+## 2026-10-09 — IMPLEMENTATION: CR-088 `/scan/*` list hygiene (owner-approved, no owner questions)
+- `scan.py` E1–E4: `get_orders` +skip; `get_points_history` +skip+count_documents-total; `get_wallet_history` +skip+count_documents-total; `get_loyalty` +expiring_soon/expiring_date (inline `points.py:218-265` expiry calc).
+- `server.py` E5: `openapi_url="/api/openapi.json"` added to FastAPI init. Supervisor restart done.
+- Self-test **8/8 PASS** — pagination V1/V2, true-total V3/V4, wallet V5, expiring_soon:300/expiring_date:2026-10-16 V6 (live r689 data), openapi 186 paths V7, backward-compat V8.
+- QA handover: `qa/CR_088_QA_HANDOVER.md`. **Next: QA role.**
 - `core/phone.py` (E1): `phone_match()` returns `{"$in": ["+91", None, ""]}` on `country_code` when `cc == "+91"`. Foreign cc stays exact. All 11 call sites fixed automatically.
 - `routers/scan.py:324` (E2): inline dict in `lookup_customer` migrated to `{**phone_match(...), ...}` — the only call site that bypassed the helper.
 - `tests/test_cr100_tolerant_match.py` (E3, new): V1–VZZ — 8 tests; synthetic null-cc customer inserted/cleaned per test.
