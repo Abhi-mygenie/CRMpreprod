@@ -79,15 +79,12 @@
 ### Customer-App-facing note 2026-10-09 — CR-094 `GET /api/scan/loyalty-rules/{rid}` (NEW)
 | Field | Value |
 |---|---|
-| Status | **CONFIRMED 2026-10-09** (implemented, self-test 13/13; QA + consumer validation pending) |
+| Status | **CONSUMER VALIDATION CONFIRMED 2026-10-09** — Scan & Order: 33 keys ✅, `gold_redemption_value:3.0` ✅, `max_redemption_amount:110.0` ✅, `loyalty_enabled:false` tenant ✅. Their CR-2026-10-03-004 Parts B+C shipped consuming this endpoint. CR-094 **CLOSED on their side.** |
 | Audience | Customer App |
-| New | `GET /api/scan/loyalty-rules/{rid}` — public, no auth, `rid` short `689` or full. `200 {success,message,data}` with **33 flat keys** (CA-6 names): `loyalty_enabled wallet_enabled coupon_enabled · bronze/silver/gold/platinum_earn_percent · tier_silver/gold/platinum_min · redemption_value · bronze/silver/gold/platinum_redemption_value · min_redemption_points max_redemption_percent max_redemption_amount min_order_value · first_visit_bonus_enabled/points · birthday_bonus_enabled/points · anniversary_bonus_enabled/points · feedback_bonus_enabled/points · off_peak_bonus_enabled off_peak_bonus_type off_peak_bonus_value off_peak_start_time off_peak_end_time · points_expiry_months`. `404` unknown rid · `429` + `Retry-After` at 60/min per IP. |
-| Semantics | `*_redemption_value` = **effective ₹ per point per tier, already resolved, never null** (do not re-implement fallback). `max_redemption_amount: null` = no cap. `points_expiry_months: 0` = never expires. `off_peak_bonus_type ∈ {"multiplier","flat"}`; times `HH:MM` restaurant-local (Asia/Kolkata). **`loyalty_enabled:false` → show no earn/redeem copy** (numbers still returned). |
-| Bonus fields | **Informational only.** `first_visit_*` is awarded at first order. `birthday_*` / `anniversary_*`: award scheduler **not enabled** this batch. `feedback_*`: **nothing awards it** (CR-104 deferred). Do not promise "+N points" for these three. Diner may set `dob`/`anniversary` via existing `PUT /scan/profile`. |
-| Cache | Origin sends `Cache-Control: public, max-age=60`; preview edge currently rewrites to `no-store` (ENV note) — verify on prod domain. |
-| Known | r69 short id → 404 until BUG-030 decided. |
-| Evidence | R1–R13 `backend/tests/test_cr094_loyalty_rules.py`; r689 per-tier 1/2/3/4; r719 all 1.0; 15 shared keys == POS L-1. |
-| Validation note | to be drafted after QA (owner sends). |
+| New | `GET /api/scan/loyalty-rules/{rid}` — public, no auth, `rid` short (`689`) or full. `200 {success,message,data}` with **33 flat keys** (CA-6 names): `loyalty_enabled wallet_enabled coupon_enabled · bronze/silver/gold/platinum_earn_percent · tier_silver/gold/platinum_min · redemption_value · bronze/silver/gold/platinum_redemption_value · min_redemption_points max_redemption_percent max_redemption_amount min_order_value · first_visit_bonus_enabled/points · birthday_bonus_enabled/points · anniversary_bonus_enabled/points · feedback_bonus_enabled/points · off_peak_bonus_enabled off_peak_bonus_type off_peak_bonus_value off_peak_start_time off_peak_end_time · points_expiry_months`. `404` unknown rid · `429` + `Retry-After` at 60/min per IP. |
+| Semantics | `*_redemption_value` = **effective ₹ per point per tier, already resolved, never null**. `max_redemption_amount: null` = no cap. `points_expiry_months: 0` = never expires. `off_peak_bonus_type ∈ {"multiplier","flat"}`. **`loyalty_enabled:false` → show no earn/redeem copy.** |
+| Bonus fields | **Informational only.** `birthday_*`/`anniversary_*` award scheduler not enabled; `feedback_*` not awarded (CR-104 deferred). |
+| Evidence | R1–R13 `test_cr094_loyalty_rules.py`; S&O confirmed `gold_redemption_value:3.0`; `loyalty_enabled:false` tenant ✅ |
 
 ### POS-facing note 2026-10-08 (owner-corrected: gaps are CRM-side; POS ask is optional)
 | Field | Value |
@@ -117,20 +114,16 @@
 | No change | All POS routes, payloads and response shapes unchanged. Nothing is ever rejected on POS paths. |
 _CR-086 · CR-087 — rows added when planned_
 
-### CR-096 — `POST /scan/feedback` hybrid intake (IMPLEMENTED 2026-10-09)
+### CR-096 — `POST /scan/feedback` hybrid intake (IMPLEMENTED + CONSUMER VALIDATED 2026-10-09)
 | Field | Value |
 |---|---|
-| Status | **CONFIRMED 2026-10-09** (implemented, self-test 15/15 PASS; QA + consumer validation pending) |
+| Status | **CONSUMER VALIDATION CONFIRMED 2026-10-09** — Scan & Order: anonymous 200 linked:false ✅, invalid phone 400 ✅, rating out of range 400 ✅. Sign-in card removal (FeedbackPage.jsx) is their next CR. CR-096 **CLOSED on their side.** |
 | Audience | Customer App |
-| Changed | `POST /api/scan/feedback` now works **without a token**. Three paths: **(A)** valid token → linked as today + `feedback_count +1`; **(C)** no token + valid known phone → resolved to existing customer, linked, **no new customer created**; **(D)** no token + valid unknown phone → stored unlinked, `customer_phone` kept; **(E)** no token + no phone → anonymous unlinked; **(F)** invalid supplied phone → `400 "Enter a valid mobile number"`, nothing stored; bad/expired token → `401`. |
+| Changed | `POST /api/scan/feedback` now works without a token. Three paths: **(A)** valid token → linked + `feedback_count +1`; **(C)** no token + known phone → linked, no create; **(D)** no token + unknown phone → unlinked; **(E)** no token + no phone → anonymous unlinked; **(F)** invalid phone → 400; bad token → 401. |
 | Request (no-token) | `{rating, restaurant_id, phone?, country_code?="+91", message?, order_id?}` |
 | Response | `200 {success:true, message:"Feedback submitted", data:{feedback_id, linked:bool}}` |
-| Rate limits | IP `fb-ip:` 10/min, phone `fb-ph:{rid}:{cc}{digits}` 3/10 min (no-token path only) |
-| order_id | Optional; if given but not found/other tenant → `order_id:null` + `order_id_raw` stored |
-| Never creates | Customers are NEVER created by this route regardless of path |
-| Pre-existing fix | `GET /api/feedback` (staff list) was 500-crashing for scan-feedback tenants (r478/672/762) — `customer_name`/`customer_phone` are now `Optional` on the `Feedback` response model. |
-| Evidence | F-A…F-M + F-K2 + F-ZZ in `tests/test_cr096_feedback.py`, 15/15 PASS, 38 s |
-| Validation note | To be drafted after QA (owner sends to Customer App) |
+| Never creates | Customers are NEVER created by this route |
+| Evidence | F-A…F-ZZ `tests/test_cr096_feedback.py` 15/15 PASS; S&O confirmed anonymous 200 ✅, 400 on invalid phone ✅ |
 
 ## Wave 4 — Cleanup + hardening
 _CR-089 · CR-088_

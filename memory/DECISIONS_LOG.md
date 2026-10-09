@@ -1731,3 +1731,11 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CA-4 / CA-5] Ownership map corrections confirmed
 **CA-4**: Four collections "missing on UAT" = `pos_event_logs`, `otp_tokens`, `segment_whatsapp_config`, `message_logs` — all exist in CRM code, never written to UAT. Board: delete `otp_tokens` row (it doesn't exist; `customer_otps` is the real collection).
 **CA-5**: Their four "unclaimed" = `coupon_distributions`, `customer_documents`, `import_logs`, `webhook_logs` — all already CRM-owned with code evidence. CRM's candidate list was misaligned. No action on ownership; board consistent.
+
+### 2026-10-09 [CR-095 / CR-094 / CR-096] Scan & Order consumer validation CONFIRMED
+**CR-095**: All 4 routes probed → 404. Contract snapshots 14/14 PASS. `customer_app_config` 14 docs (13 + 1 r69 from BUG-030 normalisation fix — not PUT contamination, confirmed). `dietary_tags_mapping` 0 docs. §4d ownership map signed. CR-095 **CLOSED on Scan & Order side**. Formal CRM closure gated on owner smoke.
+**CR-094**: Validated on `crm-preprod-7` (they were already on correct URL). 33 keys ✅, `gold_redemption_value:3.0` ✅, `max_redemption_amount:110.0` ✅, `loyalty_enabled:false` tenant ✅. Their CR-2026-10-03-004 Parts B+C shipped consuming this endpoint. **CLOSED on their side.**
+**CR-096**: Anonymous 200 linked:false ✅, invalid phone 400 ✅, rating out of range 400 ✅. Sign-in card removal (FeedbackPage.jsx) is their next CR — planning starts on their side. **CLOSED on their side.**
+**DB note**: `customer_app_config` is now 14 docs (was 13) — the +1 is an r69 config doc created via BUG-030 normalisation fix (short id "69" previously 404'd, now resolves); confirmed no CRM PUT contamination.
+**Open owner actions (non-CRM, no code)**: owner smoke (gates formal closure of CR-098/093/089) · CA-1 countersignature on CONTRACT_CUSTOMER_APP_CRM_v1.0 · §4d ownership map initials.
+**Source**: Scan & Order CONFIRMATION NOTE 2026-10-09 (reply to CRM_REPLY_TO_SCAN_ORDER_CR095_SHIPPED_CA4_CA5_CR094_CR096_2026_10_09.md).
