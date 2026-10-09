@@ -1771,3 +1771,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **IAs CLOSED.** Implementation Plan gate **NOT opened** (owner: "update docs and decision don't jump gate").
 **Source**: Owner 2026-10-09: "1 a / 2 yes / cr 107 / 1 confirmed / update docs and decision dont jump gate".
 **Locks**: CR-105 schema = `{code, order_total, channel?="dine_in", items?}`. CR-107 schema = `{bill_amount}`. Both in `scan.py` only. Implementation gates open on "choose planning role for implementation planning of CR-105 + CR-107".
+
+### 2026-10-09 [CR-105 / CR-107] Implementation Plans complete — gate open
+**Implementation order**: CR-107 first (simpler; validates imports), then CR-105 (rate-limit + error-code mapping).
+**Edits**: E1 (imports: calculate_points + compute_max_redeemable + validate_coupon_for_customer) → E2 (_COUPON_VALIDATE_IP_LIMIT constant) → E3 (CR-107 schema+route, ~20 lines) → E4 (CR-105 schema+route, ~30 lines). scan.py only, ~54 lines total.
+**Implementation gate OPENED** by owner ("choose planning role for implementation planning of CR-105 + CR-107").
+**Source**: Owner 2026-10-09.
