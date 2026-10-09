@@ -1,64 +1,107 @@
-# Smoke Test Brief — CR-2026-10-03-004 Part A
+# Smoke Test Brief — CR-2026-10-03-004 (Parts A + B + C)
 
-<div class="meta">MyGenie Customer App · Change: "Name auto-fill now fetches from CRM directly" · QA status: PASS — live UI verified 2026-10-08 · Tester: ____________ · Date: ____________</div>
+<div class="meta">MyGenie Customer App · Change: "CRM database back-door reads replaced with CRM API calls" · QA status: PASS — all parts · Tester: ____________ · Date: ____________</div>
 
 ## What this is about
 
-When a diner opens the restaurant's home page and types their phone number, the app quietly checks whether that phone is a known customer. If it is, the diner's **name auto-fills** in the Name field — they don't have to type it themselves.
+Your app and CRM share a database. The app was reading some of CRM's data tables directly — bypassing CRM's official API. This CR closes that back door across three steps, each of which is tested below.
 
-## What was wrong
-
-To do that check, the app was asking **our own server**, which was then reading directly from the CRM's customer database through a back door. This was a boundary violation — we were reaching into CRM's data without going through CRM's official route.
-
-## What the change does
-
-The app now asks **CRM directly** using CRM's official lookup route. Our server no longer touches the CRM database for this step. The old back-door route on our server has been deleted.
-
-The diner sees **no visible difference** — the name still auto-fills exactly as before. The change is entirely under the hood.
-
-> **What must NOT have changed:** the name auto-fill behaviour, the Browse Menu flow, ordering, feedback — everything the diner sees works identically to before.
+> **What must NOT have changed:** name auto-fill on the landing page, the Browse Menu flow, the checkout loyalty earn preview (numbers will be different — see Step 4), order placement, feedback — all core flows work identically to before.
 
 ## Before you start
 
 | You need | Notes |
 |---|---|
-| Restaurant **478** | Phone capture (name auto-fill) is enabled here |
-| Test phone **9579504871** | A known customer — name should auto-fill |
-| A browser | A fresh tab is fine |
+| Restaurant **689** | Loyalty is live here; used for Parts B and C |
+| Restaurant **478** | Phone capture is enabled here; used for Part A |
+| A test phone **9579504871** | Known customer on both restaurants |
+| A browser in a fresh tab | |
 
-## The test — 3 steps (about 5 minutes)
+---
 
-### Step 1 — Name auto-fills from phone
+## Part A — Landing page name auto-fill (2 steps, ~3 minutes)
 
-1. Open the restaurant 478 home page.
-2. Tap the phone number field and type **9579504871**.
+*What changed: the name lookup now calls CRM's API instead of your backend reading CRM's database directly. The diner sees no difference.*
+
+### Step 1 — Known phone auto-fills name
+
+1. Open the restaurant **478** home page.
+2. Tap the phone field and type **9579504871**.
 3. Wait about 1 second (do not tap Browse Menu yet).
-4. **Expected:** the Name field fills in automatically — you should see a name appear. A brief **"Checking..."** message may flash below the fields while the lookup runs.
-5. **No error toast** should appear at any point.
+4. **Expected:** the Name field fills in automatically. No error toast.
 
 Result: ☐ PASS ☐ FAIL — notes: ______________________________
 
-### Step 2 — Unknown phone — no fill, no error
+### Step 2 — Unknown phone — silent, no error
 
-1. Clear the phone field and type a phone number that is **not** a known customer (e.g. **9800000001**).
+1. Clear the phone field and type **9800000001** (not a known customer).
 2. Wait 1 second.
-3. **Expected:** name field stays empty. **No error toast.** App is silent — this is correct; it just means the phone is not yet a customer.
+3. **Expected:** Name field stays empty. No toast, no error message.
 
 Result: ☐ PASS ☐ FAIL — notes: ______________________________
 
-### Step 3 — Browse Menu still works
+---
 
-1. Re-enter phone **9579504871** and wait for the name to auto-fill.
-2. Tap **Browse Menu**.
-3. **Expected:** you land on the menu page. No errors, no stuck screens.
+## Part B — Checkout loyalty preview (3 steps, ~5 minutes)
+
+*What changed: loyalty earn rates and redemption values now come from CRM's API. Numbers will look different for non-Bronze diners — this is a correction, not a regression. Redemption caps from CRM are now enforced.*
+
+### Step 3 — Earn preview loads from CRM
+
+1. On restaurant **689**, add any items to cart and go to the checkout page.
+2. Scroll to the loyalty section ("You will earn X points…" or "Earn rewards…").
+3. **Expected:** the section appears. No error, no blank/broken layout.
+4. Optional — open browser DevTools → Network tab → confirm a call to the CRM domain ending in `/scan/loyalty-rules/689`. There should be **no** call to `/api/loyalty-settings/689`.
 
 Result: ☐ PASS ☐ FAIL — notes: ______________________________
 
-### Optional — Confirm old route is gone (technical check, 1 minute)
+### Step 4 — Redemption value is per tier
 
-Open browser DevTools → Network tab → repeat Step 1. Confirm there is **no** network request to `/api/auth/check-customer`. The call should go to the CRM preprod domain instead.
+1. Log in as a **Gold** or **Silver** tier customer on restaurant **689**.
+2. Go to checkout with items in cart. Look at the loyalty earn section ("You will earn X points — Worth ₹Y").
+3. **Expected:** the "Worth ₹Y" figure is higher than it was before this change. A Gold diner should see roughly ₹3 per point, not ₹1 per point. The exact number depends on the cart value and CRM's current config.
 
-Result: ☐ PASS ☐ FAIL ☐ skipped
+> This is a **correction** — the old number was wrong (showing the flat rate for all tiers). The new number is the correct per-tier rate from CRM.
+
+Result: ☐ PASS ☐ FAIL — notes: ______________________________
+
+### Step 5 — Use Points button respects CRM cap
+
+1. Log in as a customer with points on restaurant **689**.
+2. Go to checkout and click **Use Points**.
+3. **Expected:** the discount applied is at most ₹110 (restaurant 689's `max_redemption_amount` from CRM). If the customer has enough points to exceed ₹110, the discount still shows ₹110 — the excess points are not applied.
+4. Also confirm: if the customer does not have enough points to meet the minimum threshold (`min_redemption_points`), the Use button does nothing.
+
+Result: ☐ PASS ☐ FAIL — notes: ______________________________
+
+---
+
+## Part C — Checkout phone field no longer triggers name auto-fill (1 step, ~2 minutes)
+
+*What changed: the checkout page used to silently look up a diner's points and tier when they typed their phone in the order form. That lookup is removed. Name still comes from the landing page as before.*
+
+### Step 6 — Typing phone on checkout does not auto-fill name
+
+1. On restaurant **689**, go to checkout **without** logging in.
+2. If a name is already showing in the customer name field (pre-filled from the landing page), clear it manually.
+3. Click into the phone field and type or edit a phone number.
+4. **Expected:** the name field does **not** auto-fill. No points or tier information appears. No error toast.
+5. Also confirm: the points/tier "Use Points" block in the price summary is **not visible** for a non-logged-in diner.
+
+Result: ☐ PASS ☐ FAIL — notes: ______________________________
+
+---
+
+## Regression — order placement still works (1 step)
+
+### Step 7 — Place an order end to end
+
+1. On restaurant **689**, add items, fill in name and phone, and place an order (any payment method).
+2. **Expected:** order completes successfully. Order success page loads. No errors at any step.
+
+Result: ☐ PASS ☐ FAIL — notes: ______________________________
+
+---
 
 ## Reporting
 
