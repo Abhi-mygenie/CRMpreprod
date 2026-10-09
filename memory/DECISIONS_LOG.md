@@ -1752,3 +1752,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 ### 2026-10-09 [NEW CR pending] POST /scan/coupons/validate — Customer App coupon validation endpoint
 **Decision**: New endpoint needed for Scan & Order "diner types code → tap Apply → see discount" flow. No scan-accessible validate endpoint exists today (only POS API-key-gated POST /pos/coupons/validate). Proposed contract drafted in `handoff/CRM_TO_SCAN_ORDER_COUPON_CONTRACT_REPLY_2026_10_09.md`. Reuses existing `validate_coupon_for_customer` service. To be registered as new CR on "choose planning role" from owner.
+
+### 2026-10-09 [BUG-034 / CR-105 / CR-106 / CR-107] Intake complete — coupon + scan surface audit
+**Registered:** BUG-034 (GET /scan/coupons 500, fix applied early — owner to confirm keep/revert) · CR-105 (POST /scan/coupons/validate, P2) · CR-106 (GET /scan/coupons channel filter, P3) · CR-107 (POST /scan/max-redeemable, P2). Full scan surface audited — no other gaps found.
+**Source:** Scan & Order OUTBOUND_TO_CRM_COUPON_API_CONTRACT_REQUEST_2026_10_09.md + read-only code + DB probe.
+**Open owner decisions:** BUG-034 Q(a keep / b revert) · CR-105 Q1 rate-limit · CR-105 Q2 channel in body · CR-107 Q1 endpoint vs formula.
