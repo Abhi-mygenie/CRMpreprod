@@ -612,13 +612,8 @@ class CouponCreate(BaseModel):
     max_discount: Optional[float] = None
     specific_users: Optional[List[str]] = None
     applicable_channels: List[str] = ["delivery", "takeaway", "dine_in"]
+    requires_customer: bool = True   # CR-082: False = generic/walk-in coupon
     description: Optional[str] = None
-    # CR-001C-C V1 additions (forward-only, optional)
-    title: Optional[str] = None
-    coupon_type: Optional[str] = "order"
-    stackable_with_loyalty: bool = False
-    # CR-001C-C V2 additions (forward-only, optional)
-    discount_scope: Optional[str] = None  # "order" | "item" | "category"
     eligible_food_ids: Optional[List[str]] = None
     eligible_item_ids: Optional[List[str]] = None
     eligible_category_ids: Optional[List[str]] = None
@@ -697,8 +692,8 @@ class CouponUpdate(BaseModel):
     max_discount: Optional[float] = None
     specific_users: Optional[List[str]] = None
     applicable_channels: Optional[List[str]] = None
+    requires_customer: Optional[bool] = None   # CR-082
     description: Optional[str] = None
-    is_active: Optional[bool] = None
     # CR-001C-C V1 additions
     title: Optional[str] = None
     coupon_type: Optional[str] = None
@@ -785,6 +780,7 @@ class Coupon(BaseModel):
     max_discount: Optional[float] = None
     specific_users: Optional[List[str]] = None
     applicable_channels: List[str] = ["delivery", "takeaway", "dine_in"]
+    requires_customer: bool = True   # CR-082: False = generic/walk-in coupon
     description: Optional[str] = None
     is_active: bool = True
     total_used: int = 0
@@ -922,7 +918,7 @@ class POSCartItem(BaseModel):
 # CR-001C-C V1: POS coupon validate JSON body (+ V2 optional items)
 class POSCouponValidateRequest(BaseModel):
     code: str
-    customer_id: str
+    customer_id: Optional[str] = None   # CR-082: optional for generic coupons
     order_total: float
     channel: str = "pos"
     loyalty_points_used: float = 0.0

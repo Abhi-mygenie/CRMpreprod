@@ -1821,3 +1821,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-082] Implementation Plan complete — gate open
 **All 8 decisions locked since 2026-08-06, verified 2026-10-09.** Edit order: E9 (tests) → E1–E4 (schemas) → E6 (list signature) → E5 (validate function — HIGH risk, CUSTOMER_REQUIRED gate + specific_users bug fix) → E7 (pos.py) → E8 (CouponsPage.jsx). pos_available_coupons now at pos.py:2917 (was 2851 in IA — shifted by CR-085-A2). Implementation gate OPENED by owner.
 **Source**: Owner 2026-10-09 "choose planning role implementation planning of CR-082".
+
+### 2026-10-09 [CR-082] IMPLEMENTATION COMPLETE — requires_customer flag shipped
+**Result**: 9 edits across 4 files + new test. Self-test 8/8 PASS. Key fixes: E5c specific_users latent bug fixed (guard None), E7 pos_available_coupons param reorder (Python arg ordering). Test fix: generic coupon needs "pos" in applicable_channels for POS till validation. Backward compat confirmed: existing coupons default to requires_customer=True.
+**Locks**: CR-082 🟢 IMPLEMENTED. QA handover: `qa/CR_082_QA_HANDOVER.md`. Next: QA.

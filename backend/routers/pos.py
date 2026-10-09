@@ -2915,8 +2915,8 @@ async def pos_customer_loyalty(customer_id: str, user: dict = Depends(verify_pos
 
 @router.get("/coupons/available", response_model=POSResponse)
 async def pos_available_coupons(
-    customer_id: str,
     order_total: float,
+    customer_id: Optional[str] = None,   # CR-082: optional; no customer → generic only
     channel: str = "pos",
     user: dict = Depends(verify_pos_auth),
 ):

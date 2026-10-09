@@ -75,7 +75,7 @@ const EMPTY_FORM = {
   discount_value: "", min_order_value: "0", max_discount: "",
   start_date: "", end_date: "", usage_limit: "", per_user_limit: "",
   applicable_channels: ["delivery", "takeaway", "dine_in"],
-  specific_users: [], stackable_with_loyalty: false,
+  specific_users: [], stackable_with_loyalty: false, requires_customer: true,
   discount_scope: "order", offer_type: "simple",
   eligible_food_ids: [], eligible_category_ids: [], eligible_category_names: [],
   min_item_qty: "", max_applicable_qty: "",
@@ -296,6 +296,7 @@ export default function CouponsPage() {
       applicable_channels: coupon.applicable_channels || ["delivery", "takeaway", "dine_in"],
       specific_users: coupon.specific_users || [],
       stackable_with_loyalty: coupon.stackable_with_loyalty || false,
+      requires_customer: coupon.requires_customer !== false,
       discount_scope: coupon.discount_scope || "order",
       offer_type: coupon.offer_type || "simple",
       eligible_food_ids: coupon.eligible_food_ids || [],
@@ -365,6 +366,7 @@ export default function CouponsPage() {
         applicable_channels: form.applicable_channels,
         specific_users: form.specific_users.length > 0 ? form.specific_users : null,
         stackable_with_loyalty: form.stackable_with_loyalty,
+        requires_customer: form.requires_customer,
         offer_type: form.offer_type || "simple",
         coupon_type: form.discount_scope === "order" ? "order" : form.discount_scope,
       };
@@ -539,7 +541,9 @@ export default function CouponsPage() {
                           <span className="text-base font-bold text-gray-900 font-mono tracking-wide">{coupon.code}</span>
                           <Badge className={`text-[10px] font-semibold border px-2 py-0.5 ${SCOPE_COLORS[scope] || SCOPE_COLORS.order}`}>{SCOPE_LABELS[scope] || "Order"}</Badge>
                           {coupon.is_active && !expired && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
-                          {expired && <Badge variant="outline" className="text-[10px] text-red-500 border-red-200">Expired</Badge>}
+                          {!coupon.requires_customer && (
+                            <Badge variant="outline" className="text-[10px] text-purple-600 border-purple-300" data-testid={`generic-badge-${coupon.id}`}>Generic</Badge>
+                          )}
                           {!coupon.is_active && <Badge variant="outline" className="text-[10px] text-gray-400 border-gray-200">Inactive</Badge>}
                         </div>
                         {coupon.title && <p className="text-sm text-gray-500 mt-1">{coupon.title}</p>}
@@ -956,6 +960,14 @@ export default function CouponsPage() {
                         <p className="text-xs text-gray-400 mt-0.5">Allow alongside loyalty redemption</p>
                       </div>
                       <Switch checked={form.stackable_with_loyalty} onCheckedChange={v => setForm({ ...form, stackable_with_loyalty: v })} data-testid="stackable-toggle" />
+                    </div>
+                    {/* CR-082: Requires Customer toggle */}
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50/80 border border-gray-100">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Require customer to apply this coupon</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Uncheck to allow walk-in orders without a CRM customer profile</p>
+                      </div>
+                      <Switch checked={form.requires_customer} onCheckedChange={v => setForm({ ...form, requires_customer: v })} data-testid="requires-customer-toggle" />
                     </div>
                   </div>
 

@@ -216,7 +216,12 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Self-test 6/6 PASS: r69 slow path resolves to `pos_owner_69_bdd4513c` on all 4 routes; r689 fast path unchanged. Regression 68/2s PASS.
 - Orphan customer at `pos_0001_restaurant_69` untouched → CR-101. QA handover: `qa/BUG_030_QA_HANDOVER.md`. **Next: QA.**
 
-## 2026-10-09 — IMPLEMENTATION: CR-106 `GET /scan/coupons?channel=` filter + pos-only exclusion
+## 2026-10-09 — IMPLEMENTATION: CR-082 per-coupon requires_customer flag (all 8 decisions locked since 2026-08-06)
+- `schemas.py`: requires_customer on CouponCreate/Update/Coupon + customer_id Optional on POSCouponValidateRequest.
+- `core/coupon.py`: validate_coupon_for_customer signature → Optional + CUSTOMER_REQUIRED gate (8 lines) + specific_users latent bug fix (None guard). list_available_coupons signature → Optional.
+- `routers/pos.py`: pos_available_coupons param reorder (order_total before customer_id).
+- `CouponsPage.jsx`: requires_customer toggle + Generic badge.
+- `tests/test_cr082_requires_customer.py`: new, 8/8 PASS. **Next: QA.**
 - `scan.py` E1: `channel: Optional[str] = None` param + `ch_filter = {$in:[channel]} if channel else {$in:[dine_in,delivery,takeaway]}` + added to DB query (~5 lines). Self-test V1-V6 PASS: dine_in:24, delivery:23, no-param:24, pos-only absent, FLAT100TEST present (fresh customer), backward-compat. Business rules: POS all channels; S&O = dine_in/delivery/takeaway; rooms=dine_in; pos-only excluded always. **Next: QA.**
 - All 7 items QA PASS. Full identity + scan regression clean.
 - MINOR fixes: test_baseline_customer_count range updated (DB grew to ~8900 with POS traffic); iteration_10 test customers cleaned up.

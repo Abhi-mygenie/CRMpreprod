@@ -1645,7 +1645,7 @@ async def validate_coupon_for_customer(
     *,
     user_id: str,
     code: str,
-    customer_id: str,
+    customer_id: Optional[str] = None,   # CR-082: optional for generic coupons
     order_total: float,
     channel: str = "pos",
     loyalty_points_used: float = 0.0,
@@ -1763,6 +1763,18 @@ async def validate_coupon_for_customer(
             "error": {"code": "USAGE_LIMIT_REACHED", "field": "usage_limit", "detail": "Coupon usage limit reached"},
         }
 
+    # CR-082: block anonymous order if this coupon requires a customer to be captured
+    requires_customer = bool(coupon.get("requires_customer", True))
+    if requires_customer and not customer_id:
+        return {
+            "ok": False,
+            "error": {
+                "code": "CUSTOMER_REQUIRED",
+                "field": "customer_id",
+                "detail": "This coupon requires a customer to be selected before applying",
+            },
+        }
+
     # CR-021 D4: per_user_limit=None now means Unlimited (was coerced to 1).
     raw_pul = coupon.get("per_user_limit")
     per_user_limit = int(raw_pul) if raw_pul is not None else None
@@ -1812,7 +1824,7 @@ async def validate_coupon_for_customer(
         }
 
     specific = coupon.get("specific_users")
-    if specific and customer_id not in specific:
+    if specific and customer_id and customer_id not in specific:   # CR-082: guard None
         return {
             "ok": False,
             "error": {"code": "CUSTOMER_NOT_ELIGIBLE", "field": "specific_users", "detail": "Coupon not valid for this customer"},
@@ -1970,7 +1982,7 @@ async def list_available_coupons(
     db,
     *,
     user_id: str,
-    customer_id: str,
+    customer_id: Optional[str] = None,   # CR-082: optional for anonymous available-list
     order_total: float,
     channel: str = "pos",
     now_iso: Optional[str] = None,
