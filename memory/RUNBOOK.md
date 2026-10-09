@@ -292,4 +292,38 @@ asyncio.run(main())
 
 ---
 
+## 13. Fix trailing spaces in coupon codes
+
+**When:** Run as part of CR-101 data cleanup (end of batch), or immediately if S&O reports INVALID_CODE on known-valid coupon codes.
+
+**Why:** Some coupon codes in the DB were entered with trailing spaces (e.g. `"FLAT TODAY "`). `validate_coupon_for_customer` strips the input before querying (`code_upper = code.strip().upper()`) but the DB lookup is an exact string match — the stripped input never matches the spaced DB value → `INVALID_CODE`.
+
+**Confirmed affected (2026-10-09):**
+- `"FLAT TODAY "` — r689, active
+- `"10 PERCENT DISCOUNT "` — r689, active
+- 1 inactive coupon
+
+**Command (copy-pasteable, run on prod DB):**
+```javascript
+// Dry-run first — show affected codes
+db.coupons.find({ "code": /\s/ }, { _id: 0, code: 1, user_id: 1, is_active: 1 })
+
+// Write — strip all leading/trailing whitespace from coupon codes
+db.coupons.updateMany(
+  { "code": /\s/ },
+  [{ "$set": { "code": { "$trim": { "input": "$code" } } } }]
+)
+```
+
+**Expected:** 3 documents updated. No data lost — only whitespace stripped.
+
+**Verify after:**
+```javascript
+db.coupons.find({ "code": /\s/ }).count()  // expect 0
+```
+
+**Note to S&O:** Until this is run, advise them to `.trim()` coupon codes client-side before sending to `POST /scan/coupons/validate`.
+
+---
+
 **End of runbook.**

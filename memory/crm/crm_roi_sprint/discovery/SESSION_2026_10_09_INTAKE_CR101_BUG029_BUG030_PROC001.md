@@ -21,6 +21,7 @@ Already registered + IA written today. Facts re-confirmed: 53 docs (r635 49 · r
 | customers with dead `password_hash` | 2 | both under `pos_0001_restaurant_test_restaurant` (`1234567890` "Security Researcher", `8888888888` "TestUser"); unreachable by design (invalid phones, skip-otp only path) — owner Q3 |
 | customers under tenants with **no `users` doc** | 3 | `pos_0001_restaurant_test_restaurant` ×2 (same as above) · `pos_0001_restaurant_69` ×1 (`9035133228`, created 2026-09-08 via skip-otp — see BUG-030) |
 | `customer_otps` collection | 5 docs | no writer since CR-084; drop collection |
+| **coupon codes with trailing spaces** | **3 codes (2 active)** | `"FLAT TODAY "` + `"10 PERCENT DISCOUNT "` (r689, active) + 1 inactive. Exact-match DB lookup fails after input strip → `INVALID_CODE` for S&O. Command: `db.coupons.updateMany({"code":/\s/},[{$set:{"code":{$trim:{input:"$code"}}}}])` — see RUNBOOK.md §13 |
 | orders under those orphan tenants | 0 | safe to delete customers |
 **Fix sketch**: one idempotent script, dry-run → owner sign-off → write: `$unset password_hash` (2), delete 3 orphan-tenant customers, `drop customer_otps`. Baseline becomes 7697.
 **Constraints**: owner rule "all data ops after the batch" → runs with/after CR-085-B; **PROC-001** applies (full validation on production DB afterwards).
