@@ -1704,3 +1704,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: **Q1 = A** — remove `replace(/\D/g, '')` from both phone input onChange handlers; bump `maxLength` from 10 → 15. Backend `normalize_phone()` is the authoritative guard. **IA CLOSED. Implementation Plan gate NOT opened** (owner: "don't jump gate").
 **Source**: Owner 2026-10-09: same message.
 **Locks**: `CustomersPage.jsx` only (4 lines, 2 locations). No backend changes.
+
+### 2026-10-09 [BUG-030] Implementation Plan complete — gate open
+**Decision**: Plan written. 4 call sites (not 5): `get_app_config:626` left unchanged (already tries short-form first; GET route removed at CA-2). New `_resolve_restaurant_id` async helper: fast path = zero extra DB query for all standard tenants; slow path = one `users.find_one({"restaurant_id": rid})` for non-standard ids (r69 only today). **Implementation Plan gate OPENED** by owner.
+**Source**: Owner 2026-10-09: "choose planning role for implementation planning of BUG-030".
+**Locks**: `scan.py` only. E1 new helper + E2–E5 four 1-line replacements. `_normalize_restaurant_id` sync helper stays (still used by `get_app_config:626`). Orphan customer cleanup → CR-101 (end of batch). Implementation gate opens on "choose implementation role for BUG-030".
