@@ -1670,3 +1670,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-100] IMPLEMENTATION COMPLETE — tolerant phone_match shipped
 **Decision**: Implemented per plan (Q1 A / Q2 accept-either / Q3 +91 only). `core/phone.py` E1 (4 lines, `$in ["+91", None, ""]` when cc=="+91") + `routers/scan.py:324` E2 (1 line, inline dict → `phone_match()`) + `tests/test_cr100_tolerant_match.py` E3 (new, V1–VZZ). Self-test 8/8 PASS. VZZ fix: explicit delete in test (module-scoped fixture teardown runs post-module). Regression note: test_S4b pre-existing ordering sensitivity when cr085a + cr089 run together — not a CR-100 defect. BUG-027 root cause resolved.
 **Locks**: CR-100 🟢 IMPLEMENTED. QA handover: `qa/CR_100_QA_HANDOVER.md`. Next: QA role (independent run of test_cr100_tolerant_match.py + identity regression).
+
+### 2026-10-09 [CR-095] Impact Analysis complete — PUT half ready, GET half gated on CA-2
+**Decision**: IA written. D1/D2 already locked (2026-09-28). Code reality confirmed: zero CRM callers, zero CRM-written docs, `dietary_tags_mapping` empty, cross-tenant write hole confirmed on both PUTs. Q1 and Q2 are open owner decisions needed before the Implementation Plan gate can open.
+**Open**: **Q1** — confirm two-step sequencing (PUTs now / GETs after CA-2) · **Q2** — 404 or 405 for deleted PUT routes.
+**Source**: Owner 2026-10-09 "choose planning role for impact analysis of CR-095".
+**Locks**: IA at `planning/CR_095_IMPACT_ANALYSIS.md`. No code changed. Implementation Plan gate opens on owner answers to Q1/Q2.
