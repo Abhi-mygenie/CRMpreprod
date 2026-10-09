@@ -1808,3 +1808,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-106] Business rules clarified by owner
 **Rules locked**: POS receives ALL coupons (pos channel = POS-till only, advisory). S&O has 3 consumer channels: dine_in, delivery, takeaway. Hotel rooms = dine_in (no separate channel). pos-only coupons MUST NOT appear in GET /scan/coupons. IA updated with these rules.
 **Source**: Owner 2026-10-09 clarification message.
+
+### 2026-10-09 [CR-106] Q1 = A — no default filter; pos-only always excluded; Implementation Plan gate open
+**Decision**: **Q1 = A** — no channel default; S&O passes `?channel=` explicitly when needed. **Q2 = YES (confirmed by business rules clarification)** — pos-only coupons always excluded from base query (`applicable_channels: {$in: [dine_in, delivery, takeaway]}`). Implementation Plan gate OPENED by owner.
+**Source**: Owner 2026-10-09: "q1 a".
+**Locks**: `scan.py` only. E1: add `channel: Optional[str] = None` param + base `$in [dine_in,delivery,takeaway]` filter + conditional channel filter. ~5 lines. Implementation gate opens on "choose implementation role for CR-106".
