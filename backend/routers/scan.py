@@ -625,49 +625,7 @@ async def set_my_default_address(addr_id: str, auth: dict = Depends(verify_custo
     return _resp(True, "Default address set", {"address_id": addr_id})
 
 
-# ============================================
-# C4 - Restaurant App Configuration
-# ============================================
 
-@router.get("/config/{restaurant_id}")
-async def get_app_config(restaurant_id: str):
-    """Get restaurant app config (public — no auth)."""
-    # Dual lookup: try short ID first, then full
-    config = await db.customer_app_config.find_one(
-        {"restaurant_id": restaurant_id}, {"_id": 0}
-    )
-    if not config:
-        full_id = _normalize_restaurant_id(restaurant_id)
-        config = await db.customer_app_config.find_one(
-            {"restaurant_id": full_id}, {"_id": 0}
-        )
-    if not config:
-        short_id = _short_restaurant_id(restaurant_id)
-        config = await db.customer_app_config.find_one(
-            {"restaurant_id": short_id}, {"_id": 0}
-        )
-    if not config:
-        return _resp(False, "Config not found")
-
-    return _resp(True, "Config loaded", config)
-
-
-
-# ============================================
-# C5 - Dietary Tags
-# ============================================
-
-@router.get("/menu/dietary-tags/{restaurant_id}")
-async def get_dietary_tags(restaurant_id: str):
-    """Get dietary tag mappings for menu items (public)."""
-    short_id = _short_restaurant_id(restaurant_id)
-    doc = await db.dietary_tags_mapping.find_one({"restaurant_id": short_id}, {"_id": 0})
-    if not doc:
-        doc = await db.dietary_tags_mapping.find_one({"restaurant_id": restaurant_id}, {"_id": 0})
-    if not doc:
-        return _resp(True, "No dietary tags configured", {"restaurant_id": restaurant_id, "mappings": {}})
-
-    return _resp(True, "Dietary tags loaded", doc)
 
 
 

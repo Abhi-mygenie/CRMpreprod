@@ -133,7 +133,8 @@ _CR-086 · CR-087 — rows added when planned_
 | Validation note | To be drafted after QA (owner sends to Customer App) |
 
 ## Wave 4 — Cleanup + hardening
-_CR-095 · CR-089 · CR-088_
+_CR-089 · CR-088_
+> **CR-095 GET half released 2026-10-09**: Scan & Order confirmed 0 callers on both GET routes; CA-2 decoupled from their steps 2–3. GET removal unblocked. Pending: owner ships CR-095 GET half + notifies S&O to probe for 404.
 
 ---
 

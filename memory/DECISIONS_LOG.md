@@ -1722,3 +1722,12 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-099] IMPLEMENTATION COMPLETE — phone sanitiser relaxed
 **Decision**: Implemented per plan. E1 Add Customer:1910/1914 + E2 Edit Customer:2447/2451. `replace(/\D/g,'')` removed; `maxLength` 10→15. Self-test V2/V3 PASS: `+91 98765 43201` → `9876543201`; `098765 43201` → `9876543201`. QA handover: `qa/CR_099_QA_HANDOVER.md`.
 **Locks**: CR-099 🟢 IMPLEMENTED. Next: QA role.
+
+### 2026-10-09 [CR-095 GET half] CA-2 + CA-8 confirmed — GET routes released from gate
+**Decision**: Scan & Order confirmed 2026-10-09 zero dependencies on `GET /scan/config/{rid}` and `GET /scan/menu/dietary-tags/{rid}` (grep 0 hits; they read their own collections directly). CR-095 GET half is DECOUPLED from their steps 2-3. **CA-2 and CA-8 CLOSED from their side.** CR-095 GET half can be removed immediately.
+**Source**: Scan & Order CONFIRMATION_NOTE_TO_CRM.md 2026-10-09 — CA-2+CA-8 section.
+**Locks**: Owner must decide: implement CR-095 GET half now (before or after sending reply). Board correction: delete `otp_tokens` row (confirmed dead — `customer_otps` is the OTP store, CR-101 scope).
+
+### 2026-10-09 [CA-4 / CA-5] Ownership map corrections confirmed
+**CA-4**: Four collections "missing on UAT" = `pos_event_logs`, `otp_tokens`, `segment_whatsapp_config`, `message_logs` — all exist in CRM code, never written to UAT. Board: delete `otp_tokens` row (it doesn't exist; `customer_otps` is the real collection).
+**CA-5**: Their four "unclaimed" = `coupon_distributions`, `customer_documents`, `import_logs`, `webhook_logs` — all already CRM-owned with code evidence. CRM's candidate list was misaligned. No action on ownership; board consistent.
