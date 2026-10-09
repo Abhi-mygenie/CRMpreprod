@@ -1790,3 +1790,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Source**: Owner 2026-10-09 "send them full contract now at once".
 **File**: handoff/CRM_TO_SCAN_ORDER_FULL_CONTRACT_V2_1_AND_CR105_CR107_2026_10_09.md
 **Locks**: CA-9 CLOSED from CRM side. S&O to validate CR-107 + CR-105 + confirm sign-in card removal.
+
+### 2026-10-09 [POS] Consolidated brief drafted — 4 open items
+**Items**: §1 P7 (Pay Bill semantics, unanswered since 2026-10-03) · §2 CR-085-A/A2 P1–P8 validation (re-send) · §3 country_code optional ask (first send) · §4 CR-014 hotel folio room_info (re-send, ongoing).
+**File**: handoff/CRM_TO_POS_CONSOLIDATED_BRIEF_2026_10_09.md. Owner sends.
+**Source**: Owner 2026-10-09 "yes draft 1 2 3 4 all in one brief".
