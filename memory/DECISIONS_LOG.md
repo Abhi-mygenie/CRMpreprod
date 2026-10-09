@@ -1739,3 +1739,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **DB note**: `customer_app_config` is now 14 docs (was 13) — the +1 is an r69 config doc created via BUG-030 normalisation fix (short id "69" previously 404'd, now resolves); confirmed no CRM PUT contamination.
 **Open owner actions (non-CRM, no code)**: owner smoke (gates formal closure of CR-098/093/089) · CA-1 countersignature on CONTRACT_CUSTOMER_APP_CRM_v1.0 · §4d ownership map initials.
 **Source**: Scan & Order CONFIRMATION NOTE 2026-10-09 (reply to CRM_REPLY_TO_SCAN_ORDER_CR095_SHIPPED_CA4_CA5_CR094_CR096_2026_10_09.md).
+
+### 2026-10-09 [CA-1] CONTRACT_CUSTOMER_APP_CRM_v1.0 Part 1 (§1–§6) — FROZEN BOTH SIDES
+**Decision**: **CONTRACT v1.0 FROZEN.** CRM signed 2026-10-03 (owner-authorised). Scan & Order countersigned 2026-10-09: *"Scan & Order countersigns CONTRACT_CUSTOMER_APP_CRM_v1.0 Part 1 (§1–§6) — 2026-10-09"*. Both parties have signed. Contract is now binding and frozen for Part 1.
+**What is frozen**: §1 Ground rules (symmetric CRM/CA ownership) · §2 36-row shared-DB ownership board · §3 Identity contract (phone format, rid forms, JWT) · §4 Live endpoint list + CR-093/094/095/096 shapes · §5 Limits · §6 Rollout sequence.
+**§4d ownership map**: Owner signing this session (Scan & Order confirmed).
+**Source**: Scan & Order FINAL REPLY 2026-10-09 (`handoff/SCAN_ORDER_FINAL_REPLY_CR095_CR094_CR096_CA1_2026_10_09.md`).

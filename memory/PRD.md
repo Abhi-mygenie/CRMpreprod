@@ -216,7 +216,9 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Self-test 6/6 PASS: r69 slow path resolves to `pos_owner_69_bdd4513c` on all 4 routes; r689 fast path unchanged. Regression 68/2s PASS.
 - Orphan customer at `pos_0001_restaurant_69` untouched → CR-101. QA handover: `qa/BUG_030_QA_HANDOVER.md`. **Next: QA.**
 
-## 2026-10-09 — IMPLEMENTATION: CR-095 GET half (CA-2 confirmed by Scan & Order — zero callers)
+## 2026-10-09 — CONTRACT_CUSTOMER_APP_CRM_v1.0 Part 1 FROZEN (CA-1 countersigned by Scan & Order)
+- CRM signed 2026-10-03 · Scan & Order countersigned 2026-10-09 · Contract v1.0 FROZEN both sides
+- §4d ownership map signed · CR-094/095/096 all consumer-validated · All CA items resolved
 - `scan.py`: deleted `get_app_config` route + C4 section comment, `get_dietary_tags` route + C5 section comment (~50 lines).
 - All 4 routes (PUT×2 + GET×2) now return **404**. Scan & Order notified to probe + run contract snapshots.
 - `CustomersPage.jsx` E1+E2: removed `replace(/\D/g,'')` from both phone input onChange handlers; bumped `maxLength` 10→15 in both Add Customer and Edit Customer modals (4 lines total).

@@ -127,7 +127,7 @@ _CR-086 · CR-087 — rows added when planned_
 
 ## Wave 4 — Cleanup + hardening
 _CR-089 · CR-088_
-> **CR-095 GET half released 2026-10-09**: Scan & Order confirmed 0 callers on both GET routes; CA-2 decoupled from their steps 2–3. GET removal unblocked. Pending: owner ships CR-095 GET half + notifies S&O to probe for 404.
+> **CR-095 FULLY CLOSED 2026-10-09**: All 4 routes 404. Scan & Order 4-step probe PASS. CONTRACT_CUSTOMER_APP_CRM_v1.0 Part 1 FROZEN — CRM signed 2026-10-03, Scan & Order countersigned 2026-10-09. §4d ownership map signed this session.
 
 ---
 
