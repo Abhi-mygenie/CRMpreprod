@@ -474,7 +474,7 @@ async def get_available_coupons(auth: dict = Depends(verify_customer_token)):
         if c.get("specific_users") and auth["customer_id"] not in c["specific_users"]:
             continue
         usage = await db.coupon_usage.count_documents({"coupon_id": c["id"], "customer_id": auth["customer_id"]})
-        if usage < c.get("per_user_limit", 1):
+        if usage < (c.get("per_user_limit") or 1):  # handle per_user_limit:null stored in DB (None != default)
             c["my_usage_count"] = usage
             eligible.append(c)
 

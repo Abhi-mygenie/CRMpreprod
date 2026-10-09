@@ -1745,3 +1745,10 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **What is frozen**: §1 Ground rules (symmetric CRM/CA ownership) · §2 36-row shared-DB ownership board · §3 Identity contract (phone format, rid forms, JWT) · §4 Live endpoint list + CR-093/094/095/096 shapes · §5 Limits · §6 Rollout sequence.
 **§4d ownership map**: Owner signing this session (Scan & Order confirmed).
 **Source**: Scan & Order FINAL REPLY 2026-10-09 (`handoff/SCAN_ORDER_FINAL_REPLY_CR095_CR094_CR096_CA1_2026_10_09.md`).
+
+### 2026-10-09 [GET /scan/coupons] BUG FIX — per_user_limit:null 500 error
+**Decision**: Fixed `scan.py:477` — `c.get("per_user_limit", 1)` → `(c.get("per_user_limit") or 1)`. Root cause: Python dict.get returns the stored None (not the default 1) when key exists with null value. Verified: GET /scan/coupons now returns 200 + 16 eligible coupons for r689.
+**Source**: Scan & Order coupon API contract request 2026-10-09 (OUTBOUND_TO_CRM_COUPON_API_CONTRACT_REQUEST).
+
+### 2026-10-09 [NEW CR pending] POST /scan/coupons/validate — Customer App coupon validation endpoint
+**Decision**: New endpoint needed for Scan & Order "diner types code → tap Apply → see discount" flow. No scan-accessible validate endpoint exists today (only POS API-key-gated POST /pos/coupons/validate). Proposed contract drafted in `handoff/CRM_TO_SCAN_ORDER_COUPON_CONTRACT_REPLY_2026_10_09.md`. Reuses existing `validate_coupon_for_customer` service. To be registered as new CR on "choose planning role" from owner.
