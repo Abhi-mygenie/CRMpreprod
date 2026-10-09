@@ -1,0 +1,113 @@
+{
+  "summary": "Iteration 10 QA covering CR-088, CR-099, CR-100, BUG-030, BUG-034, CR-105, CR-107. All new features PASS. Identity regression suites (cr085a, cr089, cr093, cr094, cr096) near-clean with pre-existing NOTEs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "test_cr094_cr096_adhoc.py::test_baseline_customer_count",
+        "issue": "Hardcoded range 7695-7715 but actual DB count is 8903. Test assertion needs updating to reflect current baseline.",
+        "priority": "MINOR"
+      },
+      {
+        "endpoint": "test_cr094_loyalty_rules.py::test_R5_ip_limiter",
+        "issue": "Rate limit test: 61 calls all returned 200 (expected 60×200 + 1×429). Possible rate-limit bucket collision or IP not fresh enough. Flaky/timing-sensitive test.",
+        "priority": "MINOR"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "phase_results": {
+    "PHASE_A_CR100": {
+      "result": "8/8 PASS",
+      "notes": "test_cr100_tolerant_match.py all pass. cr085a standalone: 21/22 — test_A2 FAIL is pre-existing (space-containing phone in DB from old test data, not a CR-100 regression)"
+    },
+    "PHASE_B_identity_regression": {
+      "cr089_skip_otp": "18/20 pass — test_S4b (pre-existing ordering sensitivity NOTE), test_S10 (pre-existing log traceback NOTE)",
+      "cr093_lookup": "20/20 pass (1 skipped — no blocked customer)",
+      "cr085a_normalization": "21/22 — test_A2 FAIL pre-existing space-phone in DB"
+    },
+    "PHASE_C_BUG030_r69": {
+      "skip_otp_r69": "PASS — 200, is_new_customer:false, token present",
+      "lookup_r69": "PASS — 200, exists:true",
+      "loyalty_rules_69": "PASS — 200, 'Loyalty rules'",
+      "feedback_r69": "PASS — 200, linked:false",
+      "fast_path_r689": "PASS",
+      "loyalty_rules_689": "PASS — 33 keys",
+      "full_id_r69": "PASS",
+      "unknown_99999_loyalty_rules": "PASS — 404"
+    },
+    "PHASE_D_CR094_CR096": {
+      "cr094": "11/12 — test_R5_ip_limiter FAIL (flaky timing, all 61 returned 200)",
+      "cr096": "15/15 PASS",
+      "cr094_cr096_adhoc": "8/9 — test_baseline_customer_count FAIL (8903 vs expected 7695-7715)"
+    },
+    "PHASE_E_CR088": {
+      "result": "10/10 PASS",
+      "details": "V1-V8 + ad-hoc skip/limit clamping all pass"
+    },
+    "PHASE_F_BUG034": {
+      "result": "PASS — GET /scan/coupons returns 200 with 17 coupons (was 500)"
+    },
+    "PHASE_F2_CR105": {
+      "result": "5/5 PASS — validate correct, min-order check, invalid code, rate-limit 10+1, no new coupon_usage written"
+    },
+    "PHASE_F3_CR107": {
+      "result": "3/3 PASS — BELOW_MIN_REDEMPTION, LOYALTY_DISABLED, ok:true with high-pts customer"
+    },
+    "PHASE_G_CR099_frontend": {
+      "result": "PASS — + and spaces preserved in Add Customer phone field, maxLength=15 confirmed, backend strips to digits-only on store"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr100_tolerant_match.py",
+    "/app/backend/tests/test_cr085a_normalization.py",
+    "/app/backend/tests/test_cr089_skip_otp.py",
+    "/app/backend/tests/test_cr093_lookup.py",
+    "/app/backend/tests/test_cr094_loyalty_rules.py",
+    "/app/backend/tests/test_cr096_feedback.py",
+    "/app/backend/tests/test_cr094_cr096_adhoc.py",
+    "/app/test_reports/qa/CR_088_QA_REPORT.md",
+    "/app/test_reports/qa/CR_099_QA_REPORT.md",
+    "/app/test_reports/qa/CR_100_QA_REPORT.md",
+    "/app/test_reports/qa/BUG_030_QA_REPORT.md",
+    "/app/test_reports/qa/BUG_034_QA_REPORT.md",
+    "/app/test_reports/qa/CR_105_CR_107_QA_REPORT.md"
+  ],
+  "action_items": [
+    "Update test_cr094_cr096_adhoc.py::test_baseline_customer_count expected range from 7695-7715 to current ~8900 (±50)",
+    "Investigate test_R5_ip_limiter flakiness in cr094 — rate limit for GET /scan/loyalty-rules may need fresh IP window check",
+    "Cleanup pre-existing CR099 Test customer with phone '+91 98765 43201' in DB (stored with spaces — old test artifact)"
+  ],
+  "pre_existing_notes": [
+    "test_S4b (cr089): phone bucket pre-fill ordering sensitivity — NOTE not FAIL",
+    "test_S10 (cr089): historical traceback in backend log — NOTE not FAIL",
+    "test_A2 (cr085a): space-containing phone from old CR099 test run in DB — NOTE not FAIL for CR-100",
+    "Coupon codes with trailing spaces return INVALID_CODE — data quality issue",
+    "test_baseline_customer_count: customer count 8903 exceeds old baseline 7705 — DB has grown since baseline was set"
+  ],
+  "updated_files": [
+    "/app/test_reports/qa/CR_088_QA_REPORT.md",
+    "/app/test_reports/qa/CR_099_QA_REPORT.md",
+    "/app/test_reports/qa/CR_100_QA_REPORT.md",
+    "/app/test_reports/qa/BUG_030_QA_REPORT.md",
+    "/app/test_reports/qa/BUG_034_QA_REPORT.md",
+    "/app/test_reports/qa/CR_105_CR_107_QA_REPORT.md"
+  ],
+  "success_rate": {
+    "backend": "92% (2 minor test assertion issues, no API failures)",
+    "frontend": "100% (CR-099 phone field CR-099 verified)"
+  },
+  "seed_data_creation": "Created test customer 'CR099 QAIter10 Test' (phone:9999988881) during CR-099 frontend test. Should be cleaned up.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 10 complete. All 7 items (CR-088, CR-099, CR-100, BUG-030, CR-105, CR-107, BUG-034) PASS. Two test assertion issues: (1) test_baseline_customer_count hardcoded to old 7705 range — DB now has ~8900 customers; needs assertion update. (2) test_R5_ip_limiter (cr094) is flaky — rate limit may not trigger under concurrent load. Pre-existing NOTEs: test_S4b/S10 in cr089, test_A2 in cr085a (space-phone in DB from old test). Customer DB count: 8903. r689 null-cc count: 4 (correct). No new coupon_usage docs written by CR-105 validate.",
+  "rca_of_issues": {
+    "test_baseline_customer_count": "Hardcoded assertion 7695<=count<=7715 in test_cr094_cr096_adhoc.py. DB has grown to 8903 since baseline was set. Fix: update expected range or use dynamic baseline.",
+    "test_R5_ip_limiter": "Rate limiter for GET /scan/loyalty-rules uses window-based counting. With concurrent ThreadPoolExecutor(12), all 61 requests may complete within the same window before the counter updates. Fix: test with stricter serial execution or verify rate limit resets between test runs.",
+    "test_A2_cr085a": "Pre-existing: old CR099 Test run stored phone '+91 98765 43201' with spaces in DB. space-phone regex check fails because of this leftover. Not a CR-100 regression."
+  }
+}

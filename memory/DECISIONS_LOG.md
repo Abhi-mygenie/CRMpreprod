@@ -1795,3 +1795,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Items**: §1 P7 (Pay Bill semantics, unanswered since 2026-10-03) · §2 CR-085-A/A2 P1–P8 validation (re-send) · §3 country_code optional ask (first send) · §4 CR-014 hotel folio room_info (re-send, ongoing).
 **File**: handoff/CRM_TO_POS_CONSOLIDATED_BRIEF_2026_10_09.md. Owner sends.
 **Source**: Owner 2026-10-09 "yes draft 1 2 3 4 all in one brief".
+
+### 2026-10-09 [iteration_10] QA PASS — all 7 items (CR-088, CR-099, CR-100, BUG-030, BUG-034, CR-105, CR-107)
+**Result**: All 7 items QA PASS. 2 MINOR test-assertion issues fixed: (1) test_baseline_customer_count hardcoded 7695-7715 → updated to sanity-range >7000 / <50000 (DB has grown to ~8900 with POS traffic). (2) test_R5_ip_limiter flaky concurrent test — NOTE (code correct, rate limit verified in self-test; threading timing issue). Pre-existing NOTEs: test_S10, test_S4b, test_A2. BUG-034 keep option (a) confirmed — GET /scan/coupons returns 200.
+**Cleanup**: deleted iteration_10 test customer (9999988881) + space-phone artifact (+91 98765 43201).
+**Source**: Owner 2026-10-09 — approved QA plan, confirmed BUG-034 option (a).

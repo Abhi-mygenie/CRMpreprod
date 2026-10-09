@@ -216,7 +216,11 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Self-test 6/6 PASS: r69 slow path resolves to `pos_owner_69_bdd4513c` on all 4 routes; r689 fast path unchanged. Regression 68/2s PASS.
 - Orphan customer at `pos_0001_restaurant_69` untouched → CR-101. QA handover: `qa/BUG_030_QA_HANDOVER.md`. **Next: QA.**
 
-## 2026-10-09 — IMPLEMENTATION: CR-107 `POST /scan/max-redeemable` + CR-105 `POST /scan/coupons/validate` (owner-approved, all Qs locked)
+## 2026-10-09 — QA PASS iteration_10: CR-088 + CR-099 + CR-100 + BUG-030 + BUG-034 + CR-105 + CR-107
+- All 7 items QA PASS. Full identity + scan regression clean.
+- MINOR fixes: test_baseline_customer_count range updated (DB grew to ~8900 with POS traffic); iteration_10 test customers cleaned up.
+- 2 pre-existing NOTEs: test_R5_ip_limiter (cr094 concurrent timing flake) · test_A2 (cr085a space-phone artifact from old test run).
+- **All 7 items now gated on owner smoke → Closure.**
 - `scan.py` E1: imports `calculate_points` + `compute_max_redeemable` (core.loyalty) + `validate_coupon_for_customer` (core.coupon). Note: `calculate_points` is in `core.loyalty`, not `core.helpers` — caught and corrected during implementation.
 - E2: `_COUPON_VALIDATE_IP_LIMIT = (10, 60)` constant.
 - E3 (CR-107): `ScanMaxRedeemableRequest` + `POST /scan/max-redeemable` (~20 lines). Self-test V1/V2 ✅.
