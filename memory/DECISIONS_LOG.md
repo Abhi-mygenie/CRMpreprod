@@ -1777,3 +1777,10 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Edits**: E1 (imports: calculate_points + compute_max_redeemable + validate_coupon_for_customer) → E2 (_COUPON_VALIDATE_IP_LIMIT constant) → E3 (CR-107 schema+route, ~20 lines) → E4 (CR-105 schema+route, ~30 lines). scan.py only, ~54 lines total.
 **Implementation gate OPENED** by owner ("choose planning role for implementation planning of CR-105 + CR-107").
 **Source**: Owner 2026-10-09.
+
+### 2026-10-09 [CR-105 / CR-107] IMPLEMENTATION COMPLETE
+**CR-107**: `POST /scan/max-redeemable` — E1 imports + E3 schema+route. V1 ✅ BELOW_MIN_REDEMPTION (63pts < min 100, correct) · V2 ✅ LOYALTY_DISABLED (r719) · projected_points_earned:75 working.
+**CR-105**: `POST /scan/coupons/validate` — E2 constant + E4 schema+route. V3 ✅ valid/discount:100/final:900 · V3b ✅ MIN_ORDER_NOT_MET · V4 ✅ INVALID_CODE · V5 ✅ 10×200→429 · V6 ✅ GET /scan/coupons 200.
+**Import fix**: `calculate_points` is in `core.loyalty` not `core.helpers` — corrected E1 during implementation.
+**Note**: Many r689 coupon codes have trailing spaces in DB (data quality). `validate_coupon_for_customer` strips input but DB lookup is exact-match → trailing-space codes → INVALID_CODE. Pre-existing data issue, not introduced by CR-105. Active code `FLAT100TEST` works correctly.
+**Locks**: QA handover `qa/CR_105_CR_107_QA_HANDOVER.md`. Next: QA role → `iteration_10.json`.

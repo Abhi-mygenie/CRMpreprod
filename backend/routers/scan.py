@@ -19,7 +19,8 @@ from core.auth import (
 )
 import jwt  # CR-096
 from core.helpers import calculate_tier, get_earn_percent_for_tier, get_redemption_value_for_tier  # CR-094
-from core.loyalty import default_loyalty_settings  # CR-094
+from core.loyalty import default_loyalty_settings, compute_max_redeemable, calculate_points  # CR-094 + CR-107
+from core.coupon import validate_coupon_for_customer  # CR-105
 from models.schemas import CustomerAddressCreate, CustomerAddressUpdate
 
 logger = logging.getLogger(__name__)
@@ -93,6 +94,7 @@ async def _lookup_rate_limited(key: str, limit: int, window_s: int) -> Optional[
 
 _FEEDBACK_IP_LIMIT    = (10, 60)   # CR-096: 10/min per IP
 _FEEDBACK_PHONE_LIMIT = (3, 600)   # CR-096: 3/10 min per phone+restaurant
+_COUPON_VALIDATE_IP_LIMIT = (10, 60)  # CR-105 Q1=a: 10/min per IP
 
 
 async def optional_customer_token(credentials=Depends(optional_security)) -> Optional[dict]:
@@ -479,6 +481,94 @@ async def get_available_coupons(auth: dict = Depends(verify_customer_token)):
             eligible.append(c)
 
     return _resp(True, f"{len(eligible)} coupons available", {"coupons": eligible})
+
+
+class ScanMaxRedeemableRequest(BaseModel):  # CR-107
+    bill_amount: float
+
+
+@router.post("/max-redeemable")
+async def scan_max_redeemable(
+    data: ScanMaxRedeemableRequest,
+    auth: dict = Depends(verify_customer_token),
+):  # CR-107
+    """CR-107: max loyalty points redeemable for a given bill amount. Read-only."""
+    rid = auth["restaurant_id"]
+    customer = await db.customers.find_one(
+        {"id": auth["customer_id"], "user_id": rid}, {"_id": 0}
+    )
+    if not customer:
+        return _resp(False, "Customer not found")
+    settings = await db.loyalty_settings.find_one({"user_id": rid}, {"_id": 0})
+    cap = compute_max_redeemable(customer, settings, data.bill_amount)
+    projected_earned = 0
+    if cap["loyalty_enabled"] and settings:
+        pts = calculate_points(data.bill_amount, customer, settings)
+        projected_earned = pts.get("total_points", 0)
+    return _resp(True, "Max redeemable computed", {
+        "ok":                      cap["ok"],
+        "code":                    cap.get("code"),
+        "max_points_redeemable":   cap["max_points_redeemable"],
+        "max_discount_value":      cap["max_discount_value"],
+        "ratio_per_point":         cap["ratio_per_point"],
+        "available_points":        cap["available_points"],
+        "min_redemption_points":   cap["min_redemption_points"],
+        "loyalty_enabled":         cap["loyalty_enabled"],
+        "projected_points_earned": projected_earned,
+    })  # CR-107
+
+
+class ScanCouponValidateRequest(BaseModel):  # CR-105
+    code: str
+    order_total: float
+    channel: Optional[str] = "dine_in"   # CR-105 Q2
+    items: Optional[List[dict]] = None   # needed for item/category-scope (V2/V3-B) coupons
+
+
+@router.post("/coupons/validate")
+async def scan_validate_coupon(
+    data: ScanCouponValidateRequest,
+    request: Request,
+    auth: dict = Depends(verify_customer_token),
+):  # CR-105
+    """CR-105: validate coupon code against order total. Read-only — no usage recorded."""
+    retry = await _lookup_rate_limited(
+        f"vc-ip:{_client_ip(request)}", *_COUPON_VALIDATE_IP_LIMIT
+    )
+    if retry:
+        raise HTTPException(
+            status_code=429, detail="Too many requests",
+            headers={"Retry-After": str(retry)}
+        )
+    result = await validate_coupon_for_customer(
+        db,
+        user_id=auth["restaurant_id"],
+        code=data.code,
+        customer_id=auth["customer_id"],
+        order_total=data.order_total,
+        channel=data.channel or "dine_in",
+        items=data.items,
+    )
+    if not result["ok"]:
+        return _resp(True, "Coupon not valid", {"valid": False, "error": result["error"]})
+    coupon = result["coupon"]
+    discount = result["computed_discount"]
+    final_preview = (
+        round(float(data.order_total) - float(discount or 0.0), 2)
+        if discount is not None else None
+    )
+    return _resp(True, "Coupon valid", {
+        "valid":                  True,
+        "code":                   coupon["code"],
+        "title":                  coupon.get("title") or coupon.get("description"),
+        "discount_type":          coupon["discount_type"],
+        "discount_value":         coupon["discount_value"],
+        "computed_discount":      discount,
+        "final_amount_preview":   final_preview,
+        "min_order_value":        coupon.get("min_order_value", 0),
+        "stackable_with_loyalty": bool(coupon.get("stackable_with_loyalty", False)),
+        "coupon_type":            coupon.get("coupon_type", "order"),
+    })  # CR-105
 
 
 # ============================================

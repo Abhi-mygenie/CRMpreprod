@@ -216,7 +216,12 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Self-test 6/6 PASS: r69 slow path resolves to `pos_owner_69_bdd4513c` on all 4 routes; r689 fast path unchanged. Regression 68/2s PASS.
 - Orphan customer at `pos_0001_restaurant_69` untouched → CR-101. QA handover: `qa/BUG_030_QA_HANDOVER.md`. **Next: QA.**
 
-## 2026-10-09 — CONTRACT_CUSTOMER_APP_CRM_v1.0 Part 1 FROZEN (CA-1 countersigned by Scan & Order)
+## 2026-10-09 — IMPLEMENTATION: CR-107 `POST /scan/max-redeemable` + CR-105 `POST /scan/coupons/validate` (owner-approved, all Qs locked)
+- `scan.py` E1: imports `calculate_points` + `compute_max_redeemable` (core.loyalty) + `validate_coupon_for_customer` (core.coupon). Note: `calculate_points` is in `core.loyalty`, not `core.helpers` — caught and corrected during implementation.
+- E2: `_COUPON_VALIDATE_IP_LIMIT = (10, 60)` constant.
+- E3 (CR-107): `ScanMaxRedeemableRequest` + `POST /scan/max-redeemable` (~20 lines). Self-test V1/V2 ✅.
+- E4 (CR-105): `ScanCouponValidateRequest` + `POST /scan/coupons/validate` (~30 lines). Self-test V3/V3b/V4/V5/V6 ✅.
+- QA handover: `qa/CR_105_CR_107_QA_HANDOVER.md`. **Next: QA → S&O consumer note → CA-9 OpenAPI update.**
 - CRM signed 2026-10-03 · Scan & Order countersigned 2026-10-09 · Contract v1.0 FROZEN both sides
 - §4d ownership map signed · CR-094/095/096 all consumer-validated · All CA items resolved
 - `scan.py`: deleted `get_app_config` route + C4 section comment, `get_dietary_tags` route + C5 section comment (~50 lines).
