@@ -1817,3 +1817,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-106] IMPLEMENTATION COMPLETE — channel filter + pos-only exclusion shipped
 **Decision**: Implemented per plan. E1: `channel: Optional[str] = None` param + `ch_filter` logic in `get_available_coupons`. V1-V6 PASS (fresh customer). r689 has 0 pos-only production coupons (6 exist on QA test tenant only). FLAT100TEST absent for customer 7505242126 = correct (per_user_limit=1, usage=1).
 **Locks**: CR-106 🟢 IMPLEMENTED. QA handover: `qa/CR_106_QA_HANDOVER.md`. Next: QA → S&O consumer note update (contract v2.1 addendum).
+
+### 2026-10-09 [CR-082] Implementation Plan complete — gate open
+**All 8 decisions locked since 2026-08-06, verified 2026-10-09.** Edit order: E9 (tests) → E1–E4 (schemas) → E6 (list signature) → E5 (validate function — HIGH risk, CUSTOMER_REQUIRED gate + specific_users bug fix) → E7 (pos.py) → E8 (CouponsPage.jsx). pos_available_coupons now at pos.py:2917 (was 2851 in IA — shifted by CR-085-A2). Implementation gate OPENED by owner.
+**Source**: Owner 2026-10-09 "choose planning role implementation planning of CR-082".
