@@ -337,6 +337,25 @@ export const crmLookupCustomer = async (phone, restaurantId) => {
   };
 };
 
+/**
+ * CR-2026-10-03-004 Part B: Per-restaurant loyalty rules via CRM.
+ * Replaces GET /api/loyalty-settings (which read db.loyalty_settings directly).
+ *
+ * v2 path: GET /scan/loyalty-rules/{rid}  (public endpoint, no auth required)
+ * crmFetch unwraps {success, message, data} envelope → caller receives data directly.
+ * Returns null on 404 (unknown restaurant → loyalty section hidden, per G4).
+ * Caller must use per-tier *_redemption_value fields; never fall back to flat redemption_value (G1).
+ */
+export const crmGetLoyaltyRules = async (restaurantId) => {
+  try {
+    return await crmFetch(`/scan/loyalty-rules/${restaurantId}`, { method: 'GET' });
+  } catch (err) {
+    // 404 = restaurant has no loyalty config → hide section (G4)
+    if (err?.status === 404 || err?.message?.includes('404')) return null;
+    throw err;
+  }
+};
+
 // ============================================
 // Profile — CRM token required
 // ============================================

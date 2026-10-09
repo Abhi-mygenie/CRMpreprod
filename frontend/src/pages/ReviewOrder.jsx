@@ -38,6 +38,7 @@ import { isChannelOpen, getChannelNextOpenTime } from '../utils/itemAvailability
 import { postNonQrBlock } from '../api/services/diagnosticsService';
 import NonQrBlockModal from '../components/NonQrBlockModal';
 import './ReviewOrder.css';
+import { crmGetLoyaltyRules } from '../api/services/crmService'; // CR-2026-10-03-004 Part B
 
 // === CA-008 Phase 2: Extracted pure helper functions ===
 
@@ -137,21 +138,18 @@ const ReviewOrder = () => {
     }
   }, [numericRestaurantId, fetchConfig, setRestaurantScope]);
 
-  // Fetch loyalty settings for points calculation
+  // CR-2026-10-03-004 Part B: loyalty rules from CRM (replaces backend loyalty-settings direct DB read)
   useEffect(() => {
-    const fetchLoyaltySettings = async () => {
+    const fetchLoyaltyRules = async () => {
       if (!numericRestaurantId) return;
       try {
-        const response = await fetchWithTimeout(`${process.env.REACT_APP_BACKEND_URL}/api/loyalty-settings/${numericRestaurantId}`); // CR-2026-02-XX-001 — 8 s read
-        if (response.ok) {
-          const data = await response.json();
-          setLoyaltySettings(data);
-        }
+        const data = await crmGetLoyaltyRules(numericRestaurantId);
+        setLoyaltySettings(data); // null on 404 → loyalty section hidden (G4)
       } catch (error) {
-        logger.error('order', 'Failed to fetch loyalty settings:', error);
+        logger.error('order', 'Failed to fetch loyalty rules:', error);
       }
     };
-    fetchLoyaltySettings();
+    fetchLoyaltyRules();
   }, [numericRestaurantId]);
 
   // Fetch table/room configuration (uses numeric ID)
@@ -397,45 +395,8 @@ const ReviewOrder = () => {
     }
   }, [numericRestaurantId]);
 
-  // Phone-based customer lookup (debounced)
-  useEffect(() => {
-    if (isAuthenticated && isCustomer) return; // Skip if already logged in
-    if (!customerPhone || !numericRestaurantId) return;
-
-    // Extract bare digits from phone value
-    const digits = customerPhone.replace(/\D/g, '');
-    // Check for 10 digits (or 12 with country code)
-    const bareDigits = digits.startsWith('91') && digits.length === 12 ? digits.slice(2) : digits;
-    if (bareDigits.length !== 10) {
-      setLookedUpCustomer(null);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsLookingUp(true);
-      try {
-        const response = await fetchWithTimeout(
-          `${process.env.REACT_APP_BACKEND_URL}/api/customer-lookup/${numericRestaurantId}?phone=${bareDigits}`
-        ); // CR-2026-02-XX-001 — 8 s read
-        if (response.ok) {
-          const data = await response.json();
-          setLookedUpCustomer(data);
-          if (data.found && data.name) {
-            setCustomerName(data.name);
-          } else {
-            // Clear name when customer not found in this restaurant
-            setCustomerName('');
-          }
-        }
-      } catch (error) {
-        logger.error('order', 'Customer lookup failed:', error);
-      } finally {
-        setIsLookingUp(false);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [customerPhone, numericRestaurantId, isAuthenticated, isCustomer]);
+  // CR-2026-10-03-004 Part C: customer-lookup retired — F2=(a): no token → no points/tier block shown.
+  // Name pre-fill comes from sessionStorage/guestCustomer (set at LandingPage). No retry, no toast.
 
   // Validate phone number (10 digits for India)
   const isPhoneNumberValid = useMemo(() => {
@@ -856,18 +817,32 @@ const ReviewOrder = () => {
   };
 
   // Handle loyalty points redemption
+  // CR-2026-10-03-004 Part B: G1 per-tier redemption value; G3 CRM redemption caps enforced
   const handleUsePoints = () => {
     const availablePoints = isAuthenticated ? (user?.total_points || 0) : (lookedUpCustomer?.total_points || 0);
-    const redemptionValue = loyaltySettings?.redemption_value || 0;
-    
+    const tier = (isAuthenticated ? user?.tier : lookedUpCustomer?.tier) || 'Bronze';
+    const tierKey = `${tier.toLowerCase()}_redemption_value`;
+    const redemptionValue = loyaltySettings?.[tierKey] || loyaltySettings?.bronze_redemption_value || 0;
+
     if (!availablePoints || !redemptionValue) return;
-    
-    // Calculate max points that can be used (can't exceed subtotal)
-    const maxPointsValue = subtotal; // Max discount = subtotal (can't go negative)
-    const maxPointsToUse = Math.floor(maxPointsValue / redemptionValue);
+
+    // G3: CRM caps — each enforced independently; most restrictive wins
+    const minPoints = loyaltySettings?.min_redemption_points || 0;
+    if (availablePoints < minPoints) return; // below floor — cannot redeem
+
+    // Cap 1: can't exceed subtotal
+    let maxDiscount = subtotal;
+    // Cap 2: max_redemption_percent (% of subtotal)
+    const maxPct = loyaltySettings?.max_redemption_percent;
+    if (maxPct) maxDiscount = Math.min(maxDiscount, subtotal * (maxPct / 100));
+    // Cap 3: max_redemption_amount (absolute ₹ ceiling, e.g. ₹110 on restaurant 689)
+    const maxAmt = loyaltySettings?.max_redemption_amount;
+    if (maxAmt) maxDiscount = Math.min(maxDiscount, maxAmt);
+
+    const maxPointsToUse = Math.floor(maxDiscount / redemptionValue);
     const pointsToUse = Math.min(availablePoints, maxPointsToUse);
     const discount = pointsToUse * redemptionValue;
-    
+
     setPointsToRedeem(pointsToUse);
     setPointsDiscount(discount);
     setIsUsingPoints(true);
@@ -1871,7 +1846,9 @@ const ReviewOrder = () => {
                   const pts = lookedUpCustomer?.found 
                     ? (lookedUpCustomer?.total_points || 0) 
                     : (isAuthenticated ? (user?.total_points || 0) : 0);
-                  const rdv = loyaltySettings?.redemption_value || 0;
+                  // CR-2026-10-03-004 Part B: G1 per-tier redemption value
+                  const _tier = (isAuthenticated ? user?.tier : lookedUpCustomer?.tier) || 'Bronze';
+                  const rdv = loyaltySettings?.[`${_tier.toLowerCase()}_redemption_value`] || loyaltySettings?.bronze_redemption_value || 0;
                   
                   // If points are being used, show the applied discount
                   if (isUsingPoints && pointsToRedeem > 0) {

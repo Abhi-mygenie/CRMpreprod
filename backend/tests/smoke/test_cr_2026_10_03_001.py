@@ -61,14 +61,17 @@ def test_me_alive(http_client, admin_jwt):
     assert resp.json()["user_type"] == "restaurant"
 
 
-def test_live_crm_boundary_routes_untouched(http_client):
-    assert http_client.get("/api/customer-lookup/478", params={"phone": "9579504871"}).status_code == 200
-    assert http_client.get("/api/loyalty-settings/478").status_code == 200
+def test_crm_boundary_routes_retired(http_client):
+    # CR-2026-10-03-004 B+C: both routes deleted — must 404
+    assert http_client.get("/api/customer-lookup/478", params={"phone": "9579504871"}).status_code in (404, 405)
+    assert http_client.get("/api/loyalty-settings/478").status_code in (404, 405)
 
 
 def test_static_no_dead_touches():
     src = SERVER_PY.read_text(encoding="utf-8")
-    assert len(re.findall(r"db\.customers\b", src)) == 1
+    # CR-2026-10-03-004 B+C: both direct DB reads deleted
+    assert len(re.findall(r"db\.customers\b", src)) == 0
+    assert len(re.findall(r"db\.loyalty_settings\b", src)) == 0
     for coll in ("orders", "points_transactions", "wallet_transactions", "coupons", "feedback"):
         assert not re.search(rf"db\.{coll}\b", src), coll
     for name in ("CustomerProfile", "OrderSummary", "PointsTransaction", "SetPasswordRequest",

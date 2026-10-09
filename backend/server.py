@@ -965,80 +965,8 @@ async def get_status_checks():
     return status_checks
 
 # ============================================
-# Loyalty Settings Endpoint
-# ============================================
-
-@api_router.get("/loyalty-settings/{restaurant_id}")
-async def get_loyalty_settings(restaurant_id: str):
-    """Get loyalty settings for a restaurant to calculate points"""
-    user_id = f"pos_0001_restaurant_{restaurant_id}"
-    settings = await db.loyalty_settings.find_one(
-        {"user_id": user_id},
-        {"_id": 0}
-    )
-    
-    if not settings:
-        # Return default settings if not found
-        return {
-            "found": False,
-            "bronze_earn_percent": 5.0,
-            "silver_earn_percent": 7.0,
-            "gold_earn_percent": 10.0,
-            "platinum_earn_percent": 15.0,
-            "redemption_value": 0.25,
-            "min_order_value": 100.0,
-            "first_visit_bonus_enabled": True,
-            "first_visit_bonus_points": 50
-        }
-    
-    return {
-        "found": True,
-        "bronze_earn_percent": settings.get("bronze_earn_percent", 5.0),
-        "silver_earn_percent": settings.get("silver_earn_percent", 7.0),
-        "gold_earn_percent": settings.get("gold_earn_percent", 10.0),
-        "platinum_earn_percent": settings.get("platinum_earn_percent", 15.0),
-        "redemption_value": settings.get("redemption_value", 0.25),
-        "min_order_value": settings.get("min_order_value", 100.0),
-        "first_visit_bonus_enabled": settings.get("first_visit_bonus_enabled", True),
-        "first_visit_bonus_points": settings.get("first_visit_bonus_points", 50)
-    }
-
-@api_router.get("/customer-lookup/{restaurant_id}")
-async def customer_lookup(restaurant_id: str, phone: str):
-    """Look up customer by phone number for a restaurant — returns name, points, tier"""
-    user_id = f"pos_0001_restaurant_{restaurant_id}"
-    
-    # Normalize phone
-    normalized = phone.strip()
-    if normalized.startswith('+91'):
-        normalized = normalized[3:]
-    elif normalized.startswith('91') and len(normalized) > 10:
-        normalized = normalized[2:]
-    
-    customer = await db.customers.find_one(
-        {"$or": [{"phone": phone.strip(), "user_id": user_id}, {"phone": normalized, "user_id": user_id}]},
-        {"_id": 0, "name": 1, "phone": 1, "total_points": 1, "tier": 1, "wallet_balance": 1, "country_code": 1}
-    )
-    
-    if customer:
-        return {
-            "found": True,
-            "name": customer.get("name", ""),
-            "phone": customer.get("phone", ""),
-            "country_code": customer.get("country_code", "+91"),
-            "total_points": customer.get("total_points", 0),
-            "tier": customer.get("tier", "Bronze"),
-            "wallet_balance": customer.get("wallet_balance", 0.0),
-        }
-    
-    return {
-        "found": False,
-        "name": "",
-        "phone": normalized,
-        "total_points": 0,
-        "tier": "Bronze",
-        "wallet_balance": 0.0,
-    }
+# CR-2026-10-03-004 Part B: loyalty-settings route deleted — loyalty_settings collection boundary closed.
+# CR-2026-10-03-004 Part C: customer-lookup route deleted — F2=(a), customers collection boundary closed.
 
 # ============================================
 # Dietary Tags Routes

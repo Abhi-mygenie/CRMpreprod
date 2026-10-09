@@ -31,7 +31,9 @@ const LoyaltyRewardsSection = ({
     const minOrderValue = loyaltySettings.min_order_value || 100;
     const isEligible = billAmount >= minOrderValue;
     const pointsToEarn = Math.round(billAmount * (earnPercent / 100));
-    const redemptionValue = loyaltySettings.redemption_value || 0.25;
+    // CR-2026-10-03-004 Part B: G1 — per-tier redemption value; never fall back to flat redemption_value
+    const tierKey = `${tier}_redemption_value`;
+    const redemptionValue = loyaltySettings[tierKey] || loyaltySettings.bronze_redemption_value || 1.0;
     const pointsWorth = (pointsToEarn * redemptionValue).toFixed(0);
     const isNewCustomer = lookedUpCustomer && !lookedUpCustomer.found;
     const firstVisitBonus = isNewCustomer && loyaltySettings.first_visit_bonus_enabled ? loyaltySettings.first_visit_bonus_points : 0;
@@ -88,7 +90,8 @@ const LoyaltyRewardsSection = ({
     const earnPercent = loyaltySettings.bronze_earn_percent || 5;
     const billAmount = totalToPay;
     const pointsToEarn = Math.round(billAmount * (earnPercent / 100));
-    const redemptionValue = loyaltySettings.redemption_value || 0.25;
+    // CR-2026-10-03-004 Part B: G1 — guest uses bronze tier (tier unknown pre-login)
+    const redemptionValue = loyaltySettings.bronze_redemption_value || 1.0;
     const pointsWorth = (pointsToEarn * redemptionValue).toFixed(0);
     const minOrderValue = loyaltySettings.min_order_value || 100;
     const isEligible = billAmount >= minOrderValue;

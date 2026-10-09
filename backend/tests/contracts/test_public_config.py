@@ -69,25 +69,17 @@ def test_config_nonexistent_defaults(http_client, strip_dynamic, snapshot):
 
 
 @pytest.mark.contract
-def test_loyalty_settings_478(http_client, strip_dynamic, snapshot):
-    """GET /api/loyalty-settings/478."""
+def test_loyalty_settings_478_retired(http_client):
+    """GET /api/loyalty-settings/478 — route deleted by CR-2026-10-03-004 Part B."""
     resp = http_client.get("/api/loyalty-settings/478")
-    assert resp.status_code == 200
-    assert snapshot == strip_dynamic(resp.json())
+    assert resp.status_code in (404, 405)
 
 
 @pytest.mark.contract
-def test_customer_lookup_478(http_client, strip_dynamic, snapshot):
-    """GET /api/customer-lookup/478 — check-customer response shape."""
-    import os
-    phone = os.environ.get("TEST_PHONE", "9579504871")
-    resp = http_client.get(f"/api/customer-lookup/478", params={"phone": phone})
-    assert resp.status_code == 200
-    # Strip phone to avoid PII in snapshot; strip token fields
-    data = strip_dynamic(resp.json())
-    data.pop("phone", None)
-    data.pop("name", None)
-    assert snapshot == data
+def test_customer_lookup_478_retired(http_client):
+    """GET /api/customer-lookup/478 — route deleted by CR-2026-10-03-004 Part C."""
+    resp = http_client.get("/api/customer-lookup/478", params={"phone": "9579504871"})
+    assert resp.status_code in (404, 405)
 
 
 @pytest.mark.contract
