@@ -1763,3 +1763,11 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **CR-107**: Code reality confirmed — `compute_max_redeemable` (core/loyalty.py:160) is pure, tier-aware, no DB writes; POS route (pos.py:471) confirms usage pattern; scan route absent; 1 import + 1 schema + 1 route (~25 lines). Q1 endpoint vs formula — rec A (endpoint prevents client-side drift). Scan response includes projected_points_earned (additive from POS pattern).
 **Source**: Owner 2026-10-09 "choose planning role for impact analysis of CR-105 + CR-107".
 **Locks**: IA at `planning/CR_105_CR_107_IMPACT_ANALYSIS.md`. Impl Plan gate opens after Q answers.
+
+### 2026-10-09 [CR-105 / CR-107] Owner decisions FINAL — IA closed
+**CR-105 Q1 = (a) 10/min per IP** — rate-limit bucket `vc-ip:{ip}` via `_lookup_rate_limited`, same pattern as lookup/feedback.
+**CR-105 Q2 = YES** — include `channel: Optional[str] = "dine_in"` in `ScanCouponValidateRequest`. Additive, backwards-compatible, enables V3-A time-window context.
+**CR-107 Q1 = A** — build `POST /scan/max-redeemable` scan endpoint. Prevents client-side drift with loyalty_settings changes; pure wrapper over `compute_max_redeemable`.
+**IAs CLOSED.** Implementation Plan gate **NOT opened** (owner: "update docs and decision don't jump gate").
+**Source**: Owner 2026-10-09: "1 a / 2 yes / cr 107 / 1 confirmed / update docs and decision dont jump gate".
+**Locks**: CR-105 schema = `{code, order_total, channel?="dine_in", items?}`. CR-107 schema = `{bill_amount}`. Both in `scan.py` only. Implementation gates open on "choose planning role for implementation planning of CR-105 + CR-107".

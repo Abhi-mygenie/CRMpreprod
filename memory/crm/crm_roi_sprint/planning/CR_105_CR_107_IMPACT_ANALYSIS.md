@@ -174,14 +174,4 @@ from core.helpers import calculate_tier, get_earn_percent_for_tier, get_redempti
 
 ---
 
-```
-Planning complete: CR-105 + CR-107
-Stage: Impact Analysis
-Code reality: PARTIAL (service functions exist; scan routes absent; 1 import each needed)
-Risk: LOW–MEDIUM (CR-105) · LOW (CR-107)
-Files WILL change: routers/scan.py (imports + 2 schemas + 2 routes, ~55 lines total)
-Files WILL NOT touch: core/coupon.py · core/loyalty.py · pos.py · schemas.py · frontend · data
-Owner decisions: CR-105 Q1 (rate limit) · CR-105 Q2 (channel in body) · CR-107 Q1 (endpoint vs formula — rec A, confirmed by opening planning gate)
-Docs: planning/CR_105_CR_107_IMPACT_ANALYSIS.md
-Next: owner answers Q1/Q2 (CR-105) → Implementation Plan gate
-```
+**Q1 = (a) 10/min per IP · Q2 = YES (channel in body, default "dine_in") · CR-107 Q1 = A (endpoint). IA CLOSED. Implementation Plan gate NOT opened.**
