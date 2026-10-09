@@ -1907,11 +1907,11 @@ export default function CustomersPage() {
                                                         id="phone"
                                                         type="tel"
                                                         value={newCustomer.phone}
-                                                        onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value.replace(/\D/g, '')})}
+                                                        onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
                                                         placeholder="9876543210"
                                                         className="h-11 rounded-xl flex-1"
                                                         required
-                                                        maxLength={10}
+                                                        maxLength={15}
                                                         data-testid="new-customer-phone"
                                                     />
                                                 </div>
@@ -2444,11 +2444,11 @@ export default function CustomersPage() {
                                                     </Select>
                                                     <Input
                                                         value={editData.phone || ""}
-                                                        onChange={(e) => setEditData({...editData, phone: e.target.value.replace(/\D/g, '')})}
+                                                        onChange={(e) => setEditData({...editData, phone: e.target.value})}
                                                         placeholder="9876543210"
                                                         className="flex-1 h-11 rounded-xl"
                                                         required
-                                                        maxLength={10}
+                                                        maxLength={15}
                                                         data-testid="edit-list-phone-input"
                                                     />
                                                 </div>

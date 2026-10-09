@@ -215,6 +215,10 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - `scan.py` E1: new async `_resolve_restaurant_id` helper — fast path zero-overhead for all standard tenants; slow path `users.find_one({"restaurant_id": rid})` for non-standard ids (r69 only today). E2–E5: four call-site replacements (skip-otp, lookup, loyalty-rules, feedback). `get_app_config:626` intentionally left (tries short-form first; CA-2 removal).
 - Self-test 6/6 PASS: r69 slow path resolves to `pos_owner_69_bdd4513c` on all 4 routes; r689 fast path unchanged. Regression 68/2s PASS.
 - Orphan customer at `pos_0001_restaurant_69` untouched → CR-101. QA handover: `qa/BUG_030_QA_HANDOVER.md`. **Next: QA.**
+
+## 2026-10-09 — IMPLEMENTATION: CR-099 relax phone sanitiser in CRM Add/Edit Customer (Q1=A)
+- `CustomersPage.jsx` E1+E2: removed `replace(/\D/g,'')` from both phone input onChange handlers; bumped `maxLength` 10→15 in both Add Customer and Edit Customer modals (4 lines total).
+- Self-test V2/V3 PASS: `+91 98765 43201` → stored as `9876543201`; `098765 43201` → stored as `9876543201`. QA handover: `qa/CR_099_QA_HANDOVER.md`. **Next: QA.**
 - `scan.py` E1–E4: `get_orders` +skip; `get_points_history` +skip+count_documents-total; `get_wallet_history` +skip+count_documents-total; `get_loyalty` +expiring_soon/expiring_date (inline `points.py:218-265` expiry calc).
 - `server.py` E5: `openapi_url="/api/openapi.json"` added to FastAPI init. Supervisor restart done.
 - Self-test **8/8 PASS** — pagination V1/V2, true-total V3/V4, wallet V5, expiring_soon:300/expiring_date:2026-10-16 V6 (live r689 data), openapi 186 paths V7, backward-compat V8.

@@ -1718,3 +1718,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: Plan written. E1 Add Customer modal (lines 1910/1914) + E2 Edit Customer modal (lines 2447/2451) — remove `replace(/\D/g,'')` and bump `maxLength` 10→15. Backend normalize_phone() is the guard. **Implementation Plan gate OPENED** by owner.
 **Source**: Owner 2026-10-09: "choose planning role for implementation planning of CR-099".
 **Locks**: `CustomersPage.jsx` only (4 lines). No backend changes. Implementation gate opens on "choose implementation role for CR-099".
+
+### 2026-10-09 [CR-099] IMPLEMENTATION COMPLETE — phone sanitiser relaxed
+**Decision**: Implemented per plan. E1 Add Customer:1910/1914 + E2 Edit Customer:2447/2451. `replace(/\D/g,'')` removed; `maxLength` 10→15. Self-test V2/V3 PASS: `+91 98765 43201` → `9876543201`; `098765 43201` → `9876543201`. QA handover: `qa/CR_099_QA_HANDOVER.md`.
+**Locks**: CR-099 🟢 IMPLEMENTED. Next: QA role.
