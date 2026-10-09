@@ -1694,3 +1694,13 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-088] IMPLEMENTATION COMPLETE — /scan/* list hygiene shipped
 **Decision**: Implemented per plan (no owner questions — all additive). E1–E4 in scan.py + E5 server.py. Self-test 8/8 PASS. Live evidence: expiring_soon:300 pts expiring 2026-10-16 for r689 Kunafa Mahal (expiry_months:2); openapi.json at /api/openapi.json with 186 paths; pagination skip works across orders (76 total) and points (78 total). Supervisor restart done after E5.
 **Locks**: CR-088 🟢 IMPLEMENTED. QA handover: qa/CR_088_QA_HANDOVER.md. Next: QA role.
+
+### 2026-10-09 [BUG-030] Q1 = A — async DB fallback for non-standard restaurant ids
+**Decision**: **Q1 = A** — add async helper `_resolve_restaurant_id` with `users.find_one` fallback when standard `pos_0001_restaurant_N` id is not found. Fast path (all standard tenants) unchanged. Only r69 hits the second query. **IA CLOSED. Implementation Plan gate NOT opened** (owner: "don't jump gate").
+**Source**: Owner 2026-10-09: "both A; choose planning role for impact analysis of bug 030 and CR 099 one after another; update docs and decision don't jump gate".
+**Locks**: `scan.py` only. New async helper + 5 call-site replacements. Orphan customer cleanup stays with CR-101. Regression: test_cr089 + test_cr093 + test_cr096 + test_cr094.
+
+### 2026-10-09 [CR-099] Q1 = A — relax phone sanitiser in CRM Add/Edit Customer
+**Decision**: **Q1 = A** — remove `replace(/\D/g, '')` from both phone input onChange handlers; bump `maxLength` from 10 → 15. Backend `normalize_phone()` is the authoritative guard. **IA CLOSED. Implementation Plan gate NOT opened** (owner: "don't jump gate").
+**Source**: Owner 2026-10-09: same message.
+**Locks**: `CustomersPage.jsx` only (4 lines, 2 locations). No backend changes.
