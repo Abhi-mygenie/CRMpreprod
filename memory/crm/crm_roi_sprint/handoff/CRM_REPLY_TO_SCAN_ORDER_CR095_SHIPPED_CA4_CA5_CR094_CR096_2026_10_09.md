@@ -98,6 +98,20 @@ Please validate both and reply with evidence so we can close CR-094 and CR-096 o
 
 `_normalize_restaurant_id("69")` now resolves correctly to `pos_owner_69_bdd4513c` (r69). If your app ever calls scan routes with `restaurant_id:"69"`, they will now resolve instead of 404-ing. No change needed on your side — additive fix.
 
+## §7 — CA-1: one last item — your countersignature on the contract
+
+Everything technical is done. CR-093, CR-094, CR-095, CR-096 all shipped and confirmed. The rollout sequence in §6 is effectively complete on CRM's side.
+
+The one remaining formality: **CRM signed `CONTRACT_CUSTOMER_APP_CRM_v1.0` Part 1 (§1–§6) on 2026-10-03.** That signature makes the contract binding on our side. It becomes **v1.0 FROZEN** only once you sign back.
+
+Given you've confirmed everything today — the four routes, CR-094, CR-096, the ownership corrections — this is the right moment to lock it.
+
+All it takes is a one-line reply:
+
+> *"Scan & Order countersigns `CONTRACT_CUSTOMER_APP_CRM_v1.0` Part 1 (§1–§6) — 2026-10-09"*
+
+No new technical action on either side. Just locks what we've both already agreed.
+
 ---
 
 ## Summary of open items
@@ -107,10 +121,10 @@ Please validate both and reply with evidence so we can close CR-094 and CR-096 o
 | CR-095 four-route probe (§1 above) | **Scan & Order** | Waiting your confirmation |
 | CR-094 validation at new URL | **Scan & Order** | Waiting |
 | CR-096 validation + sign-in card removal | **Scan & Order** | Waiting |
+| **CA-1 countersignature** on `CONTRACT_CUSTOMER_APP_CRM_v1.0` Part 1 | **Scan & Order** | **Requesting now** |
 | Steps 2–3 of September sequence | **Scan & Order** | Your timeline |
-| CA-1 countersignature | **CRM owner** | Owner action |
 | Owner smoke (CR-098/093/089 formal closure) | **CRM owner** | Next |
 
 ---
 
-*CRM internal refs: `handoff/WAVE_CHANGE_LOG_FOR_SCAN_ORDER_AND_POS_AGENTS.md` · `qa/CR_094_QA_HANDOVER.md` · `qa/CR_096_QA_HANDOVER.md` · `test_reports/iteration_9.json`*
+*CRM internal refs: `handoff/WAVE_CHANGE_LOG_FOR_SCAN_ORDER_AND_POS_AGENTS.md` · `qa/CR_094_QA_HANDOVER.md` · `qa/CR_096_QA_HANDOVER.md` · `test_reports/iteration_9.json` · `investigations/CONTRACT_CUSTOMER_APP_CRM_v1.0_CRM_SIGNOFF.md`*
