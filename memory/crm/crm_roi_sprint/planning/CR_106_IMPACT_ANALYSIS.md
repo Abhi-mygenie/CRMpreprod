@@ -72,7 +72,25 @@ async def get_available_coupons(
 
 ---
 
-## 3. Owner questions
+## 3. Business rules (owner-confirmed 2026-10-09)
+
+**POS** receives ALL coupons — the cashier can apply any coupon at the till for any order type (dine_in, delivery, takeaway, or pos). The `applicable_channels` field is advisory from POS's perspective.
+
+**Scan & Order (Customer App)** has exactly 3 consumer channels:
+- `dine_in` — table service at the restaurant + **hotel room orders** (rooms = dine_in, no separate channel needed — owner-confirmed)
+- `delivery` — delivery orders
+- `takeaway` — pickup / takeaway orders
+
+**`pos`-only coupon** (`applicable_channels: ["pos"]`) = restaurant owner intentionally made this coupon available ONLY at the physical POS counter, NOT through the Customer App. S&O must never see it.
+
+**Revised design rule (based on clarification):**
+- **Base query always:** exclude coupons where `applicable_channels` has NO consumer channel (only `"pos"`, nothing from `{dine_in, delivery, takeaway}`). This is unconditional — no S&O caller should ever see a `pos`-only coupon.
+- **`?channel=dine_in/delivery/takeaway`:** further narrows to coupons that include the given channel.
+- **No `?channel=` param:** returns all coupons that have at least one consumer channel — backward compatible minus the `pos`-only exclusion (which fixes a gap).
+
+---
+
+## 4. Owner questions (updated after business rule clarification)
 
 | Q | Question | Recommendation |
 |---|---|---|

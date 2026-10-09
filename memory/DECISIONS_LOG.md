@@ -1804,3 +1804,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-106] Impact Analysis complete — owner Q1/Q2 pending
 **IA written.** Key finding: applicable_channels includes "pos" value — POS-only coupons currently surface in GET /scan/coupons (pre-existing gap). Q1 (default no-filter vs dine_in) · Q2 (always exclude pos-only from scan route). **Implementation Plan gate NOT opened** (owner answers pending).
 **Source**: Owner 2026-10-09 "choose planning role for impact analysis of cr 106".
+
+### 2026-10-09 [CR-106] Business rules clarified by owner
+**Rules locked**: POS receives ALL coupons (pos channel = POS-till only, advisory). S&O has 3 consumer channels: dine_in, delivery, takeaway. Hotel rooms = dine_in (no separate channel). pos-only coupons MUST NOT appear in GET /scan/coupons. IA updated with these rules.
+**Source**: Owner 2026-10-09 clarification message.
