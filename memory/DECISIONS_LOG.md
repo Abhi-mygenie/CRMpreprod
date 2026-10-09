@@ -1685,3 +1685,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-095] PUT half IMPLEMENTED — cross-tenant write hole closed
 **Decision**: Implemented per plan. `AppConfigUpdate` + `DietaryTagsUpdate` models deleted; `update_app_config` + `update_dietary_tags` routes deleted (126 lines total). Self-test PASS. NOTE: PUTs return 405 (not 404) while GET routes for same paths remain live — correct FastAPI/HTTP behaviour; resolves to 404 after GET half removal at CA-2. GET routes stay live pending CA-2.
 **Locks**: PUT half done. GET half removal gated on CA-2 confirmation from Scan & Order. No consumer note needed for PUT removal (zero callers confirmed).
+
+### 2026-10-09 [CR-088] IA + Implementation Plan complete — gate open
+**Decision**: No owner questions — all 4 items (skip pagination, true total, expiring_soon, openapi_url) are additive and backward compatible. IA and Implementation Plan written in one shot. **Implementation gate OPENED** by owner ("choose planning role for impact analysis and implementation planning for CR-088").
+**Source**: Owner 2026-10-09: "choose planning role for impact analysis and implementation planning for CR-088".
+**Locks**: 5 edits: E1 `get_orders` (+skip), E2 `get_points_history` (+skip+true-total), E3 `get_wallet_history` (+skip+true-total), E4 `get_loyalty` (+expiring_soon/expiring_date inline from points.py:218-265), E5 `server.py` (+openapi_url="/api/openapi.json"). Files: scan.py + server.py only. No data writes. supervisor restart needed after E5.
