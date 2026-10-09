@@ -1676,3 +1676,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Open**: **Q1** — confirm two-step sequencing (PUTs now / GETs after CA-2) · **Q2** — 404 or 405 for deleted PUT routes.
 **Source**: Owner 2026-10-09 "choose planning role for impact analysis of CR-095".
 **Locks**: IA at `planning/CR_095_IMPACT_ANALYSIS.md`. No code changed. Implementation Plan gate opens on owner answers to Q1/Q2.
+
+### 2026-10-09 [CR-095] Q1 + Q2 FINAL — IA closed, Implementation Plan gate opens
+**Decision**: **Q1 = YES** — two-step: delete both PUTs now (PUT half, this CR); both GETs removed only after Scan & Order confirms CA-2 cutover. **Q2 = A (404)** — hard 404 for deleted PUT routes, same pattern as CR-084/097/098. No 410 stub (zero callers, no deprecation window needed). **Implementation Plan gate OPENED** by owner.
+**Source**: Owner 2026-10-09: "q1 yes, Q2 - A (404); update docs and decision; choose planning role for implementation planning of CR 095".
+**Locks**: CR-095 PUT half scope = delete `AppConfigUpdate` model + `DietaryTagsUpdate` model + `update_app_config` route + `update_dietary_tags` route from `routers/scan.py`. GET routes stay live. No other files touched. Implementation gate open on "choose implementation role for CR-095".

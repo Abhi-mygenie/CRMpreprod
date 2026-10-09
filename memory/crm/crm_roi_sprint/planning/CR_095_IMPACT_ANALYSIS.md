@@ -134,14 +134,6 @@ Risk (PUT half): **LOW** — pure deletions, zero callers, zero data, zero downs
 
 ---
 
-```
-Planning complete: CR-095
-Stage: Impact Analysis (PUT half)
-Code reality: DEAD (zero callers, zero data writes by CRM, zero tests)
-Risk: LOW (pure deletions; no consumers; closes cross-tenant write security hole)
-Files WILL change (when plan approved): routers/scan.py (delete ~121 lines across 4 blocks)
-Files WILL NOT touch: GET routes, all other scan.py routes, pos.py, customers.py, frontend, stored data
-Owner decisions: Q1 two-step confirm · Q2 404 vs 405 for PUTs
-Docs: planning/CR_095_IMPACT_ANALYSIS.md
-Next: owner answers Q1/Q2 → Implementation Plan (or skip IA → impl directly, LOW risk)
-```
+**Q1 = YES (owner 2026-10-09)** — two-step confirmed: PUTs deleted now (PUT half); GETs removed after CA-2 cutover.
+**Q2 = A / 404 (owner 2026-10-09)** — hard 404 on deleted PUT routes. No 410 stub (zero callers).
+**IA CLOSED.** Implementation Plan gate open.
