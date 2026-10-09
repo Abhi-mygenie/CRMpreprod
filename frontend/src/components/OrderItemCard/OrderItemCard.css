@@ -1,0 +1,158 @@
+.order-item-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  background-color: transparent;
+  gap: var(--spacing-sm);
+}
+
+.order-item-card:not(:last-child) {
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.order-item-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.order-item-name {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.order-item-variants,
+.order-item-addons {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  /* line-height: 1.4; */
+}
+
+.order-item-label {
+  color: var(--text-primary);
+  font-size: var(--font-size-xxs);
+  font-weight: var(--font-weight-normal);
+}
+
+.order-item-value {
+  color: var(--color-primary);
+  font-size: var(--font-size-xxs);
+  font-weight: var(--font-weight-normal);
+}
+
+.order-item-cooking-instructions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+  user-select: none;
+}
+
+.order-item-cooking-instructions:hover {
+  opacity: 0.8;
+}
+
+.order-item-cooking-instructions:active {
+  opacity: 0.6;
+}
+
+.cooking-instructions-icon {
+  color: var(--color-primary);
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.cooking-instructions-text {
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.cooking-instructions-text-filled {
+  color: var(--text-secondary-color, #666666);
+}
+
+.order-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.order-item-quantity {
+  display: flex;
+  align-items: center;
+}
+
+.order-item-quantity .quantity-selector {
+  position: static;
+  transform: none;
+  bottom: auto;
+  left: auto;
+}
+
+.order-item-customize-btn {
+  background-color: var(--color-primary);
+  color: var(--text-white);
+  border: none;
+  border-radius: var(--radius-container-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.order-item-customize-btn:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.order-item-price {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .order-item-card {
+    padding: var(--spacing-xs) 0;
+    gap: var(--spacing-xs);
+  }
+
+  .order-item-name {
+    font-size: var(--font-size-sm);
+  }
+
+  .order-item-variants,
+  .order-item-addons,
+  .cooking-instructions-text {
+    font-size: var(--font-size-xxs);
+  }
+
+  .order-item-price {
+    font-size: var(--font-size-xs);
+  }
+}

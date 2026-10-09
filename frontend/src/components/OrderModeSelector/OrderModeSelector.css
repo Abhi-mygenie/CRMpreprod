@@ -1,0 +1,57 @@
+.order-mode-selector {
+  display: flex;
+  gap: 0;
+  border-radius: var(--radius-button, 8px);
+  overflow: hidden;
+  border: 1.5px solid var(--color-primary, #E86F2C);
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.order-mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-body, 'Poppins', sans-serif);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  background-color: transparent;
+  color: var(--color-primary, #E86F2C);
+}
+
+.order-mode-btn-active {
+  background-color: var(--color-primary, #E86F2C);
+  color: var(--button-text-color, #fff);
+}
+
+.order-mode-btn:not(.order-mode-btn-active):hover {
+  background-color: rgba(232, 111, 44, 0.08);
+}
+
+.order-mode-icon {
+  font-size: 18px;
+}
+
+/* CR-2026-08-06-001: closed channel state */
+.order-mode-btn-closed {
+  opacity: 0.4;
+  cursor: not-allowed;
+  flex-direction: column;
+  gap: 2px;
+}
+.order-mode-btn-closed:hover {
+  background-color: transparent;
+}
+.order-mode-opens-at {
+  font-size: 10px;
+  font-weight: 500;
+  display: block;
+  line-height: 1.2;
+}

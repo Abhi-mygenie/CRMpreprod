@@ -1,0 +1,160 @@
+/* Cart Bar */
+.cart-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--color-primary);
+  z-index: var(--z-fixed);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+  border-radius: var(--radius-container-xl, 20px) var(--radius-container-xl, 20px) 0 0; /* Rounded top corners */
+  box-sizing: border-box;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.cart-bar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  max-width: 100%;
+  margin: 0 auto;
+  gap: var(--spacing-md);
+  min-height: 60px; /* Ensure minimum height for content */
+}
+
+.cart-bar-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+}
+
+.cart-bar-item-count {
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-white);
+  line-height: 1.2;
+}
+
+.cart-bar-total-price {
+  font-family: var(--font-body);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-white);
+  line-height: 1.2;
+}
+
+.cart-bar-view-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background-color: var(--button-text-color);
+  color: var(--color-primary);
+  border: 2px solid var(--button-text-color);
+  border-radius: var(--radius-button, 20px); /* Match cart bar border radius */
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 40px; /* Ensure button has enough height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-bar-view-btn:hover {
+  background-color: var(--button-text-color);
+  color: var(--color-primary);
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.cart-bar-view-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Add padding to body when cart bar is visible */
+body.cart-bar-visible {
+  padding-bottom: 85px; /* Increased to account for border radius */
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .cart-bar {
+    border-radius: var(--radius-container-xl, 20px) var(--radius-container-xl, 20px) 0 0; /* Maintain border radius on mobile */
+  }
+
+  .cart-bar-content {
+    padding: var(--spacing-md) var(--spacing-lg);
+    gap: var(--spacing-sm);
+    min-height: 55px; /* Slightly smaller on mobile */
+  }
+
+  .cart-bar-item-count {
+    font-size: var(--font-size-sm);
+  }
+
+  .cart-bar-total-price {
+    font-size: var(--font-size-base);
+  }
+
+  .cart-bar-view-btn {
+    padding: var(--spacing-xs) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-button, 20px); /* Match cart bar border radius */
+    min-height: 35px; /* Smaller on mobile */
+  }
+
+  body.cart-bar-visible {
+    padding-bottom: 75px; /* Adjusted for mobile */
+  }
+}
+
+@media (max-width: 375px) {
+  .cart-bar {
+    border-radius: var(--radius-container-xl, 20px) var(--radius-container-xl, 20px) 0 0; /* Maintain border radius on smaller mobile */
+  }
+
+  .cart-bar-content {
+    padding: var(--spacing-sm) var(--spacing-md);
+    min-height: 50px; /* Smaller on very small screens */
+  }
+
+  .cart-bar-item-count {
+    font-size: var(--font-size-xs);
+  }
+
+  .cart-bar-total-price {
+    font-size: var(--font-size-sm);
+  }
+
+  .cart-bar-view-btn {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-button, 20px); /* Match cart bar border radius */
+    min-height: 32px; /* Smaller on very small screens */
+  }
+
+  body.cart-bar-visible {
+    padding-bottom: 70px; /* Adjusted for smaller mobile */
+  }
+}

@@ -1,0 +1,189 @@
+diff --git a/backend/db_data/README.md b/backend/db_data/README.md
+index 73fd06b..5970a64 100644
+--- a/backend/db_data/README.md
++++ b/backend/db_data/README.md
+@@ -1,6 +1,21 @@
+ # Database Export / Import
+ 
+-Pre-exported MongoDB data for this project. Use these scripts to restore the full database when setting up a new project from Git.
++> ## ⚠️ STALE — NON-AUTHORITATIVE — DO NOT IMPORT INTO PRODUCTION ⚠️
++> These JSON files are **old snapshots exported from DIFFERENT databases**
++> (`test_database` @ 2026-03-05 and `loyalty_app` @ 2026-02-25), **not** the live
++> `mygenie` database. The counts below are from those foreign snapshots and do
++> **not** reflect current production data.
++>
++> **The authoritative data baseline is the live `mygenie` MongoDB** (see
++> `/app/memory/v2/PROJECT_FINAL_BASELINE.md`). Running `db_import.py` against the
++> live DB — especially with `--drop` or `--upsert` — can **DESTROY real data**.
++>
++> `db_import.py` now **refuses to write** to a protected DB name (default
++> `mygenie`) or any remote host unless you explicitly pass BOTH
++> `--allow-prod-overwrite` and `--confirm-db <DB_NAME>`. Use `--dry-run` to
++> preview safely. Treat these files as historical reference only.
++
++Pre-exported MongoDB data kept for reference / local bootstrap only.
+ 
+ ## Quick Start
+ 
+@@ -11,14 +26,18 @@ python db_export.py
+ ```
+ Saves all collections as JSON files in `db_data/`.
+ 
+-### Import (restore DB from files)
++### Import (restore DB from files — LOCAL/TEST ONLY)
+ ```bash
+ cd /app/backend
+-python db_import.py          # Skips collections that already have data
+-python db_import.py --drop    # Drops existing data and does a clean import
++python db_import.py --dry-run   # SAFE: preview only, no writes
++python db_import.py             # Local/test DB: skips collections that already have data
++python db_import.py --drop      # Local/test DB: drops existing data and does a clean import
++
++# Protected/remote DB (refused unless BOTH flags are given — use with extreme care):
++# python db_import.py --drop --allow-prod-overwrite --confirm-db <DB_NAME>
+ ```
+ 
+-## What's Included
++## What's Included (STALE — from foreign DBs, not live `mygenie`)
+ 
+ | Collection | Records | Description |
+ |---|---|---|
+diff --git a/backend/db_import.py b/backend/db_import.py
+index 895a323..8cc975d 100644
+--- a/backend/db_import.py
++++ b/backend/db_import.py
+@@ -13,6 +13,16 @@ Options:
+   --upsert            Upsert documents by 'id' field (update if exists, insert if not)
+   --source <dir>      Path to data directory (default: db_data/)
+   --dry-run           Show what would be imported without making changes
++
++SAFETY (Phase 2 / GAP-010):
++  The files under db_data/ are STALE snapshots exported from DIFFERENT databases
++  (test_database / loyalty_app) and are NOT authoritative. Importing them into a
++  live/production DB can DESTROY real data. Therefore any WRITE against a protected
++  DB name (default: "mygenie") or a REMOTE host is refused unless you pass BOTH:
++      --allow-prod-overwrite
++      --confirm-db <DB_NAME>     (must exactly match the target DB_NAME)
++  A --dry-run is always allowed (it performs no writes).
++  Configure protected names via env: PROTECTED_DB_NAMES="mygenie,otherprod"
+ """
+ 
+ import os
+@@ -26,6 +36,69 @@ MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+ DB_NAME = os.environ.get("DB_NAME", "test_database")
+ DEFAULT_DATA_DIR = os.path.join(os.path.dirname(__file__), "db_data")
+ 
++# --- Safety guard (Phase 2 / GAP-010) ---------------------------------------
++# Databases that must NEVER be overwritten without explicit, deliberate opt-in.
++PROTECTED_DB_NAMES = {
++    n.strip() for n in os.environ.get("PROTECTED_DB_NAMES", "mygenie").split(",") if n.strip()
++}
++LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "mongo", "mongodb"}
++
++
++def _mongo_host(mongo_url):
++    """Best-effort extraction of the host from a Mongo URL (no external deps)."""
++    try:
++        hostpart = mongo_url.split("://", 1)[1]
++        if "@" in hostpart:
++            hostpart = hostpart.split("@", 1)[1]
++        host = hostpart.split("/", 1)[0].split("?", 1)[0]
++        host = host.split(",", 1)[0].rsplit(":", 1)[0]  # first host, strip port
++        return host.strip("[]").lower()
++    except Exception:
++        return ""
++
++
++def _is_remote(mongo_url):
++    host = _mongo_host(mongo_url)
++    return bool(host) and host not in LOCAL_HOSTS
++
++
++def assert_import_allowed(db_name, mongo_url, dry_run, allow_prod, confirm_db):
++    """Block accidental overwrite of a protected / remote database.
++
++    A dry run is always allowed (no writes). Any write against a protected DB
++    name OR a remote host requires BOTH --allow-prod-overwrite and
++    --confirm-db <DB_NAME> (exact match), plus an interactive typed
++    confirmation when a TTY is attached.
++    """
++    if dry_run:
++        return
++
++    protected = db_name in PROTECTED_DB_NAMES or _is_remote(mongo_url)
++    if not protected:
++        return
++
++    reason = "protected DB name" if db_name in PROTECTED_DB_NAMES else "remote host"
++    print("\n" + "!" * 64)
++    print(f"REFUSING TO WRITE: target database '{db_name}' is a {reason}.")
++    print("db_data/ holds STALE snapshots from other DBs and can DESTROY live data.")
++    print("!" * 64)
++
++    if not (allow_prod and confirm_db == db_name):
++        print("\nTo proceed you MUST pass BOTH of these:")
++        print("  --allow-prod-overwrite")
++        print(f"  --confirm-db {db_name}")
++        print("\nAborting. No changes made.")
++        sys.exit(2)
++
++    # Extra interactive gate when a human is at the terminal.
++    if sys.stdin and sys.stdin.isatty():
++        typed = input(f"Type the database name '{db_name}' to confirm overwrite: ").strip()
++        if typed != db_name:
++            print("Confirmation did not match. Aborting. No changes made.")
++            sys.exit(2)
++
++    print("Override confirmed. Proceeding with import against the protected target.\n")
++
+ 
+ def restore_types(obj):
+     """Recursively restore MongoDB Extended JSON types."""
+@@ -49,6 +122,8 @@ def parse_args():
+         "upsert": False,
+         "dry_run": False,
+         "source": DEFAULT_DATA_DIR,
++        "allow_prod": False,
++        "confirm_db": None,
+     }
+     i = 1
+     while i < len(sys.argv):
+@@ -59,6 +134,11 @@ def parse_args():
+             args["upsert"] = True
+         elif arg == "--dry-run":
+             args["dry_run"] = True
++        elif arg == "--allow-prod-overwrite":
++            args["allow_prod"] = True
++        elif arg == "--confirm-db" and i + 1 < len(sys.argv):
++            i += 1
++            args["confirm_db"] = sys.argv[i]
+         elif arg == "--source" and i + 1 < len(sys.argv):
+             i += 1
+             source = sys.argv[i]
+@@ -72,7 +152,8 @@ def parse_args():
+     return args
+ 
+ 
+-def import_all(source_dir, drop_existing=False, upsert=False, dry_run=False):
++def import_all(source_dir, drop_existing=False, upsert=False, dry_run=False,
++               allow_prod=False, confirm_db=None):
+     if not os.path.exists(source_dir):
+         print(f"Error: Data directory not found: {source_dir}")
+         sys.exit(1)
+@@ -87,6 +168,9 @@ def import_all(source_dir, drop_existing=False, upsert=False, dry_run=False):
+         print(f"No JSON files found in {source_dir}")
+         sys.exit(1)
+ 
++    # --- SAFETY GUARD: refuse accidental overwrite of live/remote DBs --------
++    assert_import_allowed(DB_NAME, MONGO_URL, dry_run, allow_prod, confirm_db)
++
+     client = MongoClient(MONGO_URL)
+     db = client[DB_NAME]
+ 
+@@ -193,4 +277,6 @@ if __name__ == "__main__":
+         drop_existing=args["drop"],
+         upsert=args["upsert"],
+         dry_run=args["dry_run"],
++        allow_prod=args["allow_prod"],
++        confirm_db=args["confirm_db"],
+     )

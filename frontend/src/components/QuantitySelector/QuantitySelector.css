@@ -1,0 +1,103 @@
+/* Quantity Selector */
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-button, 25px);
+  padding: 4px 8px;
+  min-width: 90px;
+  /* Add absolute positioning to match ADD button */
+  position: absolute;
+  bottom: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  box-shadow: var(--shadow-sm);
+}
+
+.quantity-btn {
+  background: none;
+  border: none;
+  color: var(--text-white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  transition: background-color var(--transition-fast);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.quantity-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.quantity-btn:active {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.quantity-icon {
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--text-white);
+  user-select: none;
+}
+
+.quantity-value {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-white);
+  min-width: 20px;
+  text-align: center;
+  user-select: none;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .quantity-selector {
+    min-width: 80px;
+    padding: 1px 1px;
+    gap: 3px;
+  }
+
+  .quantity-btn {
+    width: 22px;
+    height: 22px;
+  }
+
+  .quantity-icon {
+    font-size: 16px;
+  }
+
+  .quantity-value {
+    font-size: var(--font-size-sm);
+  }
+}
+
+@media (max-width: 375px) {
+  .quantity-selector {
+    min-width: 75px;
+    padding: 1px 1px;
+    gap: 2px;
+  }
+
+  .quantity-btn {
+    width: 20px;
+    height: 20px;
+  }
+
+  .quantity-icon {
+    font-size: 14px;
+  }
+
+  .quantity-value {
+    font-size: var(--font-size-xs);
+  }
+}

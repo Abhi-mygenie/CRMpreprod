@@ -1,0 +1,44 @@
+{
+  "summary": "BUG-2026-10-06-001 QA (Role 4) verification: non-QR policy telemetry now records both ALLOW and BLOCK events when restaurant allowNonQrOrders=false, and ZERO events when flag is on. All 11 QA checks (Q1–Q11) passed. Backend pytest smoke 4/4 + contract 14/14 (12 snapshots) PASS. Frontend checkpoints C1 (landing), C2 (add_to_cart), C3 (place_order) verified across walkin/landing/takeaway/716-carveout/menu-deep-link flows plus flag-on regression (landing, dine-in table QR, takeaway). No JS errors. No code changes made (QA role).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_results": {
+    "Q9_legacy_body_204": "PASS (curl + smoke test_legacy_block_shape_still_204)",
+    "Q10_decision_41ch_422_and_valid_204": "PASS (curl 422 + smoke test_decision_too_long_422 and test_allow_event_204)",
+    "Q11_pytest_smoke": "PASS 4/4 in 1.42s; contract suite 14/14 PASS with 12 snapshots unchanged",
+    "Q4_landing_block_flag_off": "PASS: Session Expired modal shown; exactly 1 POST with checkpoint=landing, decision=non-qr-dinein, allowed=false, scanned_room_or_table=null",
+    "Q1_walkin_full_flow_flag_off": "PASS: 3 POSTs — (landing, add_to_cart, place_order) all decision=valid-qr, allowed=true, scanned_room_or_table=walkin; navigated landing → /478/menu → /478/review-order; add succeeded; place_order POST observed before any payment creation",
+    "Q3_takeaway_flag_off": "PASS: Browse Menu button requires phone+name to enable (correct UX). After filling, 1 POST checkpoint=landing, decision=non-dinein-mode, allowed=true; navigates to /478/password-setup (crmSkipOtp path, expected)",
+    "Q2_716_carveout_flag_off": "PASS: no block modal; 1 POST decision=rid-716-carveout, allowed=true; navigates to /716/stations",
+    "Q5_menu_deeplink_add_flag_off": "PASS: deep-link to /478/menu + first add → block modal + 1 POST checkpoint=add_to_cart, decision=non-qr-dinein, allowed=false",
+    "Q6_flag_on_zero_posts": "PASS: flag on (no interception) /478 landing + Browse Menu → 0 POSTs; navigates to /478/menu normally",
+    "Q8_regression_flag_on": "PASS: /478 landing, /478?tableId=1&type=table dine-in QR, /478?orderType=takeaway all render without any diagnostics POST and without JS errors related to orderAccessPolicy/postNonQrBlock/useAuth"
+  },
+  "evidence": {
+    "backend_pytest_output": "4 passed in 1.42s (smoke) + 14 passed, 15 deselected in 5.55s (contract) + 12 snapshots passed",
+    "sample_allow_payload": "{\"restaurant_id\":\"478\",\"checkpoint\":\"add_to_cart\",\"scanned_room_or_table\":\"walkin\",\"final_table_id\":\"0\",\"is_edit_mode\":false,\"is_authenticated\":false,\"decision\":\"valid-qr\",\"allowed\":true}",
+    "sample_block_payload": "{\"restaurant_id\":\"478\",\"checkpoint\":\"add_to_cart\",\"scanned_room_or_table\":null,\"final_table_id\":\"0\",\"is_edit_mode\":false,\"is_authenticated\":false,\"decision\":\"non-qr-dinein\",\"allowed\":false}",
+    "sample_carveout_payload": "{\"restaurant_id\":\"716\",\"checkpoint\":\"landing\",\"scanned_room_or_table\":null,\"final_table_id\":\"0\",\"is_edit_mode\":false,\"is_authenticated\":false,\"decision\":\"rid-716-carveout\",\"allowed\":true}",
+    "sample_takeaway_payload": "{\"restaurant_id\":\"478\",\"checkpoint\":\"landing\",\"scanned_room_or_table\":null,\"final_table_id\":\"0\",\"is_edit_mode\":false,\"is_authenticated\":false,\"decision\":\"non-dinein-mode\",\"allowed\":true}"
+  },
+  "invariant_check": "No order outcome changed. Allow paths still navigate to menu/next step and are not blocked. Block paths still show Session Expired modal and don't navigate. Place-order POST was observed as telemetry before any real order creation — review-order page stayed on review-order URL (no real order was created).",
+  "test_report_links": [
+    "/app/backend/tests/smoke/test_bug_2026_10_06_001.py",
+    "/app/backend/tests/contracts/"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Nit (not blocking): postNonQrBlock relies on navigator.sendBeacon which was correctly observable by Playwright request listener as POST — no changes needed.",
+    "Observation: Q3 takeaway's Browse Menu button is correctly disabled until phone+name are filled; policy POST fires only after click handler executes, which is intended behavior and matches the C1 contract (first line of handleDiningMenuClick).",
+    "Observation: shouldBlockNonQrOrder correctly carves out 716 before applying non-qr-dinein even when allowNonQrOrders=false — produces decision=rid-716-carveout with allowed=true as spec'd.",
+    "No code changes made per QA role."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "/app/memory/test_credentials.md is missing in this pod; used TEST_PHONE=9579504871 and TEST_RID=478 from backend/tests/conftest.py defaults for login-free paths. All QA cases exercised did not require actual authentication (we stop at place_order POST capture without creating real orders).",
+  "seed_data_creation": "None — used sentinel restaurant_id 'test-qa' for curl probes; smoke tests use 'test-bug-2026-10-06-001'. No DB writes to real restaurant buckets.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend endpoint POST /api/diagnostics/non-qr-block is contract-stable (204 for valid, 422 for decision>40 chars). Frontend fires checkpoints at: LandingPage.handleDiningMenuClick (C1=landing), MenuItems.isBlockedNonQrAdd on first add when cart empty (C2=add_to_cart), ReviewOrder place-order flow (C3=place_order). Flag OFF simulation: context.route('**/api/config/<rid>', fetch+set allowNonQrOrders=false). Must clear localStorage+sessionStorage before each case (config is cache-first). Restaurant 478 confirmed to have orderable items (first ADD button succeeds). Takeaway landing button is disabled until phone+name are entered.",
+  "rca of the issue": "Pre-fix the policy only recorded BLOCK events (allowed=false path) via postNonQrBlock, making ALLOW decisions on the same gated flows invisible for operations analytics. Fix: buildNonQrBlockPayload now adds decision+allowed fields and is called on BOTH branches whenever allowNonQrOrders===false. Backend NonQrBlockEvent now accepts optional decision (<=40 chars) and allowed:bool, with two rolling caps per restaurant (200 blocked / 1000 allowed). Invariant preserved: no order outcome altered — only observability added."
+}

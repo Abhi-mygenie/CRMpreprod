@@ -1,0 +1,53 @@
+/* CR-2026-05-30-002 — Non-QR block modal. Mirrors existing modal styling. */
+
+.nonqr-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.nonqr-modal-card {
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #111111);
+  border-radius: var(--radius-container-lg, 12px);
+  max-width: 420px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  text-align: left;
+}
+
+.nonqr-modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  font-family: var(--font-heading, inherit);
+}
+
+.nonqr-modal-body {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #555555);
+  margin: 0 0 20px 0;
+}
+
+.nonqr-modal-cta {
+  display: block;
+  width: 100%;
+  padding: 12px 20px;
+  background: var(--color-primary, #1f7ae0);
+  color: var(--button-text-color, #ffffff);
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-button, 8px);
+  cursor: pointer;
+}
+
+.nonqr-modal-cta:hover { filter: brightness(0.95); }
+.nonqr-modal-cta:active { filter: brightness(0.9); }

@@ -1,0 +1,46 @@
+{
+  "summary": "CR-2026-10-03-004 Part A QA: CRM lookup swap tested. Static checks (T5-T8) all passed. CRM endpoint verified live. T4 (Browse Menu no phone → menu) passed. T1/T2/T3/T9 could not be exercised via UI because configShowLandingCustomerCapture=false for restaurant 689 (no phone input rendered on landing page). Code review confirms correct implementation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "T1/T2/T3/T9 — Auto-lookup and phone-entry Browse Menu flow",
+        "issue": "configShowLandingCustomerCapture appears to be false for restaurant 689 in this environment. No phone input is rendered on the landing page, so auto-lookup and phone-driven Browse Menu flows cannot be exercised via UI. Tests T1/T2/T3/T9 require manual verification on a restaurant with landing customer capture enabled.",
+        "affected_selectors": ["input[type='tel']", "[data-testid='phone-input']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "static_checks": {
+    "T5_check_customer_404": "PASS — curl POST /api/auth/check-customer returns 404",
+    "T6_CheckCustomerRequest_grep": "PASS — 0 results in server.py",
+    "T7_check_customer_grep": "PASS — 0 results in server.py",
+    "T8_yarn_build": "PASS — exit 0, 29s, no errors",
+    "CRM_endpoint_known_phone": "PASS — POST /scan/auth/lookup with 9579504871 returns {exists:true, name:'MYGENieT'}",
+    "CRM_endpoint_unknown_phone": "PASS — 422 response, silently swallowed in LandingPage catch block (no toast)",
+    "crmLookupCustomer_adapter": "PASS — correctly unwraps v2 envelope and normalizes to {exists, customer.name}",
+    "T4_browse_menu_no_phone": "PASS — navigates to /689/menu directly"
+  },
+  "action_items": [
+    "T1/T2/T3/T9 need manual QA on a restaurant with configShowLandingCustomerCapture=true, OR enable it for restaurant 689 in this test environment to complete UI verification of auto-lookup debounce behavior"
+  ],
+  "critical_code_review_comments": [
+    "crmLookupCustomer correctly handles v2 envelope unwrapping via crmFetch adapter",
+    "Auto-lookup error (line 103-106 LandingPage) is silently swallowed — no error toast shown for unknown phone (correct behavior per T2)",
+    "Both call sites (line 86 and 600) correctly replaced with crmLookupCustomer(capturedPhone, restaurantId)"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "partial — T4 pass, T1/T2/T3/T9 not exercisable (config)"
+  },
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "For T1/T2/T3/T9, need a restaurant with configShowLandingCustomerCapture=true to see the phone input on landing page. Restaurant 689 ('Kunafa Mahal') only shows BROWSE MENU button without phone input. The CRM endpoint preprod-crm-app-1.preview.emergentagent.com/api/scan/auth/lookup is live and returning correct data. All static checks passed.",
+  "seed_data_creation": ""
+}

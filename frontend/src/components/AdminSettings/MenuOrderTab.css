@@ -1,0 +1,976 @@
+/* ============================================
+   Menu Order Tab - Modern Drag & Drop UI
+   ============================================ */
+
+.menu-order-tab.modern {
+  padding: 0;
+}
+
+/* ============================================
+   Station Pills (Multi-Menu) - Scoped to admin
+   ============================================ */
+
+.menu-order-tab .station-pills-container {
+  margin-bottom: 16px;
+}
+
+.menu-order-tab .station-pills-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.menu-order-tab .station-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.menu-order-tab .station-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px 4px 4px;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+
+/* CR-2026-06-17-001 APP-2: Station drag handle */
+.menu-order-tab .station-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: grab;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.menu-order-tab .station-drag-handle:hover {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.menu-order-tab .station-drag-handle:active {
+  cursor: grabbing;
+}
+
+.menu-order-tab .station-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 4px;
+}
+
+.menu-order-tab .station-pill.dragging {
+  opacity: 0.5;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.menu-order-tab .station-drag-overlay {
+  padding: 8px 14px;
+  background: #eff6ff;
+  border: 1.5px solid #3b82f6;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.menu-order-tab .station-pill:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.menu-order-tab .station-pill.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.menu-order-tab .station-pill.hidden-pill {
+  opacity: 0.6;
+}
+
+.menu-order-tab .station-pill .pill-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.menu-order-tab .station-pill.active .pill-name {
+  color: #1d4ed8;
+}
+
+.menu-order-tab .station-pill .pill-timing {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.menu-order-tab .station-pill .pill-hidden-badge {
+  font-size: 9px;
+  padding: 2px 5px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* Selected Station Header - Scoped to admin */
+.menu-order-tab .selected-station-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.menu-order-tab .station-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-order-tab .station-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.menu-order-tab .station-count {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.menu-order-tab .station-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ============================================
+   Toolbar - Scoped to admin
+   ============================================ */
+
+/* Toolbar */
+.menu-order-tab .menu-order-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.menu-order-tab .search-box {
+  flex: 1;
+  position: relative;
+  max-width: 400px;
+}
+
+.menu-order-tab .search-box .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 18px;
+}
+
+.menu-order-tab .search-box input {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #f9fafb;
+  transition: all 0.2s;
+}
+
+.menu-order-tab .search-box input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.menu-order-tab .refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.menu-order-tab .refresh-btn:hover {
+  background: #e5e7eb;
+}
+
+.menu-order-tab .refresh-btn svg {
+  font-size: 16px;
+}
+
+/* Info Banner - Scoped to admin */
+.menu-order-tab .menu-order-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #1e40af;
+}
+
+.menu-order-tab .menu-order-info .info-icon {
+  font-size: 18px;
+}
+
+/* Categories List - Scoped to admin */
+.menu-order-tab .categories-list,
+.menu-order-tab .stations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Category Card - Scoped to admin */
+.menu-order-tab .category-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.menu-order-tab .category-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.menu-order-tab .category-card.hidden-category {
+  opacity: 0.6;
+  background: #f9fafb;
+}
+
+.menu-order-tab .category-card.dragging {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
+  transform: scale(1.01);
+}
+
+.menu-order-tab .category-header {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.menu-order-tab .category-header:hover {
+  background: #f9fafb;
+}
+
+.menu-order-tab .category-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 8px;
+}
+
+.menu-order-tab .category-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-order-tab .category-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.menu-order-tab .category-badge {
+  padding: 4px 10px;
+  background: #f3f4f6;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.menu-order-tab .category-preview {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.menu-order-tab .category-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-order-tab .expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  font-size: 18px;
+}
+
+.menu-order-tab .expand-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Drag Handle */
+.menu-order-tab .drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  color: #d1d5db;
+  cursor: grab;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-size: 22px;
+}
+
+.menu-order-tab .drag-handle:hover {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.menu-order-tab .drag-handle:active {
+  cursor: grabbing;
+  color: #3b82f6;
+}
+
+/* Toggle Switch - Scoped to admin */
+.menu-order-tab .toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.menu-order-tab .toggle-switch:hover {
+  background: #e5e7eb;
+}
+
+.menu-order-tab .toggle-switch.active {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.menu-order-tab .toggle-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #d1d5db;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.menu-order-tab .toggle-switch.active .toggle-track {
+  background: #22c55e;
+}
+
+.menu-order-tab .toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.menu-order-tab .toggle-switch.active .toggle-thumb {
+  transform: translateX(16px);
+}
+
+.menu-order-tab .toggle-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.menu-order-tab .toggle-switch.active .toggle-label {
+  color: #16a34a;
+}
+
+/* Category Items - Scoped to admin */
+.menu-order-tab .category-items {
+  border-top: 1px solid #f3f4f6;
+  background: #fafafa;
+  padding: 12px 16px 16px;
+}
+
+.menu-order-tab .items-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.menu-order-tab .items-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.menu-order-tab .items-bulk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.menu-order-tab .bulk-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.menu-order-tab .bulk-action-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.menu-order-tab .bulk-action-btn svg {
+  font-size: 14px;
+}
+
+/* Items List - Scoped to admin */
+.menu-order-tab .items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-order-tab .item-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.menu-order-tab .item-row:hover {
+  border-color: #d1d5db;
+}
+
+.menu-order-tab .item-row.hidden-item {
+  opacity: 0.5;
+  background: #f9fafb;
+}
+
+.menu-order-tab .item-row.dragging {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+}
+
+.menu-order-tab .item-row .drag-handle {
+  width: 24px;
+  height: 24px;
+  font-size: 18px;
+}
+
+.menu-order-tab .item-index {
+  min-width: 24px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.menu-order-tab .item-name {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: 8px;
+}
+
+.menu-order-tab .visibility-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-size: 18px;
+}
+
+.menu-order-tab .visibility-btn:hover {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.menu-order-tab .visibility-btn.visible {
+  color: #3b82f6;
+}
+
+.menu-order-tab .visibility-btn.visible:hover {
+  color: #2563eb;
+}
+
+/* Empty States */
+.menu-order-tab .empty-items,
+.menu-order-tab .no-results {
+  padding: 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.menu-order-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.menu-order-empty .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.menu-order-empty h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px;
+}
+
+.menu-order-empty p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Loading State */
+.menu-order-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: #6b7280;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Drag Overlay */
+.drag-overlay-item {
+  padding: 16px 20px;
+  background: #fff;
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Station Card (for multiple menu) - Scoped to admin */
+.menu-order-tab .station-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.menu-order-tab .station-card.hidden-station {
+  opacity: 0.6;
+}
+
+.menu-order-tab .station-card.dragging {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
+}
+
+.menu-order-tab .station-header {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  cursor: pointer;
+}
+
+.menu-order-tab .station-header:hover {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.menu-order-tab .station-name {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-left: 8px;
+}
+
+.menu-order-tab .station-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-order-tab .station-categories {
+  padding: 16px;
+  padding-left: 48px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .menu-order-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  .refresh-btn {
+    justify-content: center;
+  }
+
+  .category-header {
+    padding: 12px;
+  }
+
+  .category-preview {
+    display: none;
+  }
+
+  .toggle-label {
+    display: none;
+  }
+
+  .items-bulk-actions {
+    flex-wrap: wrap;
+  }
+
+  .station-categories {
+    padding-left: 16px;
+  }
+
+  /* Station Pills Responsive */
+  .station-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .station-pill {
+    flex-shrink: 0;
+    min-width: 100px;
+    padding: 10px 14px;
+  }
+
+  .selected-station-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .station-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+
+/* ============================================
+   Timing Editor
+   ============================================ */
+.timing-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.timing-display:hover {
+  border-color: #94a3b8;
+}
+
+.timing-display.pos-default {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.timing-display.admin-override {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+  border-color: #bfdbfe;
+}
+
+.timing-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.timing-text {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.timing-reset-btn {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  margin-left: 2px;
+  transition: color 0.2s;
+}
+
+.timing-reset-btn:hover {
+  color: #ef4444;
+}
+
+.timing-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.timing-input {
+  width: 90px;
+  padding: 3px 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #334155;
+  background: #fff;
+}
+
+.timing-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.timing-sep {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.timing-save-btn,
+.timing-cancel-btn {
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 18px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.timing-save-btn {
+  color: #22c55e;
+}
+
+.timing-save-btn:hover {
+  background: #f0fdf4;
+}
+
+.timing-cancel-btn {
+  color: #94a3b8;
+}
+
+.timing-cancel-btn:hover {
+  background: #f1f5f9;
+}
+
+/* Item row timing adjustments */
+.item-row .timing-display {
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.item-row .timing-editor {
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+/* Category header timing */
+.category-actions .timing-display,
+.category-actions .timing-editor {
+  margin-right: 8px;
+
+/* CR-2026-06-17-002 APP-9: Channel status chips (replaces old D/T/Del pills) */
+.menu-order-tab .channel-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menu-order-tab .channel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 96px;
+  height: 28px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: #f3f4f6;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s, transform 0.05s;
+  position: relative;
+}
+.menu-order-tab .channel-chip:hover  { transform: translateY(-1px); }
+.menu-order-tab .channel-chip:active { transform: translateY(0); }
+.menu-order-tab .channel-chip .chip-icon  { font-size: 14px; line-height: 1; }
+.menu-order-tab .channel-chip .chip-label { white-space: nowrap; }
+
+.menu-order-tab .channel-chip.pos-on  { background: #f3f4f6; color: #374151; }
+.menu-order-tab .channel-chip.pos-off { background: #f3f4f6; color: #6b7280; }
+
+.menu-order-tab .channel-chip.admin-on {
+  background: #16a34a; color: #ffffff; border-color: #15803d;
+}
+.menu-order-tab .channel-chip.admin-off {
+  background: #dc2626; color: #ffffff; border-color: #b91c1c;
+}
+.menu-order-tab .channel-chip .chip-dot {
+  position: absolute;
+  top: 4px; right: 6px;
+  width: 4px; height: 4px;
+  background: #ffffff; border-radius: 50%;
+}
+
+/* CR-2026-06-17-002 APP-7: Preview muting */
+.menu-order-tab .preview-muted { opacity: 0.4; }
+.menu-order-tab .preview-muted .preview-hidden-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  background: #ffffff;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+}
+.menu-order-tab .preview-channel-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.menu-order-tab .preview-channel-select {
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+}

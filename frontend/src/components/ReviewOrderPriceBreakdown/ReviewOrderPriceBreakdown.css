@@ -1,0 +1,108 @@
+.review-order-price-breakdown {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-container-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.review-order-price-header {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+}
+
+.review-order-price-icon {
+  /* font-size: var(--font-size-lg); */
+  color: var(--color-primary);
+  width: 20px;
+  height: 20px;
+  align-items: end;
+}
+
+.review-order-price-title {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.review-order-price-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.review-order-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.review-order-price-label {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.review-order-price-value {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.review-order-price-total .review-order-price-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.review-order-price-total .review-order-price-value {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.review-order-price-divider {
+  height: 2px;
+  border: none;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--border-dashed) 0px,
+    var(--border-dashed) 8px,  /* Dash length */
+    transparent 8px,
+    transparent 12px            /* Gap length (12px - 8px = 4px gap) */
+  );
+  margin: var(--spacing-xs) 0;
+  width: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .review-order-price-breakdown {
+    padding: var(--spacing-sm);
+  }
+
+  .review-order-price-title {
+    font-size: var(--font-size-base);
+  }
+
+  .review-order-price-label,
+  .review-order-price-value {
+    font-size: var(--font-size-xs);
+  }
+
+  .review-order-price-total .review-order-price-label,
+  .review-order-price-total .review-order-price-value {
+    font-size: var(--font-size-sm);
+  }
+
+  .review-order-price-divider {
+    height: 1px;
+  }
+}

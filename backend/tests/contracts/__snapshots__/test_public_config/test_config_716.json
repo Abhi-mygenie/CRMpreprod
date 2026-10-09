@@ -1,0 +1,192 @@
+{
+  "aboutUsContent": "",
+  "aboutUsImage": "",
+  "address": "",
+  "allowNonQrOrders": true,
+  "backgroundColor": "#FFFFFF",
+  "backgroundImageUrl": "",
+  "borderRadius": "rounded",
+  "browseMenuButtonText": "Browse Menu",
+  "buttonTextColor": "#FFFFFF",
+  "categoryTimings": {},
+  "channelOverrides": {},
+  "codEnabled": false,
+  "contactEmail": "",
+  "customPages": [],
+  "deliveryShifts": null,
+  "dineInShifts": null,
+  "extraInfoItems": [],
+  "facebookUrl": "",
+  "feedbackEnabled": false,
+  "feedbackIntroText": "",
+  "fontBody": "Poppins",
+  "fontHeading": "Poppins",
+  "footerLinks": [],
+  "footerText": "",
+  "instagramUrl": "",
+  "itemTimings": {
+    "206241": {
+      "end": "13:57",
+      "start": "13:00"
+    }
+  },
+  "logoUrl": "https://app.mygenie.online//api/upload/image/c046a058d4424332801aa5d45d365096.png",
+  "mapEmbedUrl": "",
+  "menuOrder": {
+    "stationOrder": [
+      {
+        "id": "Promational Menu",
+        "name": "Promational Menu"
+      },
+      {
+        "id": "Breakfast",
+        "name": "Breakfast"
+      },
+      {
+        "id": "GROK",
+        "name": "GROK"
+      },
+      {
+        "id": "FOOD MENU",
+        "name": "FOOD MENU"
+      },
+      {
+        "id": "Kids Menu",
+        "name": "Kids Menu"
+      },
+      {
+        "id": "Bar & Drinks",
+        "name": "Bar & Drinks"
+      },
+      {
+        "id": "Tea, Coffee & Soft Beverages",
+        "name": "Tea, Coffee & Soft Beverages"
+      },
+      {
+        "id": "24hrs Menu",
+        "name": "24hrs Menu"
+      },
+      {
+        "id": "PET FOOD",
+        "name": "PET FOOD"
+      }
+    ],
+    "stationVisibility": {
+      "24hrs Menu": true,
+      "Bar & Drinks": true,
+      "Breakfast": true,
+      "FOOD MENU": true,
+      "GROK": true,
+      "Kids Menu": true,
+      "PET FOOD": true,
+      "Promational Menu": true,
+      "Tea, Coffee & Soft Beverages": true
+    }
+  },
+  "mobileBackgroundImageUrl": "",
+  "navMenuOrder": [
+    {
+      "id": "home",
+      "label": "Home",
+      "type": "builtin",
+      "visible": true
+    },
+    {
+      "id": "menu",
+      "label": "Menu",
+      "type": "builtin",
+      "visible": true
+    },
+    {
+      "id": "about",
+      "label": "About Us",
+      "type": "builtin",
+      "visible": false
+    },
+    {
+      "id": "contact",
+      "label": "Contact",
+      "type": "builtin",
+      "visible": false
+    },
+    {
+      "id": "feedback",
+      "label": "Feedback",
+      "type": "builtin",
+      "visible": false
+    },
+    {
+      "id": "login",
+      "label": "Login",
+      "type": "builtin",
+      "visible": false
+    }
+  ],
+  "notificationPopups": [],
+  "onlinePaymentDelivery": true,
+  "onlinePaymentDinein": true,
+  "onlinePaymentTakeaway": true,
+  "openingHours": "",
+  "payAtCounterLabel": "",
+  "payOnlineLabel": "",
+  "phone": "",
+  "primaryColor": "#5FACDC",
+  "restaurantOpen": true,
+  "restaurantShifts": [
+    {
+      "end": "03:00",
+      "start": "06:00"
+    }
+  ],
+  "restaurant_id": "716",
+  "roomShifts": null,
+  "secondaryColor": "#5FACDC",
+  "showCallWaiter": false,
+  "showCategories": true,
+  "showCookingInstructions": true,
+  "showCouponCode": false,
+  "showCustomerDetails": false,
+  "showCustomerName": false,
+  "showCustomerPhone": true,
+  "showDescription": false,
+  "showEstimatedTimes": false,
+  "showExtraInfo": true,
+  "showFoodStatus": true,
+  "showFooter": true,
+  "showHamburgerMenu": true,
+  "showLandingCallWaiter": false,
+  "showLandingCustomerCapture": false,
+  "showLandingPayBill": false,
+  "showLoginButton": false,
+  "showLogo": true,
+  "showLoyaltyPoints": true,
+  "showMenuFab": true,
+  "showPayBill": false,
+  "showPoweredBy": true,
+  "showPriceBreakdown": true,
+  "showPromotionsOnMenu": false,
+  "showSocialIcons": false,
+  "showSpecialInstructions": true,
+  "showTableInfo": true,
+  "showTableNumber": true,
+  "showWallet": false,
+  "showWelcomeText": false,
+  "skipOtpDelivery": false,
+  "skipOtpDineIn": false,
+  "skipOtpDineInWithTable": false,
+  "skipOtpRoomOrders": false,
+  "skipOtpTakeaway": false,
+  "skipOtpWalkIn": false,
+  "stationTimings": {},
+  "successMessage": "",
+  "successTitle": "",
+  "tagline": "",
+  "takeawayShifts": null,
+  "textColor": "#5FACDC",
+  "textSecondaryColor": "#5FACDC",
+  "twitterUrl": "",
+  "walkinShifts": null,
+  "welcomeMessage": "Welcome!",
+  "whatsappNumber": "",
+  "youtubeUrl": ""
+}

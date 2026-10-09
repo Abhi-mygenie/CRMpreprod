@@ -1,0 +1,255 @@
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Lato:wght@300;400;700&family=Inter:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');
+
+:root {
+   /* ============================================
+     PRIMARY COLORS - MyGenie Brand (Orange + Green)
+     ============================================ */
+   --color-primary: #E8531E;
+   --color-primary-dark: #2E7D32;
+   --color-primary-light: #F4845F;
+   --color-primary-darker: #C44518;
+   --color-primary-darkest: #8B3112;
+   --color-primary-pale: #f5f5f5;
+   --color-primary-pale: color-mix(in srgb, var(--color-primary) 12%, white);
+
+   /* ============================================
+     CATEGORY COLORS
+     ============================================ */
+   --color-veg: #008000;
+   --color-non-veg: #be3838;
+   --color-egg: #FFA500;
+
+   /* ============================================
+     NEUTRAL COLORS
+     ============================================ */
+   --color-black: #000000;
+   --color-white: #ffffff;
+   --color-gray-50: #fafafa;
+   --color-gray-100: #f9f9f9;
+   --color-gray-200: #f5f5f5;
+   --color-gray-300: #f0f0f0;
+   --color-gray-400: #e8e8e8;
+   --color-gray-500: #e0e0e0;
+   --color-gray-600: #ddd;
+   --color-gray-700: #666;
+   --color-gray-800: #333;
+   --color-gray-900: #000;
+   --color-error: #dc3545;
+
+   /* ============================================
+     BACKGROUND COLORS
+     ============================================ */
+   --bg-primary: #ffffff;
+   --bg-secondary: #f5f5f5;
+   --bg-tertiary: #f9f9f9;
+   --bg-dark: #000000;
+   --bg-light-blue: #f0f8ff;
+   --bg-overlay: rgba(0, 0, 0, 0.5);
+   --bg-overlay-light: rgba(0, 0, 0, 0.1);
+
+   /* ============================================
+     TEXT COLORS
+     ============================================ */
+   --text-primary: #000000;
+   --text-secondary: #333333;
+   --text-tertiary: #666666;
+   --text-light: #999999;
+   --text-white: #ffffff;
+   --button-text-color: #ffffff;
+   --text-link: #E8531E;
+   --text-link-hover: #C44518;
+   --text-error: #dc3545;
+   --text-success: #28a745;
+   --text-blue-light: #F4845F;
+   --text-blue-medium: #C44518;
+   --text-blue-dark: #5A1D0E;
+   --text-blue-hero: #E8531E;
+
+   /* ============================================
+     BORDER COLORS
+     ============================================ */
+   --border-light: #f0f0f0;
+   --border-medium: #e0e0e0;
+   --border-dark: #ddd;
+   --border-dashed: #aeaeae;
+   --border-primary: #E8531E;
+   --border-veg: #008000;
+   --border-non-veg: #be3838;
+   --border-egg: #FFA500;
+   --border-white-alpha: rgba(255, 255, 255, 0.1);
+
+   /* ============================================
+     FONTS
+     ============================================ */
+   --font-primary: 'Capriola', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+   --font-heading: 'Big Shoulders', sans-serif;
+   --font-body: 'Montserrat', sans-serif;
+   --font-code: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+
+   /* ============================================
+     FONT SIZES
+     ============================================ */
+   --font-size-xxxs: 0.5rem;
+   /* 8px */
+   --font-size-xxs: 0.625rem;
+   /* 10px */
+   --font-size-xs: 0.75rem;
+   /* 12px */
+   --font-size-sm: 0.875rem;
+   /* 14px */
+   --font-size-base: 1rem;
+   /* 16px */
+   --font-size-md: 1.125rem;
+   /* 18px */
+   --font-size-lg: 1.25rem;
+   /* 20px */
+   --font-size-xl: 1.5rem;
+   /* 24px */
+   --font-size-2xl: 1.875rem;
+   /* 30px */
+   --font-size-3xl: 2.25rem;
+   /* 36px */
+
+   /* ============================================
+     FONT WEIGHTS
+     ============================================ */
+   --font-weight-light: 300;
+   --font-weight-normal: 400;
+   --font-weight-medium: 500;
+   --font-weight-semibold: 600;
+   --font-weight-bold: 700;
+
+   /* ============================================
+     SPACING
+     ============================================ */
+   --spacing-xxs: 2px;
+   --spacing-xs: 4px;
+   --spacing-sm: 8px;
+   --spacing-md: 12px;
+   --spacing-base: 16px;
+   --spacing-lg: 20px;
+   --spacing-xl: 24px;
+   --spacing-2xl: 32px;
+   --spacing-3xl: 40px;
+   --spacing-4xl: 48px;
+
+   /* ============================================
+     BORDER RADIUS
+     ============================================ */
+   /* Fixed radius - for containers, inputs, dropdowns (never changes) */
+   --radius-container-sm: 4px;
+   --radius-container-md: 8px;
+   --radius-container-lg: 12px;
+   --radius-container-xl: 16px;
+   
+   /* Configurable radius - for buttons, badges (can be changed via admin) */
+   --radius-sm: 4px;
+   --radius-md: 8px;
+   --radius-lg: 12px;
+   --radius-xl: 16px;
+   --radius-2xl: 20px;
+   --radius-full: 50%;
+   
+   /* Semantic radius tokens */
+   --radius-button: var(--radius-md);
+   --radius-badge: var(--radius-lg);
+   --radius-input: var(--radius-container-md);
+   --radius-card: var(--radius-container-lg);
+   --radius-dropdown: var(--radius-container-md);
+   --radius-modal: var(--radius-container-lg);
+   --radius-sidebar: var(--radius-container-lg);
+
+   /* ============================================
+     SHADOWS
+     ============================================ */
+   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+
+   /* ============================================
+     Z-INDEX LAYERS
+     ============================================ */
+   --z-base: 1;
+   --z-dropdown: 100;
+   --z-sticky: 500;
+   --z-fixed: 900;
+   --z-fab: 1000;
+   --z-overlay: 1001;
+   --z-modal: 1002;
+   --z-tooltip: 1003;
+
+   /* ============================================
+     TRANSITIONS
+     ============================================ */
+   --transition-fast: 0.15s ease;
+   --transition-base: 0.3s ease;
+   --transition-slow: 0.5s ease;
+
+   /* ============================================
+     BREAKPOINTS (for reference in JS)
+     ============================================ */
+   --breakpoint-mobile: 480px;
+   --breakpoint-tablet: 768px;
+   --breakpoint-desktop: 1024px;
+   --breakpoint-wide: 1440px;
+}
+
+* {
+   margin: 0;
+   padding: 0;
+   box-sizing: border-box;
+}
+
+body {
+   margin: 0;
+   font-family: var(--font-primary);
+   -webkit-font-smoothing: antialiased;
+   -moz-osx-font-smoothing: grayscale;
+   background-color: var(--bg-secondary);
+   color: var(--text-primary);
+}
+
+code {
+   font-family: var(--font-code);
+}
+
+/* Global Button Styles */
+button {
+   font-family: var(--font-primary);
+}
+
+/* Smooth Scrolling */
+html {
+   scroll-behavior: smooth;
+}
+
+/* Remove default link styles */
+a {
+   color: inherit;
+   text-decoration: none;
+}
+
+/* Ensure images are responsive */
+img {
+   max-width: 100%;
+   height: auto;
+}
+
+/* Hide Scrollbar - All Browsers */
+/* Chrome, Safari, Edge */
+::-webkit-scrollbar {
+   display: none;
+   width: 0;
+   height: 0;
+}
+
+/* Firefox */
+* {
+   scrollbar-width: none;
+}
+
+/* IE and Edge Legacy */
+body {
+   -ms-overflow-style: none;
+}

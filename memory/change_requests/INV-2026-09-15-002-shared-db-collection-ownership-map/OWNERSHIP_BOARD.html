@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shared DB Ownership Board — INV-2026-09-15-002</title>
+<style>
+  :root{
+    --bg:#0f1117;--panel:#161922;--panel2:#1c2030;--line:#2a2f42;--text:#e6e8ef;--muted:#8b91a7;
+    --app:#4cc9f0;--crm:#f4a261;--pos:#b5e48c;--db:#c8b6ff;
+    --ok:#2ec4b6;--bad:#ef476f;--unk:#6c757d;--pend:#ffd166;
+    --mono:"JetBrains Mono","Fira Code",ui-monospace,Menlo,monospace;
+    --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.45}
+  header{padding:22px 28px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+  h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.2px}
+  h1 small{display:block;font-size:12px;color:var(--muted);font-weight:400;font-family:var(--mono);margin-top:4px}
+  .toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel)}
+  .toggle button{background:transparent;border:0;color:var(--muted);padding:8px 16px;cursor:pointer;font:inherit;transition:background-color .15s,color .15s}
+  .toggle button.active{background:var(--panel2);color:var(--text)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  main{display:grid;grid-template-columns:1fr 380px;gap:0;min-height:calc(100vh - 90px)}
+  @media (max-width:1100px){main{grid-template-columns:1fr}}
+  .board{padding:18px 28px 40px;overflow-x:auto}
+  .lanes{display:grid;grid-template-columns:150px 1fr 150px 110px;gap:0 10px;align-items:center;min-width:760px}
+  .lanes .head{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:6px 0 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+  .head.app{color:var(--app)}.head.crm{color:var(--crm)}.head.pos{color:var(--pos)}.head.db{color:var(--db)}
+  .group{grid-column:1/-1;margin:22px 0 6px;font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .group::after{content:"";flex:1;height:1px;background:var(--line)}
+  .group .cnt{color:var(--text);opacity:.6}
+  .row{display:contents}
+  .row>div{padding:5px 0}
+  .ops{display:flex;gap:6px;align-items:center;justify-content:flex-end;min-height:34px}
+  .ops.right{justify-content:flex-start}
+  .op{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:4px;border:1px solid transparent;white-space:nowrap}
+  .op.r{border-color:var(--line);color:var(--muted);border-style:dashed}
+  .op.w{background:rgba(255,255,255,.06);color:var(--text);border-color:var(--line)}
+  .op.none{color:#3d4256;font-size:14px;border:0;padding:0}
+  .arrow{color:#3d4256;font-size:12px}
+  .op.app.w{border-color:var(--app);color:var(--app)}
+  .op.crm.w{border-color:var(--crm);color:var(--crm)}
+  .op.pos.w{border-color:var(--pos);color:var(--pos)}
+  .coll{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--unk);cursor:pointer;transition:transform .12s,background-color .12s}
+  .coll:hover{background:var(--panel2);transform:translateX(2px)}
+  .coll.sel{outline:1px solid var(--text)}
+  .coll .nm{font-family:var(--mono);font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .coll .docs{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .coll .owner{font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.05);color:var(--muted);white-space:nowrap}
+  .st-ok{border-left-color:var(--ok)!important}.st-bad{border-left-color:var(--bad)!important}.st-unk{border-left-color:var(--unk)!important}.st-pend{border-left-color:var(--pend)!important}
+  .diff .coll.mismatch{background:rgba(239,71,111,.10);border-color:rgba(239,71,111,.5)}
+  .diff .coll.match{opacity:.45}
+  .tag{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:3px;background:rgba(255,209,102,.15);color:var(--pend)}
+  aside{border-left:1px solid var(--line);background:var(--panel);padding:18px 20px 40px;overflow-y:auto;max-height:calc(100vh - 90px);position:sticky;top:90px}
+  @media (max-width:1100px){aside{position:static;max-height:none;border-left:0;border-top:1px solid var(--line)}}
+  aside h2{font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:18px 0 8px}
+  aside h2:first-child{margin-top:0}
+  .detail .nm{font-family:var(--mono);font-size:17px;color:var(--db);word-break:break-all}
+  .kv{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:13px;margin-top:10px}
+  .kv b{color:var(--muted);font-weight:500}
+  .kv code{font-family:var(--mono);font-size:12px;color:var(--text)}
+  .views{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .vbox{border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:12px}
+  .vbox .lbl{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+  .vbox.app .lbl{color:var(--app)}.vbox.crm .lbl{color:var(--crm)}
+  .vbox.diff{border-color:var(--bad)}
+  .qs li{margin:4px 0;font-size:12.5px}
+  .qs code{font-family:var(--mono);color:var(--pend)}
+  .empty{color:var(--muted);font-size:13px}
+  .dec{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0;background:var(--bg)}
+  .dec .t{font-weight:600;font-size:13px;display:flex;justify-content:space-between;gap:8px}
+  .dec .t .pri{font-family:var(--mono);font-size:10px;color:var(--pend)}
+  .dec .d{font-size:12px;color:var(--muted);margin:4px 0 8px}
+  .dec label{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;padding:3px 0;cursor:pointer}
+  .dec input[type=text],.dec textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:4px;padding:5px 8px;font:inherit;font-size:12px;margin-top:6px}
+  .dec.done{border-color:var(--ok)}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:8px 14px;border-radius:6px;cursor:pointer;font:inherit;font-size:13px;transition:background-color .15s,border-color .15s}
+  .btn:hover{border-color:var(--text)}
+  .btn.primary{border-color:var(--ok);color:var(--ok)}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  pre.out{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;font-family:var(--mono);font-size:11.5px;white-space:pre-wrap;max-height:300px;overflow:auto;margin-top:8px}
+  .prog{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  footer{padding:14px 28px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px;font-family:var(--mono)}
+  ::selection{background:var(--db);color:#000}
+</style>
+</head>
+<body>
+<header>
+  <h1>Shared <span style="color:var(--db)">mygenie</span> DB — Collection Ownership Board
+    <small>INV-2026-09-15-002 · UAT probe 2026-09-15 · CRM replies INV-022 r1+r2 and the filled ownership board (2026-10-03) applied · owner rulings D-1/D-2 recorded · authoritative source = control/CONTRACT_CUSTOMER_APP_CRM_v1.0.md (v1.0-RC3) · click a collection for details · decisions save in this browser</small>
+  </h1>
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+    <div class="toggle" id="viewToggle" data-testid="view-toggle">
+      <button data-v="app" class="active">Customer App view</button>
+      <button data-v="crm">CRM view (as replied)</button>
+      <button data-v="diff">Show disagreements</button>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--ok)"></span>Agreed</span>
+      <span><span class="dot" style="background:var(--bad)"></span>Contested (dual write)</span>
+      <span><span class="dot" style="background:var(--pend)"></span>Pending a reply</span>
+      <span><span class="dot" style="background:var(--unk)"></span>Unknown owner</span>
+      <span>· <span class="op w" style="padding:0 5px">W</span> write &nbsp;<span class="op r" style="padding:0 5px">R</span> read</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="board" id="board" data-testid="ownership-board">
+    <div class="lanes" id="lanes"></div>
+  </section>
+
+  <aside>
+    <div id="detail" class="detail" data-testid="detail-panel">
+      <h2>Collection detail</h2>
+      <p class="empty">Click any collection on the left.</p>
+    </div>
+
+    <h2 style="margin-top:26px">Decisions &amp; open questions <span class="prog" id="prog"></span></h2>
+    <div id="decisions" data-testid="decision-panel"></div>
+
+    <div class="btnrow">
+      <button class="btn primary" id="copyBtn" data-testid="copy-summary-btn">Copy frozen summary (markdown)</button>
+      <span style="display:block;margin-top:10px;font-size:13px;line-height:1.5;opacity:.85">
+        <b>CRM column superseded 2026-10-03.</b> CRM returned its own code-scanned answer for all 39
+        collections — import <code>crm_reply/crm_board_reply.json</code> via &ldquo;Import CRM JSON&rdquo;
+        to replace the CRM column with their authoritative values (read/write op counts + file:line).
+        Reconciliation: <code>RECONCILIATION_CRM_BOARD_2026-10-03.md</code> &mdash; 36/39 agreed,
+        3 ruled by owner. Authoritative contract: <code>control/CONTRACT_CUSTOMER_APP_CRM_v1.0.md</code>
+        &mdash; <b>v1.0 Part 1 FROZEN, signed by CRM and the owner on 2026-10-03</b>. Where this board and the
+        contract disagree, <b>the contract wins</b> (clause C6).
+      </span>
+      <button class="btn" id="resetBtn" data-testid="reset-btn">Reset</button>
+    </div>
+    <pre class="out" id="out" data-testid="summary-output"></pre>
+
+    <h2 style="margin-top:26px">Import CRM's view</h2>
+    <p class="empty" style="font-size:12px">Paste the JSON CRM returns from <code>CRM_BRIEF_OWNERSHIP_BOARD.md</code>. It replaces the "CRM view" column so disagreements are computed automatically.</p>
+    <textarea id="crmJson" data-testid="crm-json-input" rows="4" style="width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:4px;padding:6px 8px;font-family:var(--mono);font-size:11px" placeholder='{"customer_app_config":{"crm":"W","owner":"CRM","note":"..."}, ...}'></textarea>
+    <div class="btnrow"><button class="btn" id="importBtn" data-testid="import-crm-btn">Apply CRM JSON</button><button class="btn" id="exportBtn" data-testid="export-template-btn">Copy blank template for CRM</button></div>
+  </aside>
+</main>
+
+<footer>Sources: server.py grep · live UAT probe (33 collections) · INV_017 CRM contract gap reply · OWNER_DECISIONS_2026-09-15 (OD-7, D-A). Note: names listed = 34 (12 ours + 22 CRM-exclusive) vs 33 probed — recheck count on next probe.</footer>
+
+<script>
+// ---------- DATA ----------
+// app/crm/pos: "" none, "R" read, "W" write, "RW" both. ourOwner/crmOwner: who owns writes per each side's claim.
+// status: ok | bad | pend | unk
+const C = [
+ // Group 1: contested
+ {g:"Contested — both sides have live WRITE paths",name:"customer_app_config",docs:13,app:"RW",crm:"RW",pos:"",
+  ourOwner:"Customer App (OD-7)",crmOwner:"Customer App (INV-022 D1 agreed)",status:"ok",
+  fields:"106 keys · restaurant_id stored as STRING short-format ('689')",
+  note:"FROZEN 2026-10-03 — owner confirmed Customer App owns. CRM removes PUT and GET /scan/config/{rid} (CR-095, Q-CA-1 already answered). O1 = A.",
+  q:["O1 — FROZEN as A (owner confirmed 2026-10-03)","Q-CA-1 — CRM to remove routes now (reply sent)"]},
+ {g:"Contested — both sides have live WRITE paths",name:"dietary_tags_mapping",docs:"?",app:"RW",crm:"RW",pos:"",
+  ourOwner:"Customer App",crmOwner:"Customer App (INV-022 D2 agreed)",status:"pend",
+  fields:"tag id → label/icon mapping",
+  note:"INV-022 D2: CRM agrees Customer App owns; CRM never wrote this collection; removes PUT+GET /scan/menu/dietary-tags (CR-095).",
+  q:["O2 = A frozen"]},
+ {g:"Contested — both sides have live WRITE paths",name:"customers",docs:7528,app:"RW",crm:"RW",pos:"",
+  ourOwner:"CRM canonical (D-A) — our writes are OTP auth only",crmOwner:"CRM canonical",status:"ok",
+  fields:"phone, name, restaurant_id, created_at",
+  note:"INV-003: 11 call sites — 9 DEAD (old OTP/password/profile shim), 2 LIVE pre-login READS: check-customer (landing page greet-by-name) + customer-lookup (checkout pre-fill). No CRM equivalent without token.",
+  q:["INV-022 B1: CRM builds POST /scan/auth/lookup (CR-093) → replaces check-customer","INV-022 B2: points stay login-gated → degraded-guest loses preview (F2)","O7 — approve deleting 9 dead sites"]},
+ {g:"Contested — both sides have live WRITE paths",name:"feedback",docs:1,app:"RW",crm:"W",pos:"",
+  ourOwner:"CRM (we must stop writing)",crmOwner:"CRM POST /scan/feedback",status:"bad",
+  fields:"CRM shape (live doc): user_id, customer_id, customer_name, customer_phone, rating, message, status. OUR write uses restaurant_id, name, email → MISMATCH",
+  note:"INV-003: our POST /api/config/feedback is the ONLY live write into a CRM table, and with the wrong schema (0 rows ours so far). Admin GET route has no caller. Fix: FeedbackPage → POST /scan/feedback; delete both routes.",
+  q:["F1 — owner accept login-only feedback (INV-022 A9: token required, body {rating,message?,order_id?}, no name/email)","New CR — feedback → /scan/feedback"]},
+
+ // Group 2: CRM primary, we read
+ {g:"CRM owns · Customer App READ-only",name:"users",docs:40,app:"R",crm:"RW",pos:"",
+  ourOwner:"CRM (we must stop reading → POS login)",crmOwner:"CRM",status:"pend",
+  fields:"We depend on: id, email, phone, password_hash, restaurant_id, pos_id. Doc also holds api_key, authkey_api_key, mygenie_token (CRM/WhatsApp secrets).",
+  note:"INV-022 C1: CRM is NOT the identity provider — its users row is a cache of MyGenie POS login→profile. We must authenticate admins against POS directly (we already call POS vendoremployee/login in refresh_pos_token). Stable-fields contract RETIRED. CR-2026-09-15-004 Option D.",
+  q:["F3 — owner approve POS-direct admin login","P5 — POS profile endpoint + multi-restaurant","P0 fix: projection until cutover"]},
+ {g:"CRM owns · Customer App READ-only",name:"orders",docs:66978,app:"R",crm:"RW",pos:"→CRM",
+  ourOwner:"CRM (POS ingest)",crmOwner:"CRM",status:"ok",
+  fields:"cust_phone, customer_id (only 28% linked), items, total",
+  note:"Our GET /api/customer/orders is DEAD (0 callers) → delete. Profile tab must use CRM GET /scan/orders (CR-2026-09-15-001). 72% orders unlinked → phone format.",
+  q:["POS P4 — phone format POS sends","CR-2026-09-15-003 phone normalisation"]},
+ {g:"CRM owns · Customer App READ-only",name:"points_transactions",docs:13987,app:"R",crm:"RW",pos:"",ourOwner:"CRM",crmOwner:"CRM",status:"ok",
+  fields:"all values positive; direction via transaction_type",note:"Our GET /api/customer/points is DEAD → delete. Profile uses CRM /scan/points/history (CR-2026-09-15-001).",q:["O7"]},
+ {g:"CRM owns · Customer App READ-only",name:"wallet_transactions",docs:12,app:"R",crm:"RW",pos:"",ourOwner:"CRM",crmOwner:"CRM",status:"ok",
+  fields:"",note:"Our GET /api/customer/wallet is DEAD → delete. CRM /scan/wallet/history. Module effectively inactive (12 docs).",q:["O7"]},
+ {g:"CRM owns · Customer App READ-only",name:"coupons",docs:144,app:"R",crm:"RW",pos:"",ourOwner:"CRM",crmOwner:"CRM",status:"ok",fields:"",note:"Our GET /api/customer/coupons is DEAD → delete. CRM GET /scan/coupons.",q:["O7"]},
+ {g:"CRM owns · Customer App READ-only",name:"loyalty_settings",docs:39,app:"R",crm:"RW",pos:"",ourOwner:"CRM",crmOwner:"CRM",status:"pend",fields:"earn % per tier, redemption_value, min_order_value, first_visit_bonus",note:"INV-003: LIVE pre-login read at checkout (\"you will earn N points\"). /scan/loyalty needs a token and returns balance, not rules.",q:["INV-022 B3: CRM builds GET /scan/loyalty-rules/{rid} public (CR-094) → replaces our route"]},
+
+ // Group 3: ours exclusive
+ {g:"Customer App exclusive",name:"non_qr_blocks",docs:70,app:"RW",crm:"",pos:"",ourOwner:"Customer App",crmOwner:"not claimed",status:"ok",fields:"",note:"Diagnostics telemetry. No CRM path.",q:[]},
+ {g:"Customer App exclusive",name:"status_checks",docs:1,app:"RW",crm:"",pos:"",ourOwner:"Customer App",crmOwner:"not claimed",status:"ok",fields:"",note:"Diagnostics telemetry.",q:[]},
+
+ // Group 4: unknown owner
+ {g:"CRM exclusive — Customer App never touches",name:"import_logs",docs:44,app:"",crm:"RW",pos:"",ourOwner:"CRM",crmOwner:"CRM (INV-022 E4)",status:"ok",fields:"",note:"CRM reply INV-022 E4: CRM-owned. Do not read or write.",q:[]},
+ {g:"CRM exclusive — Customer App never touches",name:"webhook_logs",docs:10,app:"",crm:"RW",pos:"",ourOwner:"CRM",crmOwner:"CRM (INV-022 E4)",status:"ok",fields:"",note:"CRM reply INV-022 E4: CRM-owned. Do not read or write.",q:[]},
+ {g:"CRM exclusive — Customer App never touches",name:"coupon_distributions",docs:2,app:"",crm:"RW",pos:"",ourOwner:"CRM",crmOwner:"CRM (INV-022 E4)",status:"ok",fields:"",note:"CRM reply INV-022 E4: CRM-owned. Do not read or write.",q:[]},
+ {g:"CRM exclusive — Customer App never touches",name:"customer_documents",docs:114,app:"",crm:"RW",pos:"",ourOwner:"CRM",crmOwner:"CRM (INV-022 E4)",status:"ok",fields:"",note:"CRM reply INV-022 E4: CRM-owned. Do not read or write.",q:[]},
+
+ // Group 5: CRM claims, not in UAT
+ {g:"CRM-claimed but NOT present in UAT (auto-create on first use)",name:"pos_event_logs",docs:0,app:"",crm:"W",pos:"?",ourOwner:"CRM",crmOwner:"POS (CRM proposed) — OWNER RULED: CRM",status:"ok",fields:"",note:"FROZEN 2026-10-03 — owner ruled owner = CRM (sole writer; 3 writes, 0 reads: scan.py:859, scan.py:877, pos.py:2484). Consumer = POS, REQUIRED. Customer App: never. CORRECTION: the endpoints /scan/call-waiter + /scan/request-bill, body {table_id, message?}, customer token required, were CORRECT all along (CRM round 2, scan.py:845,863) — the earlier note calling them incorrect was wrong and is withdrawn. Real gap: CRM never reads this collection, so the events are INERT until POS consumes them. CRM proposed owner=POS (the consumer); owner kept owner=writer for consistency across all 39 rows.",q:["POS P1-refined — does anything in POS READ this? If not, nothing does","POS P6 — keep in CRM (POS consumes) or move to POS? And how is staff notified?","POS P7 — confirm Pay Bill = request to settle at table, NOT in-app payment"]},
+ {g:"CRM-claimed but NOT present in UAT (auto-create on first use)",name:"segment_whatsapp_config",docs:0,app:"",crm:"W",pos:"",ourOwner:"CRM",crmOwner:"CRM",status:"pend",fields:"",note:"INV-022 E3: not in preprod.",q:[]},
+ {g:"CRM-claimed but NOT present in UAT (auto-create on first use)",name:"message_logs",docs:0,app:"",crm:"W",pos:"",ourOwner:"CRM",crmOwner:"CRM (legacy, pre-CR-004)",status:"pend",fields:"",note:"INV-022 E3: not in preprod. Prod not probed.",q:[]},
+];
+// Group 6: CRM exclusive (we never touch)
+[["campaigns",44],["campaign_runs",57],["campaign_test_sends",20],["coupon_transactions",0],["coupon_usage",186],["cron_job_logs",117],["custom_templates",121],["customer_otps",5,"CRM CUSTOMER scan-and-order OTP store (scan.py:193-287). NOTE 2026-10-03: INV-022 E3 said otp_tokens does not exist, but CRM's ownership-board reply says it DOES — as the STAFF password-reset store (auth.py:608-751, R2/W4), distinct from this one. Row restored; CRM asked to confirm E3 was scoped to customer OTP only (contract D-3)."],["otp_tokens",0,"CRM STAFF password-reset OTP (auth.py:608-751, R2/W4). Absent from UAT only because never exercised. Restored 2026-10-03 after CRM's board reply contradicted E3 — see contract D-3."],["templates",0,"ADDED BY CRM 2026-10-03 (not on our original board). Read-only fallback at whatsapp.py:2383 (R1/W0); appears to be a dead legacy alias of custom_templates. CRM proposes retiring the fallback in a cleanup CR."],["invoices",50],["loyalty_mismatch_logs",0],["migration_sync_logs",257],["order_items",188900,"POS order line items via CRM ingest.","→CRM"],["pos_request_logs",0,"POS API request log","?"],["segments",21],["whatsapp_callback_logs",3765],["whatsapp_event_template_map",19],["whatsapp_message_logs",1031],["whatsapp_template_variable_map",43]]
+ .forEach(([n,d,note,pos])=>C.push({g:"CRM exclusive — Customer App never touches",name:n,docs:d,app:"",crm:"RW",pos:pos||"",ourOwner:"CRM",crmOwner:"CRM",status:"ok",fields:"",note:note||"",q:[]}));
+
+const DECISIONS = [
+ {id:"O1",who:"Owner",pri:"P0",t:"customer_app_config — who owns writes?",d:"INV-022 D1: CRM AGREES Customer App owns and will remove its PUT+GET (CR-095). Pick A to freeze.",
+  opts:["A — Customer App owns all config writes; CRM locks their PUT (matches OD-7)","B — Key partition: CRM owns a defined subset, we own the rest","C — CRM owns all config writes; we retire our admin config UI"]},
+ {id:"O3",who:"Owner",pri:"P0 sec",t:"JWT secret policy",d:"INV-022 E1: fallback REMOVED in CRM codebase; live-host build check pending (CRM GAP-11). Effectively resolved — pick option 1 to record.",
+  opts:["Formally ask CRM to remove hardcoded fallback before next release","Accept risk for now, track as CRM-side item","Both teams rotate together on a fixed date"]},
+ {id:"O2",who:"Owner",pri:"P1",t:"dietary_tags_mapping — who owns writes?",d:"Both admin UIs write to it today. Owner said in chat (2026-09-15): Customer App owns → pick A to freeze.",
+  opts:["A — Customer App owns; CRM locks their PUT","B — CRM owns; we retire our dietary-tags admin","C — Wait for CRM to confirm actual usage first"]},
+ {id:"O4",who:"Owner",pri:"P1",t:"users collection dependency → CR-2026-09-15-004",d:"INV-022 C1: CRM will NOT provide admin login (CRM itself proxies MyGenie POS). Option D = authenticate against POS directly. We already call POS login in refresh_pos_token.",
+  opts:["D — Admin login against MyGenie POS directly (login → profile → restaurants[0].id); stop reading users","B — We own admin_users; synced at onboarding","Keep projected read for now (not acceptable long-term)"]},
+ {id:"O5",who:"POS",pri:"P2",t:"Call Waiter / Pay Bill — REFERRED TO POS 2026-10-03",d:"Endpoints confirmed correct by CRM (scan.py:845,863). CRM parked the direction question and handed it back; owner referred it to POS -> P6 + P7. Blocked on POS. Registered as CR-2026-10-03-005. Measured exposure: 12 of 13 tenants have the buttons hidden by config; restaurant 672 has showLandingPayBill=true and shows a dead button today.",
+  opts:["POS P6 — keep in CRM, POS consumes pos_event_logs","POS P6 — move both actions to POS entirely","Awaiting POS reply"]},
+ {id:"O6",who:"Owner",pri:"P1",t:"Pre-login lookups (greet-by-name, checkout pre-fill, points preview) read CRM tables directly",d:"Owner: all via CRM API. INV-022: CRM builds lookup (B1) + loyalty-rules (B3); points stay login-gated (B2) — we already skip-otp on landing, so only degraded-guest loses the preview (F2). Pick option 1.",
+  opts:["Ask CRM for 2 public endpoints (exists-by-phone, loyalty-rules) — keep features","Drop the 3 pre-login features; remove the 3 routes","Keep as documented read-only exception (like users)"]},
+ {id:"O7",who:"Owner",pri:"P1",t:"Approve deleting the 14 dead CRM-table call sites now?",d:"INV-003: 9 customers + orders/points/wallet/coupons + feedback GET have zero frontend callers. Independent of the ownership map.",
+  opts:["Yes — delete now (becomes CR-006 phase 1)","Wait until the full ownership map is signed"]},
+ {id:"F1",who:"Owner",pri:"P1",t:"Feedback: we identify the diner (token, else phone+restaurant_id) and send to CRM; CRM defines storage",d:"Owner 2026-09-28: 'ask CRM how feedback needs to be stored — their endpoint'. → CRM question A9-b in next brief. Our FeedbackPage change waits for the answer.",opts:["Recorded — ask CRM A9-b (owner position)","Changed my mind: accept login-only as CRM proposed"]},
+ {id:"F2",who:"Owner",pri:"P2",t:"Points preview when diner has no CRM token at checkout (INV-022 B2)",d:"Owner asked 'why lose?'. Answer: it is NOT a necessary loss — only the degraded-guest (CRM was down) and OTP-only (SMS not live) paths lack a token. See OWNER_RESPONSES_F1-F4 §1.",opts:["Retry skip-otp at checkout; if still no token show name (lookup) + 'log in to see points' — nothing lost in reachable paths","Accept the loss in no-token paths","Insist CRM return points for an unauthenticated phone (CRM already said no)"]},
+ {id:"F3",who:"Owner",pri:"P1",t:"Admin login → MyGenie POS direct (CR-004 Option D)",d:"Owner 2026-09-28: 'will approve after checking impact and new flow'. Next agent writes CR-004/IMPACT_AND_NEW_FLOW.md (needs POS P5) and presents it.",opts:["Approve (after reading impact doc)","Prefer own admin_users (Option B)","Not yet — impact doc pending"]},
+ {id:"F4",who:"Owner",pri:"P1",t:"Tell CRM to remove the 4 config/dietary routes now (Q-CA-1)",d:"Owner 2026-09-28: YES — frozen. Already in REPLY_TO_CRM_INV_022 draft.",opts:["Yes — remove now (owner decided)","Wait"]},
+ {id:"P1",who:"POS",pri:"P2",t:"pos_event_logs — who consumes call-waiter/request-bill events? (CRM writes, nothing in CRM reads; we don't read)",free:true},
+ {id:"P5",who:"POS",pri:"P1",t:"Admin profile endpoint path after vendoremployee/login; can restaurants[] have >1 entry?",free:true},
+ {id:"P4",who:"POS",pri:"P1",t:"Phone format POS forwards to CRM (unchanged / +91 / 91 / other)?",free:true},
+ {id:"A1",who:"CRM",pri:"P1",t:"[ANSWERED INV-022 D1] CRM removes PUT+GET /scan/config via CR-095 after our Q-CA-1",free:true},
+ {id:"A2",who:"CRM",pri:"P1",t:"[ANSWERED INV-022 D2] CRM removes PUT+GET dietary-tags via CR-095",free:true},
+ {id:"A3",who:"CRM",pri:"P3",t:"[ANSWERED INV-022 A9] POST /scan/feedback: token required, {rating, message?, order_id?}",free:true},
+ {id:"B1",who:"CRM",pri:"P2",t:"[ANSWERED — then partly CONTRADICTED] INV-022 E3: none in preprod; customer_otps is the OTP store; otp_tokens does not exist. BUT CRM's 2026-10-03 ownership-board reply says otp_tokens DOES exist (staff password-reset, auth.py:608-751). Contract D-3: CRM to confirm E3 was scoped to customer OTP only. All 4 'missing' collections exist in CRM code; absent from UAT only because never written.",free:true},
+ {id:"B2",who:"CRM",pri:"P2",t:"[ANSWERED INV-022 E4] all four CRM-owned",free:true},
+ {id:"B3",who:"CRM",pri:"P1",t:"[ANSWERED INV-022 E2] no normalisation; moot after D1; all 13 docs short-id",free:true},
+ {id:"B4",who:"CRM",pri:"P1",t:"[RETIRED INV-022 C1] no stable-fields contract — use POS login instead",free:true},
+ {id:"A5",who:"CRM",pri:"P1",t:"[ANSWERED INV-022 A9] see A3 row",free:true},
+ {id:"A6",who:"CRM",pri:"P1",t:"[ANSWERED INV-022 B1/B3] CRM builds POST /scan/auth/lookup (CR-093) + GET /scan/loyalty-rules/{rid} (CR-094); not in /scan/config",free:true},
+];
+
+// ---------- STATE ----------
+const KEY="ownership-board-v1";
+let state=JSON.parse(localStorage.getItem(KEY)||"{}");
+let view="app", selected=null;
+const save=()=>localStorage.setItem(KEY,JSON.stringify(state));
+const crmOverride=state._crm||{};
+
+// ---------- RENDER LANES ----------
+function opChip(v,cls){
+  if(!v) return '<span class="op none">·</span>';
+  if(v==="?") return '<span class="tag">?</span>';
+  return v.split("").filter(ch=>ch==="R"||ch==="W").map(ch=>`<span class="op ${ch==="W"?"w "+cls:"r"}">${ch}</span>`).join("")+(v.includes("→")?'<span class="arrow" title="POS pushes to CRM API; CRM writes the DB. No evidence POS connects to Mongo directly.">source →CRM</span>':"");
+}
+function effCrmOwner(c){return (crmOverride[c.name]&&crmOverride[c.name].owner)||c.crmOwner;}
+function effCrmOps(c){return (crmOverride[c.name]&&crmOverride[c.name].crm)||c.crm;}
+function mismatch(c){
+  const a=c.ourOwner.toLowerCase(), b=effCrmOwner(c).toLowerCase();
+  const key=s=>s.includes("customer app")?"app":s.includes("crm")?"crm":s.includes("shared")?"shared":"unk";
+  const ka=key(a), kb=key(b);
+  if(ka==="unk"||kb==="unk") return false; // "not claimed" is not a disagreement
+  return ka!==kb;
+}
+function renderLanes(){
+  const L=document.getElementById("lanes");
+  document.getElementById("board").classList.toggle("diff",view==="diff");
+  let h=`<div class="head app">Customer App</div><div class="head db">Collection · docs (UAT)</div><div class="head crm">CRM</div><div class="head pos">POS (via CRM)</div>`;
+  let lastG=null;
+  C.forEach((c,i)=>{
+    if(c.g!==lastG){lastG=c.g;const n=C.filter(x=>x.g===c.g).length;h+=`<div class="group">${c.g}<span class="cnt">${n}</span></div>`;}
+    const owner=view==="crm"?effCrmOwner(c):c.ourOwner;
+    const mm=mismatch(c);
+    h+=`<div class="row">
+      <div class="ops">${opChip(c.app,"app")}</div>
+      <div><div class="coll st-${c.status} ${selected===i?"sel":""} ${mm?"mismatch":"match"}" data-i="${i}" data-testid="coll-${c.name}">
+        <span class="nm">${c.name}</span>
+        <span class="owner">${owner}</span>
+        <span class="docs">${typeof c.docs==="number"?c.docs.toLocaleString():c.docs}</span>
+      </div></div>
+      <div class="ops right">${opChip(effCrmOps(c),"crm")}</div>
+      <div class="ops right">${opChip(c.pos,"pos")}</div>
+    </div>`;
+  });
+  L.innerHTML=h;
+  L.querySelectorAll(".coll").forEach(el=>el.onclick=()=>{selected=+el.dataset.i;renderLanes();renderDetail();});
+}
+
+// ---------- DETAIL ----------
+function renderDetail(){
+  const D=document.getElementById("detail");
+  if(selected===null){D.innerHTML='<h2>Collection detail</h2><p class="empty">Click any collection on the left.</p>';return;}
+  const c=C[selected], mm=mismatch(c), ov=crmOverride[c.name];
+  D.innerHTML=`<h2>Collection detail</h2>
+   <div class="nm">${c.name}</div>
+   <div class="kv">
+     <b>Docs (UAT)</b><span>${c.docs}</span>
+     <b>Customer App</b><span>${c.app||"— never touches"}</span>
+     <b>CRM</b><span>${effCrmOps(c)||"— never touches"}</span>
+     <b>POS</b><span>${c.pos||"—"}</span>
+     <b>Fields</b><span>${c.fields||"—"}</span>
+     <b>Status</b><span>${{ok:"Agreed",bad:"Contested — dual write",pend:"Pending a reply",unk:"Unknown owner"}[c.status]}</span>
+   </div>
+   <div class="views">
+     <div class="vbox app"><div class="lbl">Customer App says</div>${c.ourOwner}</div>
+     <div class="vbox crm ${mm?"diff":""}"><div class="lbl">CRM says${ov?" (imported)":""}</div>${effCrmOwner(c)}${ov&&ov.note?`<div style="color:var(--muted);margin-top:4px">${ov.note}</div>`:""}</div>
+   </div>
+   ${c.note?`<p style="font-size:12.5px;margin:10px 0 0">${c.note}</p>`:""}
+   <h2>Linked questions</h2>
+   ${c.q.length?`<ul class="qs">${c.q.map(q=>`<li><code>${q.split(" ")[0]}</code> ${q.slice(q.indexOf(" ")+1)}</li>`).join("")}</ul>`:'<p class="empty">None — no action needed.</p>'}`;
+}
+
+// ---------- DECISIONS ----------
+function renderDecisions(){
+  const D=document.getElementById("decisions");
+  let h="", lastWho=null, done=0;
+  DECISIONS.forEach(d=>{
+    if(d.who!==lastWho){lastWho=d.who;h+=`<div class="group" style="margin:14px 0 4px">${d.who==="Owner"?"Owner decisions":d.who==="POS"?"Awaiting POS (Paws)":"Awaiting CRM"}</div>`;}
+    const s=state[d.id]||{};
+    const isDone=d.free?!!s.answer:s.choice!==undefined;
+    if(isDone)done++;
+    h+=`<div class="dec ${isDone?"done":""}" data-testid="decision-${d.id}"><div class="t"><span>${d.id} · ${d.t}</span><span class="pri">${d.pri}</span></div>${d.d?`<div class="d">${d.d}</div>`:""}`;
+    if(d.free){
+      h+=`<label><input type="checkbox" data-id="${d.id}" data-k="received" ${s.received?"checked":""}> Reply received</label>
+          <input type="text" data-id="${d.id}" data-k="answer" placeholder="Paste the one-line answer here" value="${(s.answer||"").replace(/"/g,"&quot;")}">`;
+    }else{
+      d.opts.forEach((o,i)=>h+=`<label><input type="radio" name="${d.id}" data-id="${d.id}" data-k="choice" value="${i}" ${s.choice===i?"checked":""}> ${o}</label>`);
+      h+=`<input type="text" data-id="${d.id}" data-k="note" placeholder="Optional note / condition" value="${(s.note||"").replace(/"/g,"&quot;")}">`;
+    }
+    h+=`</div>`;
+  });
+  D.innerHTML=h;
+  document.getElementById("prog").textContent=`${done}/${DECISIONS.length} frozen`;
+  D.querySelectorAll("input").forEach(el=>el.oninput=el.onchange=()=>{
+    const id=el.dataset.id,k=el.dataset.k;state[id]=state[id]||{};
+    state[id][k]=el.type==="checkbox"?el.checked:el.type==="radio"?+el.value:el.value;
+    save();renderDecisions();
+  });
+}
+
+// ---------- SUMMARY ----------
+function summary(){
+  const today=new Date().toISOString().slice(0,10);
+  let m=`# Frozen decisions — INV-2026-09-15-002 (${today})\n\n`;
+  ["Owner","POS","CRM"].forEach(w=>{
+    m+=`## ${w}\n\n| # | Item | Decision / Answer | Note |\n|---|---|---|---|\n`;
+    DECISIONS.filter(d=>d.who===w).forEach(d=>{
+      const s=state[d.id]||{};
+      const ans=d.free?(s.answer||(s.received?"(received, not typed)":"PENDING")):(s.choice!==undefined?d.opts[s.choice]:"PENDING");
+      m+=`| ${d.id} | ${d.t} | ${ans} | ${s.note||""} |\n`;
+    });
+    m+="\n";
+  });
+  m+=`## Ownership disagreements still open\n\n`;
+  const mm=C.filter(mismatch);
+  m+=mm.length?mm.map(c=>`- \`${c.name}\`: Customer App says **${c.ourOwner}**, CRM says **${effCrmOwner(c)}**`).join("\n"):"- none";
+  return m+"\n";
+}
+function crmTemplate(){
+  const o={};C.forEach(c=>o[c.name]={crm:"",owner:"",note:""});
+  return JSON.stringify(o,null,1);
+}
+
+// ---------- WIRE ----------
+document.getElementById("viewToggle").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  view=b.dataset.v;document.querySelectorAll("#viewToggle button").forEach(x=>x.classList.toggle("active",x===b));renderLanes();
+});
+document.getElementById("copyBtn").onclick=()=>{const s=summary();document.getElementById("out").textContent=s;navigator.clipboard&&navigator.clipboard.writeText(s).catch(()=>{});};
+document.getElementById("resetBtn").onclick=()=>{if(confirm("Clear all decisions and imported CRM view?")){state={};save();location.reload();}};
+document.getElementById("importBtn").onclick=()=>{
+  try{const j=JSON.parse(document.getElementById("crmJson").value);state._crm=j;save();location.reload();}
+  catch(e){alert("Invalid JSON: "+e.message);}
+};
+document.getElementById("exportBtn").onclick=()=>{const t=crmTemplate();document.getElementById("crmJson").value=t;navigator.clipboard&&navigator.clipboard.writeText(t).catch(()=>{});};
+
+renderLanes();renderDetail();renderDecisions();
+</script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+/* Modal Overlay */
+.cooking-instructions-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.cooking-instructions-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 500px;
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-container-lg);
+  z-index: calc(var(--z-modal) + 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.cooking-instructions-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 90vh;
+}
+
+/* Header */
+.cooking-instructions-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.cooking-instructions-modal-title {
+  font-family: var(--font-body);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-link);
+  margin: 0;
+}
+
+.cooking-instructions-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-link);
+  font-size: var(--font-size-xl);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.cooking-instructions-modal-close:hover {
+  color: var(--color-primary);
+}
+
+/* Body */
+.cooking-instructions-modal-body {
+  padding: var(--spacing-lg);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cooking-instructions-modal-textarea {
+  width: 100%;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-container-md);
+  padding: var(--spacing-md);
+  font-family: var(--font-body);
+  font-size: 16px; /* Minimum 16px to prevent iOS Safari auto-zoom on focus */
+  color: var(--text-primary);
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color var(--transition-fast);
+  flex: 1;
+}
+
+.cooking-instructions-modal-textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.cooking-instructions-modal-textarea::placeholder {
+  color: var(--text-light);
+}
+
+.cooking-instructions-modal-error {
+  color: #dc3545;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.cooking-instructions-modal-char-count {
+  text-align: right;
+  color: var(--text-light);
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-xs);
+}
+
+/* Footer */
+.cooking-instructions-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--border-dark);
+}
+
+.cooking-instructions-modal-btn {
+  padding: var(--spacing-sm) var(--spacing-xl);
+  border: none;
+  border-radius: var(--radius-container-md);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cooking-instructions-modal-btn-clear {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.cooking-instructions-modal-btn-clear:hover {
+  background-color: var(--bg-primary);
+  border-color: var(--color-primary);
+}
+
+.cooking-instructions-modal-btn-save {
+  background-color: var(--color-primary);
+  color: var(--text-white);
+}
+
+.cooking-instructions-modal-btn-save:hover {
+  background-color: var(--color-primary-dark);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .cooking-instructions-modal {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .cooking-instructions-modal-header {
+    padding: var(--spacing-md);
+  }
+
+  .cooking-instructions-modal-title {
+    font-size: var(--font-size-base);
+  }
+
+  .cooking-instructions-modal-body {
+    padding: var(--spacing-md);
+  }
+
+  .cooking-instructions-modal-footer {
+    padding: var(--spacing-md);
+    flex-direction: column;
+  }
+
+  .cooking-instructions-modal-btn {
+    width: 100%;
+  }
+}

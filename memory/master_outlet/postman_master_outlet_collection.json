@@ -1,0 +1,425 @@
+{
+  "info": {
+    "name": "MyGenie Master Outlet Group APIs",
+    "description": "Postman collection for master outlet group, branch mapping, delivery area setup, and customer location verification.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://preprod.mygenie.online"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "master_restaurant_id",
+      "value": "478"
+    },
+    {
+      "key": "group_id",
+      "value": "1"
+    },
+    {
+      "key": "branch_restaurant_id",
+      "value": "510"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Public - Get Master Outlet Group",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/{{master_restaurant_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "{{master_restaurant_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Public - Verify Location By Pincode",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pincode\": \"110001\",\n  \"limit\": 20,\n  \"offset\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/{{master_restaurant_id}}/verify-location",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "{{master_restaurant_id}}",
+            "verify-location"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Public - Verify Location By Pincode And LatLng",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pincode\": \"110001\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.2090,\n  \"address\": \"Connaught Place, New Delhi\",\n  \"limit\": 20,\n  \"offset\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/{{master_restaurant_id}}/verify-location",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "{{master_restaurant_id}}",
+            "verify-location"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Public - Verify Location By LatLng Only",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"latitude\": 28.6139,\n  \"longitude\": 77.2090,\n  \"address\": \"Connaught Place, New Delhi\",\n  \"limit\": 20,\n  \"offset\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/{{master_restaurant_id}}/verify-location",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "{{master_restaurant_id}}",
+            "verify-location"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Public - Verify Location No Service",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pincode\": \"999999\",\n  \"limit\": 20,\n  \"offset\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/{{master_restaurant_id}}/verify-location",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "{{master_restaurant_id}}",
+            "verify-location"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management - Create Group",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"master_restaurant_id\": 478,\n  \"name\": \"18march Group\",\n  \"slug\": \"18march-group\",\n  \"domain\": \"18march.mygenie.online\",\n  \"logo\": null,\n  \"status\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/group",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "group"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management - Update Group",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"18march Group\",\n  \"domain\": \"18march.mygenie.online\",\n  \"status\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/group/{{group_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "group",
+            "{{group_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management - Set Group Restaurants",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"replace\": true,\n  \"restaurants\": [\n    {\n      \"restaurant_id\": 478,\n      \"is_master\": 1,\n      \"sort_order\": 0,\n      \"status\": 1\n    },\n    {\n      \"restaurant_id\": 510,\n      \"is_master\": 0,\n      \"sort_order\": 1,\n      \"status\": 1\n    },\n    {\n      \"restaurant_id\": 675,\n      \"is_master\": 0,\n      \"sort_order\": 2,\n      \"status\": 1\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/group/{{group_id}}/restaurants",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "group",
+            "{{group_id}}",
+            "restaurants"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management - Remove Restaurant From Group",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/group/{{group_id}}/restaurants/{{branch_restaurant_id}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "group",
+            "{{group_id}}",
+            "restaurants",
+            "{{branch_restaurant_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management - Set Delivery Areas For Branch 510",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"replace\": true,\n  \"areas\": [\n    {\n      \"pincode\": \"110001\",\n      \"latitude\": 28.6304,\n      \"longitude\": 77.2177,\n      \"radius_km\": 6,\n      \"status\": 1\n    },\n    {\n      \"pincode\": \"110002\",\n      \"latitude\": 28.6421,\n      \"longitude\": 77.2436,\n      \"radius_km\": 5,\n      \"status\": 1\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/restaurant/510/delivery-areas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "restaurant",
+            "510",
+            "delivery-areas"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management - Set Delivery Areas For Branch 675",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"replace\": true,\n  \"areas\": [\n    {\n      \"pincode\": \"110003\",\n      \"latitude\": 28.5933,\n      \"longitude\": 77.2507,\n      \"radius_km\": 7,\n      \"status\": 1\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/restaurant/675/delivery-areas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "restaurant",
+            "675",
+            "delivery-areas"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management - Set Delivery Areas For Master 478",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"replace\": true,\n  \"areas\": [\n    {\n      \"pincode\": \"110001\",\n      \"latitude\": 28.6139,\n      \"longitude\": 77.2090,\n      \"radius_km\": 8,\n      \"status\": 1\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/master-outlet/restaurant/478/delivery-areas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "master-outlet",
+            "restaurant",
+            "478",
+            "delivery-areas"
+          ]
+        }
+      }
+    }
+  ]
+}

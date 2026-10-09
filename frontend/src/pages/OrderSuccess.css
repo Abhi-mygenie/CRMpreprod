@@ -1,0 +1,848 @@
+/* ============================================
+   ORDER SUCCESS PAGE - COMPACT VERSION
+   ============================================ */
+
+.order-success-page {
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: var(--bg-secondary, #f7f8fa);
+}
+
+.order-success-page > .menu-items-header {
+  width: 100%;
+}
+
+.order-success-container {
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 14px;
+}
+
+/* ── Compact Hero: Icon + Title inline ────── */
+
+.order-success-hero-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-primary, #fff);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.order-success-icon-small {
+  font-size: 42px;
+  color: #22c55e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  animation: successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes successPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.order-success-hero-text {
+  flex: 1;
+}
+
+.order-success-title-compact {
+  font-family: var(--font-heading, 'Capriola', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 2px 0;
+}
+
+.order-success-message-compact {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* ── Compact Order Details Card ───────────── */
+
+.order-success-card-compact {
+  background: var(--bg-primary, #fff);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.order-success-main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-success-order-info {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.order-success-order-label {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.order-success-order-id {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.order-success-total {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.order-success-table-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light, #eee);
+}
+
+.order-success-table-icon {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  display: flex;
+}
+
+.order-success-table-label {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.order-success-table-value {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-left: auto;
+}
+
+/* ── Items Ordered Card ───────────────────── */
+
+.order-success-items-card {
+  background: var(--bg-primary, #fff);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.order-success-items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.order-success-items-header:hover {
+  background: var(--bg-secondary, #f7f8fa);
+}
+
+.order-success-items-title {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.order-success-items-toggle {
+  font-size: 1rem;
+  color: var(--text-tertiary);
+  display: flex;
+}
+
+.order-success-items-list {
+  padding: 0 16px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Section Labels for Previous/New Items */
+.order-success-items-section-label {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 0 4px 0;
+  border-bottom: 1px solid var(--border-light, #eee);
+  margin-bottom: 4px;
+}
+
+.order-success-items-section-new {
+  margin-top: 8px;
+  color: var(--color-primary, #E8531E);
+}
+
+.order-success-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border-light, #eee);
+}
+
+.order-success-item-row:last-child {
+  border-bottom: none;
+}
+
+/* Previous items styling - slightly faded */
+.order-success-item-previous {
+  opacity: 0.85;
+}
+
+.order-success-item-previous .order-success-item-name {
+  color: var(--text-secondary);
+}
+
+/* Right side container for price + status */
+.order-success-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Item Status Badges ───────────────────── */
+
+.item-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.6rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid;
+}
+
+.item-status-badge svg {
+  width: 10px;
+  height: 10px;
+}
+
+.item-status-label {
+  line-height: 1;
+}
+
+/* Preparing - Orange/Amber */
+.status-preparing {
+  background: #FEF3C7;
+  color: #D97706;
+  border-color: #F59E0B;
+}
+
+.status-preparing svg {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Ready - Green */
+.status-ready {
+  background: #D1FAE5;
+  color: #059669;
+  border-color: #10B981;
+}
+
+/* Served - Gray */
+.status-served {
+  background: #F3F4F6;
+  color: #6B7280;
+  border-color: #9CA3AF;
+}
+
+/* Cancelled - Red */
+.status-cancelled {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #EF4444;
+}
+
+/* Paid - Blue */
+.status-paid {
+  background: #DBEAFE;
+  color: #2563EB;
+  border-color: #3B82F6;
+}
+
+/* Pending/Yet to be confirmed - Light Orange */
+.status-pending {
+  background: #FFF7ED;
+  color: #EA580C;
+  border-color: #FB923C;
+}
+
+.status-pending svg {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.order-success-item-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+}
+
+.order-success-item-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.order-success-item-customization {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.65rem;
+  color: var(--text-tertiary, #777);
+  line-height: 1.3;
+}
+
+.order-success-special-instructions {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: rgba(255, 193, 7, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #ffc107;
+}
+
+.order-success-item-veg {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.order-success-item-veg.veg {
+  border-color: #0f8a0f;
+}
+
+.order-success-item-veg.non-veg {
+  border-color: #b91c1c;
+}
+
+.order-success-item-veg .veg-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.order-success-item-veg.veg .veg-dot {
+  background: #0f8a0f;
+}
+
+.order-success-item-veg.non-veg .veg-dot {
+  background: #b91c1c;
+}
+
+.order-success-item-name {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.75rem;
+  color: var(--text-primary);
+}
+
+.order-success-item-qty {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary, #f0f0f0);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.order-success-item-price {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 50px;
+  text-align: right;
+}
+
+/* ── Compact Order Status Tracker ─────────── */
+
+.order-status-tracker-compact {
+  background: var(--bg-primary, #fff);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.order-status-steps-compact {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+}
+
+.order-status-step-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.order-status-dot-compact {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-secondary, #f0f0f0);
+  border: 2px solid var(--border-medium, #ddd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.order-status-dot-compact svg {
+  width: 10px;
+  height: 10px;
+  color: #fff;
+}
+
+.order-status-step-compact.completed .order-status-dot-compact {
+  background: #22c55e;
+  border-color: #22c55e;
+}
+
+.order-status-step-compact.current .order-status-dot-compact {
+  background: #22c55e;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.order-status-line-compact {
+  position: absolute;
+  top: 11px;
+  left: calc(50% + 13px);
+  right: calc(-50% + 13px);
+  height: 2px;
+  background: var(--border-medium, #ddd);
+  z-index: 0;
+}
+
+.order-status-line-compact.filled {
+  background: #22c55e;
+}
+
+.order-status-label-compact {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 60px;
+}
+
+.order-status-step-compact.completed .order-status-label-compact,
+.order-status-step-compact.current .order-status-label-compact {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ── Compact Action Buttons ───────────────── */
+
+.order-success-actions-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Yet to be confirmed message */
+.order-success-pending-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: #FFF8E6;
+  border: 1.5px solid #F59E0B;
+  border-radius: var(--radius-button, 8px);
+  color: #B45309;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.order-success-pending-msg svg {
+  font-size: 1.1rem;
+}
+
+.order-success-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.order-success-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: var(--radius-button, 8px);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 10px 14px;
+}
+
+.order-success-btn svg {
+  font-size: 0.9rem;
+}
+
+.order-success-btn-outline {
+  flex: 1;
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-medium, #ddd);
+}
+
+.order-success-btn-outline:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.order-success-btn-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.order-success-btn-primary {
+  width: 100%;
+  background: var(--color-primary, #E8531E);
+  color: var(--button-text-color, #fff);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 12px 16px;
+  font-size: 0.8rem;
+}
+
+.order-success-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   RESPONSIVE - Mobile First
+   ============================================ */
+
+@media (max-width: 480px) {
+  .order-success-container {
+    gap: 10px;
+    padding: 12px 12px;
+  }
+
+  .order-success-hero-compact {
+    padding: 12px 14px;
+  }
+
+  .order-success-icon-small {
+    font-size: 36px;
+  }
+
+  .order-success-title-compact {
+    font-size: 1rem;
+  }
+
+  .order-success-card-compact {
+    padding: 12px 14px;
+  }
+
+  .order-success-order-id {
+    font-size: 0.9rem;
+  }
+
+  .order-success-total {
+    font-size: 1rem;
+  }
+
+  .order-status-dot-compact {
+    width: 20px;
+    height: 20px;
+  }
+
+  .order-status-dot-compact svg {
+    width: 9px;
+    height: 9px;
+  }
+
+  .order-status-line-compact {
+    top: 10px;
+    left: calc(50% + 12px);
+    right: calc(-50% + 12px);
+  }
+
+  .order-success-btn {
+    padding: 9px 12px;
+    font-size: 0.7rem;
+  }
+
+  .order-success-btn-primary {
+    padding: 11px 14px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .order-success-container {
+    gap: 8px;
+    padding: 10px 10px;
+  }
+
+  .order-success-hero-compact {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .order-success-icon-small {
+    font-size: 32px;
+  }
+
+  .order-success-title-compact {
+    font-size: 0.95rem;
+  }
+
+  .order-success-message-compact {
+    font-size: 0.68rem;
+  }
+
+  .order-status-label-compact {
+    font-size: 0.5rem;
+  }
+
+  .order-success-btn {
+    padding: 8px 10px;
+    font-size: 0.65rem;
+  }
+
+  .order-success-btn svg {
+    font-size: 0.8rem;
+  }
+}
+
+/* Keep old styles for backward compatibility */
+.order-success-hero,
+.order-success-icon,
+.order-success-title,
+.order-success-message,
+.order-success-card,
+.order-success-card-row,
+.order-success-card-label,
+.order-success-card-value,
+.order-success-card-total,
+.order-success-card-divider,
+.order-success-card-label-icon,
+.order-success-card-token,
+.order-success-card-prep,
+.order-status-tracker,
+.order-status-heading,
+.order-status-steps,
+.order-status-step,
+.order-status-dot,
+.order-status-line,
+.order-status-label,
+.order-success-actions,
+.order-success-action-btn,
+.order-success-action-icon,
+.order-success-action-edit,
+.order-success-action-row,
+.order-success-action-secondary,
+.order-success-action-primary {
+  /* These classes are no longer used but kept for safety */
+}
+
+/* Loading state for items */
+.order-success-items-loading {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+
+
+/* ── Bill Summary Card ────── */
+.order-success-bill-card {
+  background: var(--bg-primary, #fff);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.order-success-bill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.order-success-bill-title {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-success-bill-toggle {
+  color: var(--text-secondary);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.order-success-bill-content {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bill-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bill-label {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.bill-value {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.bill-row-discount .bill-discount {
+  color: #16a34a;
+}
+
+.bill-row-subtotal {
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-secondary, #e5e5e5);
+  margin-top: 4px;
+}
+
+.bill-row-tax {
+  padding-left: 8px;
+}
+
+.bill-label-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-tertiary, #999);
+}
+
+.bill-value-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-tertiary, #999);
+}
+
+.bill-row-total {
+  padding-top: 8px;
+  border-top: 2px solid var(--color-primary, #E8531E);
+  margin-top: 8px;
+}
+
+.bill-label-total {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.bill-value-total {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary, #E8531E);
+}
+
+/* Payment Status Styles */
+.order-success-payment-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.order-success-payment-status.payment-success {
+  background-color: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.order-success-payment-status.payment-pending {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.payment-icon {
+  font-size: 16px;
+}
+
+.payment-icon.success {
+  color: #16a34a;
+}
+
+.payment-icon.failed {
+  color: #ef4444;
+}
+
+.payment-verifying {
+  color: var(--color-primary, #E8531E);
+  font-style: italic;
+}

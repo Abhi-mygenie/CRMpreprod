@@ -1,0 +1,58 @@
+diff --git a/frontend/.env.example b/frontend/.env.example
+new file mode 100644
+index 0000000..aaae2b7
+--- /dev/null
++++ b/frontend/.env.example
+@@ -0,0 +1,52 @@
++# =============================================================================
++# frontend/.env  — EXAMPLE TEMPLATE  (copy to frontend/.env and fill real values)
++# -----------------------------------------------------------------------------
++# Documents every variable the React (CRA/craco) frontend reads.
++# The real frontend/.env is gitignored and MUST be recreated on each deploy.
++# NOTE: anything prefixed REACT_APP_ is COMPILED INTO THE PUBLIC BUNDLE and is
++# visible to anyone. Do NOT put true secrets here that must stay private.
++# =============================================================================
++
++# --- Own FastAPI backend (REQUIRED) ------------------------------------------
++# Base URL of THIS project's FastAPI backend (config, loyalty-settings,
++# admin auth, dietary, uploads, diagnostics). No trailing /api.
++REACT_APP_BACKEND_URL=https://<your-app-host>
++
++# --- MyGenie POS / ordering API (REQUIRED) -----------------------------------
++# Base URL for menu, products, table-config, place-order, Razorpay.
++# Example: https://preprod.mygenie.online/api/v1
++REACT_APP_API_BASE_URL=<MYGENIE_POS_BASE_URL>
++
++# --- MyGenie CRM API (REQUIRED for customer auth/loyalty) ---------------------
++# Customer register/login/OTP/profile/points/wallet/addresses.
++# Example: https://crm.mygenie.online/api
++REACT_APP_CRM_URL=<MYGENIE_CRM_BASE_URL>
++# CRM contract version: v1 or v2 (intended: v2)
++REACT_APP_CRM_API_VERSION=v2
++# Per-restaurant CRM API keys as a JSON map. SECRET-ish (shipped in bundle).
++# Example: {"478":"<crm-key>","698":"<crm-key>"}
++REACT_APP_CRM_API_KEY=<CRM_API_KEY_JSON_MAP>
++
++# --- Image CDN (OPTIONAL) ----------------------------------------------------
++# Base URL used to resolve menu/product images.
++# Example: https://manage.mygenie.online
++REACT_APP_IMAGE_BASE_URL=<IMAGE_CDN_BASE_URL>
++
++# --- Google Maps (OPTIONAL; required for delivery-address map) ---------------
++# Google Maps JS API key. Restrict by HTTP referrer in Google Cloud console.
++REACT_APP_GOOGLE_MAPS_API_KEY=<GOOGLE_MAPS_API_KEY>
++
++# --- Default restaurant (OPTIONAL) -------------------------------------------
++# Fallback restaurant id when none is in the URL/subdomain. e.g. 478
++REACT_APP_RESTAURANT_ID=478
++
++# --- POS service-account login (LEGACY — to be removed in GAP-002) -----------
++# Used by utils/authToken.js to obtain a POS order token. These ship in the
++# public bundle and are slated to move SERVER-SIDE (do not rely on these long
++# term). Leave blank unless required by the current build.
++REACT_APP_LOGIN_PHONE=<POS_LOGIN_PHONE>
++REACT_APP_LOGIN_PASSWORD=<POS_LOGIN_PASSWORD>
++
++# --- Build (OPTIONAL) --------------------------------------------------------
++# Usually set automatically by the toolchain. development | production
++# NODE_ENV=development

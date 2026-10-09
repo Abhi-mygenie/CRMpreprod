@@ -1,0 +1,3257 @@
+{
+  "breakfast": [
+    {
+      "sectionName": "Breakfast",
+      "items": [
+        {
+          "id": "321",
+          "name": "Masala Omelette",
+          "description": "",
+          "price": 325,
+          "isVeg": false,
+          "isEgg": true
+        },
+        {
+          "id": "322",
+          "name": "Scrambled Eggs",
+          "description": "",
+          "price": 325,
+          "isVeg": false,
+          "isEgg": true
+        },
+        {
+          "id": "323",
+          "name": "Masala Cheese / Plain Cheese Omelette",
+          "description": "",
+          "price": 350,
+          "isVeg": false,
+          "isEgg": true
+        },
+        {
+          "id": "324",
+          "name": "Poached Eggs",
+          "description": "",
+          "price": 325,
+          "isVeg": false,
+          "isEgg": true
+        },
+        {
+          "id": "325",
+          "name": "Egg Of The Day",
+          "description": "",
+          "price": 375,
+          "isVeg": false,
+          "isEgg": true
+        },
+        {
+          "id": "326",
+          "name": "Masala Egg Bhurji",
+          "description": "",
+          "price": 375,
+          "isVeg": false,
+          "isEgg": true
+        },
+        {
+          "id": "327",
+          "name": "Idli",
+          "description": "",
+          "price": 325,
+          "isVeg": true
+        },
+        {
+          "id": "328",
+          "name": "Wada",
+          "description": "",
+          "price": 350,
+          "isVeg": true
+        },
+        {
+          "id": "329",
+          "name": "Plain Dosa",
+          "description": "",
+          "price": 350,
+          "isVeg": true
+        },
+        {
+          "id": "330",
+          "name": "Masala Dosa",
+          "description": "",
+          "price": 375,
+          "isVeg": true
+        },
+        {
+          "id": "331",
+          "name": "Mysore Masala Dosa",
+          "description": "",
+          "price": 400,
+          "isVeg": true
+        },
+        {
+          "id": "332",
+          "name": "Pancakes / Waffles",
+          "description": "",
+          "price": 425,
+          "isVeg": true
+        },
+        {
+          "id": "333",
+          "name": "Choice Of Paratha",
+          "description": "",
+          "price": 225,
+          "isVeg": true
+        },
+        {
+          "id": "334",
+          "name": "Choice of Cereals along with hot/cold milk",
+          "description": "",
+          "price": 325,
+          "isVeg": true
+        },
+        {
+          "id": "335",
+          "name": "Fresh Fruit Platter",
+          "description": "",
+          "price": 359,
+          "isVeg": true
+        },
+        {
+          "id": "336",
+          "name": "Poha/Upma",
+          "description": "",
+          "price": 325,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/breakfast.jpg",
+      "description": "Start your day right"
+    }
+  ],
+  "grok": [
+    {
+      "sectionName": "EXPERIENTIAL GOAN CUISINE",
+      "image": "/assets/images/categories/goan-cuisine.jpg",
+      "description": "Authentic Goan flavors with local ingredients",
+      "items": [
+        {
+          "id": "1",
+          "name": "Avocado Hummus",
+          "description": "Local avocado, crisp chickpea bread, chili oil",
+          "price": 395,
+          "isVeg": true,
+          "image": "/assets/images/GROK.png"
+        },
+        {
+          "id": "2",
+          "name": "Air Potato Tart",
+          "description": "Asian dressed, air grown karando, crispy millet",
+          "price": 395,
+          "isVeg": true   
+        },
+        {
+          "id": "3",
+          "name": "Kohlrabi Fritters",
+          "description": "Kohlrabi, tangy salsa, sour cream",
+          "price": 395,
+          "isVeg": true
+        },
+        {
+          "id": "4",
+          "name": "Rawa Fried Raw Banana",
+          "description": "Spicy house salsa, ivy gourd pickle",
+          "price": 395,
+          "isVeg": true
+        },
+        {
+          "id": "5",
+          "name": "Calamari",
+          "description": "Tempura fried, coastal tadka",
+          "price": 495,
+          "isVeg": false
+        },
+        {
+          "id": "6",
+          "name": "Kingfish",
+          "description": "Homestyle tawa fried, local spices",
+          "price": 895,
+          "isVeg": false
+        },
+        {
+          "id": "7",
+          "name": "Crab",
+          "description": "Crab meat bhurji, rawa fried raw banana",
+          "price": 625,
+          "isVeg": false
+        },
+        {
+          "id": "8",
+          "name": "Mussels",
+          "description": "Crumb fried mussel meat, prawn wafers, garlic mayo",
+          "price": 625,
+          "isVeg": false
+        },
+        {
+          "id": "9",
+          "name": "Lobster",
+          "description": "Goan chili paste, coconut vinegar, spices, poi",
+          "price": 995,
+          "isVeg": false
+        },
+        {
+          "id": "10",
+          "name": "Chicken cafreal",
+          "description": "Homemade cafreal paste, coconut vinegar, poi",
+          "price": 495,
+          "isVeg": false
+        }
+      ]
+    },
+    {
+      "sectionName": "BREAD BAR",
+      "image": "/assets/images/categories/bread-bar.jpg",
+      "description": "Freshly baked artisan breads",
+      "items": [
+        {
+          "id": "11",
+          "name": "Manakeesh",
+          "description": "Zatar spiced arabic bread, cheese, beetroot labaneh, marinated olives, harissa",
+          "price": 425,
+          "isVeg": true
+        },
+        {
+          "id": "12",
+          "name": "Lahmacun",
+          "description": "Minced chicken, cheese, beetroot labaneh, marinated olives, salad",
+          "price": 525,
+          "isVeg": false
+        },
+        {
+          "id": "13",
+          "name": "Margherita",
+          "description": "Tomato, mozzarella, basil",
+          "price": 425,
+          "isVeg": true
+        },
+        {
+          "id": "14",
+          "name": "Quattro Formaggi",
+          "description": "Mozzarella, bocconcini, cheddar, gorgonzola",
+          "price": 495,
+          "isVeg": true
+        },
+        {
+          "id": "15",
+          "name": "Genovese",
+          "description": "Pesto, bocconcini, asparagus, cherry tomato",
+          "price": 495,
+          "isVeg": true
+        },
+        {
+          "id": "16",
+          "name": "Pizza ai Fungi",
+          "description": "Mushroom, cheese sauce, rucola, truffle oil",
+          "price": 495,
+          "isVeg": true
+        },
+        {
+          "id": "17",
+          "name": "Chicken Tikka Pizza",
+          "description": "Tomato makhani, chili, onions, mint chutney",
+          "price": 525,
+          "isVeg": false
+        },
+        {
+          "id": "18",
+          "name": "Pepperoni",
+          "description": "Tomato, mozzarella, pepperoni",
+          "price": 595,
+          "isVeg": false
+        },
+        {
+          "id": "19",
+          "name": "Khachapuri (Non Veg)",
+          "description": "Egg, cheese",
+          "price": 595,
+          "isVeg": false
+        }
+      ]
+    },
+    {
+      "sectionName": "CHARCOAL GRILLS",
+      "image": "/assets/images/categories/charcoal-grills.jpg",
+      "description": "Smoky grilled specialties",
+      "items": [
+        {
+          "id": "20",
+          "name": "Iranian Vegetarian Koobideh",
+          "description": "Flattened seekh kebab, pita, beetroot yogurt",
+          "price": 425,
+          "isVeg": true
+        },
+        {
+          "id": "21",
+          "name": "Chicken Satay with Peanut Sauce",
+          "description": "Tamarind galangal paste, peanut sauce, pickled cucumber",
+          "price": 495,
+          "isVeg": false
+        },
+        {
+          "id": "22",
+          "name": "Tavuk Sis",
+          "description": "Marinated chicken, Turkish bread, salad, garlic dip",
+          "price": 595,
+          "isVeg": false
+        },
+        {
+          "id": "23",
+          "name": "Doner Kebab Roll",
+          "description": "Caramelized kebab, sumac onion",
+          "price": 595,
+          "isVeg": false
+        },
+        {
+          "id": "24",
+          "name": "Prawn Sis",
+          "description": "Marinated prawns, Turkish bread, salad, garlic dip",
+          "price": 895,
+          "isVeg": false
+        }
+      ]
+    },
+    {
+      "sectionName": "OVEN ROAST",
+      "items": [
+        {
+          "id": "25",
+          "name": "Jerk Spice Roast",
+          "description": "Jamaican homemade spice, half a baby chicken, roasted root veggies",
+          "price": 795,
+          "isVeg": false
+        },
+        {
+          "id": "26",
+          "name": "Meen Pollichathu",
+          "description": "Kerala spiced fish, caramelized onion, coconut milk",
+          "price": 795,
+          "isVeg": false
+        },
+        {
+          "id": "27",
+          "name": "Slow-cooked Pork Ribs",
+          "description": "Homemade bbq sauce, garlic bread",
+          "price": 895,
+          "isVeg": false
+        }
+      ],
+      "image": "/assets/images/categories/oven-roast.jpg",
+      "description": "Slow roasted perfection"
+    },
+    {
+      "sectionName": "DESSERTS I GROK FAVOURITE",
+      "items": [
+        {
+          "id": "28",
+          "name": "Tender Coconut Pudding",
+          "description": "Coconut cream, basil seeds, black jaggery",
+          "price": 495,
+          "isVeg": true
+        },
+        {
+          "id": "29",
+          "name": "Millet and Dates Pudding with Caramel Sauce",
+          "description": "Millet pudding, vanilla ice cream, hot caramel sauce",
+          "price": 495,
+          "isVeg": true
+        },
+        {
+          "id": "30",
+          "name": "Golden Fried Banana Ice Cream",
+          "description": "Banana ice cream, crispy banana, chocolate sauce",
+          "price": 495,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/desserts.jpg",
+      "description": "Sweet endings and favorites"
+    }
+  ],
+  "food-menu": [
+    {
+      "sectionName": "Soups",
+      "items": [
+        {
+          "id": "0",
+          "name": "Street-Style Vegetable Manchow",
+          "description": "Spicy and tangy Manchow soup with crisp-fried noodles, packed with fresh vegetables.",
+          "price": 329,
+          "isVeg": true
+        },
+        {
+          "id": "1",
+          "name": "Vegetable Sweet Corn Soup",
+          "description": "A comforting bowl of sweet corn soup with fresh vegetables, delicately seasoned.",
+          "price": 329,
+          "isVeg": true
+        },
+        {
+          "id": "2",
+          "name": "Dal Shorba",
+          "description": "Spiced lentil soup with blend of aromatic spices and tender lentils",
+          "price": 329,
+          "isVeg": true
+        },
+        {
+          "id": "3",
+          "name": "Truffle Mushroom Veloute",
+          "description": "Velvety mushroom soup served with crispy garlic bread.",
+          "price": 329,
+          "isVeg": true
+        },
+        {
+          "id": "4",
+          "name": "Roasted Tomato & Basil Bliss",
+          "description": "Slow-roasted tomatoes blended with fresh basil for a rich and aromatic experience",
+          "price": 329,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "5",
+          "name": "Chicken Sweet Corn Soup",
+          "description": "A hearty and flavorful sweet corn soup with tender chicken pieces.",
+          "price": 399,
+          "isVeg": false
+        },
+        {
+          "id": "6",
+          "name": "Fiery Chicken Manchow",
+          "description": "A bold and spicy chicken Manchow soup with crispy noodles for extra crunch.",
+          "price": 399,
+          "isVeg": false
+        },
+        {
+          "id": "7",
+          "name": "Silky Buttered Chicken Soup",
+          "description": "Silky chicken soup with a hint of cream, served with garlic bread",
+          "price": 399,
+          "isVeg": false
+        }
+      ],
+      "image": "/assets/images/categories/soups.jpg",
+      "description": "Warm and comforting soups"
+    },
+    {
+      "sectionName": "Salads",
+      "items": [
+        {
+          "id": "8",
+          "name": "Papadi Chaat",
+          "description": "A delightful Indian street-food-inspired dish with crispy papadi, tangy chutneys...",
+          "price": 459,
+          "isVeg": true
+        },
+        {
+          "id": "9",
+          "name": "Desi Garden Kachumber",
+          "description": "A Simple and fresh Indian-style chopped salad with onions, tomatoes and cucumbers",
+          "price": 459,
+          "isVeg": true
+        },
+        {
+          "id": "10",
+          "name": "Greek Salad",
+          "description": "A refreshing mix of cucumbers, tomatoes, onions, olives, and feta cheese with a ...",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "11",
+          "name": "Arugula & Orange Nut Medley",
+          "description": "Peppery arugula paired with citrusy oranges, nuts, and a light dressing.",
+          "price": 689,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "12",
+          "name": "Classic Caesar Crunch",
+          "description": "Crisp romaine lettuce, parmesan cheese, sliced chicken, bacon & croutons tossed ...",
+          "price": 799,
+          "isVeg": false,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/salads.jpg",
+      "description": "Fresh and crisp salads"
+    },
+    {
+      "sectionName": "Small Plates",
+      "items": [
+        {
+          "id": "13",
+          "name": "Masala Maggi",
+          "description": "The all-time favorite instant noodles, cooked to perfection with our special touch.",
+          "price": 399,
+          "isVeg": true
+        },
+        {
+          "id": "14",
+          "name": "Golden Crispy Fries",
+          "description": "Classic crispy fries, golden and perfectly salted.",
+          "price": 399,
+          "isVeg": true
+        },
+        {
+          "id": "15",
+          "name": "Spiced Masala Fries",
+          "description": "Spiced-up fries with a blend of Indian masalas for a flavorful twist",
+          "price": 399,
+          "isVeg": true
+        },
+        {
+          "id": "16",
+          "name": "Gourmet Cheese Croquettes",
+          "description": "Crispy and golden-fried croquettes with a delicious filling",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "17",
+          "name": "Honey-Chili Glazed Crispy Potatoes",
+          "description": "Crispy potato fingers tossed in honey-chili sauce with sesame seeds.",
+          "price": 529,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Soy"
+          ]
+        },
+        {
+          "id": "18",
+          "name": "Avocado Hummus",
+          "description": "Smooth and creamy avocado-infused hummus, served with warm pita bread.",
+          "price": 529,
+          "isVeg": true,
+          "allergens": [
+            "Gluten"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/small-plates.jpg",
+      "description": "Perfect for sharing"
+    },
+    {
+      "sectionName": "Appetizers",
+      "items": [
+        {
+          "id": "19",
+          "name": "Golden Spring Rolls",
+          "description": "Crispy spring rolls filled with a savory mix of vegetables, served with a sweet ...",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Soy"
+          ]
+        },
+        {
+          "id": "20",
+          "name": "Crispy Golden Corn",
+          "description": "Crunchy, golden-fried corn kernels tossed with chatpata spices.",
+          "price": 459,
+          "isVeg": true
+        },
+        {
+          "id": "21",
+          "name": "Gilaafi Seekh Kebab",
+          "description": "Minced meat kebabs infused with aromatic spices and wrapped in colorful bell pep...",
+          "price": 989,
+          "isVeg": false,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "22",
+          "name": "Salt & Pepper Wok Tossed Veggies",
+          "description": "Stir-fried vegetables tossed in a bold mix of salt and crushed black pepper.",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "23",
+          "name": "Creamy Malai Paneer Skewers",
+          "description": "Creamy and mildly spiced paneer tikka with a melt-in-the-mouth texture",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "24",
+          "name": "Classic Paneer Tikka",
+          "description": "Cottage cheese cubes marinated in yogurt and spices, char-grilled to perfection.",
+          "price": 599,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "25",
+          "name": "Tangra Style Chili Paneer",
+          "description": "Indo-Chinese spiced paneer cooked with peppers and onions.",
+          "price": 599,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Soy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "26",
+          "name": "Classic Chicken Tikka",
+          "description": "Tender chicken chunks marinated in a special spice blend and grilled in a tandoor.",
+          "price": 729,
+          "isVeg": false
+        },
+        {
+          "id": "27",
+          "name": "Tangra Style Chili Chicken",
+          "description": "A Kolkata-style Chinese favorite with a bold chili garlic sauce.",
+          "price": 729,
+          "isVeg": false
+        },
+        {
+          "id": "28",
+          "name": "Buhari Chicken 65",
+          "description": "A fiery and crispy South Indian-style fried chicken dish.\n605 Kcal",
+          "price": 729,
+          "isVeg": false,
+          "allergens": [
+            "Gluten",
+            "Nut"
+          ]
+        },
+        {
+          "id": "29",
+          "name": "Malai Chicken Tikka",
+          "description": "Creamy and succulent chicken tikka, marinated with rich dairy-based spices.",
+          "price": 859,
+          "isVeg": false,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "30",
+          "name": "Tandoori Murg",
+          "description": "Smoky, tender chicken marinated in spiced yogurt and roasted in a traditional tandoor.",
+          "price": 989,
+          "isVeg": false
+        },
+        {
+          "id": "31",
+          "name": "Beer Batter Fried Fish & Chips",
+          "description": "Crispy beer-battered fish served with golden fries and tartar sauce.\n998Kcal (Mustard)",
+          "price": 989,
+          "isVeg": false,
+          "allergens": [
+            "Fish",
+            "Gluten"
+          ]
+        },
+        {
+          "id": "32",
+          "name": "Rawa Fried King Fish",
+          "description": "Coastal-style semolina-crusted king fish, shallow-fried to perfection.",
+          "price": 1059,
+          "isVeg": false,
+          "allergens": [
+            "Fish",
+            "Gluten",
+            "Crustacean"
+          ]
+        },
+        {
+          "id": "33",
+          "name": "Rawa Fried Prawns",
+          "description": "Crisp and golden semolina-coated prawns with tangy chutney.",
+          "price": 1119,
+          "isVeg": false
+        }
+      ],
+      "image": "/assets/images/categories/appetizers.jpg",
+      "description": "Start your meal right"
+    },
+    {
+      "sectionName": "Wholesome Breads",
+      "items": [
+        {
+          "id": "34",
+          "name": "Multigrain Paneer Tikka Sandwich",
+          "description": "Spiced paneer tikka layered in a wholesome multigrain sandwich.\n158 Kcal (Mustard)",
+          "price": 599,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "35",
+          "name": "Paneer Kathi Roll",
+          "description": "A soft roll filled with grilled paneer and tangy chutneys",
+          "price": 599,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "36",
+          "name": "Vegetarian Bombay Sandwich",
+          "description": "Bombay-style grilled sandwich loaded with potato, chutneys, and crispy perfection.",
+          "price": 599,
+          "isVeg": true,
+          "allergens": [
+            "Gluten"
+          ]
+        },
+        {
+          "id": "37",
+          "name": "Goan Chicken Cutlet Poee",
+          "description": "Spiced chicken cutlet stuffed in traditional Goan poee bread.",
+          "price": 529,
+          "isVeg": false
+        },
+        {
+          "id": "38",
+          "name": "Chicken Kathi Roll",
+          "description": "A delicious roll stuffed with spiced grilled chicken and fresh onions.",
+          "price": 729,
+          "isVeg": false
+        },
+        {
+          "id": "39",
+          "name": "Chicken Shawarma Wrap",
+          "description": "Juicy and spiced grilled chicken wrapped in pita with fresh veggies and garlic s...",
+          "price": 729,
+          "isVeg": false,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "40",
+          "name": "Club Sandwich",
+          "description": "A classic double-decker sandwich with chicken, eggs & bacon with a side of fries.",
+          "price": 729,
+          "isVeg": false,
+          "allergens": [
+            "Gluten"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/breads.jpg",
+      "description": "Healthy bread options"
+    },
+    {
+      "sectionName": "Thin Crust Pizzas",
+      "items": [
+        {
+          "id": "41",
+          "name": "Margherita",
+          "description": "A classic pizza with fresh mozzarella, basil, and tomato sauce.\n1719 Kcal",
+          "price": 759,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "42",
+          "name": "Quattro Formaggi",
+          "description": "A cheese lover's delight with four varieties of rich, melted cheese - Mozzarella...",
+          "price": 779,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "43",
+          "name": "Genovese",
+          "description": "Pesto-based pizza with mozzarella and fresh vegetables.\n1224 Kcal",
+          "price": 829,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "44",
+          "name": "Pizza Ai Funghi",
+          "description": "A flavorful mushroom pizza with truffle essence.\n1250 Kcal",
+          "price": 829,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "45",
+          "name": "Chicken Tikka Pizza",
+          "description": "A fusion of Indian spices with grilled chicken on a pizza.\n1074 Kcal",
+          "price": 829,
+          "isVeg": false,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "46",
+          "name": "Pepperoni",
+          "description": "Thin crust pizza topped with spicy pepperoni and mozzarella.\n900 Kcal (Pork)",
+          "price": 889,
+          "isVeg": false,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/pizzas.jpg",
+      "description": "Wood-fired thin crust pizzas"
+    },
+    {
+      "sectionName": "Asian & Western",
+      "items": [
+        {
+          "id": "47",
+          "name": "Stir-Fried Rice / Noodles (Vegetarian)",
+          "description": "Wok-tossed rice or noodles with fresh vegetables and savory Asian seasonings.",
+          "price": 399,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Soy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "48",
+          "name": "Hot Garlic Stir-Fry (Vegetarian)",
+          "description": "",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Soy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "49",
+          "name": "Pasta (Vegetarian)",
+          "description": "Your choice of pasta - Penne / Spaghetti / Fusilli\nChoice Of AOP 769 Kcal/ Tomat...",
+          "price": 599,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "50",
+          "name": "Thai Green Curry (Vegetarian)",
+          "description": "A fragrant Thai curry with fresh vegetables, coconut milk, and aromatic spices.",
+          "price": 859,
+          "isVeg": true
+        },
+        {
+          "id": "51",
+          "name": "Stir-Fried Rice / Noodles (Chicken)",
+          "description": "Classic stir-fried rice or noodles with tender chicken and aromatic Asian spices.",
+          "price": 459,
+          "isVeg": false
+        },
+        {
+          "id": "52",
+          "name": "Hot Garlic Stir-Fry (Chicken)",
+          "description": "Tender chicken stir-fried in a fiery garlic sauce with crunchy vegetables.",
+          "price": 599,
+          "isVeg": false
+        },
+        {
+          "id": "53",
+          "name": "Pasta (Chicken)",
+          "description": "Classic pasta with grilled chicken, tossed in a flavorful sauce of your choice.",
+          "price": 729,
+          "isVeg": false
+        },
+        {
+          "id": "54",
+          "name": "Thai Green Curry (Chicken)",
+          "description": "Creamy and spicy Thai green curry with tender chicken and exotic herbs.",
+          "price": 959,
+          "isVeg": false
+        },
+        {
+          "id": "55",
+          "name": "Cajun-Spiced Grilled Chicken",
+          "description": "Juicy grilled chicken marinated in smoky Cajun spices, served with sides.\n243 Kcal",
+          "price": 959,
+          "isVeg": false
+        },
+        {
+          "id": "56",
+          "name": "Oven-Roasted Salmon",
+          "description": "Delicately roasted Salmon with fresh herbs and a buttery lemon sauce.",
+          "price": 1649,
+          "isVeg": false,
+          "allergens": [
+            "Fish",
+            "Gluten"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/asian-western.jpg",
+      "description": "East meets West cuisine"
+    },
+    {
+      "sectionName": "Bombay Biryani",
+      "items": [
+        {
+          "id": "57",
+          "name": "Bombay Biryani (Vegetarian)",
+          "description": "Aromatic basmati rice layered with spiced vegetables and fragrant saffron.\n450 K...",
+          "price": 839,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "58",
+          "name": "Bombay Biryani (Chicken)",
+          "description": "Slow-cooked chicken and fragrant basmati rice infused with rich Indian spices.\n5...",
+          "price": 989,
+          "isVeg": false,
+          "allergens": [
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "59",
+          "name": "Bombay Biryani (Lamb)",
+          "description": "Tender lamb pieces layered with basmati rice and traditional biryani spices.\n612...",
+          "price": 1119,
+          "isVeg": false
+        }
+      ],
+      "image": "/assets/images/categories/biryani.jpg",
+      "description": "Aromatic layered rice dishes"
+    },
+    {
+      "sectionName": "Indian Curries & Rice",
+      "items": [
+        {
+          "id": "60",
+          "name": "Dal Tadka",
+          "description": "Yellow lentils tempered with aromatic spices and ghee.\n923 Kcal",
+          "price": 399,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "61",
+          "name": "Subz Nizami Handi",
+          "description": "A royal blend of mixed vegetables in a rich and flavorful cashew-based gravy.\n285 Kcal",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "62",
+          "name": "Kadhai Subzi",
+          "description": "Fresh vegetables tossed in a bold, spiced kadhai masala.\n307 Kcal",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "63",
+          "name": "Dhingri Mutter",
+          "description": "A delicious North Indian curry with mushrooms and green peas.\n304 Kcal",
+          "price": 459,
+          "isVeg": true
+        },
+        {
+          "id": "64",
+          "name": "Hing Aloo Jeera",
+          "description": "Cumin-flavored potatoes cooked with asafoetida and mild spices.\n285 Kcal",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "65",
+          "name": "Dal Makhani",
+          "description": "Slow-cooked black lentils in a buttery and creamy tomato gravy.\n1323 Kcal",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "66",
+          "name": "Paneer Tikka Masala",
+          "description": "Char-grilled paneer cubes simmered in a rich tomato-based gravy.",
+          "price": 599,
+          "isVeg": true,
+          "allergens": [
+            "Sulphites",
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "67",
+          "name": "Palak Paneer",
+          "description": "Soft paneer cooked in a smooth and spiced spinach gravy.",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "68",
+          "name": "Paneer Butter Masala",
+          "description": "Cottage cheese cubes in a creamy, buttery tomato sauce.",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "69",
+          "name": "Steamed Rice / Red Goan Rice",
+          "description": "Perfectly cooked fluffy rice, available in plain or Goan-style red rice.\n830 Kcal",
+          "price": 329,
+          "isVeg": true
+        },
+        {
+          "id": "70",
+          "name": "Chicken Tikka Masala",
+          "description": "Grilled chicken chunks cooked in a robust and spiced tomato-based sauce.",
+          "price": 859,
+          "isVeg": false,
+          "allergens": [
+            "Sulphites",
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "71",
+          "name": "Homestyle Chicken Curry",
+          "description": "A comforting chicken curry cooked with traditional Indian spices.",
+          "price": 859,
+          "isVeg": false
+        },
+        {
+          "id": "72",
+          "name": "Butter Chicken",
+          "description": "Tender tandoori chicken cooked in a luscious tomato-butter gravy.",
+          "price": 859,
+          "isVeg": false
+        }
+      ],
+      "image": "/assets/images/categories/curries.jpg",
+      "description": "Traditional Indian flavors"
+    },
+    {
+      "sectionName": "Indian Breads",
+      "items": [
+        {
+          "id": "73",
+          "name": "Goan Poee Bread",
+          "description": "Local Goan bread with a rustic, chewy texture.",
+          "price": 69,
+          "isVeg": true
+        },
+        {
+          "id": "74",
+          "name": "Phulka",
+          "description": "Soft and light whole wheat chapati. (2pcs)",
+          "price": 129,
+          "isVeg": true,
+          "allergens": [
+            "Gluten"
+          ]
+        },
+        {
+          "id": "75",
+          "name": "Tandoori Plain Roti",
+          "description": "Whole wheat flatbread cooked in a tandoor.",
+          "price": 129,
+          "isVeg": true,
+          "allergens": [
+            "Gluten"
+          ]
+        },
+        {
+          "id": "76",
+          "name": "Plain Naan",
+          "description": "Soft, fluffy traditional Indian bread.",
+          "price": 129,
+          "isVeg": true
+        },
+        {
+          "id": "77",
+          "name": "Butter Naan",
+          "description": "Classic naan with a rich buttery glaze.",
+          "price": 169,
+          "isVeg": true,
+          "allergens": [
+            "Gluten"
+          ]
+        },
+        {
+          "id": "78",
+          "name": "Laccha / Tawa Paratha",
+          "description": "Layered and flaky Indian whole wheat bread.",
+          "price": 169,
+          "isVeg": true,
+          "allergens": [
+            "Gluten"
+          ]
+        },
+        {
+          "id": "79",
+          "name": "Tandoori Butter Roti",
+          "description": "Traditional roti with a buttery finish.",
+          "price": 169,
+          "isVeg": true
+        },
+        {
+          "id": "80",
+          "name": "Garlic Naan",
+          "description": "Naan infused with garlic and fresh herbs.",
+          "price": 189,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/indian-breads.jpg",
+      "description": "Tandoor fresh breads"
+    },
+    {
+      "sectionName": "Desserts",
+      "items": [
+        {
+          "id": "81",
+          "name": "Ice Cream",
+          "description": "A choice of creamy ice cream flavors to end on a sweet note. (2 Scoops)\n174Kcal",
+          "price": 269,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "82",
+          "name": "Serradura",
+          "description": "A classic Goan dessert with layers of sweet cream and biscuit crumble.\n510 Kcal",
+          "price": 399,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "83",
+          "name": "Goan Bebinca",
+          "description": "Traditional Goan layered dessert with coconut and jaggery.\n455 Kcal",
+          "price": 399,
+          "isVeg": false,
+          "allergens": [
+            "Gluten",
+            "Egg",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "84",
+          "name": "Fresh Fruit Platter",
+          "description": "A selection of seasonal fresh fruits, served chilled.\n175 Kcal",
+          "price": 399,
+          "isVeg": true
+        },
+        {
+          "id": "85",
+          "name": "Tiramisu",
+          "description": "An Italian classic with layers of espresso-soaked sponge and mascarpone.\n415 Kcal",
+          "price": 529,
+          "isVeg": true,
+          "allergens": [
+            "Gluten",
+            "Egg",
+            "Dairy"
+          ]
+        },
+        {
+          "id": "86",
+          "name": "Chocolate Brownie",
+          "description": "Rich and fudgy chocolate brownie served with a scoop of ice cream.\n449 Kcal",
+          "price": 529,
+          "isVeg": false,
+          "allergens": [
+            "Gluten",
+            "Dairy",
+            "Nut"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/desserts.jpg",
+      "description": "Sweet treats and delights"
+    }
+  ],
+  "kids-menu": [
+    {
+      "sectionName": "Food",
+      "items": [
+        {
+          "id": "87",
+          "name": "French Fries",
+          "description": "",
+          "price": 100,
+          "isVeg": true
+        },
+        {
+          "id": "88",
+          "name": "PNJ Sandwich",
+          "description": "Peanut butter, jam",
+          "price": 100,
+          "isVeg": true,
+          "allergens": [
+            "Nut",
+            "Gluten"
+          ]
+        },
+        {
+          "id": "89",
+          "name": "Dal Khichdi",
+          "description": "Lentil, Rice",
+          "price": 100,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "90",
+          "name": "Mac & Cheese",
+          "description": "Macroni, Cheese",
+          "price": 150,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Gluten"
+          ]
+        },
+        {
+          "id": "91",
+          "name": "Chicken Nuggets",
+          "description": "",
+          "price": 200,
+          "isVeg": false,
+          "allergens": [
+            "Egg",
+            "Dairy",
+            "Soy",
+            "Gluten"
+          ]
+        },
+        {
+          "id": "92",
+          "name": "Vegetable Fried Rice/Noodles",
+          "description": "Finely chopped vegetables, rice/noodles",
+          "price": 200,
+          "isVeg": true,
+          "allergens": [
+            "Soy",
+            "Gluten"
+          ]
+        },
+        {
+          "id": "93",
+          "name": "Alfredo Pasta",
+          "description": "Penne, mushroom & cream",
+          "price": 200,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Gluten"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/food.jpg",
+      "description": "Delicious food options"
+    }
+  ],
+  "bar-drinks": [
+    {
+      "sectionName": "Cocktails",
+      "items": [
+        {
+          "id": "94",
+          "name": "Orange & Basil Margarita",
+          "description": "Orange, Basil, Agave",
+          "price": 400,
+          "isVeg": true
+        },
+        {
+          "id": "95",
+          "name": "Pomegranate & Rosemary Mojito",
+          "description": "Rum, Pomegranate, Rosemary, Lemon Lime Soda",
+          "price": 400,
+          "isVeg": true
+        },
+        {
+          "id": "96",
+          "name": "Strawberry & Lime Daiquiri",
+          "description": "Blended Strawberries, Rum & Lime Frozen",
+          "price": 400,
+          "isVeg": true
+        },
+        {
+          "id": "97",
+          "name": "Malibu Pinacolada",
+          "description": "Malibu, Cream, Pineapple",
+          "price": 600,
+          "isVeg": true
+        },
+        {
+          "id": "98",
+          "name": "Classic Bloody Mary",
+          "description": "A Classic Pick-Me-Up",
+          "price": 400,
+          "isVeg": true
+        },
+        {
+          "id": "99",
+          "name": "Cosmoplitan",
+          "description": "Vodka, triple sec, cranberry juice, lemon juice",
+          "price": 499,
+          "isVeg": true
+        },
+        {
+          "id": "100",
+          "name": "Konkan Negroni",
+          "description": "",
+          "price": 455,
+          "isVeg": true
+        },
+        {
+          "id": "101",
+          "name": "Old Fashioned",
+          "description": "Whisky, sugar syrup, Angostra Bitter",
+          "price": 499,
+          "isVeg": true
+        },
+        {
+          "id": "102",
+          "name": "Long Island Iced Tea",
+          "description": "5 White Spirits, Lime, Coca-Cola",
+          "price": 500,
+          "isVeg": true
+        },
+        {
+          "id": "103",
+          "name": "Negroni",
+          "description": "Gin, Campari, sweet vermouth",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "104",
+          "name": "Bullfrog",
+          "description": "5 White Spirits, Red Bull",
+          "price": 600,
+          "isVeg": true
+        },
+        {
+          "id": "105",
+          "name": "Espresso Martini",
+          "description": "Vodka, espresso, sugar syrup, coffee liqueur",
+          "price": 499,
+          "isVeg": true
+        },
+        {
+          "id": "106",
+          "name": "Adios",
+          "description": "5 White Spirits, Blue Curacao, Lemon Lime Soda",
+          "price": 500,
+          "isVeg": true
+        },
+        {
+          "id": "107",
+          "name": "Susegado",
+          "description": "5 White Spirits, Kokum, Chili, Salted Lemonade",
+          "price": 455,
+          "isVeg": true
+        },
+        {
+          "id": "108",
+          "name": "Gin Basil Smash",
+          "description": "Gin, basil, lime juice, sugar syrup",
+          "price": 499,
+          "isVeg": true
+        },
+        {
+          "id": "109",
+          "name": "Screwdriver",
+          "description": "Vodka, orange juice",
+          "price": 499,
+          "isVeg": true
+        },
+        {
+          "id": "110",
+          "name": "Whisky Sour",
+          "description": "Whisky, lime juice, sugar syrup, egg",
+          "price": 499,
+          "isVeg": true
+        },
+        {
+          "id": "111",
+          "name": "Mai Tai",
+          "description": "White rum, dark rum, orgeat syrup, orange liqueur, lime juice, sugar syrup",
+          "price": 499,
+          "isVeg": true
+        },
+        {
+          "id": "112",
+          "name": "Hurricane",
+          "description": "White rum, dark rum, lime juice, passionfruit puree, orange juice, simple syrup, grenadine",
+          "price": 499,
+          "isVeg": true
+        },
+        {
+          "id": "113",
+          "name": "Tequila sunrise",
+          "description": "Tequila, orange juice, grenadine,",
+          "price": 599,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/cocktails.jpg",
+      "description": "Handcrafted cocktails"
+    },
+    {
+      "sectionName": "Beer",
+      "items": [
+        {
+          "id": "114",
+          "name": "Kingfisher Premium",
+          "description": "",
+          "price": 200,
+          "isVeg": true
+        },
+        {
+          "id": "115",
+          "name": "Kingfisher Ultra",
+          "description": "",
+          "price": 249,
+          "isVeg": true
+        },
+        {
+          "id": "116",
+          "name": "Budweiser",
+          "description": "",
+          "price": 249,
+          "isVeg": true
+        },
+        {
+          "id": "117",
+          "name": "Peoples Lager",
+          "description": "",
+          "price": 265,
+          "isVeg": true
+        },
+        {
+          "id": "118",
+          "name": "Corona",
+          "description": "",
+          "price": 399,
+          "isVeg": true
+        },
+        {
+          "id": "119",
+          "name": "Hoegaarden",
+          "description": "",
+          "price": 399,
+          "isVeg": true
+        },
+        {
+          "id": "120",
+          "name": "Heineken SIlver",
+          "description": "",
+          "price": 255,
+          "isVeg": true
+        },
+        {
+          "id": "121",
+          "name": "Heineken",
+          "description": "",
+          "price": 255,
+          "isVeg": true
+        },
+        {
+          "id": "122",
+          "name": "Carlsberg Smooth",
+          "description": "",
+          "price": 200,
+          "isVeg": true
+        },
+        {
+          "id": "123",
+          "name": "Kronenbourg 1664 Blanc",
+          "description": "",
+          "price": 399,
+          "isVeg": true
+        },
+        {
+          "id": "124",
+          "name": "TUBORG ICE",
+          "description": "",
+          "price": 249,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/beer.jpg",
+      "description": "Chilled beers on tap"
+    },
+    {
+      "sectionName": "Gin",
+      "items": [
+        {
+          "id": "125",
+          "name": "Roku",
+          "description": "",
+          "price": 650,
+          "isVeg": true
+        },
+        {
+          "id": "126",
+          "name": "Jaisalmer",
+          "description": "",
+          "price": 475,
+          "isVeg": true
+        },
+        {
+          "id": "127",
+          "name": "Monkey 47",
+          "description": "",
+          "price": 550,
+          "isVeg": true
+        },
+        {
+          "id": "128",
+          "name": "Bombay Sapphire",
+          "description": "",
+          "price": 325,
+          "isVeg": true
+        },
+        {
+          "id": "129",
+          "name": "Tanqueray",
+          "description": "",
+          "price": 325,
+          "isVeg": true
+        },
+        {
+          "id": "130",
+          "name": "Beefeater",
+          "description": "",
+          "price": 295,
+          "isVeg": true
+        },
+        {
+          "id": "131",
+          "name": "Tamras",
+          "description": "",
+          "price": 295,
+          "isVeg": true
+        },
+        {
+          "id": "132",
+          "name": "Hoegaarden Parisian Romance",
+          "description": "",
+          "price": 295,
+          "isVeg": true
+        },
+        {
+          "id": "133",
+          "name": "Hoegaarden Mediterranean Summer",
+          "description": "",
+          "price": 295,
+          "isVeg": true
+        },
+        {
+          "id": "134",
+          "name": "Gordons",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "135",
+          "name": "Hapusa",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "136",
+          "name": "Hoegaarden Original Belgian",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "137",
+          "name": "Beefeater Pink",
+          "description": "",
+          "price": 265,
+          "isVeg": true
+        },
+        {
+          "id": "138",
+          "name": "Bombay Sapphire Sunset",
+          "description": "",
+          "price": 265,
+          "isVeg": true
+        },
+        {
+          "id": "139",
+          "name": "Pumori",
+          "description": "",
+          "price": 245,
+          "isVeg": true
+        },
+        {
+          "id": "140",
+          "name": "Bulldog",
+          "description": "",
+          "price": 300,
+          "isVeg": true
+        },
+        {
+          "id": "141",
+          "name": "Samsara",
+          "description": "",
+          "price": 235,
+          "isVeg": true
+        },
+        {
+          "id": "142",
+          "name": "Stranger & Sons",
+          "description": "",
+          "price": 195,
+          "isVeg": true
+        },
+        {
+          "id": "143",
+          "name": "Greater Than",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        },
+        {
+          "id": "144",
+          "name": "Sector",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/gin.jpg",
+      "description": "Premium gin selection"
+    },
+    {
+      "sectionName": "Breezers",
+      "items": [
+        {
+          "id": "145",
+          "name": "Breezer Cranberry",
+          "description": "",
+          "price": 299,
+          "isVeg": true
+        },
+        {
+          "id": "146",
+          "name": "Breezer Jamaica",
+          "description": "",
+          "price": 299,
+          "isVeg": true
+        },
+        {
+          "id": "147",
+          "name": "Brezeer Orange",
+          "description": "",
+          "price": 299,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/breezers.jpg",
+      "description": "Refreshing breezers"
+    },
+    {
+      "sectionName": "Cognac",
+      "items": [
+        {
+          "id": "148",
+          "name": "Whisky Hennessy Vs",
+          "description": "",
+          "price": 455,
+          "isVeg": true
+        },
+        {
+          "id": "149",
+          "name": "Morpheus XO",
+          "description": "",
+          "price": 325,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/cognac.jpg",
+      "description": "Fine cognac collection"
+    },
+    {
+      "sectionName": "Single Malt",
+      "items": [
+        {
+          "id": "150",
+          "name": "Jw Blue Label",
+          "description": "",
+          "price": 2600,
+          "isVeg": true
+        },
+        {
+          "id": "151",
+          "name": "Paul John Mithuna",
+          "description": "",
+          "price": 1750,
+          "isVeg": true
+        },
+        {
+          "id": "152",
+          "name": "D’Yavol",
+          "description": "",
+          "price": 650,
+          "isVeg": true
+        },
+        {
+          "id": "153",
+          "name": "Caol Ila 12 Years",
+          "description": "",
+          "price": 1200,
+          "isVeg": true
+        },
+        {
+          "id": "154",
+          "name": "Glenmorangie Lasanta",
+          "description": "",
+          "price": 1000,
+          "isVeg": true
+        },
+        {
+          "id": "155",
+          "name": "Talisker 10 Years",
+          "description": "",
+          "price": 655,
+          "isVeg": true
+        },
+        {
+          "id": "156",
+          "name": "Aberlour 12 Yrs",
+          "description": "",
+          "price": 655,
+          "isVeg": true
+        },
+        {
+          "id": "157",
+          "name": "Glenmorangie X",
+          "description": "",
+          "price": 645,
+          "isVeg": true
+        },
+        {
+          "id": "158",
+          "name": "Glenmorangie 10 Years",
+          "description": "",
+          "price": 750,
+          "isVeg": true
+        },
+        {
+          "id": "159",
+          "name": "Aberfeldy",
+          "description": "",
+          "price": 605,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/single-malt.jpg",
+      "description": "Premium single malts"
+    },
+    {
+      "sectionName": "White Wine",
+      "items": [
+        {
+          "id": "160",
+          "name": "Ricossa Gavi Docg (By Glass - 150ml)",
+          "description": "",
+          "price": 1125,
+          "isVeg": true
+        },
+        {
+          "id": "161",
+          "name": "Ricossa Gavi Docg (By Bottle)",
+          "description": "",
+          "price": 5550,
+          "isVeg": true
+        },
+        {
+          "id": "162",
+          "name": "Campo Viejo Blanco (By Glass - 150ml)",
+          "description": "",
+          "price": 925,
+          "isVeg": true
+        },
+        {
+          "id": "163",
+          "name": "Campo Viejo Blanco (By Bottle)",
+          "description": "",
+          "price": 4550,
+          "isVeg": true
+        },
+        {
+          "id": "164",
+          "name": "Lindeman'S Premium Chardonnay (By Glass - 150ml)",
+          "description": "",
+          "price": 845,
+          "isVeg": true
+        },
+        {
+          "id": "165",
+          "name": "Lindeman'S Premium Chardonnay (By Bottle)",
+          "description": "",
+          "price": 4150,
+          "isVeg": true
+        },
+        {
+          "id": "166",
+          "name": "Yellow Tail Chardonnay (By Glass - 150ml)",
+          "description": "",
+          "price": 746,
+          "isVeg": true
+        },
+        {
+          "id": "167",
+          "name": "Yellow Tail Chardonnay (By Bottle)",
+          "description": "",
+          "price": 3655,
+          "isVeg": true
+        },
+        {
+          "id": "168",
+          "name": "Soledoro Trebbiano Igt (By Glass - 150ml)",
+          "description": "",
+          "price": 749,
+          "isVeg": true
+        },
+        {
+          "id": "169",
+          "name": "Soledoro Trebbiano Igt (By Bottle)",
+          "description": "",
+          "price": 3750,
+          "isVeg": true
+        },
+        {
+          "id": "170",
+          "name": "Jacob Creek'S Chardonnay (By Glass - 150ml)",
+          "description": "",
+          "price": 696,
+          "isVeg": true
+        },
+        {
+          "id": "171",
+          "name": "Jacob Creek'S Chardonnay (By Bottle)",
+          "description": "",
+          "price": 3405,
+          "isVeg": true
+        },
+        {
+          "id": "172",
+          "name": "Santana Classic Viura (By Glass - 150ml)",
+          "description": "",
+          "price": 666,
+          "isVeg": true
+        },
+        {
+          "id": "173",
+          "name": "Santana Classic Viura (By Bottle)",
+          "description": "",
+          "price": 3255,
+          "isVeg": true
+        },
+        {
+          "id": "174",
+          "name": "Sula Zinfandel Rose (By Glass - 150ml)",
+          "description": "",
+          "price": 485,
+          "isVeg": true
+        },
+        {
+          "id": "175",
+          "name": "Sula Zinfandel Rose (By Bottle)",
+          "description": "",
+          "price": 2350,
+          "isVeg": true
+        },
+        {
+          "id": "176",
+          "name": "Sula Chenin Blanc (By Glass - 150ml)",
+          "description": "",
+          "price": 450,
+          "isVeg": true
+        },
+        {
+          "id": "177",
+          "name": "Sula Chenin Blanc (By Bottle)",
+          "description": "",
+          "price": 2250,
+          "isVeg": true
+        },
+        {
+          "id": "178",
+          "name": "Fratelli chenin blanc (By Glass - 150ml)",
+          "description": "",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "179",
+          "name": "Fratelli chenin blanc (By Bottle)",
+          "description": "",
+          "price": 2950,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/white-wine.jpg",
+      "description": "Crisp white wines"
+    },
+    {
+      "sectionName": "Red Wine",
+      "items": [
+        {
+          "id": "182",
+          "name": "Infinitus Tempranillo (By Glass - 150ml)",
+          "description": "",
+          "price": 675,
+          "isVeg": true
+        },
+        {
+          "id": "183",
+          "name": "Infinitus Tempranillo (By Bottle)",
+          "description": "",
+          "price": 4250,
+          "isVeg": true
+        },
+        {
+          "id": "184",
+          "name": "Yellow Tail Merlot (By Glass - 150ml)",
+          "description": "",
+          "price": 825,
+          "isVeg": true
+        },
+        {
+          "id": "185",
+          "name": "Yellow Tail Merlot (By Bottle)",
+          "description": "",
+          "price": 4050,
+          "isVeg": true
+        },
+        {
+          "id": "186",
+          "name": "Le Grand Pinot Noir (By Glass - 150ml)",
+          "description": "",
+          "price": 765,
+          "isVeg": true
+        },
+        {
+          "id": "187",
+          "name": "Le Grand Pinot Noir (By Bottle)",
+          "description": "",
+          "price": 3750,
+          "isVeg": true
+        },
+        {
+          "id": "188",
+          "name": "Jacob Creek Shiraz Cabernet (By Glass - 150ml)",
+          "description": "",
+          "price": 696,
+          "isVeg": true
+        },
+        {
+          "id": "189",
+          "name": "Jacob Creek Shiraz Cabernet (By Bottle)",
+          "description": "",
+          "price": 3405,
+          "isVeg": true
+        },
+        {
+          "id": "190",
+          "name": "Sula Shiraz Cabernet (By Glass - 150ml)",
+          "description": "",
+          "price": 485,
+          "isVeg": true
+        },
+        {
+          "id": "191",
+          "name": "Sula Shiraz Cabernet (By Bottle)",
+          "description": "",
+          "price": 2350,
+          "isVeg": true
+        },
+        {
+          "id": "192",
+          "name": "Two Oceans Pinotage (By Glass - 150ml)",
+          "description": "",
+          "price": 749,
+          "isVeg": true
+        },
+        {
+          "id": "193",
+          "name": "Two Oceans Pinotage (By Bottle)",
+          "description": "",
+          "price": 2950,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/red-wine.jpg",
+      "description": "Bold red wines"
+    },
+    {
+      "sectionName": "Champagne & Sparkling Wine",
+      "items": [
+        {
+          "id": "194",
+          "name": "Moet & Chandon",
+          "description": "",
+          "price": 14500,
+          "isVeg": true
+        },
+        {
+          "id": "195",
+          "name": "Chandon Brut",
+          "description": "",
+          "price": 7750,
+          "isVeg": true
+        },
+        {
+          "id": "196",
+          "name": "Prosecco Brut Luna Argenta",
+          "description": "",
+          "price": 6750,
+          "isVeg": true
+        },
+        {
+          "id": "197",
+          "name": "Martini Prosecco",
+          "description": "",
+          "price": 6750,
+          "isVeg": true
+        },
+        {
+          "id": "198",
+          "name": "Cinzano Prosecco",
+          "description": "",
+          "price": 5550,
+          "isVeg": true
+        },
+        {
+          "id": "199",
+          "name": "Jacob'S Creek",
+          "description": "",
+          "price": 5550,
+          "isVeg": true
+        },
+        {
+          "id": "200",
+          "name": "Lancers Brut",
+          "description": "",
+          "price": 5550,
+          "isVeg": true
+        },
+        {
+          "id": "201",
+          "name": "Sw Sula Brut",
+          "description": "750Ml",
+          "price": 4050,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/champagne.jpg",
+      "description": "Celebrate with bubbles"
+    },
+    {
+      "sectionName": "Whisky/Bourbon",
+      "items": [
+        {
+          "id": "202",
+          "name": "Glenfiddich 12 Yo",
+          "description": "",
+          "price": 750,
+          "isVeg": true
+        },
+        {
+          "id": "203",
+          "name": "Glenlivet 12 Years",
+          "description": "",
+          "price": 675,
+          "isVeg": true
+        },
+        {
+          "id": "204",
+          "name": "Monkey Shoulder",
+          "description": "",
+          "price": 550,
+          "isVeg": true
+        },
+        {
+          "id": "205",
+          "name": "Jack Daniels",
+          "description": "",
+          "price": 450,
+          "isVeg": true
+        },
+        {
+          "id": "206",
+          "name": "Dewar'S 12 Years Old",
+          "description": "",
+          "price": 500,
+          "isVeg": true
+        },
+        {
+          "id": "207",
+          "name": "Grant'S 10 Years Old",
+          "description": "",
+          "price": 405,
+          "isVeg": true
+        },
+        {
+          "id": "208",
+          "name": "Jw Black Label",
+          "description": "",
+          "price": 450,
+          "isVeg": true
+        },
+        {
+          "id": "209",
+          "name": "Paul John Edited",
+          "description": "",
+          "price": 395,
+          "isVeg": true
+        },
+        {
+          "id": "210",
+          "name": "Chivas Regal 12 Years",
+          "description": "",
+          "price": 475,
+          "isVeg": true
+        },
+        {
+          "id": "211",
+          "name": "Amrut Fusion",
+          "description": "",
+          "price": 375,
+          "isVeg": true
+        },
+        {
+          "id": "212",
+          "name": "Dewar'S 8 Years Old",
+          "description": "",
+          "price": 345,
+          "isVeg": true
+        },
+        {
+          "id": "213",
+          "name": "Jameson Irish",
+          "description": "",
+          "price": 335,
+          "isVeg": true
+        },
+        {
+          "id": "214",
+          "name": "Teacher'S 50",
+          "description": "",
+          "price": 295,
+          "isVeg": true
+        },
+        {
+          "id": "215",
+          "name": "Wild Turkey",
+          "description": "",
+          "price": 265,
+          "isVeg": true
+        },
+        {
+          "id": "216",
+          "name": "Jw Red Label",
+          "description": "",
+          "price": 255,
+          "isVeg": true
+        },
+        {
+          "id": "217",
+          "name": "Budweiser Magnum Double Barrel Whiskey",
+          "description": "",
+          "price": 255,
+          "isVeg": true
+        },
+        {
+          "id": "218",
+          "name": "100 Piper'S 12 Years",
+          "description": "",
+          "price": 245,
+          "isVeg": true
+        },
+        {
+          "id": "219",
+          "name": "Paul John Nirvana",
+          "description": "",
+          "price": 245,
+          "isVeg": true
+        },
+        {
+          "id": "220",
+          "name": "100 Pipe'S 8Yrs",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "221",
+          "name": "Ballantines Finest",
+          "description": "",
+          "price": 235,
+          "isVeg": true
+        },
+        {
+          "id": "222",
+          "name": "Dewar'S White Label",
+          "description": "",
+          "price": 225,
+          "isVeg": true
+        },
+        {
+          "id": "223",
+          "name": "Whisky Black Dog",
+          "description": "",
+          "price": 225,
+          "isVeg": true
+        },
+        {
+          "id": "224",
+          "name": "Jim Beam",
+          "description": "",
+          "price": 215,
+          "isVeg": true
+        },
+        {
+          "id": "225",
+          "name": "Teachers Highland Cream",
+          "description": "",
+          "price": 215,
+          "isVeg": true
+        },
+        {
+          "id": "226",
+          "name": "Black & White",
+          "description": "",
+          "price": 215,
+          "isVeg": true
+        },
+        {
+          "id": "227",
+          "name": "100 Piper'S",
+          "description": "",
+          "price": 215,
+          "isVeg": true
+        },
+        {
+          "id": "228",
+          "name": "William Lawson",
+          "description": "",
+          "price": 195,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/whisky.jpg",
+      "description": "Aged whisky and bourbon"
+    },
+    {
+      "sectionName": "Rum",
+      "items": [
+        {
+          "id": "229",
+          "name": "Bacardi Reserva Ocho",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "230",
+          "name": "Earth Rustic",
+          "description": "",
+          "price": 255,
+          "isVeg": true
+        },
+        {
+          "id": "231",
+          "name": "Seven Rivers Spiced Rum",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        },
+        {
+          "id": "232",
+          "name": "Bacardi White",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        },
+        {
+          "id": "233",
+          "name": "Old Monk",
+          "description": "",
+          "price": 155,
+          "isVeg": true
+        },
+        {
+          "id": "234",
+          "name": "MAKAZAI GOLD RUM",
+          "description": "",
+          "price": 200,
+          "isVeg": true
+        },
+        {
+          "id": "235",
+          "name": "MAKAZAI WHITE RUM",
+          "description": "",
+          "price": 185,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/rum.jpg",
+      "description": "Caribbean rum selection"
+    },
+    {
+      "sectionName": "Vodka",
+      "items": [
+        {
+          "id": "236",
+          "name": "D'Yavol Single Estate Vodka",
+          "description": "",
+          "price": 650,
+          "isVeg": true
+        },
+        {
+          "id": "237",
+          "name": "Grey Goose",
+          "description": "",
+          "price": 525,
+          "isVeg": true
+        },
+        {
+          "id": "238",
+          "name": "Belvedere",
+          "description": "",
+          "price": 455,
+          "isVeg": true
+        },
+        {
+          "id": "239",
+          "name": "Ciroc",
+          "description": "",
+          "price": 455,
+          "isVeg": true
+        },
+        {
+          "id": "240",
+          "name": "Ketel One",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "241",
+          "name": "Absolute Lime",
+          "description": "",
+          "price": 265,
+          "isVeg": true
+        },
+        {
+          "id": "242",
+          "name": "Absolut Mandrin",
+          "description": "",
+          "price": 325,
+          "isVeg": true
+        },
+        {
+          "id": "243",
+          "name": "Absolut Grapefruit",
+          "description": "",
+          "price": 265,
+          "isVeg": true
+        },
+        {
+          "id": "244",
+          "name": "Absolut",
+          "description": "",
+          "price": 245,
+          "isVeg": true
+        },
+        {
+          "id": "245",
+          "name": "Skyy",
+          "description": "",
+          "price": 245,
+          "isVeg": true
+        },
+        {
+          "id": "246",
+          "name": "Smirnoff",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/vodka.jpg",
+      "description": "Premium vodkas"
+    },
+    {
+      "sectionName": "Tequila & Agave",
+      "items": [
+        {
+          "id": "247",
+          "name": "Patron Silver",
+          "description": "",
+          "price": 750,
+          "isVeg": true
+        },
+        {
+          "id": "248",
+          "name": "Pistola Agave Reposado",
+          "description": "",
+          "price": 375,
+          "isVeg": true
+        },
+        {
+          "id": "249",
+          "name": "Jose Cuervo Gold",
+          "description": "",
+          "price": 425,
+          "isVeg": true
+        },
+        {
+          "id": "250",
+          "name": "Pistola Agave Joven",
+          "description": "",
+          "price": 355,
+          "isVeg": true
+        },
+        {
+          "id": "251",
+          "name": "Jose Cuervo Silver",
+          "description": "",
+          "price": 325,
+          "isVeg": true
+        },
+        {
+          "id": "252",
+          "name": "Camino Silver",
+          "description": "",
+          "price": 375,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/tequila.jpg",
+      "description": "Mexican spirits"
+    },
+    {
+      "sectionName": "Liqueur & Aperitif",
+      "items": [
+        {
+          "id": "253",
+          "name": "Jagermeister",
+          "description": "",
+          "price": 400,
+          "isVeg": true
+        },
+        {
+          "id": "254",
+          "name": "Kahlua",
+          "description": "",
+          "price": 400,
+          "isVeg": true
+        },
+        {
+          "id": "255",
+          "name": "Malibu",
+          "description": "",
+          "price": 345,
+          "isVeg": true
+        },
+        {
+          "id": "256",
+          "name": "Liq Campari",
+          "description": "",
+          "price": 345,
+          "isVeg": true
+        },
+        {
+          "id": "257",
+          "name": "Aperol",
+          "description": "",
+          "price": 345,
+          "isVeg": true
+        },
+        {
+          "id": "258",
+          "name": "Martini Fiero",
+          "description": "",
+          "price": 345,
+          "isVeg": true
+        },
+        {
+          "id": "259",
+          "name": "Fentiro Dusk",
+          "description": "",
+          "price": 200,
+          "isVeg": true
+        },
+        {
+          "id": "260",
+          "name": "Fentiro Dawn",
+          "description": "",
+          "price": 200,
+          "isVeg": true
+        },
+        {
+          "id": "261",
+          "name": "Goenchi Cashew feni",
+          "description": "",
+          "price": 135,
+          "isVeg": true
+        },
+        {
+          "id": "262",
+          "name": "Goenchi Coconut feni",
+          "description": "",
+          "price": 135,
+          "isVeg": true
+        },
+        {
+          "id": "263",
+          "name": "Goenchi West Coast Kokum",
+          "description": "",
+          "price": 135,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/liqueur.jpg",
+      "description": "After-dinner drinks"
+    },
+    {
+      "sectionName": "Sober Tales",
+      "items": [
+        {
+          "id": "264",
+          "name": "Virgin Colada",
+          "description": "",
+          "price": 249,
+          "isVeg": true
+        },
+        {
+          "id": "265",
+          "name": "Virgin Mojito",
+          "description": "",
+          "price": 249,
+          "isVeg": true
+        },
+        {
+          "id": "266",
+          "name": "Kokum Serbet",
+          "description": "",
+          "price": 249,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/mocktails.jpg",
+      "description": "Non-alcoholic refreshments"
+    }
+  ],
+  "beverages": [
+    {
+      "sectionName": "HOT BEVERAGES",
+      "items": [
+        {
+          "id": "267",
+          "name": "Cappuccino",
+          "description": "",
+          "price": 295,
+          "isVeg": true
+        },
+        {
+          "id": "268",
+          "name": "Masala Chai",
+          "description": "",
+          "price": 255,
+          "isVeg": true
+        },
+        {
+          "id": "269",
+          "name": "Café Latte",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "270",
+          "name": "Café Mocha",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "271",
+          "name": "Ristretto",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        },
+        {
+          "id": "272",
+          "name": "Espresso",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        },
+        {
+          "id": "273",
+          "name": "Macchiato",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/hot-drinks.jpg",
+      "description": "Warm comforting drinks"
+    },
+    {
+      "sectionName": "COLD BEVERAGES",
+      "items": [
+        {
+          "id": "274",
+          "name": "Fresh Lime Soda",
+          "description": "",
+          "price": 275,
+          "isVeg": true
+        },
+        {
+          "id": "275",
+          "name": "Fresh Lime Water",
+          "description": "",
+          "price": 225,
+          "isVeg": true
+        },
+        {
+          "id": "276",
+          "name": "Coke",
+          "description": "",
+          "price": 150,
+          "isVeg": true
+        },
+        {
+          "id": "277",
+          "name": "Sprite",
+          "description": "",
+          "price": 150,
+          "isVeg": true
+        },
+        {
+          "id": "278",
+          "name": "Tonic Water",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        },
+        {
+          "id": "279",
+          "name": "Diet Coke",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        },
+        {
+          "id": "280",
+          "name": "Ginger Ale",
+          "description": "",
+          "price": 175,
+          "isVeg": true
+        },
+        {
+          "id": "281",
+          "name": "Tender Coconut Water",
+          "description": "",
+          "price": 249,
+          "isVeg": true
+        },
+        {
+          "id": "282",
+          "name": "Freshly Squeeze Juice",
+          "description": "",
+          "price": 249,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/cold-drinks.jpg",
+      "description": "Refreshing cold drinks"
+    }
+  ],
+  "24hrs-menu": [
+    {
+      "sectionName": "Soups",
+      "items": [
+        {
+          "id": "283",
+          "name": "Roasted Tomato & Basil Bliss",
+          "description": "Slow-roasted tomatoes blended with fresh basil for a rich and aromatic experience",
+          "price": 329,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Gluten"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/soups.jpg",
+      "description": "Warm and comforting soups"
+    },
+    {
+      "sectionName": "Salads",
+      "items": [
+        {
+          "id": "284",
+          "name": "Classic Caesar Crunch",
+          "description": "Crisp romaine lettuce, parmesan cheese, and croutons tossed in creamy Caesar dressing",
+          "price": 799,
+          "isVeg": false,
+          "allergens": [
+            "Dairy",
+            "Gluten"
+          ]
+        },
+        {
+          "id": "285",
+          "name": "Greek Salad",
+          "description": "A refreshing mix of cucumbers, tomatoes, onions, olives, and feta cheese with a ...",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "286",
+          "name": "Arugula & Orange Nut Medley",
+          "description": "Peppery arugula paired with citrusy oranges, nuts, and a light dressing.",
+          "price": 689,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/salads.jpg",
+      "description": "Fresh and crisp salads"
+    },
+    {
+      "sectionName": "Small Plates",
+      "items": [
+        {
+          "id": "287",
+          "name": "French Fries / Masala Fries",
+          "description": "An All-Time Favourite",
+          "price": 399,
+          "isVeg": true,
+          "variations": [
+            {
+              "id": 449282,
+              "variation_name": "Choose Any One",
+              "childrens": [
+                {
+                  "variation_name": "French Fries",
+                  "variation_price": 359.0,
+                  "description": "143 Kcal",
+                  "img": ""
+                },
+                {
+                  "variation_name": "Masala Fries",
+                  "variation_price": 359.0,
+                  "description": "155 Kcal",
+                  "img": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "288",
+          "name": "Masala Maggi",
+          "description": "The all-time favorite instant noodles, cooked to perfection with our special touch.",
+          "price": 359,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/small-plates.jpg",
+      "description": "Perfect for sharing"
+    },
+    {
+      "sectionName": "Indian Curries & Rice",
+      "items": [
+        {
+          "id": "289",
+          "name": "Choice of Paneer gravy",
+          "description": "Choice Of Cottage Cheese Cooked In Smoked Paneer Gravy / Butter & Tomato Gravy",
+          "price": 599,
+          "isVeg": true,
+          "variations": [
+            {
+              "variation_name": "Choose Any One",
+              "childrens": [
+                {
+                  "variation_name": "Paneer Tikka Masala",
+                  "variation_price": 539.0,
+                  "description": "549 Kcal (Mustard)",
+                  "img": ""
+                },
+                {
+                  "variation_name": "Paneer Butter Masala",
+                  "variation_price": 539.0,
+                  "description": "606 Kcal (Mustard)",
+                  "img": ""
+                }
+              ]
+            }
+          ],
+          "allergens": [
+            "Dairy",
+            "Nut",
+            "Sulphites"
+          ]
+        },
+        {
+          "id": "290",
+          "name": "Paneer Tikka Masala",
+          "description": "",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "291",
+          "name": "Paneer Butter Masala",
+          "description": "",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "292",
+          "name": "Palak Paneer",
+          "description": "",
+          "price": 599,
+          "isVeg": true
+        },
+        {
+          "id": "293",
+          "name": "Chicken Tikka Masala",
+          "description": "",
+          "price": 859,
+          "isVeg": false,
+          "allergens": [
+            "Sulphites",
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "294",
+          "name": "Homestyle Chicken Curry",
+          "description": "",
+          "price": 859,
+          "isVeg": false
+        },
+        {
+          "id": "295",
+          "name": "Butter Chicken",
+          "description": "",
+          "price": 859,
+          "isVeg": false
+        },
+        {
+          "id": "296",
+          "name": "Butter Chicken / Chicken Tikka Masala / Chicken Pahadi Style",
+          "description": "Choice Of Chicken Cooked In Butter & Tomato Gravy / Smoked Chicken Curry / Uttar...",
+          "price": 859,
+          "isVeg": false,
+          "variations": [
+            {
+              "variation_name": "Choose Any One",
+              "childrens": [
+                {
+                  "variation_name": "Butter Chicken",
+                  "variation_price": 779.0,
+                  "description": "740 Kcal  (Mustard)",
+                  "img": ""
+                },
+                {
+                  "variation_name": "Chicken Tikka Masala",
+                  "variation_price": 779.0,
+                  "description": "778 Kcal (Mustard)",
+                  "img": ""
+                },
+                {
+                  "variation_name": "Chicken Pahadi Style",
+                  "variation_price": 779.0,
+                  "description": "743 Kcal (Mustard)",
+                  "img": ""
+                }
+              ]
+            }
+          ],
+          "allergens": [
+            "Dairy",
+            "Nut",
+            "Sulphites"
+          ]
+        },
+        {
+          "id": "297",
+          "name": "Subzi Nizami Handi",
+          "description": "A royal blend of mixed vegetables in a rich and flavorful cashew-based gravy.\n285 Kcal",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "298",
+          "name": "Kadhai Subzi",
+          "description": "Fresh vegetables tossed in a bold, spiced kadhai masala.\n307 Kcal",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "299",
+          "name": "Hing Aloo Jeera",
+          "description": "Cumin-flavored potatoes cooked with asafoetida and mild spices.\n285 Kcal",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "300",
+          "name": "Dal Tadka",
+          "description": "Yellow lentils tempered with aromatic spices and ghee.\n923 Kcal",
+          "price": 399,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "301",
+          "name": "Dal Makhani",
+          "description": "Slow-cooked black lentils in a buttery and creamy tomato gravy.\n1323 Kcal",
+          "price": 459,
+          "isVeg": true,
+          "allergens": [
+            "Dairy"
+          ]
+        },
+        {
+          "id": "302",
+          "name": "Steamed Rice / Red Goan Rice",
+          "description": "Perfectly cooked fluffy rice, available in plain or Goan-style red rice.\n830 Kcal",
+          "price": 329,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/curries.jpg",
+      "description": "Traditional Indian flavors"
+    },
+    {
+      "sectionName": "Bombay Biryani",
+      "items": [
+        {
+          "id": "264a",
+          "name": "Bombay Biryani (Vegetarian)",
+          "description": "",
+          "price": 839,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "264b",
+          "name": "Bombay Biryani (Chicken)",
+          "description": "",
+          "price": 989,
+          "isVeg": false,
+          "allergens": [
+            "Dairy",
+            "Nut"
+          ]
+        },
+        {
+          "id": "264c",
+          "name": "Bombay Biryani (Lamb)",
+          "description": "",
+          "price": 1119,
+          "isVeg": false
+        }
+      ],
+      "image": "/assets/images/categories/biryani.jpg",
+      "description": "Bombay Biryani"
+    },
+    {
+      "sectionName": "Indian Breads",
+      "items": [
+        {
+          "id": "303",
+          "name": "Tawa Paratha",
+          "description": "264 Kcal",
+          "price": 169,
+          "isVeg": true,
+          "allergens": [
+            "Gluten"
+          ]
+        },
+        {
+          "id": "304",
+          "name": "Choice of Paratha",
+          "description": "Aloo / Paneer / Gobhi (1 Paratha)\nAloo - 133 Kcal / Gobhi - 111 / Kcal Paneer - 173 Kcal",
+          "price": 225,
+          "isVeg": true
+        },
+        {
+          "id": "305",
+          "name": "Phulka (2pcs)",
+          "description": "",
+          "price": 129,
+          "isVeg": true,
+          "allergens": [
+            "Gluten"
+          ]
+        }
+      ],
+      "image": "/assets/images/categories/indian-breads.jpg",
+      "description": "Tandoor fresh breads"
+    },
+    {
+      "sectionName": "Desserts",
+      "items": [
+        {
+          "id": "306",
+          "name": "Chocolate Brownie",
+          "description": "Rich and fudgy chocolate brownie served with a scoop of ice cream.\n449 Kcal",
+          "price": 529,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Gluten",
+            "Nut"
+          ]
+        },
+        {
+          "id": "307",
+          "name": "Goan Bebinca",
+          "description": "Traditional Goan layered dessert with coconut and jaggery.\n455 Kcal",
+          "price": 399,
+          "isVeg": true,
+          "allergens": [
+            "Dairy",
+            "Gluten",
+            "Egg"
+          ]
+        },
+        {
+          "id": "308",
+          "name": "Fresh Fruit Platter",
+          "description": "A selection of seasonal fresh fruits, served chilled.\n175 Kcal",
+          "price": 399,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/desserts.jpg",
+      "description": "Sweet treats and delights"
+    }
+  ],
+  "pet-food": [
+    {
+      "sectionName": "Dogs",
+      "items": [
+        {
+          "id": "309",
+          "name": "Chicken & Vegetable Stew",
+          "description": "chicken breast, carrots, peas, pumpkin, light broth\n (Portion: 150gm Calories: ~...",
+          "price": 299,
+          "isVeg": false
+        },
+        {
+          "id": "310",
+          "name": "Scrambled Egg & Veggie",
+          "description": "fluffy scrambled egg with steamed zucchini and pumpkin \n(Portion: 120 g, Calorie...",
+          "price": 299,
+          "isVeg": false
+        },
+        {
+          "id": "311",
+          "name": "Veggie & Lentil Mix",
+          "description": "cooked lentils, steamed pumpkin, peas, zucchini \n (Portion: 150 g, Calories: ~16...",
+          "price": 299,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/dog-food.jpg",
+      "description": "Nutritious meals for dogs"
+    },
+    {
+      "sectionName": "Meal Bowl (Dogs)",
+      "items": [
+        {
+          "id": "312",
+          "name": "Chicken Bowl",
+          "description": "tender boiled chicken, soft boiled egg, steamed pumpkin, carrots, zucchini, stea...",
+          "price": 399,
+          "isVeg": false
+        },
+        {
+          "id": "313",
+          "name": "Fish Bowl",
+          "description": "steamed fish, scrambled egg, steamed carrots & pumpkin, steamed rice \n(Calories:...",
+          "price": 399,
+          "isVeg": false
+        },
+        {
+          "id": "314",
+          "name": "Vegetarian Bowl",
+          "description": "cooked lentils, steamed rice, steamed carrots, zucchini, peas, pumpkin \n( Portio...",
+          "price": 399,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/dog-bowl.jpg",
+      "description": "Complete meals for dogs"
+    },
+    {
+      "sectionName": "Cats",
+      "items": [
+        {
+          "id": "315",
+          "name": "Fish & Brown Rice",
+          "description": "– steamed fish, brown rice, zucchini, olive oil drizzle \n(Portion: 100 g Calorie...",
+          "price": 299,
+          "isVeg": false
+        },
+        {
+          "id": "316",
+          "name": "Chicken & Egg Mix",
+          "description": "shredded boiled chicken with soft scrambled egg \n(Portion: 120 g, Calories: ~200...",
+          "price": 299,
+          "isVeg": false
+        },
+        {
+          "id": "317",
+          "name": "Egg & Rice",
+          "description": "– chopped boiled egg mixed with steamed rice and carrots \n(Portion: 120 g, Calor...",
+          "price": 299,
+          "isVeg": false
+        }
+      ],
+      "image": "/assets/images/categories/cat-food.jpg",
+      "description": "Healthy meals for cats"
+    },
+    {
+      "sectionName": "Meal Bowl (Cats)",
+      "items": [
+        {
+          "id": "318",
+          "name": "Chicken Bowl",
+          "description": "shredded boiled chicken, soft scrambled egg, steamed pumpkin & zucchini, steamed...",
+          "price": 399,
+          "isVeg": false
+        },
+        {
+          "id": "319",
+          "name": "Fish Bowl",
+          "description": "– steamed fish, scrambled egg, steamed carrots & pumpkin, steamed Rice\n(Calories...",
+          "price": 399,
+          "isVeg": false
+        },
+        {
+          "id": "320",
+          "name": "Vegetarian Bowl",
+          "description": "cooked lentils, steamed rice, steamed carrots, zucchini, peas, pumpkin\n ( Portio...",
+          "price": 399,
+          "isVeg": true
+        }
+      ],
+      "image": "/assets/images/categories/cat-bowl.jpg",
+      "description": "Complete meals for cats"
+    }
+  ]
+}

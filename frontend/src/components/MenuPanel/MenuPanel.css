@@ -1,0 +1,236 @@
+*{
+  font-family: var(--font-body);
+}
+
+/* ===========================
+   Overlay
+=========================== */
+.menu-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 9998;
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===========================
+   Sidebar Drawer
+=========================== */
+.menu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  width: 320px;
+  max-width: 85vw;
+  background: #ffffff;
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+  border-radius:   var(--radius-lg) 0 0 var(--radius-lg);
+
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 9999;
+  padding: 0;               /* IMPORTANT */
+  margin: 0;                /* IMPORTANT */
+}
+
+.menu-panel::-webkit-scrollbar {
+  display: none;
+}
+.menu-panel {
+  scrollbar-width: none;
+}
+
+/* ===========================
+   Header
+=========================== */
+.menu-panel-header {
+  padding: 15px 20px 15px 20px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--color-primary);
+}
+
+.menu-panel-title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* ===========================
+   Content
+=========================== */
+.menu-panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===========================
+   Active Station (GROK)
+=========================== */
+
+/* Remove any spacing around block */
+.menu-panel-station-block {
+  padding: 0;
+  margin: 0;
+}
+
+/* THIS GUARANTEES STRIPE */
+.menu-panel-station-active {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+
+  background-color: #e9e9e9;
+  border-left: 6px solid #4ea1d3;  /* STRIPE */
+
+  padding: 14px 20px;
+  margin: 0;
+
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #111;
+}
+
+/* ===========================
+   Base Button
+=========================== */
+.menu-panel-item {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+/* ===========================
+   Subcategories
+=========================== */
+.category-item {
+  padding: 12px 20px 12px 45px;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #333;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.category-item:last-child {
+  border-bottom: none;
+}
+
+.menu-panel .category-item:hover {
+  background: #fafafa;
+}
+
+/* Active Subcategory */
+.category-item.active {
+  font-weight: 700;
+  color: #4ea1d3;
+  background: #f7fbff;
+}
+
+/* Blue Dot */
+.category-item.active::before {
+  content: '•';
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #4ea1d3;
+  font-size: 1.2rem;
+}
+
+/* ===========================
+   Section Label
+=========================== */
+.menu-panel-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  padding: 18px 20px 8px 20px;
+}
+
+/* ===========================
+   Inactive Stations
+=========================== */
+.station-item {
+  padding: 16px 20px;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #111;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.station-item:last-child {
+  border-bottom: none;
+}
+
+.station-item:hover {
+  background: #f0f0f0;
+  padding-left: 25px;
+}
+
+/* ===========================
+   Compact Categories (Non-716/739)
+=========================== */
+.menu-panel-categories-block {
+  padding: 0;
+  margin: 0;
+}
+
+.menu-panel-categories-block .category-compact-item {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  
+  /* Single line - compact */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.menu-panel-categories-block .category-compact-item:last-child {
+  border-bottom: none;
+}
+
+.menu-panel-categories-block .category-compact-item:hover {
+  background: #f8f8f8;
+  color: #111;
+}
+
+.menu-panel-categories-block .category-compact-item.active {
+  font-weight: 600;
+  color: var(--color-primary, #4ea1d3);
+  background: #f7fbff;
+  border-left: 3px solid var(--color-primary, #4ea1d3);
+  padding-left: 13px;
+}

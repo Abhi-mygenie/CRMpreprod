@@ -1,0 +1,155 @@
+.landing-customer-capture {
+  width: 100%;
+  max-width: 320px;
+  margin: 1rem auto 0;
+  box-sizing: border-box;
+}
+
+.capture-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.capture-input-group {
+  width: 100%;
+  position: relative;
+}
+
+/* Name input */
+.capture-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--color-primary, #E86F2C);
+  border-radius: var(--radius-button, 8px);
+  font-size: 16px; /* Minimum 16px to prevent iOS Safari auto-zoom on focus */
+  font-family: var(--font-body, 'Poppins', sans-serif);
+  background: #fff;
+  color: #222;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.capture-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #E86F2C);
+  box-shadow: 0 0 0 2px rgba(232, 111, 44, 0.12);
+}
+
+.capture-input::placeholder {
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* Phone input wrapper — styled as a single bordered box */
+.capture-phone-input {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--color-primary, #E86F2C);
+  border-radius: var(--radius-button, 8px);
+  background: #fff;
+  padding: 0 4px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.capture-phone-input:focus-within {
+  border-color: var(--color-primary, #E86F2C);
+  box-shadow: 0 0 0 2px rgba(232, 111, 44, 0.12);
+}
+
+/* Flag container — show flag only, compact */
+.capture-phone-input .PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  padding: 0 6px 0 10px;
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+/* Hide the country code text (+91) — keep only the flag */
+.capture-phone-input .PhoneInputCountryIcon {
+  width: 24px;
+  height: 18px;
+}
+
+/* Hide the dropdown arrow for cleaner look */
+.capture-phone-input .PhoneInputCountrySelectArrow {
+  display: none;
+}
+
+/* The actual number input — no border (wrapper has border) */
+.capture-phone-input .PhoneInputInput {
+  flex: 1;
+  padding: 12px 10px;
+  border: none;
+  border-radius: 0;
+  font-size: 16px; /* Minimum 16px to prevent iOS Safari auto-zoom on focus */
+  font-family: var(--font-body, 'Poppins', sans-serif);
+  background: transparent;
+  color: #222;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.capture-phone-input .PhoneInputInput::placeholder {
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* Error state */
+.capture-phone-input.capture-phone-error {
+  border-color: #e53935;
+  box-shadow: 0 0 0 2px rgba(229, 57, 53, 0.1);
+}
+
+.capture-error-text {
+  display: block;
+  color: #e53935;
+  font-size: 12px;
+  margin-top: 4px;
+  padding-left: 4px;
+}
+
+.capture-mandatory-hint {
+  display: block;
+  color: #999;
+  font-size: 11px;
+  margin-top: 3px;
+  padding-left: 4px;
+}
+
+
+/* CR Phase-2 — Read-only / locked state for auto-populated guest details */
+.capture-input-locked,
+.capture-phone-locked .PhoneInputInput {
+  background: #f4f4f4 !important;
+  color: #555 !important;
+  cursor: not-allowed;
+  border-color: #d4d4d4 !important;
+}
+
+.capture-phone-locked {
+  background: #f4f4f4 !important;
+  border-color: #d4d4d4 !important;
+}
+
+.capture-phone-locked .PhoneInputCountry {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.capture-lock-helper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #666;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 6px;
+  width: fit-content;
+}

@@ -1,0 +1,44 @@
+{
+  "tags": [
+    {
+      "icon": "🙏",
+      "id": "jain",
+      "label": "Jain"
+    },
+    {
+      "icon": "🌱",
+      "id": "vegan",
+      "label": "Vegan"
+    },
+    {
+      "icon": "🌾",
+      "id": "gluten-free",
+      "label": "Gluten-Free"
+    },
+    {
+      "icon": "🥛",
+      "id": "lactose-free",
+      "label": "Lactose-Free"
+    },
+    {
+      "icon": "🥜",
+      "id": "nut-free",
+      "label": "Nut-Free"
+    },
+    {
+      "icon": "☪️",
+      "id": "halal",
+      "label": "Halal"
+    },
+    {
+      "icon": "🍬",
+      "id": "sugar-free",
+      "label": "Sugar-Free"
+    },
+    {
+      "icon": "💪",
+      "id": "high-protein",
+      "label": "High Protein"
+    }
+  ]
+}

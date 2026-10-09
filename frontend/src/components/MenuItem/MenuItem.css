@@ -1,0 +1,569 @@
+/* Menu Item Card */
+.menu-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 15px 15px 15px 15px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color var(--transition-fast);
+  position: relative;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item:hover {
+  background-color: var(--color-gray-50);
+}
+
+/* Left Side - Content */
+.item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  overflow: hidden;
+}
+
+/* Veg/Non-Veg/Egg Label */
+.veg-label {
+  width: 20px;
+  height: 20px;
+  border: 2px solid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 2px;
+}
+
+.veg-label.veg {
+  border-color: var(--border-veg);
+}
+
+.veg-label.non-veg {
+  border-color: var(--border-non-veg);
+}
+
+.veg-label.egg {
+  border-color: var(--border-egg);
+}
+
+.veg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}
+
+.veg-label.veg .veg-dot {
+  color: var(--color-veg);
+}
+
+.veg-label.non-veg .veg-dot {
+  color: var(--color-non-veg);
+}
+
+.veg-label.egg .veg-dot {
+  color: var(--color-egg);
+}
+
+/* Item Name */
+.item-name {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Item Price */
+.item-price {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Allergen Icons */
+.item-allergens {
+  display: flex;         
+  align-items: center;
+  gap: 8px;               
+  margin-top: 0px;
+  width: 90%;
+}
+
+.allergen-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* margin-top: 3px;       */
+  /* line-height: 1.4; */
+  flex-shrink: 0; 
+  /* margin-top: 2px;  */
+}
+
+.item-allergen-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-primary);
+}
+
+.item-info-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-primary);
+}
+
+.allergen-name {
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary-color, #666666);
+  text-transform: capitalize;
+  padding: 3px 2px;
+  /* background-color: var(--bg-secondary); */
+  border-radius: var(--radius-container-sm);
+}
+
+.portion-name {
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary-color, #666666);
+  /* text-transform: capitalize; */
+  padding: 3px 2px;
+  /* background-color: var(--bg-secondary); */
+  border-radius: var(--radius-container-sm);
+}
+
+.kcal-name {
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary-color, #666666);
+  /* text-transform: capitalize; */
+  padding: 3px 2px;
+  /* background-color: var(--bg-secondary); */
+  border-radius: var(--radius-container-sm);
+}
+
+
+/* Item Description */
+.item-description-wrapper {
+  margin-top: 4px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.item-description {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary-color, #666666);
+  padding: 0 2px;
+  margin: 0;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.read-more-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary-darker);
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  text-decoration: underline;
+}
+
+.read-more-btn:hover {
+  color: var(--color-primary-dark);
+}
+
+/* Right Side - Image Container (Column Layout) */
+.item-image-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Right Side - Image Box */
+.item-image-box {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-container-lg);
+  overflow: visible;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-container-lg);
+}
+
+.item-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-container-lg);
+}
+
+.default-food-icon {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+/* ADD Button (commented out but styles preserved) */
+.add-btn {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--bg-primary);
+  color: var(--color-primary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-button, 8px);
+  padding: 8px 20px;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+}
+
+.add-btn:hover {
+  background-color: var(--color-primary);
+  color: var(--text-white);
+}
+
+/* Customisable Indicator */
+.customisable-indicator {
+  margin-top: 10px;
+  width: 120px;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .menu-item {
+    padding: 12px 12px 12px 12px;
+    gap: 12px;
+  }
+
+  .item-image-box {
+    width: 100px;
+    height: 100px;
+  }
+
+  .item-image-container {
+    width: 100px;
+  }
+
+  .item-name {
+    font-size: var(--font-size-base);
+  }
+
+  .item-price {
+    font-size: var(--font-size-sm);
+  }
+
+  .customisable-indicator {
+    margin-top: 7px;
+    width: 100px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-item {
+    padding: 10px 10px 10px 10px;
+    gap: 10px;
+  }
+
+  .item-image-box {
+    width: 90px;
+    height: 90px;
+  }
+
+  .item-image-container {
+    width: 90px;
+  }
+
+  .item-name {
+    font-size: var(--font-size-sm);
+  }
+
+  .item-price {
+    font-size: var(--font-size-xs);
+  }
+
+  .item-description {
+    font-size: 0.75rem;
+  }
+
+  .customisable-indicator {
+    margin-top: 7px;
+    width: 90px;
+    font-size: 0.65rem;
+  }
+
+  .allergen-name,
+  .kcal-name,
+  .portion-name {
+    font-size: 0.7rem; /* Slightly smaller on mobile */
+    line-height: 1.3;
+  }
+
+  .item-allergens {
+    gap: 4px; /* Reduce gap on mobile */
+  }
+}
+
+@media (max-width: 375px) {
+  .menu-item {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .item-image-box {
+    width: 80px;
+    height: 80px;
+  }
+
+  .item-image-container {
+    width: 80px;
+  }
+
+  .customisable-indicator {
+    margin-top: 7px;
+    width: 80px;
+    font-size: 0.6rem;
+  }
+}
+
+/* ======================================================================== */
+/* No-Image Compact Layout — Hybrid (Option C)                               */
+/*                                                                           */
+/* Card is a flex ROW: left column (header + meta stacked) and right column  */
+/* (ADD/Quantity action) that stretches to the full card height. ADD is      */
+/* vertically centered in the right column via `justify-content: center`,   */
+/* giving balanced visual weight regardless of meta length while staying    */
+/* connected to the item content.                                           */
+/*                                                                           */
+/* Specificity note: `.menu-item.menu-item--no-image` (specificity 020) is  */
+/* used so these rules win over the base `.menu-item` declared in           */
+/* `pages/MenuItems.css` (specificity 010) which is loaded later in cascade.*/
+/* ======================================================================== */
+
+.menu-item.menu-item--no-image {
+  flex-direction: row;
+  align-items: stretch;       /* right column matches full card height */
+  gap: 12px;
+  padding: 12px 15px;
+}
+
+/* Left column — veg/name/price stacked, with optional meta row below.
+   `min-width: 0` lets long names truncate inside the row.
+   Tight gap (4px) so name and price visually cluster together. */
+.menu-item.menu-item--no-image .item-content-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+/* Hairline separation below veg-label so it doesn't look glued to name */
+.menu-item.menu-item--no-image .item-content-main > .veg-label {
+  margin-bottom: 2px;
+}
+
+/* Meta block (kcal/portion/allergens/description) — sits below header,
+   inside the left column. Slight top margin so it doesn't touch price. */
+.menu-item.menu-item--no-image .item-content-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* Right column: spans full card height; ADD/Quantity centered vertically.
+   `align-self: stretch` ensures the column fills card height even when the
+   left content is short. */
+.menu-item.menu-item--no-image .item-action-area {
+  flex-shrink: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;    /* key: ADD vertically centered in card */
+  align-items: center;
+  gap: 6px;
+  min-width: 100px;
+}
+
+/* Inline ADD button — same prominence as image-mode ADD
+   (padding/font/border/shadow inherited from base .add-btn). */
+.menu-item.menu-item--no-image .add-btn.add-btn--inline {
+  position: static;
+  transform: none;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  align-self: center;
+  padding: 8px 20px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+/* Inline Customisable pill — centered under ADD */
+.menu-item.menu-item--no-image .customisable-indicator--inline {
+  margin-top: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+/* QuantitySelector inside no-image action area:
+   reset its image-box-overlay positioning so it sits in static flow. */
+.menu-item.menu-item--no-image .item-action-area .quantity-selector {
+  position: static;
+  transform: none;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  align-self: center;
+  margin: 0;
+}
+
+/* Mobile adjustments for no-image compact card */
+@media (max-width: 768px) {
+  .menu-item.menu-item--no-image {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .menu-item.menu-item--no-image .item-action-area {
+    min-width: 92px;
+  }
+  .menu-item.menu-item--no-image .add-btn.add-btn--inline {
+    padding: 7px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-item.menu-item--no-image {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+  .menu-item.menu-item--no-image .item-content-main {
+    gap: 3px;
+  }
+  .menu-item.menu-item--no-image .item-content-meta {
+    margin-top: 5px;
+  }
+  .menu-item.menu-item--no-image .item-action-area {
+    min-width: 86px;
+    gap: 4px;
+  }
+  .menu-item.menu-item--no-image .add-btn.add-btn--inline {
+    padding: 6px 16px;
+    font-size: var(--font-size-xs);
+  }
+  .menu-item.menu-item--no-image .customisable-indicator--inline {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .menu-item.menu-item--no-image {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .menu-item.menu-item--no-image .item-content-main {
+    gap: 2px;
+  }
+  .menu-item.menu-item--no-image .item-action-area {
+    min-width: 80px;
+  }
+  .menu-item.menu-item--no-image .add-btn.add-btn--inline {
+    padding: 6px 14px;
+  }
+  .menu-item.menu-item--no-image .customisable-indicator--inline {
+    font-size: 0.6rem;
+  }
+}
+
+/* CR-2026-09-07-001 — stock-out states */
+.sold-out-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #475569;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid #334155;
+  user-select: none;
+}
+
+.sold-out-badge--overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  left: 8px;
+  border-radius: 6px;
+  padding: 5px 0;
+  font-size: 0.65rem;
+  background: rgba(71, 85, 105, 0.92);
+  border: none;
+}
+
+.item-image--sold-out {
+  opacity: 0.55;
+  filter: grayscale(40%);
+}
+
+.low-stock-badge {
+  font-size: 0.675rem;
+  font-weight: 600;
+  color: #D97706;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}

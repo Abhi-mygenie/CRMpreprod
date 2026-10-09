@@ -1,0 +1,15 @@
+diff --git a/.gitignore b/.gitignore
+index 42f82af..7a64148 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -118,3 +118,10 @@ credentials.json
+ *.pem
+ *.key
+ .credentials
++
++
++# Allow committing EXAMPLE/TEMPLATE env files (placeholders only, no secrets) — GAP-015
++!.env.example
++!*.env.example
++!backend/.env.example
++!frontend/.env.example

@@ -1,0 +1,1882 @@
+- id: BUG-2026-02-XX-001
+  type: BUG
+  title: 'Delivery charge not calculated on Select-Address page even when the address is serviceable.
+    Root cause: distance API called with `order_value` hardcoded to `''0''`, so value-tiered rules evaluate
+    against zero'
+  status: SMOKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, QA_HANDOVER
+  registered: null
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: BUG-2026-09-08-001
+  type: BUG
+  title: '`response` not defined → 422 crash'
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT
+  registered: '2026-09-08'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: BUG-2026-09-10-001
+  type: BUG
+  title: Image upload writes to local disk (lost on pod restart)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT
+  registered: '2026-09-10'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: BUG-2026-10-06-001
+  type: BUG
+  title: Non-QR policy telemetry records blocks but never bypasses, so an unenforced order is invisible
+  status: SMOKE
+  status_note: 'SMOKE 2026-10-07: Role 4 QA PASS 11/11 (QA_REPORT.md, test_reports/iteration_1.json); owner smoke pending. Role 3 complete (E1–E6 applied, 6 files, self-test 11/16 PASS, 5 deferred to QA — see SELF_TEST.md,
+    QA_HANDOVER.md). PLANNING 2026-10-07 (Role 2): IMPACT_ANALYSIS.md written. Found rolling cap (200/rid) interaction — new D4.
+    Filed 2026-10-06 (Role 1) on owner instruction. postNonQrBlock sits inside `if (policy.block)`
+    at all 3 checkpoints, so the 4 real bypass reasons (valid-qr incl. every walk-in, rid-716-carveout,
+    edit-mode, non-dinein-mode) are never recorded — the allow path console.logs the decision to the customer''s
+    own browser instead. Endpoint, collection and index already exist and need no change. This is why
+    CR-2026-10-06-001 cannot be sized. Adjudicated contract status: INTAKE.'
+  priority: P1
+  risk: LOW
+  owner_action: 'Owner smoke (Role 8): send SMOKE_BRIEF.pdf to tester; reply "Smoke PASS/FAIL BUG-2026-10-06-001". On PASS → CLOSED'
+  blocked_on: []
+  sprint: null
+  files: frontend/src/utils/orderAccessPolicy.js:76-87 · frontend/src/pages/LandingPage.jsx:527-546 · frontend/src/pages/MenuItems.jsx:19,38,479-502
+    · frontend/src/pages/ReviewOrder.jsx:900-915 · backend/server.py:1657-1670,1700-1735 · backend/tests/smoke/test_bug_2026_10_06_001.py (new)
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, SELF_TEST, QA_HANDOVER, QA_REPORT, SMOKE_BRIEF
+  registered: '2026-10-06'
+  last_updated: '2026-10-07'
+  related:
+  - CR-2026-10-06-001
+  - CR-2026-10-06-002
+  - CR-2026-05-30-002
+  - CR-2026-07-04-004
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-02-XX-001
+  type: CR
+  title: Wrap 5 raw `fetch()` calls in `ReviewOrder.jsx` + `LandingPage.jsx` with `fetchWithTimeout` (8
+    s read / 15 s write) — residual exposure from PROD-INCIDENT-2026-07-02-001
+  status: SMOKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, QA_HANDOVER
+  registered: null
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-02-XX-002
+  type: CR
+  title: Restaurant 699 — ₹10 takeaway charge via `delivery_charge` (temporary, GAP-021)
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: null
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-04-11-001
+  type: CR
+  title: Order placement fixes
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: QA_HANDOVER
+  registered: '2026-04-11'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-05-30-001
+  type: CR
+  title: Config mandatory fields + table/room scan misrouting
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR
+  registered: '2026-05-30'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-05-30-002
+  type: CR
+  title: Restrict non-QR orders (policy workaround for the above)
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, IMPLEMENTATION_PLAN
+  registered: '2026-05-30'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-06-17-001
+  type: CR
+  title: Menu order enhancements (2 phases)
+  status: SMOKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, IMPACT_ANALYSIS, QA_REPORT
+  registered: '2026-06-17'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-06-17-002
+  type: CR
+  title: Channel preview in admin
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, IMPACT_ANALYSIS, QA_HANDOVER, QA_REPORT
+  registered: '2026-06-17'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-06-17-003
+  type: CR
+  title: Customer menu availability
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, IMPACT_ANALYSIS, QA_HANDOVER, QA_REPORT
+  registered: '2026-06-17'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-06-17-004
+  type: CR
+  title: Delivery GST backend key
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, IMPACT_ANALYSIS
+  registered: '2026-06-17'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-06-XX-001
+  type: CR
+  title: Architecture tier A (OTP echo · CORS · .env.example · CI) — superseded, every part shipped under
+    its own CR
+  status: DUPLICATE
+  status_note: 'DUPLICATE — no residual scope. Was a proposed ID inside a June handover recommendation
+    ("most likely: CR-2026-06-XX-001-architecture-tier-a"), never filed. All four parts shipped as CR-2026-09-12-003
+    (OTP echo), CR-2026-09-12-004 (CORS), CR-2026-07-03-007 (.env.example), CR-2026-09-12-005 + CR-2026-09-12-015
+    (CI). Registered for traceability so it is not re-investigated again. Adjudicated contract status:
+    DUPLICATE — not writable today because registry_sync.py still validates the legacy 13-value enum.'
+  priority: null
+  risk: null
+  owner_action: none
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: null
+  last_updated: null
+  related:
+  - CR-2026-09-12-003
+  - CR-2026-09-12-004
+  - CR-2026-07-03-007
+  - CR-2026-09-12-005
+  - CR-2026-09-12-015
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-000
+  type: CR
+  title: Remove hardcoded POS login credentials from frontend bundle (Option 1 — FastAPI proxy for token
+    issuance)
+  status: SMOKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-001
+  type: CR
+  title: Theme cache busting (`?bustCache=1`)
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, QA_HANDOVER
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-002
+  type: CR
+  title: Remove dead `/api/restaurant-info/{id}` fetch
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-003
+  type: CR
+  title: Backend Mongo timeouts + `/api/healthz`
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, IMPLEMENTATION_PLAN, QA_HANDOVER
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-004
+  type: CR
+  title: Frontend fetch timeouts + AbortController + error UI (plumbing scope; AlertDialog + empty-state
+    deferred to follow-up)
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-005
+  type: CR
+  title: Theme `themeVersion` + dedup follow-ups
+  status: PLANNING
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-007
+  type: CR
+  title: Prod deploy env hardening (backend URL + secret rotation)
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, QA_HANDOVER, QA_REPORT
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-008
+  type: CR
+  title: Prod DB data quality remediation
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-009
+  type: CR
+  title: Observability + LB probe wiring (post CR-003)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-010
+  type: CR
+  title: Registry hygiene & ID-scheme canonicalization (BUG-NNN vs CR-YYYY-MM-DD-NNN; tombstones; stale
+    BUG_TRACKER_v2)
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-011
+  type: CR
+  title: Full POS-proxy refactor (proxy ALL POS write calls through FastAPI; remediates BUG-001/BUG-002)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-03-012
+  type: CR
+  title: Leaked-credential doc scrub (18 files) + CI lint rule for `REACT_APP__PASSWORD/SECRET/TOKEN`
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-04-002
+  type: CR
+  title: 'Registry finish-up (A: Alpha v0.1 ref update · B: 39-item reconciliation · C: legacy `memory_repo/change_requests/`
+    README)'
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-04-003
+  type: CR
+  title: CR-004 residual scope (empty-state on menu-load timeout + 5 AdminConfig CRUD timeout swaps)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-07-04-004
+  type: CR
+  title: Client telemetry to Mongo (POST fetch-timeout + React ErrorBoundary events, 30-day TTL, admin
+    read endpoint)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-08-03-001
+  type: CR
+  title: 716 hardcoding → config flags — adopted into programme
+  status: PLANNING
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on:
+  - party: POS
+    ref: POS data backfill for restaurant 716 required before shipping
+    since: '2026-10-03'
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN
+  registered: '2026-08-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-08-06-001
+  type: CR
+  title: Time-controlled ordering
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_REPORT
+  registered: '2026-08-06'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-07-001
+  type: CR
+  title: Inventory / stock-out control
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_REPORT
+  registered: '2026-09-07'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-08-001
+  type: CR
+  title: Menu item with no image + add-channel guard
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-08'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-001
+  type: CR
+  title: Architecture Correction Programme (umbrella)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-002
+  type: CR
+  title: QA backlog closure — 10 IMPLEMENTED/QA-pending items
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-003
+  type: CR
+  title: Remove OTP echo + persistent throttled OTP store (GAP-003)
+  status: PLANNING
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on:
+  - party: OWNER
+    ref: Confirm OTP works on real device; decide whether OTP feature is turned on
+    since: '2026-09-12'
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-004
+  type: CR
+  title: CORS hybrid static+regex allow-list + auth rate-limit + middleware stack (GAP-005/004)
+  status: SMOKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-005
+  type: CR
+  title: CI gate + API contract snapshots + smoke tests on UAT Mongo (GAP-009)
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-006
+  type: CR
+  title: Backend modular split + delete dead `/api/docs/` (GAP-013/018)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-007
+  type: CR
+  title: FE API-client facade + `session.js` storage facade (GAP-014/011)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-008
+  type: CR
+  title: FE `ProtectedRoute` / `RoleGuard` (GAP-006)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-009
+  type: CR
+  title: Remove `478` default → "Restaurant not found" page, `pos_id`, `+91` hardcoding
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-010
+  type: CR
+  title: Config defaults master → DB record, admin-editable, versioned (GAP-008)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-011
+  type: CR
+  title: Multi-brand tenant readiness (`resolveTenant`, `get_tenant()`, namespaced storage)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-012
+  type: CR
+  title: Thick-page decomposition — `ReviewOrder.jsx`
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-013
+  type: CR
+  title: Thick-page decomposition — Landing / DeliveryAddress / OrderSuccess / legacy AdminSettings
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-014
+  type: CR
+  title: Phase B — MySQL migration (INTAKE ONLY)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-015
+  type: CR
+  title: GitHub Actions CI workflow — Phase 2 of the CR-005 split
+  status: PLANNING
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on:
+  - party: OWNER
+    ref: Git access + 6 repo secrets + dependency close outstanding (Sprint Wave 2)
+    since: '2026-09-12'
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-016
+  type: CR
+  title: Delete the dead source references to REACT_APP_CRM_API_KEY and REACT_APP_RESTAURANT_ID
+  status: INTAKE
+  status_note: 'ID reserved 2026-09-12 by decision D-007-2 of CR-2026-07-03-007, which ended "Owner drives
+    Role 1 to file it" — filed 2026-10-06. Wave 3. V3 must run first: if either key is present in frontend/.env
+    the premise is void. Adjudicated contract status: INTAKE.'
+  priority: P3
+  risk: LOW
+  owner_action: none to unblock; schedule after CR-2026-09-12-006 to avoid merge contention
+  blocked_on: []
+  sprint: Wave 3
+  files: frontend/src (dead process.env references only; the 478 default in useRestaurantId.js is out
+    of scope — CR-2026-09-12-009 owns it)
+  artefacts: INTAKE
+  registered: '2026-10-06'
+  last_updated: null
+  related:
+  - CR-2026-07-03-007
+  - CR-2026-07-03-012
+  - CR-2026-09-12-009
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-12-017
+  type: CR
+  title: CRM SMS finalization for OTP — prereq for CR-003
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-14-001
+  type: CR
+  title: Comment out broken OTP SMS path — frontend (PasswordSetup OTP UI, crmSendOtp/Verify/ForgotPassword/ResetPassword),
+    backend (send-otp endpoint, otp_store, generate_otp, verify_otp, OTPRequest, reset-password, otpRequired
+    config), admin config (otpRequired + skipOtp admin toggles). Code commented with `OTP-DEFERRED` markup,
+    not deleted. Supersedes CR-003 Part A.
+  status: SMOKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER
+  registered: '2026-09-14'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: 'Exit condition "restore when live" is void — CRM CR-090 (2026-10-08) will never build OTP. Superseded by CR-2026-10-07-002 (permanent deletion).'
+- id: CR-2026-09-15-001
+  type: CR
+  title: 'Profile → CRM v2 adapter: orders/points/wallet via `/scan/`, points sign mapping, `order_type`
+    labels, wallet-tab gating (G1–G5)'
+  status: IMPLEMENTATION
+  status_note: 'Implemented 2026-10-08 (Role 3). E1–E13 applied: crmGetOrders/Points/Wallet v2 branches,
+    isPointsCredit fix, ORDER_TYPE_LABELS, showWallet gate, ordersTotal D4. Build clean. ST1–ST6 PASS.
+    Option A for wallet transaction_type (unconfirmed — empty probe).'
+  priority: P1
+  risk: HIGH
+  owner_action: 'QA + smoke; say "Smoke PASS CR-2026-09-15-001" to close'
+  blocked_on: []
+  sprint: null
+  files: frontend/src/api/services/crmService.js · frontend/src/pages/Profile.jsx
+  artefacts: INTAKE · IMPACT_ANALYSIS · IMPLEMENTATION_PLAN
+  registered: '2026-09-15'
+  last_updated: '2026-10-08'
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-15-002
+  type: CR
+  title: Remove dead skip-otp 409/429/Retry-After branches (OD-3 accept)
+  status: CLOSED
+  status_note: 'CLOSED 2026-10-08 — folded into CR-2026-10-08-001 Step 1 (E5 + E6). 409 branch replaced with
+    guest-degrade; 429 exhausted surfaces Retry-After wait-time toast in LandingPage.jsx.'
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: frontend/src/pages/LandingPage.jsx:434-503
+  artefacts: CLOSED-FOLDED
+  registered: '2026-09-15'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-09-15-003
+  type: CR
+  title: 'Canonical phone alignment POS↔CRM↔App: `extractPhoneNumber` blanks non-`+91` numbers (order
+    unlinkable)'
+  status: PARKED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-15'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: 'CRM reply 2026-10-08: CRM owns normalisation (CR-085, before 27 Oct). Our residual = send phone digits + country_code separately on lookup/skip-otp/feedback; L6 India-only needs owner re-ruling (contract v2). Re-open after CR-085.'
+- id: CR-2026-09-15-004
+  type: CR
+  title: Remove admin login direct read of CRM `users`. Direction D (POS direct). P0 projection sub-item.
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-15'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: 'Scope add 2026-10-09 (CR-2026-10-03-001 D3 ruling): also delete dead frontend AuthContext.login() (calls old /api/auth/login diner branch; 0 callers).'
+- id: CR-2026-10-03-001
+  type: CR
+  title: Delete the 14 dead CRM-table call sites in `server.py` (legacy customer API shim)
+  status: SMOKE
+  status_note: 'Gate 3 accepted 2026-10-09; Role 3 executed E1-E12 bottom-up (server.py 1741→1367, -378/+5). Self-test 12/12 · 31/31 smoke · 14/14 contract. Testing agent iteration_8: 28/28 + 61/61 regression, retest_needed=false. QA_HANDOVER + SMOKE_BRIEF(.pdf) written. Awaiting owner smoke.'
+  priority: P3
+  risk: HIGH
+  owner_action: 'Run SMOKE_BRIEF (3 steps) → reply "Smoke PASS CR-2026-10-03-001"'
+  blocked_on: []
+  sprint: null
+  files: backend/server.py (E1-E11) · backend/tests/smoke/test_cr_2026_10_03_001.py (new) · backend/tests/smoke/test_cr_2026_10_03_001_extras.py (new, testing agent)
+  artefacts: INTAKE · IMPACT_ANALYSIS · IMPLEMENTATION_PLAN · QA_HANDOVER · SMOKE_BRIEF · SMOKE_BRIEF.pdf · test_reports/iteration_8.json
+  registered: '2026-10-03'
+  last_updated: '2026-10-09'
+  related:
+  - CR-2026-09-15-004
+  - CR-2026-10-03-004
+  - CR-2026-10-03-002
+  - CR-2026-09-12-006
+  - INV-2026-09-15-003
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: 'GET /config/feedback/{rid} removed by CR-2026-10-03-003 (2026-10-07) — dead-route count 14 → 13.'
+- id: CR-2026-10-03-002
+  type: CR
+  title: BUG (security) — admin-auth `db.users` reads load CRM's `api_key`/`authkey_api_key`/`mygenie_token`;
+    add a projection
+  status: SMOKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER
+  registered: '2026-10-03'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-03-003
+  type: CR
+  title: BUG (data integrity) — feedback written into CRM's `feedback` collection in our own schema, unreadable
+    by anyone; migrate to `POST /scan/feedback`
+  status: SMOKE
+  status_note: 'SMOKE 2026-10-07: Role 4 QA PASS 11/11 (QA_REPORT.md, test_reports/iteration_2.json); owner smoke pending. Role 3 complete (E1–E4 + contract test update + setRestaurantScope restore; self-test 9/12 PASS, T2 partial = CR-2026-09-15-001, T4/T6 → QA). PLANNING 2026-10-07 (Role 2): IMPACT_ANALYSIS.md written. CRM token path shipped; anonymous/hybrid path
+    (CR-096) re-probed → still 403. Recommend ship token-only now (D2a).'
+  priority: P1
+  risk: CRITICAL
+  owner_action: 'Send SMOKE_BRIEF.pdf to tester; send CRM_NOTE_FEEDBACK_PURGE.md to CRM (D3=a). On "Smoke PASS CR-2026-10-03-003" → CLOSED'
+  blocked_on: []
+  sprint: null
+  files: frontend/src/api/services/crmService.js:403-413 · frontend/src/pages/FeedbackPage.jsx · frontend/src/pages/FeedbackPage.css
+    · backend/server.py:1293-1297 (deleted block + marker) · backend/tests/smoke/test_cr_2026_10_03_003.py (new)
+    · backend/tests/contracts/test_public_config.py (test_config_feedback_478 → route gone)
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, SELF_TEST, QA_HANDOVER, CRM_NOTE, QA_REPORT, SMOKE_BRIEF
+  registered: '2026-10-03'
+  last_updated: '2026-10-07'
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-03-004
+  type: CR
+  title: 'Pre-login reads → CRM API: `check-customer` → `/scan/auth/lookup`, `loyalty-settings` → `/scan/loyalty-rules/{rid}`,
+    retire `customer-lookup` (F2 = a)'
+  status: IMPLEMENTATION
+  status_note: 'Part A implemented 2026-10-08 (Role 3). E1–E6 applied: crmLookupCustomer added to
+    crmService.js, both LandingPage call sites swapped, backend check-customer route + CheckCustomerRequest
+    model deleted. Backend RUNNING, build clean, ST1–ST6 PASS. Parts B/C blocked on CRM CR-094 (loyalty-rules). | 2026-10-09: CR-094 LIVE on preview (33 keys, per-tier redemption) → Parts B+C UNBLOCKED. Gaps G1-G7 for planning in inbox/VALIDATION_OF_CRM_CR094_CR096_NOTE_2026-10-09.md.'
+  priority: P1
+  risk: CRITICAL
+  owner_action: 'QA + smoke Part A; Parts B/C await CRM CR-094'
+  blocked_on: []
+  sprint: null
+  files: frontend/src/api/services/crmService.js · frontend/src/pages/LandingPage.jsx · backend/server.py
+  artefacts: INTAKE · IMPACT_ANALYSIS · IMPLEMENTATION_PLAN
+  registered: '2026-10-03'
+  last_updated: '2026-10-08'
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: 'Part A done. Parts B (loyalty-rules swap in ReviewOrder) + C (customer-lookup retirement) blocked on CRM CR-094.'
+- id: CR-2026-10-03-005
+  type: CR
+  title: BUG (customer-visible) — Call Waiter / Pay Bill buttons are silent no-ops in the live UI
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-10-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-03-006
+  type: CR
+  title: Franchise support — an admin managing several outlets must be able to choose which one they administer
+    (POS confirmed `restaurants[]` can hold multiple entries)
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-10-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-04-001
+  type: CR
+  title: '`GET /api/table-config` falls back to CRM''s `users.mygenie_token`, pinning one CRM secret to
+    the admin auth path'
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-10-04'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-04-002
+  type: CR
+  title: 'BUG (test infra) — suite could not run: self-inflicted 429 from CR-2026-09-12-004''s own rate
+    limit, wrong `testpaths`, plugins absent from pod'
+  status: SMOKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN
+  registered: '2026-10-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-04-003
+  type: CR
+  title: BUG — hard reload of any `/admin/` route logged the admin out; `AdminLayout` redirected before
+    `AuthContext` restored the session
+  status: DUPLICATE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN
+  registered: '2026-10-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-04-004
+  type: CR
+  title: Registry reconciliation — 23 unregistered items; 15 code markers referencing unregistered IDs;
+    findings F1–F7
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-10-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-04-005
+  type: CR
+  title: Takeaway surcharge shipped estate-wide from POS `takeaway_charges` instead of the 699-only hardcode
+    requested, without its recorded approval
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-10-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-04-006
+  type: CR
+  title: Google Sheet registry mirror (intake rev 2) — machine-readable index (YAML/JSON) as source of
+    truth, generating both these markdown tables and the Sheet. One-way only; an append-only change log
+    replaces sync-back. Requests a new ROLE 13 — REGISTRAR in the operating prompt
+  status: PLANNING
+  status_note: 'Baseline shipped 2026-10-05 (exit gate 7/7, self-test 9/9); owner smoke never performed
+    and now deliberately skipped (D-A5) because the amendment rewrites that code. Contract v1.2 merged
+    2026-10-06 — all 3 SO-raised defects closed (A and C in v1.1; B as D-A8, resolved at 3 accepted columns
+    against SO''s 1-column recommendation). Amendment carries 21 changes, 36 verifications, risk MEDIUM
+    per owner ruling R2. IMPACT_ANALYSIS_AMENDMENT.md rev 3 + IMPLEMENTATION_PLAN_AMENDMENT.md written;
+    GATE 2 PASSED — owner accepted the plan line-by-line 2026-10-06 and accepted the open items (D-A2
+    OAuth publishing status, 7th ask; column M protected by omission) as known risks. 13 phases; P6 is
+    a hard gate; the first push after P6 is irreversible. Awaiting "Role 3 approved". Adjudicated contract
+    status: PLANNING.'
+  priority: null
+  risk: MEDIUM
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER
+  registered: '2026-10-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-06-001
+  type: CR
+  title: Enforce the non-QR order block — walk-in QR is exempt and the table-status check skips when table_id
+    is '0'
+  status: INTAKE
+  status_note: 'Fix CR for INV-2026-06-17-001, whose report was written 2026-06-17 and never got one.
+    All 3 bypass paths re-verified live this session (orderAccessPolicy.js:20/63, ReviewOrder.jsx:1168/1281,
+    no server-side enforcement). Owner must rule on option A/B/C/D; only B closes BP-3. Adjudicated contract
+    status: INTAKE.'
+  priority: P1
+  risk: HIGH
+  owner_action: rule on option A/B/C/D (§4 of the intake) — if B, plan jointly with CR-2026-07-03-011
+  blocked_on: []
+  sprint: null
+  files: frontend/src/utils/orderAccessPolicy.js · frontend/src/pages/ReviewOrder.jsx · frontend/src/hooks/useScannedTable.js
+    · backend/server.py (option B only)
+  artefacts: INTAKE
+  registered: '2026-10-06'
+  last_updated: null
+  related:
+  - INV-2026-06-17-001
+  - CR-2026-07-03-011
+  - CR-2026-10-06-002
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-06-002
+  type: CR
+  title: Multi-menu restaurants skip the table/room status check at landing, and the manually-picked room
+    is never validated
+  status: INTAKE
+  status_note: 'Fix CR for INV-2026-06-17-003, whose report was written 2026-06-17 and never got one.
+    Skip re-verified live (LandingPage.jsx:232/278/883, ReviewOrder.jsx:1153/1281 keyed to the literal
+    ''716''). Severity raised P2 to P1 — rationale in intake §7, needs owner ratification. Adjudicated
+    contract status: INTAKE.'
+  priority: P1
+  risk: HIGH
+  owner_action: answer Q1-Q3 (§4) and ratify the P1 upgrade; Q3 overlaps CR-2026-08-03-001, which is HELD
+  blocked_on: []
+  sprint: null
+  files: frontend/src/pages/LandingPage.jsx · frontend/src/pages/ReviewOrder.jsx · frontend/src/api/utils/restaurantIdConfig.js
+  artefacts: INTAKE
+  registered: '2026-10-06'
+  last_updated: null
+  related:
+  - INV-2026-06-17-003
+  - CR-2026-08-03-001
+  - CR-2026-09-12-009
+  - CR-2026-10-06-001
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-XX-XX-001
+  type: CR
+  title: '`round_up` payload gap'
+  status: null
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: ''
+  registered: null
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-05-01-001
+  type: INV
+  title: 'Metadata branch diff: `main` vs `14-may`'
+  status: null
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: ''
+  registered: '2026-05-01'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-06-17-001
+  type: INV
+  title: Table-less order received despite the non-QR block
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: ''
+  registered: '2026-06-17'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-06-17-002
+  type: INV
+  title: Menu-order admin interface — full data flow (+ default ordering, POS payload mapping)
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: ''
+  registered: '2026-06-17'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-06-17-003
+  type: INV
+  title: Room QR scan flow — status check, UI states, new-order capability
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: ''
+  registered: '2026-06-17'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-07-03-001
+  type: INV
+  title: Order-create idempotency AUDIT
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: CR, INTAKE
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-07-03-002
+  type: INV
+  title: Restaurant 709 provisioning
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-07-03-003
+  type: INV
+  title: Restaurant 698 provisioning
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-07-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-08-03-001
+  type: INV
+  title: Hyatt (716) hardcoding audit — 27 code-level hardcodings across 8 files, plus 3 other hardcoding
+    classes
+  status: CLOSED
+  status_note: 'Registered retroactively 2026-10-06 (Role 1). Report complete since 2026-08-03 with a
+    full Role 6 closing block (10/10 steps, HIGH confidence) but had no folder and no row. Adjudicated
+    contract status: CLOSED — resolved/subsumed by CR-2026-08-03-001, which is HELD pending a POS data
+    backfill.'
+  priority: P2
+  risk: LOW
+  owner_action: none — remediation stays with CR-2026-08-03-001
+  blocked_on: []
+  sprint: null
+  files: /app/memory/INV-2026-08-03-001-716-HARDCODING-REPORT.md (report held at memory root; cited by
+    absolute path from 3 documents)
+  artefacts: INTAKE
+  registered: '2026-08-03'
+  last_updated: null
+  related:
+  - CR-2026-08-03-001
+  - CR-2026-09-12-009
+  - CR-2026-09-12-010
+  - CR-2026-10-06-002
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-08-06-001
+  type: INV
+  title: Admin QR page — POS token expiry handling and direct order-type QR codes (reconstructed from
+    live code markers)
+  status: IMPLEMENTED
+  status_note: 'Was audit finding F2 of CR-2026-10-04-004 — a ghost ID in live code with no folder and
+    no row, origin recorded as unknown. Folder created and intake reconstructed on owner instruction 2026-10-06.
+    Fixes 2a and 2b are live and never owner-verified; a fix 1 is implied by the numbering and carries
+    no marker. Adjudicated contract status: IMPLEMENTED.'
+  priority: P2
+  risk: LOW
+  owner_action: optional — QA of fix 2a/2b rides on CR-2026-10-04-001, which owns the same file
+  blocked_on: []
+  sprint: null
+  files: frontend/src/pages/admin/AdminQRPage.jsx (markers at :105 fix 2a, :355 fix 2b)
+  artefacts: INTAKE
+  registered: '2026-08-06'
+  last_updated: null
+  related:
+  - CR-2026-10-04-001
+  - CR-2026-10-06-001
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-09-10-001
+  type: INV
+  title: Logo upload → Emergent object storage
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: ''
+  registered: '2026-09-10'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-09-12-001
+  type: INV
+  title: Legacy `customer/` routes + `AdminSettings.jsx` usage trace (GAP-020)
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on:
+  - party: OWNER
+    ref: Deletion wording withdrawn pending owner decision
+    since: '2026-09-12'
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-12'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-09-15-001
+  type: INV
+  title: Profile page Orders/Points/Wallet tabs 404 on CRM v2 (`crmGetOrders/Points/Wallet` still on v1
+    `/customer/me/`) + CRM contract verification request incl. OTP routes
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-15'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-09-15-002
+  type: INV
+  title: Shared-MongoDB collection ownership map (reads/writes, defaults, config write-lock OD-7, auth-secret
+    overlap) — gates CR-006/010/014
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-09-15'
+  last_updated: null
+  related: []
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-09-15-003
+  type: INV
+  title: Direct CRM-table access audit — 8 collections, 20 sites (14 dead / 6 live). CRM reply INV-022
+    validated.
+  status: CLOSED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: ''
+  registered: '2026-09-15'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-10-03-001
+  type: INV
+  title: Production-grade secrets and real customer PII in UAT / preprod — static `dp_live_` CRM credential;
+    shared UAT DB holds real PII incl. 114 `customer_documents`
+  status: INTAKE
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-10-03'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: INV-2026-10-04-001
+  type: INV
+  title: Legacy `BUG-NNN` status reconstruction — 19 IDs survive across 33 docs with no status source;
+    prompt claimed 10 open incl. 2× P0
+  status: INTAKE
+  status_note: 'CORRECTED 2026-10-06 (Role 1): the set is 20, not 19 — BUG-042 was missing. Root cause:
+    the ID set was built from documents and never cross-checked against source; a grep of memory/, backend/,
+    frontend/src and tests/ returns 20. Role 6 must re-derive the set from source, not from the intake
+    doc. See INTAKE_PASS_2026-10-06.md and the intake''s new §6a.'
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: INTAKE
+  registered: '2026-10-04'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: PROD-INCIDENT-2026-07-02-001
+  type: PROD-INCIDENT
+  title: Atlas slowness → frozen customer tab
+  status: IMPLEMENTED
+  status_note: null
+  priority: null
+  risk: null
+  owner_action: null
+  blocked_on: []
+  sprint: null
+  files: null
+  artefacts: ''
+  registered: '2026-07-02'
+  last_updated: null
+  related: []
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: null
+- id: CR-2026-10-07-001
+  type: CR
+  title: Feedback for diners without a CRM session — hybrid {phone, restaurant_id} path to POST /scan/feedback
+    (follow-up to CR-2026-10-03-003 D10=a; depends on CRM CR-096)
+  status: INTAKE
+  status_note: 'Registered 2026-10-07 (Role 1) on owner ruling D10=a. Closes gaps G1–G4 of CR-2026-10-03-003 §9.
+    CRM no-token POST /scan/feedback returns 403 today; CR-096 is CRM Wave 3. | 2026-10-09: CR-096 LIVE on preview (hybrid feedback, 6 cases verified) → UNBLOCKED. Plan after CR-2026-10-03-004 B+C.'
+  priority: P2
+  risk: MEDIUM
+  owner_action: none until CRM wave log shows CR-096 CONFIRMED; then re-probe and open Planning
+  blocked_on: []
+  sprint: null
+  files: frontend/src/pages/FeedbackPage.jsx · frontend/src/api/services/crmService.js
+  artefacts: INTAKE
+  registered: '2026-10-07'
+  last_updated: null
+  related:
+  - CR-2026-10-03-003
+  - CR-2026-09-14-001
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: 'Source: memory/inbox/WAVE_CHANGE_LOG_FOR_SCAN_ORDER_AND_POS_AGENTS_2026-10-07.md'
+- id: CR-2026-10-07-002
+  type: CR
+  title: Permanently delete the OTP-DEFERRED code (31 markers, 8 files); retire the "restore when live" condition of
+    CR-2026-09-14-001; confirm to CRM (CR-084) on exit
+  status: IMPLEMENTATION
+  status_note: 'Implemented 2026-10-08 (Role 3). All 26 edits applied: crmSendOtp/crmVerifyOtp/crmForgotPassword/crmResetPassword
+    deleted from crmService.js; 10 OTP blocks deleted from PasswordSetup.jsx; sendOTP deleted from AuthContext.jsx;
+    admin sections deleted from AdminVisibilityPage.jsx + VisibilityTab.jsx; 8 server.py sections deleted.
+    ST1-ST4 PASS (0 OTP-DEFERRED markers). Build clean 29s. Backend RUNNING.
+    CRM_CONFIRMATION_NOTE.md written for owner to send (CR-084 closure).'
+  priority: P2
+  risk: LOW
+  owner_action: 'QA + smoke; send CRM_CONFIRMATION_NOTE.md to CRM; say "Smoke PASS CR-2026-10-07-002" to close'
+  blocked_on: []
+  sprint: null
+  files: frontend/src/api/services/crmService.js · frontend/src/pages/PasswordSetup.jsx · frontend/src/context/AuthContext.jsx
+    · frontend/src/components/AdminSettings/VisibilityTab.jsx · frontend/src/pages/admin/AdminVisibilityPage.jsx
+    · backend/server.py
+  artefacts: INTAKE · IMPACT_ANALYSIS · IMPLEMENTATION_PLAN
+  registered: '2026-10-07'
+  last_updated: '2026-10-08'
+  related:
+  - CR-2026-09-14-001
+  - CR-2026-10-07-001
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: 'Process risk HIGH: server.py + AuthContext.jsx + PasswordSetup.jsx are hotspots → §5.1 + §5.2 regression. Source: memory/inbox/WAVE_CHANGE_LOG_…2026-10-07.md'
+- id: CR-2026-10-08-001
+  type: CR
+  title: 'Single diner identity path = skip-otp: remove /password-setup, retire skipOtp* flags, landing = phone → (lookup)
+    → skip-otp → token (CRM rulings a/b 2026-10-08; CRM CR-098 deletes register/login w/c 13 Oct 2026)'
+  status: IMPLEMENTATION
+  status_note: 'Step 1 implemented 2026-10-08 (Role 3). E1-E8d applied: gate removed LandingPage.jsx, 409→guest,
+    429→wait-toast, D3 delivery fix, /:rid/password-setup redirects. Build clean. Self-test 7/7 PASS.
+    CR-2026-09-15-002 folded (closed). Step 2 (delete PasswordSetup, otpPolicy, crmRegister/crmLogin, retire skipOtp*
+    from server.py/contexts) blocked on CRM CR-098 CONFIRMED.'
+  priority: P1
+  risk: HIGH
+  owner_action: 'QA + smoke; say "Smoke PASS CR-2026-10-08-001" to close Step 1'
+  blocked_on: []
+  sprint: null
+  files: frontend/src/pages/LandingPage.jsx · frontend/src/App.js
+  artefacts: INTAKE · IMPACT_ANALYSIS · IMPLEMENTATION_PLAN
+  registered: '2026-10-08'
+  last_updated: '2026-10-08'
+  related:
+  - CR-2026-10-07-002
+  - CR-2026-09-15-002
+  - CR-2026-10-03-004
+  - CR-2026-09-14-001
+  code_markers: true
+  money_path: null
+  closed: null
+  notes: 'Source: memory/inbox/CRM_REPLY_IDENTITY_RULINGS_2026-10-08.md · impact: memory/inbox/IMPACT_OF_CRM_REPLY_2026-10-08.md'
+- id: CR-2026-10-09-001
+  type: CR
+  title: 'Customer App side of CRM CR-095 — confirm zero callers of the 4 orphan `/scan/config` + `/scan/menu/dietary-tags`
+    routes, rule on the sequencing gate (CA-2/CA-8), verify after CRM removes them, countersign ownership-map §4d'
+  status: IMPLEMENTATION
+  status_note: 'Gate 3 accepted 2026-10-09. Phase 1 done (Role 3): pre-flight 0 callers, baseline 13/0 docs, CONFIRMATION_NOTE_TO_CRM.md drafted (CA-2/4/5/8 in one). Owner to send. Phase 2 (E3-E5 verification) blocked on CRM shipping CR-095. Phase 3 (§4d): D3 RULED — owner signs the row personally; E1 prepares the text, does not mark it.'
+  priority: P2
+  risk: LOW
+  owner_action: 'Send CONFIRMATION_NOTE_TO_CRM.md to CRM; say "CRM shipped CR-095" to trigger Phase 2; sign §4d row yourself after Phase 2 PASS'
+  blocked_on:
+  - party: CRM
+    ref: CR-095 ship confirmation — gates Phase 2 (E3-E5) + Phase 3 (§4d)
+    since: '2026-10-09'
+  sprint: null
+  files: null
+  artefacts: INTAKE · IMPACT_ANALYSIS · IMPLEMENTATION_PLAN · CONFIRMATION_NOTE_TO_CRM
+  registered: '2026-10-09'
+  last_updated: '2026-10-09'
+  related:
+  - CR-2026-10-03-004
+  - CR-2026-10-03-001
+  - CR-2026-09-15-004
+  - INV-2026-09-15-002
+  - INV-2026-09-15-003
+  code_markers: false
+  money_path: null
+  closed: null
+  notes: 'Source: memory/inbox/CRM_REPLY_VALIDATIONS_ACCEPTED_CR102_2026-10-09.md (CA-2 + CA-8 bounce-backs). Contract §4d already CRM-signed 2026-10-03.'

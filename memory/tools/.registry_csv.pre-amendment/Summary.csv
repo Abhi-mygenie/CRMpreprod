@@ -1,0 +1,40 @@
+REGISTRY SUMMARY · generated 2026-10-06 06:43 UTC · one-way mirror of index.yml · READ-ONLY
+
+Block 1 — pipeline funnel
+Gate tab,Items
+Intake,3
+Planning,0
+Implemented,0
+QA,0
+Smoke,0
+Closed,0
+Unrouted (status not adjudicated),83
+TOTAL,86
+
+Block 2 — risk at a glance
+Metric,Value
+Severity P0,0
+Severity P1,2
+Severity P2,2
+Severity P3,1
+Risk HIGH or CRITICAL,2
+Money-path items,0
+
+Block 3 — who is holding us up
+Party,Blockers
+POS,0
+CRM,0
+OWNER,0
+OPS,0
+INTERNAL,0
+
+Block 4 — trust indicators (can this registry be believed?)
+Metric,Value
+Items indexed,86
+Status NOT yet adjudicated by owner,83
+Delivered (implemented or beyond),0
+Dropped / parked / reverted,0
+Live code markers but status REGISTERED (F1 tripwire),0
+Items with live code markers,28
+index.yml <-> README divergence,3
+last_updated unavailable for history (by design),86

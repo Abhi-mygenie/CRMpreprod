@@ -1,0 +1,108 @@
+/* Filter Panel */
+.filter-panel {
+  background-color: var(--bg-primary);
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border-top: 2px solid var(--border-medium);
+  border-bottom: 2px solid var(--border-medium);
+  margin-bottom: var(--spacing-lg);
+  position: sticky;
+  top: 0px;
+  z-index: 99;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filter-panel::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-option {
+  padding: 10px var(--spacing-lg);
+  border: 2px solid var(--border-medium);
+  border-radius: 20px;
+  background-color: var(--bg-primary);
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  white-space: nowrap;
+}
+
+.filter-option:hover {
+  border-color: var(--border-primary);
+  background-color: var(--bg-light-blue);
+}
+
+.filter-option.active {
+  background-color: var(--color-primary);
+  border-color: var(--border-primary);
+  color: var(--text-white);
+}
+
+.filter-option.active .veg .veg-dot {
+  background-color: var(--color-veg);
+}
+
+.filter-option.active .non-veg .veg-dot {
+  background-color: var(--color-non-veg);
+}
+
+.filter-option.active .egg .veg-dot {
+  background-color: var(--color-egg);
+}
+
+.filter-text {
+  font-size: var(--font-size-sm);
+}
+
+/* Veg/Non-Veg/Egg Indicators */
+.veg,
+.non-veg,
+.egg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid;
+  border-radius: 2px;
+}
+
+.veg {
+  border-color: var(--border-veg);
+}
+
+.non-veg {
+  border-color: var(--border-non-veg);
+}
+
+.egg {
+  border-color: var(--border-egg);
+}
+
+.veg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+}
+
+.veg .veg-dot {
+  background-color: var(--color-veg);
+}
+
+.non-veg .veg-dot {
+  background-color: var(--color-non-veg);
+}
+
+.egg .veg-dot {
+  background-color: var(--color-egg);
+}

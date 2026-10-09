@@ -1,0 +1,193 @@
+/* Category Navigation - Horizontal Scrollable Row */
+.category-nav {
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  padding: var(--spacing-base) var(--spacing-base);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.category-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 72px;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+}
+
+.category-box {
+  width: 68px;
+  height: 68px;
+  background: transparent;
+  background-color: transparent;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-container-lg);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.category-box:focus,
+.category-box:active,
+.category-box:focus-visible {
+  outline: none;
+  background: transparent;
+  -webkit-appearance: none;
+}
+
+.category-box.selected {
+  border-color: var(--color-primary);
+  border-width: 2px;
+  position: relative;
+  background: transparent;
+}
+
+.category-box.selected::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 20%;
+  right: 20%;
+  height: 2.5px;
+  background-color: var(--color-primary);
+  border-radius: 2px;
+}
+
+.category-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.category-box svg {
+  width: 40%;
+  height: 40%;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.category-box.selected svg {
+  color: var(--color-primary-darkest, #8B3112);
+}
+
+.category-name {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  letter-spacing: 0.2px;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  width: 72px;
+  overflow: hidden;
+  line-height: 1.3;
+  max-height: 2.6em;
+}
+
+.category-item:has(.category-box.selected) .category-name {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.category-item:has(.category-box.selected) {
+  background: transparent;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .category-item {
+    width: 80px;
+  }
+
+  .category-box {
+    width: 76px;
+    height: 76px;
+  }
+
+  .category-name {
+    font-size: 0.65rem;
+    width: 80px;
+  }
+}
+
+@media (max-width: 375px) {
+  .category-item {
+    width: 64px;
+  }
+
+  .category-box {
+    width: 60px;
+    height: 60px;
+  }
+
+  .category-name {
+    font-size: 0.55rem;
+    width: 64px;
+  }
+
+  .category-nav {
+    gap: 10px;
+    padding: var(--spacing-sm) var(--spacing-sm);
+  }
+}
+
+/* ─── No-image fallback: first-letter initial tile ─────────────────────── */
+/* Replaces the POS default placeholder PNG (food-default-image.png) with a
+   clean initial glyph, so each category in the rail is distinguishable
+   instead of all showing the same grey icon.
+
+   Background uses `color-mix(srgb, --color-primary 12%, white)` so the
+   tile auto-tints to whatever the active theme's brand color is (orange,
+   blue, green, etc.). Older browsers fall through to a neutral grey. */
+.category-box-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  /* Theme-aware tint via --color-primary-pale (color-mix at the token level) */
+  background-color: var(--color-primary-pale);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* Selected state: invert — solid brand background, white letter. */
+.category-box.selected .category-box-initial {
+  color: var(--text-white, #ffffff);
+  background-color: var(--color-primary);
+}
+
+/* Tablet / desktop sizing */
+@media (min-width: 768px) {
+  .category-box-initial { font-size: 1.8rem; }
+}
+
+/* Tiny mobile sizing */
+@media (max-width: 375px) {
+  .category-box-initial { font-size: 1.4rem; }
+}

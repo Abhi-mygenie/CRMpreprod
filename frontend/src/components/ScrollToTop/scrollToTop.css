@@ -1,0 +1,14 @@
+.page-transition {
+    animation: pageEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    /* will-change: transform; */
+  }
+  
+  @keyframes pageEnter {
+    from {
+      transform: translateY(30px);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  

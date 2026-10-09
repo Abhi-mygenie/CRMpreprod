@@ -1,0 +1,248 @@
+/* Previous Order Items Section */
+.previous-order-section {
+  background-color: var(--bg-secondary, #f5f5f5);
+  border-radius: var(--radius-container-md, 8px);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-light, #e0e0e0);
+}
+
+.previous-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.previous-order-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.previous-order-lock-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary, #888);
+}
+
+.previous-order-title {
+  font-family: var(--font-heading, 'Montserrat', sans-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  margin: 0;
+}
+
+.previous-order-id {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #888);
+  background-color: var(--bg-tertiary, #e8e8e8);
+  padding: 4px 8px;
+  border-radius: var(--radius-button, 4px);
+}
+
+.previous-order-subtitle {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #888);
+  margin: 0 0 12px 26px;
+}
+
+/* Items List */
+.previous-order-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.previous-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px 8px;
+  background-color: transparent;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border-light, #eee);
+  opacity: 0.85;
+  gap: 8px;
+}
+
+.previous-order-item:last-child {
+  border-bottom: none;
+}
+
+.previous-order-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.previous-order-item-name {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.previous-order-item-customization {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.7rem;
+  color: var(--text-secondary, #666);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right side - Quantity, Price, Status - all inline */
+.previous-order-item-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.previous-order-item-quantity {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  padding: 1px 4px;
+}
+
+.previous-order-item-price {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+/* ── Item Status Badges ───────────────────── */
+
+.item-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.55rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid;
+}
+
+.item-status-badge svg {
+  width: 8px;
+  height: 8px;
+}
+
+.item-status-label {
+  line-height: 1;
+}
+
+/* Pending - Orange/Amber (Yet to be confirmed) */
+.status-pending {
+  background: #FEF3C7;
+  color: #D97706;
+  border-color: #F59E0B;
+}
+
+/* Preparing - Orange/Amber */
+.status-preparing {
+  background: #FEF3C7;
+  color: #D97706;
+  border-color: #F59E0B;
+}
+
+.status-preparing svg,
+.status-pending svg {
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Ready - Green */
+.status-ready {
+  background: #D1FAE5;
+  color: #059669;
+  border-color: #10B981;
+}
+
+/* Served - Gray */
+.status-served {
+  background: #F3F4F6;
+  color: #6B7280;
+  border-color: #9CA3AF;
+}
+
+/* Cancelled - Red */
+.status-cancelled {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #EF4444;
+}
+
+/* Paid - Blue */
+.status-paid {
+  background: #DBEAFE;
+  color: #2563EB;
+  border-color: #3B82F6;
+}
+
+/* Subtotal */
+.previous-order-subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light, #ddd);
+}
+
+.previous-order-subtotal-label {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+}
+
+.previous-order-subtotal-value {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .previous-order-section {
+    padding: 8px 10px;
+  }
+
+  .previous-order-title {
+    font-size: 0.85rem;
+  }
+
+  .previous-order-item {
+    padding: 5px 6px;
+  }
+
+  .previous-order-item-name {
+    font-size: 0.75rem;
+  }
+
+  .previous-order-item-price {
+    font-size: 0.75rem;
+  }
+}

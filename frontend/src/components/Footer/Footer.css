@@ -1,0 +1,130 @@
+/* Footer Section */
+.menu-footer {
+  margin-top: 40px;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-medium);
+}
+
+.footer-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.footer-section:last-child {
+  margin-bottom: 0;
+}
+
+.footer-heading {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  margin: 0 0 var(--spacing-base) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.footer-list {
+  list-style: disc;
+  padding-left: var(--spacing-lg);
+  margin: 0;
+}
+
+.footer-list li {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.6;
+}
+
+.allergen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 5px;
+  margin-top: var(--spacing-base);
+}
+
+.allergen-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-fast);
+}
+
+.allergen-item:hover {
+  transform: translateY(-2px);
+}
+
+.allergen-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  /* For SVG elements (React Icons) */
+  flex-shrink: 0;
+  display: inline-block;
+  color: #0c3f56;
+}
+
+.allergen-label {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .menu-footer {
+    padding: var(--spacing-xl) var(--spacing-base);
+  }
+
+  .allergen-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 5px;
+  }
+
+  .allergen-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .allergen-label {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-footer {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .footer-heading {
+    font-size: var(--font-size-base);
+  }
+
+  .allergen-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 5px;
+  }
+
+  .allergen-item {
+    padding: var(--spacing-sm);
+  }
+
+  .allergen-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .allergen-label {
+    font-size: 0.6rem;
+  }
+}

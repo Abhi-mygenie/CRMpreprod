@@ -1,0 +1,80 @@
+All items — 78 total · 78 awaiting owner status adjudication · generated 2026-10-05 08:19 UTC · READ-ONLY
+ID,Type,Title,Status,Badge,Status note,Severity,Risk,Owner action,Blocked on,Next gate,Wave / track,Files,Artefacts,Registered,Last updated,Related,Code markers
+BUG-2026-02-XX-001,BUG,"Delivery charge not calculated on Select-Address page even when the address is serviceable. Root cause: distance API called with `order_value` hardcoded to `'0'`, so value-tiered rules evaluate against zero",,,,,,,,,,,"INTAKE, QA_HANDOVER",,,,YES
+BUG-2026-09-08-001,BUG,`response` not defined → 422 crash,,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT",2026-09-08,,,YES
+BUG-2026-09-10-001,BUG,Image upload writes to local disk (lost on pod restart),,,,,,,,,,,"INTAKE, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT",2026-09-10,,,YES
+CR-2026-02-XX-001,CR,Wrap 5 raw `fetch()` calls in `ReviewOrder.jsx` + `LandingPage.jsx` with `fetchWithTimeout` (8 s read / 15 s write) — residual exposure from PROD-INCIDENT-2026-07-02-001,,,,,,,,,,,"CR, QA_HANDOVER",,,,YES
+CR-2026-02-XX-002,CR,"Restaurant 699 — ₹10 takeaway charge via `delivery_charge` (temporary, GAP-021)",,,,,,,,,,,INTAKE,,,,YES
+CR-2026-04-11-001,CR,Order placement fixes,,,,,,,,,,,QA_HANDOVER,2026-04-11,,,no
+CR-2026-05-30-001,CR,Config mandatory fields + table/room scan misrouting,,,,,,,,,,,CR,2026-05-30,,,YES
+CR-2026-05-30-002,CR,Restrict non-QR orders (policy workaround for the above),,,,,,,,,,,"CR, IMPLEMENTATION_PLAN",2026-05-30,,,YES
+CR-2026-06-17-001,CR,Menu order enhancements (2 phases),,,,,,,,,,,"CR, IMPACT_ANALYSIS, QA_REPORT",2026-06-17,,,YES
+CR-2026-06-17-002,CR,Channel preview in admin,,,,,,,,,,,"CR, IMPACT_ANALYSIS, QA_HANDOVER, QA_REPORT",2026-06-17,,,YES
+CR-2026-06-17-003,CR,Customer menu availability,,,,,,,,,,,"CR, IMPACT_ANALYSIS, QA_HANDOVER, QA_REPORT",2026-06-17,,,YES
+CR-2026-06-17-004,CR,Delivery GST backend key,,,,,,,,,,,"CR, IMPACT_ANALYSIS",2026-06-17,,,YES
+CR-2026-07-03-000,CR,Remove hardcoded POS login credentials from frontend bundle (Option 1 — FastAPI proxy for token issuance),,,,,,,,,,,"CR, INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT",2026-07-03,,,YES
+CR-2026-07-03-001,CR,Theme cache busting (`?bustCache=1`),,,,,,,,,,,"CR, INTAKE, QA_HANDOVER",2026-07-03,,,YES
+CR-2026-07-03-002,CR,Remove dead `/api/restaurant-info/{id}` fetch,,,,,,,,,,,"CR, INTAKE, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT",2026-07-03,,,YES
+CR-2026-07-03-003,CR,Backend Mongo timeouts + `/api/healthz`,,,,,,,,,,,"CR, INTAKE, IMPLEMENTATION_PLAN, QA_HANDOVER",2026-07-03,,,YES
+CR-2026-07-03-004,CR,Frontend fetch timeouts + AbortController + error UI (plumbing scope; AlertDialog + empty-state deferred to follow-up),,,,,,,,,,,"CR, INTAKE, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT",2026-07-03,,,YES
+CR-2026-07-03-005,CR,Theme `themeVersion` + dedup follow-ups,,,,,,,,,,,"CR, INTAKE",2026-07-03,,,no
+CR-2026-07-03-007,CR,Prod deploy env hardening (backend URL + secret rotation),,,,,,,,,,,"CR, INTAKE, QA_HANDOVER, QA_REPORT",2026-07-03,,,no
+CR-2026-07-03-008,CR,Prod DB data quality remediation,,,,,,,,,,,"CR, INTAKE",2026-07-03,,,no
+CR-2026-07-03-009,CR,Observability + LB probe wiring (post CR-003),,,,,,,,,,,"CR, INTAKE",2026-07-03,,,no
+CR-2026-07-03-010,CR,Registry hygiene & ID-scheme canonicalization (BUG-NNN vs CR-YYYY-MM-DD-NNN; tombstones; stale BUG_TRACKER_v2),,,,,,,,,,,"CR, INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER",2026-07-03,,,no
+CR-2026-07-03-011,CR,Full POS-proxy refactor (proxy ALL POS write calls through FastAPI; remediates BUG-001/BUG-002),,,,,,,,,,,"CR, INTAKE",2026-07-03,,,no
+CR-2026-07-03-012,CR,Leaked-credential doc scrub (18 files) + CI lint rule for `REACT_APP__PASSWORD/SECRET/TOKEN`,,,,,,,,,,,"CR, INTAKE",2026-07-03,,,no
+CR-2026-07-04-002,CR,Registry finish-up (A: Alpha v0.1 ref update · B: 39-item reconciliation · C: legacy `memory_repo/change_requests/` README),,,,,,,,,,,"CR, INTAKE",2026-07-04,,,no
+CR-2026-07-04-003,CR,CR-004 residual scope (empty-state on menu-load timeout + 5 AdminConfig CRUD timeout swaps),,,,,,,,,,,"CR, INTAKE",2026-07-04,,,no
+CR-2026-07-04-004,CR,"Client telemetry to Mongo (POST fetch-timeout + React ErrorBoundary events, 30-day TTL, admin read endpoint)",,,,,,,,,,,"CR, INTAKE",2026-07-04,,,no
+CR-2026-08-03-001,CR,716 hardcoding → config flags — adopted into programme,,,,,,,,,,,"CR, INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN",2026-08-03,,,no
+CR-2026-08-06-001,CR,Time-controlled ordering,,,,,,,,,,,"CR, INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_REPORT",2026-08-06,,,YES
+CR-2026-09-07-001,CR,Inventory / stock-out control,,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_REPORT",2026-09-07,,,YES
+CR-2026-09-08-001,CR,Menu item with no image + add-channel guard,,,,,,,,,,,INTAKE,2026-09-08,,,no
+CR-2026-09-12-001,CR,Architecture Correction Programme (umbrella),,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-002,CR,QA backlog closure — 10 IMPLEMENTED/QA-pending items,,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-003,CR,Remove OTP echo + persistent throttled OTP store (GAP-003),,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS",2026-09-12,,,no
+CR-2026-09-12-004,CR,CORS hybrid static+regex allow-list + auth rate-limit + middleware stack (GAP-005/004),,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER",2026-09-12,,,YES
+CR-2026-09-12-005,CR,CI gate + API contract snapshots + smoke tests on UAT Mongo (GAP-009),,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER, QA_REPORT",2026-09-12,,,YES
+CR-2026-09-12-006,CR,Backend modular split + delete dead `/api/docs/` (GAP-013/018),,,,,,,,,,,INTAKE,2026-09-12,,,YES
+CR-2026-09-12-007,CR,FE API-client facade + `session.js` storage facade (GAP-014/011),,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-008,CR,FE `ProtectedRoute` / `RoleGuard` (GAP-006),,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-009,CR,"Remove `478` default → ""Restaurant not found"" page, `pos_id`, `+91` hardcoding",,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-010,CR,"Config defaults master → DB record, admin-editable, versioned (GAP-008)",,,,,,,,,,,INTAKE,2026-09-12,,,YES
+CR-2026-09-12-011,CR,"Multi-brand tenant readiness (`resolveTenant`, `get_tenant()`, namespaced storage)",,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-012,CR,Thick-page decomposition — `ReviewOrder.jsx`,,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-013,CR,Thick-page decomposition — Landing / DeliveryAddress / OrderSuccess / legacy AdminSettings,,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-014,CR,Phase B — MySQL migration (INTAKE ONLY),,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-12-015,CR,GitHub Actions CI workflow — Phase 2 of the CR-005 split,,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS",2026-09-12,,,no
+CR-2026-09-12-017,CR,CRM SMS finalization for OTP — prereq for CR-003,,,,,,,,,,,INTAKE,2026-09-12,,,no
+CR-2026-09-14-001,CR,"Comment out broken OTP SMS path — frontend (PasswordSetup OTP UI, crmSendOtp/Verify/ForgotPassword/ResetPassword), backend (send-otp endpoint, otp_store, generate_otp, verify_otp, OTPRequest, reset-password, otpRequired config), admin config (otpRequired + skipOtp admin toggles). Code commented with `OTP-DEFERRED` markup, not deleted. Supersedes CR-003 Part A.",,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER",2026-09-14,,,YES
+CR-2026-09-15-001,CR,"Profile → CRM v2 adapter: orders/points/wallet via `/scan/`, points sign mapping, `order_type` labels, wallet-tab gating (G1–G5)",,,,,,,,,,,INTAKE,2026-09-15,,,no
+CR-2026-09-15-002,CR,Remove dead skip-otp 409/429/Retry-After branches (OD-3 accept),,,,,,,,,,,INTAKE,2026-09-15,,,no
+CR-2026-09-15-003,CR,Canonical phone alignment POS↔CRM↔App: `extractPhoneNumber` blanks non-`+91` numbers (order unlinkable),,,,,,,,,,,INTAKE,2026-09-15,,,no
+CR-2026-09-15-004,CR,Remove admin login direct read of CRM `users`. Direction D (POS direct). P0 projection sub-item.,,,,,,,,,,,INTAKE,2026-09-15,,,no
+CR-2026-10-03-001,CR,Delete the 14 dead CRM-table call sites in `server.py` (legacy customer API shim),,,,,,,,,,,INTAKE,2026-10-03,,,no
+CR-2026-10-03-002,CR,BUG (security) — admin-auth `db.users` reads load CRM's `api_key`/`authkey_api_key`/`mygenie_token`; add a projection,,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN, QA_HANDOVER",2026-10-03,,,YES
+CR-2026-10-03-003,CR,"BUG (data integrity) — feedback written into CRM's `feedback` collection in our own schema, unreadable by anyone; migrate to `POST /scan/feedback`",,,,,,,,,,,INTAKE,2026-10-03,,,no
+CR-2026-10-03-004,CR,"Pre-login reads → CRM API: `check-customer` → `/scan/auth/lookup`, `loyalty-settings` → `/scan/loyalty-rules/{rid}`, retire `customer-lookup` (F2 = a)",,,,,,,,,,,INTAKE,2026-10-03,,,no
+CR-2026-10-03-005,CR,BUG (customer-visible) — Call Waiter / Pay Bill buttons are silent no-ops in the live UI,,,,,,,,,,,INTAKE,2026-10-03,,,no
+CR-2026-10-03-006,CR,Franchise support — an admin managing several outlets must be able to choose which one they administer (POS confirmed `restaurants[]` can hold multiple entries),,,,,,,,,,,INTAKE,2026-10-03,,,no
+CR-2026-10-04-001,CR,"`GET /api/table-config` falls back to CRM's `users.mygenie_token`, pinning one CRM secret to the admin auth path",,,,,,,,,,,INTAKE,2026-10-04,,,YES
+CR-2026-10-04-002,CR,"BUG (test infra) — suite could not run: self-inflicted 429 from CR-2026-09-12-004's own rate limit, wrong `testpaths`, plugins absent from pod",,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN",2026-10-04,,,no
+CR-2026-10-04-003,CR,BUG — hard reload of any `/admin/` route logged the admin out; `AdminLayout` redirected before `AuthContext` restored the session,,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN",2026-10-04,,,no
+CR-2026-10-04-004,CR,Registry reconciliation — 23 unregistered items; 15 code markers referencing unregistered IDs; findings F1–F7,,,,,,,,,,,INTAKE,2026-10-04,,,no
+CR-2026-10-04-005,CR,"Takeaway surcharge shipped estate-wide from POS `takeaway_charges` instead of the 699-only hardcode requested, without its recorded approval",,,,,,,,,,,INTAKE,2026-10-04,,,no
+CR-2026-10-04-006,CR,"Google Sheet registry mirror (intake rev 2) — machine-readable index (YAML/JSON) as source of truth, generating both these markdown tables and the Sheet. One-way only; an append-only change log replaces sync-back. Requests a new ROLE 13 — REGISTRAR in the operating prompt",,,,,,,,,,,"INTAKE, IMPACT_ANALYSIS, IMPLEMENTATION_PLAN",2026-10-04,,,no
+INV-2026-06-17-001,INV,Table-less order received despite the non-QR block,,,,,,,,,,,,2026-06-17,,,no
+INV-2026-06-17-002,INV,"Menu-order admin interface — full data flow (+ default ordering, POS payload mapping)",,,,,,,,,,,,2026-06-17,,,no
+INV-2026-06-17-003,INV,"Room QR scan flow — status check, UI states, new-order capability",,,,,,,,,,,,2026-06-17,,,no
+INV-2026-07-03-001,INV,Order-create idempotency AUDIT,,,,,,,,,,,"CR, INTAKE",2026-07-03,,,no
+INV-2026-07-03-002,INV,Restaurant 709 provisioning,,,,,,,,,,,INTAKE,2026-07-03,,,no
+INV-2026-07-03-003,INV,Restaurant 698 provisioning,,,,,,,,,,,INTAKE,2026-07-03,,,no
+INV-2026-09-10-001,INV,Logo upload → Emergent object storage,,,,,,,,,,,,2026-09-10,,,no
+INV-2026-09-12-001,INV,Legacy `customer/` routes + `AdminSettings.jsx` usage trace (GAP-020),,,,,,,,,,,INTAKE,2026-09-12,,,no
+INV-2026-09-15-001,INV,Profile page Orders/Points/Wallet tabs 404 on CRM v2 (`crmGetOrders/Points/Wallet` still on v1 `/customer/me/`) + CRM contract verification request incl. OTP routes,,,,,,,,,,,INTAKE,2026-09-15,,,no
+INV-2026-09-15-002,INV,"Shared-MongoDB collection ownership map (reads/writes, defaults, config write-lock OD-7, auth-secret overlap) — gates CR-006/010/014",,,,,,,,,,,INTAKE,2026-09-15,,,YES
+INV-2026-09-15-003,INV,"Direct CRM-table access audit — 8 collections, 20 sites (14 dead / 6 live). CRM reply INV-022 validated.",,,,,,,,,,,,2026-09-15,,,no
+INV-2026-10-03-001,INV,Production-grade secrets and real customer PII in UAT / preprod — static `dp_live_` CRM credential; shared UAT DB holds real PII incl. 114 `customer_documents`,,,,,,,,,,,INTAKE,2026-10-03,,,no
+INV-2026-10-04-001,INV,Legacy `BUG-NNN` status reconstruction — 19 IDs survive across 33 docs with no status source; prompt claimed 10 open incl. 2× P0,,,,,,,,,,,INTAKE,2026-10-04,,,no
+PROD-INCIDENT-2026-07-02-001,PROD-INCIDENT,Atlas slowness → frozen customer tab,,,,,,,,,,,,2026-07-02,,,no

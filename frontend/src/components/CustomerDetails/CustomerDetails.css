@@ -1,0 +1,198 @@
+.customer-details {
+  /* margin-bottom: var(--spacing-xl); */
+  min-height: 0;
+}
+
+.customer-details-title {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.customer-details-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-container-md);
+  background-color: var(--bg-primary);
+}
+
+.customer-details-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* Separator between phone and name */
+.customer-details-input-group:first-child {
+  border-bottom: 1px solid var(--border-dark);
+  padding-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.customer-details-label {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.customer-details-input {
+  background-color: transparent;
+  border: none;
+  border-bottom: none;
+  border-radius: 0;
+  padding: var(--spacing-xs) 0;
+  font-family: var(--font-body);
+  font-size: 16px; /* Minimum 16px to prevent iOS Safari auto-zoom on focus */
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.customer-details-input:focus {
+  border-color: var(--color-primary-dark);
+}
+
+.customer-details-input::placeholder {
+  color: var(--text-light);
+}
+
+/* Phone Input Styling */
+.customer-details-phone-input {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+}
+
+.customer-details-phone-input .PhoneInput {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.customer-details-phone-input .PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  margin-right: var(--spacing-sm);
+  padding: var(--spacing-xs);
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.customer-details-phone-input .PhoneInputCountry:focus-within {
+  border-color: var(--color-primary-dark);
+}
+
+.customer-details-phone-input .PhoneInputCountryIcon {
+  width: 24px;
+  height: 18px;
+  box-shadow: none;
+  border: none;
+  margin-right: var(--spacing-xs);
+}
+
+/* Country select stays as the library's default invisible overlay on the flag.
+   Native <select> is opacity:0 + absolute, so tapping the flag opens the
+   country dropdown but no editable "+91" text is rendered inline.
+   Mirrors LandingCustomerCapture's safe behavior. */
+
+.customer-details-phone-input .PhoneInputCountrySelectArrow {
+  display: none;
+}
+
+.customer-details-phone-input .PhoneInputInput {
+  flex: 1;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  padding: var(--spacing-xs) 0;
+  font-family: var(--font-body);
+  font-size: 16px; /* Minimum 16px to prevent iOS Safari auto-zoom on focus */
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  min-width: 0;
+}
+
+.customer-details-phone-input .PhoneInputInput:focus {
+  border-color: var(--color-primary-dark);
+}
+
+.customer-details-phone-input .PhoneInputInput::placeholder {
+  color: var(--text-light);
+}
+
+/* Error State */
+.customer-details-phone-input-error .PhoneInputInput {
+  border-color: #dc3545;
+}
+
+.customer-details-phone-input-error .PhoneInputInput:focus {
+  border-color: #dc3545;
+}
+
+.customer-details-phone-input-error .PhoneInputCountry {
+  border-color: #dc3545;
+}
+
+.customer-details-error {
+  color: #dc3545;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
+  padding-left: var(--spacing-xs);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .customer-details-title {
+    font-size: var(--font-size-base);
+  }
+
+  .customer-details-input {
+    font-size: 16px; /* Minimum 16px to prevent iOS Safari auto-zoom on focus */
+  }
+
+  .customer-details-phone-input .PhoneInputInput {
+    font-size: 16px; /* Minimum 16px to prevent iOS Safari auto-zoom on focus */
+  }
+
+  .customer-details-phone-input .PhoneInputCountryIcon {
+    width: 20px;
+    height: 15px;
+  }
+}
+
+
+/* CR Phase-2 — Read-only / locked state for auto-populated guest details */
+.customer-details-input-locked,
+.customer-details-phone-locked .PhoneInputInput {
+  background: #f4f4f4 !important;
+  color: #555 !important;
+  cursor: not-allowed;
+  border-color: #d4d4d4 !important;
+}
+
+.customer-details-phone-locked {
+  background: #f4f4f4 !important;
+}
+
+.customer-details-phone-locked .PhoneInputCountry {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.customer-details-lock-helper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+}

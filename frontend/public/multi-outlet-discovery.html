@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Outlet Discovery — Team Discussion Document</title>
+<style>
+  :root{--ink:#1c1b18;--muted:#5f5b52;--paper:#fbfaf7;--card:#ffffff;--line:#e6e2d8;--accent:#c8501e;--accent-soft:#fdeee6;--ok:#2f7a4a;--ok-soft:#e6f3ea;--warn:#a8630a;--warn-soft:#fdf3e1;--bad:#b3261e;--bad-soft:#fbe9e7;--info:#22577a;--info-soft:#e7f0f6;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Georgia,"Times New Roman",serif;color:var(--ink);background:var(--paper);line-height:1.6;font-size:17px}
+  header{background:var(--ink);color:#f6f3ec;padding:56px 24px 48px}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px}
+  header h1{font-size:34px;margin:0 0 10px;font-weight:600;letter-spacing:-.01em}
+  header p{margin:6px 0;color:#d8d2c4;font-size:16px}
+  .tag{display:inline-block;background:var(--accent);color:#fff;padding:3px 10px;border-radius:999px;font-size:13px;font-family:Arial,Helvetica,sans-serif;letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px}
+  nav{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  nav .wrap{display:flex;flex-wrap:wrap;gap:6px 18px;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:14px}
+  nav a{color:var(--info);text-decoration:none}
+  nav a:hover{text-decoration:underline}
+  section{padding:44px 0 8px}
+  h2{font-size:26px;margin:0 0 6px;font-weight:600}
+  h2 small{display:block;font-size:14px;color:var(--muted);font-family:Arial,Helvetica,sans-serif;font-weight:400;margin-top:4px}
+  h3{font-size:19px;margin:30px 0 8px;font-weight:600}
+  p{margin:10px 0}
+  .lead{font-size:18px;color:#3a3630}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:18px 0;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  .card h4{margin:0 0 10px;font-size:18px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .label{font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+  .pill{display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:12px;padding:2px 9px;border-radius:999px;margin-left:8px;vertical-align:middle}
+  .pill.bad{background:var(--bad-soft);color:var(--bad)}
+  .pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .pill.ok{background:var(--ok-soft);color:var(--ok)}
+  .pill.info{background:var(--info-soft);color:var(--info)}
+  .callout{border-left:4px solid var(--accent);background:var(--accent-soft);padding:14px 18px;border-radius:0 10px 10px 0;margin:16px 0}
+  .callout.info{border-color:var(--info);background:var(--info-soft)}
+  .callout.bad{border-color:var(--bad);background:var(--bad-soft)}
+  .callout.ok{border-color:var(--ok);background:var(--ok-soft)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:16px;background:#fff}
+  th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:#f3f0e8;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+  .journey{counter-reset:step;list-style:none;padding:0;margin:16px 0}
+  .journey li{counter-increment:step;position:relative;padding:14px 16px 14px 62px;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:10px}
+  .journey li::before{content:counter(step);position:absolute;left:16px;top:14px;width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Arial,Helvetica,sans-serif;font-weight:700}
+  .journey li strong{display:block;margin-bottom:2px}
+  .decision{border:2px solid var(--ink);border-radius:12px;padding:20px 24px;margin:22px 0;background:#fff}
+  .decision h4{margin:0 0 6px;font-size:19px}
+  .decision .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+  .decision .opt{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:15px;background:#fbfaf7}
+  .decision .opt.rec{border-color:var(--ok);background:var(--ok-soft)}
+  .decision .opt b{display:block;font-family:Arial,Helvetica,sans-serif;font-size:13px;margin-bottom:4px}
+  .tick{display:block;height:22px;margin-top:10px;border-bottom:1px dashed #bbb;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:var(--muted)}
+  footer{padding:40px 24px 60px;color:var(--muted);font-size:14px;font-family:Arial,Helvetica,sans-serif;border-top:1px solid var(--line);margin-top:40px}
+  code{font-family:Menlo,Consolas,monospace;font-size:14px;background:#f3f0e8;padding:1px 6px;border-radius:4px}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px}
+  .flow span{background:#fff;border:1px solid var(--line);padding:10px 14px;border-radius:8px}
+  .flow span.new{border-color:var(--accent);background:var(--accent-soft)}
+  .flow span.old{border-color:var(--ok);background:var(--ok-soft)}
+  .flow i{color:var(--muted)}
+  @media print{nav{display:none}header{padding:30px 24px}section{padding:24px 0 0}.card,.decision{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="tag">For team discussion</span>
+    <h1>Multi-Outlet Discovery Layer<br>How it should work, what we found, and what we need to decide</h1>
+    <p>Customer web app · Prepared from a review of the live code and the preprod APIs · June 2026</p>
+    <p>Scope: architecture and decisions. The API details shared by backend were treated as a <em>suggestion</em>, not a fixed contract.</p>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <a href="#what">1. What we're building</a>
+  <a href="#rules">2. Ground rules</a>
+  <a href="#found">3. What we found</a>
+  <a href="#changed">4. Where we changed our mind</a>
+  <a href="#journey">5. Customer journey</a>
+  <a href="#asks">6. Asks for backend</a>
+  <a href="#rollout">7. Rollout</a>
+  <a href="#decisions">8. Decisions needed</a>
+  <a href="#glossary">Glossary</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- 1 -->
+<section id="what">
+  <h2>1. What we're building <small>In one paragraph</small></h2>
+  <p class="lead">Today every restaurant has its own ordering website (for example <code>18march.mygenie.online/478</code>). A brand with several outlets wants <strong>one front door</strong>: the customer lands on the brand page, tells us where they are, sees which outlets can serve them, taps one, and then continues in the <strong>existing</strong> ordering flow of that outlet — without typing their location again.</p>
+
+  <div class="flow">
+    <span class="new">Brand page</span><i>→</i>
+    <span class="new">"Where are you?"</span><i>→</i>
+    <span class="new">Outlets that can serve you</span><i>→</i>
+    <span class="old">Existing outlet ordering flow (unchanged)</span>
+  </div>
+
+  <div class="callout">
+    <strong>The most important idea in this document:</strong> the new part is only the three orange boxes. The green box is our live, revenue-earning flow. It is not being rebuilt, redesigned, or reworked. The new layer just decides <em>which</em> outlet the customer enters and carries their location across.
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="rules">
+  <h2>2. Ground rules <small>These stay true even if the API changes ten times</small></h2>
+  <p>We wrote these first, before looking at any API, because the shape of the API will change — but the reasons behind these rules will not.</p>
+
+  <div class="card">
+    <h4>Rule 1 — The new layer is an add-on. The existing flow does not change.</h4>
+    <div class="label">What it means</div>
+    <p>We add new pages in front. We do not edit how the menu, cart, address or payment screens behave.</p>
+    <div class="label">What it solves</div>
+    <p>This is a live product with real orders. Every line we change in the old flow is a chance to break payments or addresses for customers who never even use the brand page.</p>
+    <div class="label">What is needed</div>
+    <p>Discipline in scope. Any change to old screens must be small, optional, and switched on only when the customer arrived from a brand page.</p>
+  </div>
+
+  <div class="card">
+    <h4>Rule 2 — One answer for "Can this outlet deliver to me, and for how much?" <span class="pill bad">Most important</span></h4>
+    <div class="label">What it means</div>
+    <p>Whatever the brand page says ("Outlet A delivers to you, ₹40 fee") must come from the <em>same calculation</em> the outlet's own checkout uses. Not a similar one. The same one.</p>
+    <div class="label">What it solves</div>
+    <p>Right now there are two separate systems: the new brand-page system uses a hand-typed list of pincodes; the existing checkout uses the outlet's distance and fee settings. Two systems will disagree. The customer sees "Yes, we deliver" on the brand page, picks the outlet, enters the same address, and gets "Delivery not available". That destroys trust in 30 seconds and we lose the order.</p>
+    <div class="label">What is needed</div>
+    <p>Backend reuses the existing distance/fee logic inside the new "check my location" API. Until that happens, the front end will quietly double-check each outlet against the existing fee API before showing the card — so the customer never sees a promise we can't keep.</p>
+  </div>
+
+  <div class="card">
+    <h4>Rule 3 — Backend tells us <em>which</em> outlet. The website decides <em>how</em> to get there.</h4>
+    <div class="label">What it means</div>
+    <p>The API should return the outlet's identity (its number, name, and the domain it lives on). It should not return a ready-made link for us to blindly jump to.</p>
+    <div class="label">What it solves</div>
+    <p>The backend cannot know which website the customer is standing on. Today the suggested link points at <code>18march.mygenie.online</code> for every outlet. If the brand page is hosted anywhere else (a brand's own domain, preprod, testing), jumping to that link throws away everything the customer typed. It also means a typo in a database field becomes a broken page for customers, and nobody on the front-end side can catch it in review.</p>
+    <div class="label">What is needed</div>
+    <p>Backend returns <code>hostname</code> (can be empty) instead of <code>redirect_url</code>. The website builds the address from that. Meanwhile we can still tolerate the current link by reading the outlet number out of it.</p>
+  </div>
+
+  <div class="card">
+    <h4>Rule 4 — Carry the customer's location in the web address, not in browser storage.</h4>
+    <div class="label">What it means</div>
+    <p>When the customer taps an outlet, we open it as <code>/510?orderType=delivery&amp;lat=…&amp;lng=…&amp;loc=Connaught+Place</code>. The outlet page reads that and pre-fills.</p>
+    <div class="label">What it solves</div>
+    <p>Browser storage (localStorage) is tied to one domain. If the outlet lives on a different domain, the storage is invisible there and the customer has to type their location again — the exact problem this feature exists to remove. Web-address parameters also survive a page refresh, private browsing, and can be shared as a link.</p>
+    <div class="label">What is needed</div>
+    <p>Very little: the app already reads <code>?orderType=</code> from the address for QR codes. We extend the same reader with a few more fields.</p>
+  </div>
+
+  <div class="card">
+    <h4>Rule 5 — A brand is found the same way a restaurant is found.</h4>
+    <div class="label">What it means</div>
+    <p>Restaurants are found by number in the path (<code>/478</code>) or by domain (<code>hyatt.mygenie.online</code>). Brands should work the same: <code>/g/478</code> or <code>brandx.com</code>.</p>
+    <div class="label">What it solves</div>
+    <p>Avoids building a second, parallel way of resolving "who is this page for" that we would then maintain forever. It also handles a real conflict: <code>18march.mygenie.online</code> is <em>already</em> restaurant 478's website, so the brand page cannot simply sit at <code>/</code> on that domain without a clear rule.</p>
+    <div class="label">What is needed</div>
+    <p>Reserve the path <code>/g/</code> for groups. Backend answers "is this domain a brand or a single restaurant?" in one call.</p>
+  </div>
+
+  <div class="card">
+    <h4>Rule 6 — Public APIs show only public information. <span class="pill bad">Security</span></h4>
+    <div class="label">What it means</div>
+    <p>Anything a visitor can call without logging in must return only what a visitor should see: name, logo, address, timings.</p>
+    <div class="label">What it solves</div>
+    <p>On preprod today, the public "get brand" API returns the master restaurant's full internal record — including a live CRM access token, the owner's UPI ID, email, and payment configuration. Anyone with the URL can read this.</p>
+    <div class="label">What is needed</div>
+    <p>Backend trims the response to an approved list of fields. This has to be done before anything goes live, regardless of the front end.</p>
+  </div>
+
+  <div class="card">
+    <h4>Rule 7 — Pages never read the raw API. A translation layer sits in between.</h4>
+    <div class="label">What it means</div>
+    <p>One small file converts whatever the backend sends into the shape our screens expect.</p>
+    <div class="label">What it solves</div>
+    <p>The API <em>will</em> change (that is the plan). With a translation layer, when it changes we edit one file, not every screen.</p>
+    <div class="label">What is needed</div>
+    <p>Nothing from backend — this is a front-end practice the app already follows for orders and menus.</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="found">
+  <h2>3. What we found <small>From the live code and real preprod responses, not from the document</small></h2>
+
+  <table>
+    <tr><th style="width:34%">Finding</th><th>Why it matters</th></tr>
+    <tr>
+      <td><strong>The suggested redirect link always points to <code>18march.mygenie.online</code></strong>, even though the brand's configured domain is a placeholder (<code>master-outlet-478.local</code>).</td>
+      <td>If the brand page is hosted anywhere else, the jump crosses domains and the customer's typed location is lost. Also shows the link is not actually derived from the brand's own domain setting.</td>
+    </tr>
+    <tr>
+      <td><strong><code>18march.mygenie.online</code> is already restaurant 478's site.</strong></td>
+      <td>The brand landing page has nowhere to live on that domain without a dedicated path (<code>/g/…</code>) or a rule that says "this domain is a brand, not a restaurant".</td>
+    </tr>
+    <tr>
+      <td><strong>Two different "can we deliver?" systems.</strong> The new API uses a hand-typed pincode list. The existing checkout uses the outlet's distance, per-km fee, minimum/maximum fee and free-delivery threshold.</td>
+      <td>They will disagree. Customer is told yes, then no. There is also no fee on the brand page, so the customer cannot compare outlets and discovers the fee only at checkout.</td>
+    </tr>
+    <tr>
+      <td><strong>Outlet 510 is recorded at Surat coordinates but "delivers" to Delhi 110001 — 1,544 km away</strong> — because someone added that pincode to its list. The API also returns "radius 6 km" alongside that 1,544 km distance.</td>
+      <td>Proof that a hand-maintained pincode list can be wrong, and that showing the "radius" figure to customers would look absurd.</td>
+    </tr>
+    <tr>
+      <td><strong>Delivery in the existing flow requires login and a saved, complete address</strong> (house, floor, contact person). The address screen sends you back if you are not logged in.</td>
+      <td>The brand page captures a <em>rough location</em> ("I'm near Connaught Place"), not a deliverable address. So the handoff must pre-fill the map, not pretend to be a finished address. This changed our earlier plan (see Section 4).</td>
+    </tr>
+    <tr>
+      <td><strong>The app already passes order type through the web address</strong> (<code>?orderType=delivery</code>) for QR codes.</td>
+      <td>We reuse this exact mechanism for the location. Low risk, proven in production.</td>
+    </tr>
+    <tr>
+      <td><strong>The public brand API leaks private data</strong> — live CRM token, UPI ID, email, payment settings.</td>
+      <td>Must be fixed by backend before release. Not negotiable.</td>
+    </tr>
+  </table>
+</section>
+
+<!-- 4 -->
+<section id="changed">
+  <h2>4. Where we changed our mind <small>Honest corrections to the earlier analysis</small></h2>
+
+  <div class="grid">
+    <div class="card">
+      <h4>Earlier: save the address into browser storage, then redirect</h4>
+      <p><strong>Now:</strong> pass the location in the web address; the outlet's address screen uses it to centre the map and pre-select a nearby saved address.</p>
+      <div class="label">Why we changed</div>
+      <p>Browser storage breaks across domains, and writing a half-finished address straight into the cart would skip the login and confirmation steps that delivery genuinely needs. The customer must still confirm house/floor/contact — we just make it one tap instead of a search.</p>
+    </div>
+    <div class="card">
+      <h4>Earlier: ask backend to add a "delivery charge" column to the pincode table</h4>
+      <p><strong>Now:</strong> ask backend to run the <em>existing</em> distance-and-fee logic inside the new API.</p>
+      <div class="label">Why we changed</div>
+      <p>A number typed into a table is not the same as the rule checkout enforces (which depends on distance, order value and time). Only reusing the real rule guarantees the card and the checkout agree.</p>
+    </div>
+    <div class="card">
+      <h4>Earlier: ignore the backend link and build our own</h4>
+      <p><strong>Now:</strong> ask backend for the outlet's domain (optional) instead of a link; the website builds the route. Tolerate the current link in the translation layer meanwhile.</p>
+      <div class="label">Why we changed</div>
+      <p>Fixes the cause instead of patching around it. Navigation belongs to the website.</p>
+    </div>
+    <div class="card">
+      <h4>Earlier: just add a <code>/g/</code> path</h4>
+      <p><strong>Now:</strong> <code>/g/</code> path <em>and</em> brand domains, with one resolver that knows whether a domain is a brand or a restaurant.</p>
+      <div class="label">Why we changed</div>
+      <p>Real brands will want <code>brandx.com</code>, not <code>something.mygenie.online/g/478</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="journey">
+  <h2>5. How the customer journey will work <small>Step by step</small></h2>
+
+  <ol class="journey">
+    <li><strong>Customer opens the brand page</strong> — either <code>brandx.com</code> or <code>…/g/478</code>. They see the brand's logo, name and a single question: "Where should we deliver?" plus a Delivery / Pickup switch.</li>
+    <li><strong>Customer gives a location</strong> — one of: tap "Use my location", type an area and pick from suggestions, or type a pincode. Whatever they choose, we turn it into map coordinates before asking the backend (so backend always works with a real point, not just a pincode).</li>
+    <li><strong>We ask backend which outlets can serve that point</strong> for the chosen mode. If Pickup was chosen, there is nothing to check — every open outlet is listed by distance.</li>
+    <li><strong>Before showing the list, we double-check each outlet's fee and availability</strong> against the existing checkout logic (until backend does this for us). This is the guarantee that what the card says is what the customer will pay.</li>
+    <li><strong>Customer sees outlet cards</strong> — logo, name, address, distance, open/closed with next opening time, minimum order, delivery fee (or "Free above ₹300"), estimated time, cuisines. Deliverable and open outlets first. If none can deliver, we show the nearest outlet and offer Pickup or "Change location".</li>
+    <li><strong>Customer taps an outlet</strong> — we open that outlet's existing page with the mode and location attached to the web address. Same domain: instant, no reload. Different domain: a normal jump, nothing lost.</li>
+    <li><strong>Existing outlet flow takes over</strong> — exactly as today. The only differences: the address screen's map is already centred where they said, a saved address nearby is pre-selected, and there is an "← All outlets" link to go back. Login, address confirmation, fee calculation, payment — all untouched.</li>
+  </ol>
+
+  <div class="callout ok">
+    <strong>What the customer feels:</strong> "I told them once where I am, they showed me which branches can deliver and what it costs, I picked one, and the app already knew where I was." No repeated typing, no surprises at checkout.
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="asks">
+  <h2>6. What we are asking the backend team for <small>In order of importance — with what breaks if we don't</small></h2>
+
+  <div class="card">
+    <h4>Ask 1 — Remove private data from the public brand API <span class="pill bad">Release blocker</span></h4>
+    <p><strong>What:</strong> return only brand name, logo, cover image, theme colour, master outlet number, which modes are supported, and outlet count.</p>
+    <p><strong>Why:</strong> a live access token and the owner's payment details are readable by anyone today.</p>
+    <p><strong>If not done:</strong> we cannot go live. This is independent of any front-end work.</p>
+  </div>
+
+  <div class="card">
+    <h4>Ask 2 — Make "check my location" use the same delivery logic as checkout <span class="pill warn">High</span></h4>
+    <p><strong>What:</strong> for each outlet, return whether it can deliver, the fee, the free-delivery threshold and estimated time — computed by the same code that powers the current distance/fee API. Accept the customer's mode (delivery/pickup) and cart value. Coordinates required; pincode optional.</p>
+    <p><strong>Why:</strong> Rule 2. One answer, not two.</p>
+    <p><strong>If not done:</strong> front end keeps double-checking every outlet itself (extra calls, slower list, more moving parts). Works, but it's a workaround we'd carry forever.</p>
+  </div>
+
+  <div class="card">
+    <h4>Ask 3 — Return the outlet's domain instead of a ready-made link <span class="pill warn">High</span></h4>
+    <p><strong>What:</strong> <code>hostname</code> (may be empty) and <code>slug</code> per outlet. Drop <code>redirect_url</code> and <code>web_url</code>.</p>
+    <p><strong>Why:</strong> Rule 3. The website must own navigation.</p>
+    <p><strong>If not done:</strong> we read the outlet number out of the link and ignore the rest. Fragile, but survivable.</p>
+  </div>
+
+  <div class="card">
+    <h4>Ask 4 — One lookup that says "this domain is a brand" or "this domain is a restaurant" <span class="pill info">Medium</span></h4>
+    <p><strong>What:</strong> given <code>brandx.com</code>, answer <code>{ type: "group", id: 1 }</code>; given <code>hyatt.mygenie.online</code>, answer <code>{ type: "restaurant", id: 300 }</code>.</p>
+    <p><strong>Why:</strong> Rule 5. Lets brands use their own domains.</p>
+    <p><strong>If not done:</strong> brands only work via the <code>/g/478</code> path. Acceptable for a first release, not for the long term.</p>
+  </div>
+
+  <div class="card">
+    <h4>Ask 5 — Small clean-ups <span class="pill info">Low</span></h4>
+    <p>Start paging at 0 instead of 1 (standard). Send coordinates as numbers, not text. When no outlet can deliver, include the nearest one. Remove the "radius" figure from the public response (confusing next to real distance).</p>
+  </div>
+
+  <div class="callout info">
+    <strong>Timing:</strong> Only Ask 1 blocks release. Front-end work can start today against the two public APIs that already exist; Asks 2–5 improve it later without changing any screen.
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="rollout">
+  <h2>7. Rollout in three steps <small>Each step is complete and production-quality on its own — this is sequencing, not an MVP</small></h2>
+  <table>
+    <tr><th style="width:12%">Step</th><th>What ships</th><th style="width:28%">Depends on</th></tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td>Brand landing page, location entry (GPS / search / pincode), Delivery-Pickup switch, outlet list with real fees (via front-end double-check), handoff through the web address, outlet flow reads the location.</td>
+      <td>Nothing new from backend. Uses the two public APIs already on preprod.</td>
+    </tr>
+    <tr>
+      <td><strong>2</strong></td>
+      <td>Address screen pre-fills from the handed-off location; "← All outlets" link; brand domains (<code>brandx.com</code>).</td>
+      <td>Ask 4 (domain lookup).</td>
+    </tr>
+    <tr>
+      <td><strong>3</strong></td>
+      <td>Remove the front-end double-check; use backend's fee and availability directly; brand theming on the landing page.</td>
+      <td>Asks 2 and 3.</td>
+    </tr>
+  </table>
+</section>
+
+<!-- 8 -->
+<section id="decisions">
+  <h2>8. Decisions we need from the team <small>Six questions. Each has a recommendation and what happens if we go the other way.</small></h2>
+
+  <div class="decision">
+    <h4>D1 — Where do brand pages live?</h4>
+    <p><strong>Context:</strong> A brand page needs a web address. It can be a path on our platform (<code>…/g/478</code>), the brand's own domain (<code>brandx.com</code>), or both.</p>
+    <div class="opts">
+      <div class="opt"><b>Option A — Path only</b>Simple, works today, no backend lookup. But brands must share our domain.</div>
+      <div class="opt"><b>Option B — Domain only</b>Clean for brands, but nothing to test on until backend delivers the lookup.</div>
+      <div class="opt rec"><b>Option C — Both (recommended)</b>Path for shared hosting and testing; domain for brands that want their own. Same pages either way.</div>
+    </div>
+    <span class="tick">Decision: </span>
+  </div>
+
+  <div class="decision">
+    <h4>D2 — If an outlet can't deliver to the customer, do we still show it as "Pickup only"?</h4>
+    <p><strong>Context:</strong> A customer 9 km away may be outside delivery range but happy to collect.</p>
+    <div class="opts">
+      <div class="opt rec"><b>Yes (recommended)</b>Show it greyed, sorted last, labelled "Pickup only". Captures orders we'd otherwise lose. Only when the brand supports pickup.</div>
+      <div class="opt"><b>No</b>Cleaner list, fewer choices, but the customer sees "No outlets" even when one is 9 km away.</div>
+    </div>
+    <span class="tick">Decision: </span>
+  </div>
+
+  <div class="decision">
+    <h4>D3 — Do we offer a Delivery / Pickup switch on the brand page?</h4>
+    <p><strong>Context:</strong> The outlet pages already have this switch. Pickup needs no delivery check, so the list is simply "nearest first".</p>
+    <div class="opts">
+      <div class="opt rec"><b>Yes (recommended)</b>Consistent with outlet pages; pickup customers get a useful list immediately.</div>
+      <div class="opt"><b>Delivery only</b>Simpler first screen; pickup customers must pick an outlet blind, then switch inside.</div>
+    </div>
+    <span class="tick">Decision: </span>
+  </div>
+
+  <div class="decision">
+    <h4>D4 — Can outlets in one brand live on different domains?</h4>
+    <p><strong>Context:</strong> e.g. one outlet on <code>brandx.mygenie.online</code>, another on its own <code>outlet-y.com</code>. If yes, browser storage can never carry the location across — the web-address approach (Rule 4) becomes mandatory.</p>
+    <div class="opts">
+      <div class="opt rec"><b>Assume yes (recommended)</b>Design already handles it. Costs nothing extra.</div>
+      <div class="opt"><b>No, always same domain</b>We could simplify slightly, but we'd be betting on a business rule that may change.</div>
+    </div>
+    <span class="tick">Decision: </span>
+  </div>
+
+  <div class="decision">
+    <h4>D5 — Will backend unify the delivery check (Ask 2), or is the front-end double-check permanent?</h4>
+    <p><strong>Context:</strong> This decides whether Step 3 of the rollout ever happens.</p>
+    <div class="opts">
+      <div class="opt rec"><b>Unify (recommended)</b>One rule, one owner, faster list, fewer calls. Right architecture.</div>
+      <div class="opt"><b>Keep double-check</b>Works, but every outlet costs an extra call on every search, and the pincode table stays a second source of truth to maintain.</div>
+    </div>
+    <span class="tick">Decision: </span>
+  </div>
+
+  <div class="decision">
+    <h4>D6 — Should orders record which brand page they came from?</h4>
+    <p><strong>Context:</strong> Useful for reporting ("how many orders did the brand page bring?"). But it means adding a field to the order-placement request — the most sensitive part of the app.</p>
+    <div class="opts">
+      <div class="opt rec"><b>Later, as its own change (recommended)</b>We already carry the brand id in the web address; recording it on the order is a separate, carefully tested change.</div>
+      <div class="opt"><b>Now</b>Faster reporting, higher risk in the same release as everything else.</div>
+    </div>
+    <span class="tick">Decision: </span>
+  </div>
+</section>
+
+<!-- glossary -->
+<section id="glossary">
+  <h2>Glossary <small>Terms used above</small></h2>
+  <table>
+    <tr><td style="width:28%"><strong>Brand / Group / Master outlet</strong></td><td>A set of outlets under one name. One outlet is the "master" (the group's owner account).</td></tr>
+    <tr><td><strong>Outlet / Restaurant</strong></td><td>A single ordering website as it exists today, identified by a number like 478 or 510.</td></tr>
+    <tr><td><strong>Handoff</strong></td><td>The moment the customer moves from the brand page into an outlet's page, carrying their location and chosen mode.</td></tr>
+    <tr><td><strong>Web address parameters</strong></td><td>The part after <code>?</code> in a link, e.g. <code>?orderType=delivery&amp;lat=28.6</code>. Survives refresh and works across domains.</td></tr>
+    <tr><td><strong>Browser storage (localStorage)</strong></td><td>A small store in the browser, tied to one domain. Invisible from any other domain.</td></tr>
+    <tr><td><strong>Translation layer</strong></td><td>A single file that converts backend responses into the shape our screens use, so screens don't change when the API does.</td></tr>
+    <tr><td><strong>Double-check / fan-out</strong></td><td>Front end asking the existing fee API once per outlet before showing the list, so cards never contradict checkout.</td></tr>
+  </table>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    Source files: <code>/app/memory/master_outlet/ARCHITECTURE_REEVALUATION.md</code> (technical version) ·
+    <code>FRONTEND_MASTER_OUTLET_INTEGRATION.md</code> and <code>postman_master_outlet_collection.json</code> (backend suggestion) ·
+    Live checks against <code>preprod.mygenie.online</code> and <code>manage.mygenie.online</code>.
+  </div>
+</footer>
+
+</body>
+</html>

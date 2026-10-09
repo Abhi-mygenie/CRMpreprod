@@ -1,0 +1,11 @@
+{
+  "bronze_earn_percent": 5.0,
+  "first_visit_bonus_enabled": true,
+  "first_visit_bonus_points": 50,
+  "found": true,
+  "gold_earn_percent": 10.0,
+  "min_order_value": 0,
+  "platinum_earn_percent": 15.0,
+  "redemption_value": 1.0,
+  "silver_earn_percent": 7.0
+}

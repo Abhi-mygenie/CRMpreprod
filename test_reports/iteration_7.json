@@ -1,0 +1,29 @@
+{
+  "summary": "Validated all 4 CRM CR changes (CR-085-A, CR-089, CR-093, CR-098) and 2 code gap fixes (country_code in crmSkipOtp and crmLookupCustomer). All 7 test items PASS.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "T1_country_code_in_lookup": "PASS — crmLookupCustomer sends country_code: '+91' in body (confirmed via code grep and live network capture)",
+    "T2_country_code_in_skip_otp": "PASS — crmSkipOtp sends country_code: '+91' in body (confirmed via code grep and live network capture)",
+    "T3_CR085A_invalid_phone_400": "PASS — POST /scan/auth/skip-otp with phone 0000000000 returns HTTP 400 {detail:'Enter a valid mobile number'}. LandingPage handles 400 via toast.error and stays on landing (lines 476-480)",
+    "T4_CR089_429_handling": "PASS — crmSkipOtpRetry.js line 25 has 429 in RETRIABLE set. LandingPage has 429-exhausted handler with retryAfterMs toast (lines 482-490)",
+    "T5_CR093_lookup_country_code": "PASS — POST /scan/auth/lookup with country_code:'+91' for phone 9579504871 restaurant 689 returns 200 {exists:true, name:'MYGENieT'}",
+    "T6_yarn_build": "PASS — yarn build exits 0 in 25.82s, no errors",
+    "T7_end_to_end_flow": "PASS — /478 landing page, entered phone 9579504871, clicked Browse Menu, navigated to /478/menu. Network confirms both lookup and skip-otp requests include country_code:'+91'"
+  },
+  "test_report_links": ["/app/test_reports/iteration_7.json"],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 4 CRM CR changes validated. country_code:'+91' confirmed sent in both crmSkipOtp and crmLookupCustomer. End-to-end flow /478 → /478/menu working with live CRM preprod. Build clean."
+}

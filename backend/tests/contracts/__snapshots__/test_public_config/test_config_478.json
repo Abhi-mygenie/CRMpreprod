@@ -1,0 +1,160 @@
+{
+  "aboutUsContent": "",
+  "aboutUsImage": "",
+  "address": "",
+  "allowNonQrOrders": true,
+  "backgroundColor": "#FFFFFF",
+  "backgroundImageUrl": "",
+  "banners": [],
+  "borderRadius": "rounded",
+  "browseMenuButtonText": "Browse Menu",
+  "buttonTextColor": "#FFFFFF",
+  "categoryTimings": {
+    "1124": {
+      "end": "05:20",
+      "start": "02:21"
+    }
+  },
+  "channelOverrides": {
+    "category": {
+      "1138": {
+        "dinein": false
+      }
+    },
+    "item": {}
+  },
+  "codEnabled": false,
+  "contactEmail": "",
+  "customPages": [],
+  "deliveryShifts": null,
+  "dineInShifts": null,
+  "extraInfoItems": [],
+  "facebookUrl": "",
+  "feedbackEnabled": true,
+  "feedbackIntroText": "",
+  "fontBody": "Montserrat",
+  "fontHeading": "Montserrat",
+  "footerLinks": [],
+  "footerText": "",
+  "instagramUrl": "",
+  "itemTimings": {},
+  "logoUrl": "https://app.mygenie.online//api/upload/image/dbbeacaaab08440689d7eb785d81ac9a.jpg",
+  "mandatoryCustomerName": false,
+  "mandatoryCustomerPhone": false,
+  "mapEmbedUrl": "",
+  "mobileBackgroundImageUrl": "",
+  "navMenuOrder": [
+    {
+      "id": "home",
+      "label": "Home",
+      "type": "builtin",
+      "visible": true
+    },
+    {
+      "id": "menu",
+      "label": "Menu",
+      "type": "builtin",
+      "visible": true
+    },
+    {
+      "id": "about",
+      "label": "About Us",
+      "type": "builtin",
+      "visible": false
+    },
+    {
+      "id": "contact",
+      "label": "Contact",
+      "type": "builtin",
+      "visible": false
+    },
+    {
+      "id": "feedback",
+      "label": "Feedback",
+      "type": "builtin",
+      "visible": false
+    },
+    {
+      "id": "login",
+      "label": "Login",
+      "type": "builtin",
+      "visible": false
+    }
+  ],
+  "notificationPopups": [],
+  "onlinePaymentDelivery": true,
+  "onlinePaymentDinein": true,
+  "onlinePaymentTakeaway": true,
+  "openingHours": "",
+  "otpRequiredDineIn": false,
+  "otpRequiredDineInWithTable": false,
+  "otpRequiredRoomOrders": false,
+  "otpRequiredTakeaway": false,
+  "otpRequiredWalkIn": false,
+  "payAtCounterLabel": "Pay at Counter",
+  "payOnlineLabel": "Pay Online",
+  "phone": "",
+  "poweredByLogoUrl": "/assets/images/mygenie_logo.svg",
+  "poweredByText": "Powered by",
+  "primaryColor": "#E8531E",
+  "restaurantOpen": true,
+  "restaurantShifts": [
+    {
+      "end": "03:00",
+      "start": "06:00"
+    }
+  ],
+  "restaurant_id": "478",
+  "roomShifts": null,
+  "secondaryColor": "#2E7D32",
+  "showAboutUs": true,
+  "showCallWaiter": false,
+  "showCategories": true,
+  "showCookingInstructions": true,
+  "showCouponCode": false,
+  "showCustomerDetails": true,
+  "showCustomerName": true,
+  "showCustomerPhone": true,
+  "showDescription": false,
+  "showEstimatedTimes": false,
+  "showExtraInfo": true,
+  "showFoodStatus": true,
+  "showFooter": true,
+  "showHamburgerMenu": true,
+  "showLandingCallWaiter": false,
+  "showLandingCustomerCapture": true,
+  "showLandingPayBill": false,
+  "showLoginButton": false,
+  "showLogo": true,
+  "showLoyaltyPoints": true,
+  "showMenuFab": true,
+  "showPayBill": false,
+  "showPoweredBy": true,
+  "showPriceBreakdown": true,
+  "showPromotions": true,
+  "showPromotionsOnMenu": false,
+  "showSocialIcons": false,
+  "showSpecialInstructions": true,
+  "showTableInfo": true,
+  "showTableNumber": true,
+  "showWallet": false,
+  "showWelcomeText": false,
+  "skipOtpDelivery": false,
+  "skipOtpDineIn": false,
+  "skipOtpDineInWithTable": false,
+  "skipOtpRoomOrders": false,
+  "skipOtpTakeaway": false,
+  "skipOtpWalkIn": false,
+  "stationTimings": {},
+  "successMessage": "",
+  "successTitle": "",
+  "tagline": "",
+  "takeawayShifts": null,
+  "textColor": "#333333",
+  "textSecondaryColor": "#666666",
+  "twitterUrl": "",
+  "walkinShifts": null,
+  "welcomeMessage": "Welcome!",
+  "whatsappNumber": "",
+  "youtubeUrl": ""
+}

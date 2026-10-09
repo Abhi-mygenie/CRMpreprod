@@ -1,0 +1,43 @@
+diff --git a/backend/.env.example b/backend/.env.example
+new file mode 100644
+index 0000000..01ea126
+--- /dev/null
++++ b/backend/.env.example
+@@ -0,0 +1,37 @@
++# =============================================================================
++# backend/.env  — EXAMPLE TEMPLATE  (copy to backend/.env and fill real values)
++# -----------------------------------------------------------------------------
++# This template documents every variable the FastAPI backend reads.
++# The real backend/.env is gitignored and MUST be recreated on each deploy.
++# NEVER commit real secrets. Keep real values only in the deployed .env.
++# =============================================================================
++
++# --- Database (REQUIRED) -----------------------------------------------------
++# MongoDB connection string. The backend fails fast if this is missing.
++# Format: mongodb://<user>:<password>@<host>:<port>/<db>
++MONGO_URL=mongodb://<MONGO_USER>:<MONGO_PASSWORD>@<MONGO_HOST>:27017/<MONGO_DB>
++
++# Database name to use (must match the DB in MONGO_URL). e.g. mygenie
++DB_NAME=<MONGO_DB>
++
++# --- Auth (REQUIRED) ---------------------------------------------------------
++# Secret used to sign admin JWTs (HS256). Backend raises on startup if missing.
++# Generate a strong value, e.g.:  openssl rand -hex 32
++JWT_SECRET=<GENERATE_A_LONG_RANDOM_SECRET>
++
++# --- External POS API (REQUIRED) ---------------------------------------------
++# MyGenie POS base URL the backend proxies to (table-config, air-bnb orders,
++# admin POS-token fetch). Backend raises on startup if missing.
++# Example host: https://preprod.mygenie.online/api/v1
++MYGENIE_API_URL=<MYGENIE_POS_BASE_URL>
++
++# --- CORS (OPTIONAL; defaults to "*") ----------------------------------------
++# Comma-separated list of allowed browser origins. Defaults to "*".
++# PRODUCTION: do NOT use "*". Set the real app origins, e.g.:
++#   CORS_ORIGINS=https://app.mygenie.online,https://18march.mygenie.online
++# (multi-tenant subdomains: prefer locking to the *.mygenie.online family)
++CORS_ORIGINS=*
++
++# --- Test-only (OPTIONAL) -----------------------------------------------------
++# Used by backend/tests/* to know which server URL to hit. Not required at runtime.
++# REACT_APP_BACKEND_URL=https://<your-app-host>

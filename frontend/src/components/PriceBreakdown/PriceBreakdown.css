@@ -1,0 +1,76 @@
+.price-breakdown {
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  border: 1px solid var(--border-light);
+  font-weight: var(--font-weight-normal) !important;
+
+}
+
+.price-breakdown-title {
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.price-breakdown-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  font-weight: var(--font-weight-normal);
+
+}
+
+.price-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xs) 0;
+}
+
+.price-breakdown-label {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-normal);
+}
+
+.price-breakdown-value {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-normal);
+}
+
+.price-breakdown-divider {
+  height: 1px;
+  border: none;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--border-dashed) 0px,
+    var(--border-dashed) 8px,  /* Dash length */
+    transparent 8px,
+    transparent 12px            /* Gap length (12px - 8px = 4px gap) */
+  );
+  margin: var(--spacing-xs) 0;
+  width: 100%;
+}
+
+.price-breakdown-total {
+  margin-top: var(--spacing-xs);
+}
+
+.price-breakdown-total .price-breakdown-label {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+}
+
+.price-breakdown-total .price-breakdown-value {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+}

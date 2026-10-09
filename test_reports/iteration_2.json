@@ -1,0 +1,46 @@
+{
+  "summary": "CR-2026-10-03-003 QA (Role 4) verification: feedback moved from our backend to CRM POST /scan/feedback. All 11 required checks (Q1-Q12 excl. Q11 known-note) PASS. Backend smoke 19/19 and contract 14/14 PASS. Frontend: no-token sign-in gate, token happy-path POSTs to CRM with Bearer + correct JSON body, hard-reload shows form (not sign-in), 500 interception shows error toast and keeps form, empty-submit validation blocks and sends no request, double-click submits only one POST (button shows 'Submitting...' and is disabled), config feedbackEnabled=false hides Feedback hamburger entry on landing, and /478 /478/menu /478/review-order have no console errors mentioning FeedbackPage or crmSubmitFeedback. No code changes.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_results": {
+    "Q8_backend_feedback_routes_gone": "PASS (POST /api/config/feedback -> 405, GET /api/config/feedback/478 -> 404; smoke test_cr_2026_10_03_003 all 4 PASS)",
+    "Q9_backend_adjacent_config_alive": "PASS (GET /api/config/478 -> 200)",
+    "Q10_backend_pytest": "PASS (smoke 19/19 in 11.27s; contract 14/14 incl. test_config_feedback_478 asserting 404/405, 11 snapshots)",
+    "Q3_frontend_no_token": "PASS (feedback-signin-required visible, feedback-form count=0, 0 requests to scan/feedback or /orders, Sign-in click navigates to /478)",
+    "Q1_frontend_token_happy_path": "PASS (form visible, feedback-name/email testids absent, exactly 1 POST to https://preprod-crm-app-1.preview.emergentagent.com/api/scan/feedback with Authorization Bearer header and body {\"rating\":4,\"restaurant_id\":\"478\",\"message\":\"QA CR-2026-10-03-003 Q1 happy path\"}, feedback-success visible)",
+    "Q2_frontend_hard_reload": "PASS (feedback-loading briefly observed (count=1 initial), then form visible, signin_count=0)",
+    "Q4_frontend_error_500": "PASS (page.route **/scan/feedback -> 500; after submit: error toast 'Failed to submit...' visible, feedback-success count=0, form_still_visible=true)",
+    "Q5_frontend_validation": "PASS (empty submit -> toast 'Please add a rating and a message' visible, 0 POSTs to scan/feedback)",
+    "Q6_frontend_double_submit": "PASS (slow-route 1.8s delay; two rapid clicks produce exactly 1 POST; button text 'Submitting...' and disabled=true during in-flight)",
+    "Q7_frontend_config_gating": "PASS (page.route **/api/config/478 setting feedbackEnabled=false on top-level and body.config; opened /478 hamburger-menu-btn; resulting menu testids = ['hamburger-home','hamburger-menu'] only; feedback entry count 0, feedback text count 0)",
+    "Q12_regression_no_feedback_console_errors": "PASS (/478: 0 errors, /478/menu: 0 errors, /478/review-order: 4 pre-existing errors but ZERO mention FeedbackPage or crmSubmitFeedback — unrelated REACT_APP_BACKEND_URL/loyalty settings errors already present in the app)",
+    "Q11_known_note": "ACKNOWLEDGED (GET /customer/me/orders?limit=1 -> 404 is tracked as CR-2026-09-15-001; page unaffected; not reported as bug)"
+  },
+  "evidence": {
+    "backend_pytest_smoke": "19 passed in 11.27s (incl. 4 test_cr_2026_10_03_003)",
+    "backend_pytest_contract": "14 passed, 19 deselected in 4.60s (incl. test_config_feedback_478 asserting 404/405)",
+    "backend_curl": "POST /api/config/feedback -> 405; GET /api/config/feedback/478 -> 404; GET /api/config/478 -> 200",
+    "q1_post_captured": {"url":"https://preprod-crm-app-1.preview.emergentagent.com/api/scan/feedback","auth_bearer":true,"body":"{\"rating\":4,\"restaurant_id\":\"478\",\"message\":\"QA CR-2026-10-03-003 Q1 happy path\"}"},
+    "q7_landing_menu_after_toggle": "['landing-page','hamburger-menu-btn','hamburger-home','hamburger-menu','landing-logo','landing-customer-capture','capture-phone-input','capture-name-input','landing-actions','landing-browse-menu-btn','landing-footer'] — no 'feedback' testid",
+    "q12_review_order_errors": "Pre-existing: '[AUTH] CRITICAL: REACT_APP_BACKEND_URL is not set' (x2) and '[ORDER] Failed to fetch loyalty settings: SyntaxError' — none reference FeedbackPage/crmSubmitFeedback"
+  },
+  "test_report_links": [
+    "/app/backend/tests/smoke/test_cr_2026_10_03_003.py",
+    "/app/backend/tests/contracts/test_public_config.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FeedbackPage.jsx cleanly implements the token-only contract: scopeReady gate prevents the sign-in card from flashing on hard reload (Q2 confirmed feedback-loading briefly shown); submit button disabled while submitting prevents duplicate POSTs (Q6 confirmed only 1 POST despite 2nd force click succeeding on the DOM).",
+    "server.py: no residual 'db.feedback' or 'FeedbackCreate' references (smoke test_no_db_feedback_reference PASS); marker comment at line 1293-1297 appropriately documents the deletion.",
+    "Observation (not a CR regression; pre-existing): /478/review-order emits 2x '[AUTH] CRITICAL: REACT_APP_BACKEND_URL is not set' errors and a loyalty-settings JSON parse error. Unrelated to CR-2026-10-03-003 — REACT_APP_BACKEND_URL being commented out is intentional (relative /api), but a POS auth path still logs it as missing. May want a separate ticket.",
+    "Q11 confirmed: GET /customer/me/orders?limit=1 returns 404 on the feedback page open; page remains functional. Correctly swallowed by the .catch(() => {}) in the useEffect at FeedbackPage.jsx:39."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "CRM diner token obtained via POST {CRM}/scan/auth/skip-otp with phone=9579504871, restaurant_id=478 (per /app/memory/test_credentials.md). All feedback submissions tagged 'QA CR-2026-10-03-003' in message body.",
+  "seed_data_creation": "Submitted 1 real feedback (rating=4) to CRM preprod for restaurant 478 as part of Q1 happy path (contains 'QA CR-2026-10-03-003 Q1 happy path'). Q4/Q6 submissions were intercepted via page.route and did not reach CRM. Q5 was blocked client-side.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "CR-2026-10-03-003 is fully verified at Role 4. The feedback-signin-required/feedback-signin-btn/feedback-success/feedback-form/feedback-message/feedback-star-{1..5}/feedback-submit-btn data-testids are stable and reliable. For future CRs touching FeedbackPage, use page.route('**/scan/feedback', ...) to intercept the CRM call cleanly (it is cross-origin; feedback POST goes to REACT_APP_CRM_URL host, not /api). Q5 can be flaky if CRM profile validation (setRestaurantScope -> crmGetProfile) is slow — wait up to 20-25s for 'feedback-form or feedback-signin-required'. The hamburger entries on the /478 landing are built from backend config; feedbackEnabled=false both at top-level and body.config.feedbackEnabled must be set when intercepting /api/config/{rid}.",
+  "rca of the issue": "N/A — this iteration is QA sign-off, not a bug RCA. CR-2026-10-03-003 moved feedback writes out of our backend into CRM's canonical /scan/feedback contract, removing a schema-mismatch bug where our backend wrote into CRM's shared 'feedback' Mongo collection in the wrong shape. Verification confirms: (1) no server-side feedback routes remain; (2) frontend posts directly to CRM with Bearer token and correct JSON shape; (3) unauthenticated diners see a sign-in prompt and emit zero network traffic to scan/feedback or /orders; (4) UX safeguards (double-submit lock, validation, error toast) all work; (5) adjacent config route and other pages are unaffected."
+}

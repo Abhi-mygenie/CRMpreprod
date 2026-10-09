@@ -1,0 +1,262 @@
+diff --git a/DEPLOYMENT_HANDOVER.md b/DEPLOYMENT_HANDOVER.md
+index 094c568..8f35b4a 100644
+--- a/DEPLOYMENT_HANDOVER.md
++++ b/DEPLOYMENT_HANDOVER.md
+@@ -127,7 +127,7 @@ Frontend code references **10 distinct `process.env.REACT_APP_*` keys** (excludi
+ | `REACT_APP_IMAGE_BASE_URL` | yes (images render) | set | `https://manage.mygenie.online` | user-supplied |
+ | `REACT_APP_API_BASE_URL` | yes (POS API) | set | `https://preprod.mygenie.online/api/v1` | user-supplied |
+ | `REACT_APP_LOGIN_PHONE` | yes (default login id) | set | `+919579504871` | user-supplied |
+-| `REACT_APP_LOGIN_PASSWORD` | yes (default login pwd) | set | `Qplazm@10` | user-supplied |
++| `REACT_APP_LOGIN_PASSWORD` | yes (default login pwd) | set | `<POS_LOGIN_PASSWORD>` | user-supplied |
+ | `REACT_APP_CRM_URL` | yes (CRM calls) | set | `https://crm.mygenie.online/api` | user-supplied |
+ | `REACT_APP_GOOGLE_MAPS_API_KEY` | yes (Maps render) | **placeholder** | `AIz...mj4` (truncated value, exactly as supplied) | user-supplied (TRUNCATED) |
+ | `REACT_APP_CRM_API_VERSION` | yes (CRM header) | set | `v2` | user-supplied |
+@@ -341,7 +341,7 @@ curl -s -o /dev/null -w "%{http_code}\n" https://52f26ce3-b2cb-44e8-aeb2-60863bc
+ 
+ # 5) MongoDB connectivity
+ python3 -c "from pymongo import MongoClient; \
+-  c=MongoClient('mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie', \
++  c=MongoClient('mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie', \
+   serverSelectionTimeoutMS=5000); print(c.server_info()['version'])"
+ 
+ # 6) Production frontend build
+diff --git a/HANDOVER.md b/HANDOVER.md
+index feb44a9..94ffbf2 100644
+--- a/HANDOVER.md
++++ b/HANDOVER.md
+@@ -84,7 +84,7 @@ Both `.env` files are gitignored. **Recreate these on every fresh deployment.**
+ 
+ | Variable | Value | Notes |
+ |---|---|---|
+-| `MONGO_URL` | `mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie` | Remote production DB (user-supplied this run) |
++| `MONGO_URL` | `mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie` | Remote production DB (user-supplied this run) |
+ | `DB_NAME` | `mygenie` | |
+ | `JWT_SECRET` | 64-char hex (`efc349b2…32c55` — generated this run) | **Rotate per environment.** Server raises `ValueError` if missing |
+ | `MYGENIE_API_URL` | `https://preprod.mygenie.online/api/v1` | Server raises if missing |
+@@ -103,7 +103,7 @@ Where used in `server.py`:
+ | `REACT_APP_IMAGE_BASE_URL` | `https://manage.mygenie.online` | yes | menu/image CDN |
+ | `REACT_APP_API_BASE_URL` | `https://preprod.mygenie.online/api/v1` | yes | POS direct calls from FE |
+ | `REACT_APP_LOGIN_PHONE` | `+919579504871` | yes | default login id |
+-| `REACT_APP_LOGIN_PASSWORD` | `Qplazm@10` | yes | default login pwd |
++| `REACT_APP_LOGIN_PASSWORD` | `<POS_LOGIN_PASSWORD>` | yes | default login pwd |
+ | `REACT_APP_CRM_URL` | `https://crm.mygenie.online/api` | yes | CRM base |
+ | `REACT_APP_CRM_API_VERSION` | `v2` | yes | CRM header |
+ | `REACT_APP_CRM_API_KEY` | `{}` (empty JSON map) | optional | per-restaurant map `{ "<restaurantId>": "<key>" }` |
+@@ -130,7 +130,7 @@ cd /app && git checkout main
+ 
+ # 2. Write env files (see §3 above for full content)
+ cat > /app/backend/.env <<EOF
+-MONGO_URL=mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie
++MONGO_URL=mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie
+ DB_NAME=mygenie
+ JWT_SECRET=$(python3 -c "import secrets;print(secrets.token_hex(32))")
+ MYGENIE_API_URL=https://preprod.mygenie.online/api/v1
+@@ -209,7 +209,7 @@ Collection counts (snapshot at handover time):
+ 
+ Quick connect:
+ ```bash
+-mongosh "mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie"
++mongosh "mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie"
+ ```
+ 
+ > Compared to the 2026-05-14 handover the DB now has slightly different collections (e.g. `whatsapp_callback_logs`, `pos_request_logs`, `coupon_transactions`, `coupon_usage`, `loyalty_mismatch_logs`, `migration_sync_logs` are present; `customer_otps`, `pos_event_logs`, `status_checks`, `test`, `dietary_tags_mapping`, `automation_rules`, `custom_templates`, `whatsapp_templates` from the older list are not present in current DB). Drift is expected — DB is shared and live.
+diff --git a/frontend/public/PRD.md b/frontend/public/PRD.md
+index 7f8a6f5..6196b77 100644
+--- a/frontend/public/PRD.md
++++ b/frontend/public/PRD.md
+@@ -7,7 +7,7 @@
+ ## Project Overview
+ - **Repository**: https://github.com/Abhi-mygenie/customer-app5th-march.git
+ - **Default Branch**: `6marchv1`
+-- **Database**: MongoDB at `mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie`
++- **Database**: MongoDB at `mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie`
+ - **Tech Stack**: React (Frontend) + FastAPI (Backend) + MongoDB
+ - **Preview URL**: https://room-scan-validation.preview.emergentagent.com
+ 
+diff --git a/memory/change_requests/CR-2026-05-30-001-config-mandatory-fields-and-scan-misrouting/QA_HANDOVER_ITEM1.md b/memory/change_requests/CR-2026-05-30-001-config-mandatory-fields-and-scan-misrouting/QA_HANDOVER_ITEM1.md
+index b854759..c173491 100644
+--- a/memory/change_requests/CR-2026-05-30-001-config-mandatory-fields-and-scan-misrouting/QA_HANDOVER_ITEM1.md
++++ b/memory/change_requests/CR-2026-05-30-001-config-mandatory-fields-and-scan-misrouting/QA_HANDOVER_ITEM1.md
+@@ -75,10 +75,10 @@ When a customer enters a phone and clicks **Browse Menu** on the landing page:
+ |---|---|
+ | Admin login URL | `https://deploy-docs-6.preview.emergentagent.com/login` |
+ | Admin email (Cafe Flora / restaurant 698) | `owner@cafeflora.com` |
+-| Admin password | `Qplazm@10` |
++| Admin password | `<POS_LOGIN_PASSWORD>` |
+ | Customer landing URL | `https://deploy-docs-6.preview.emergentagent.com/<restaurantId>` |
+ | Restaurant IDs available | `364`, `618`, `698` (Cafe Flora). **716** is NOT in this DB but Item 1 spec includes it. |
+-| MongoDB direct (read flags) | `mongosh "mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie" --eval 'db.customer_app_config.findOne({restaurant_id:"698"})'` |
++| MongoDB direct (read flags) | `mongosh "mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie" --eval 'db.customer_app_config.findOne({restaurant_id:"698"})'` |
+ 
+ ### 2.2 How to toggle a flag manually (admin UI path)
+ 
+@@ -97,15 +97,15 @@ When a customer enters a phone and clicks **Browse Menu** on the landing page:
+ 
+ ```bash
+ # Set
+-mongosh "mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie" \
++mongosh "mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie" \
+   --eval 'db.customer_app_config.updateOne({restaurant_id:"698"}, {$set:{skipOtpTakeaway:true}})'
+ 
+ # Read
+-mongosh "mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie" \
++mongosh "mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie" \
+   --eval 'db.customer_app_config.findOne({restaurant_id:"698"}, {restaurant_id:1, skipOtpDineIn:1, skipOtpTakeaway:1, skipOtpDelivery:1, skipOtpDineInWithTable:1, skipOtpWalkIn:1, skipOtpRoomOrders:1, _id:0})'
+ 
+ # Cleanup (remove all skipOtp* flags for a restaurant)
+-mongosh "mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie" \
++mongosh "mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie" \
+   --eval 'db.customer_app_config.updateOne({restaurant_id:"698"}, {$unset:{skipOtpDineIn:"", skipOtpTakeaway:"", skipOtpDelivery:"", skipOtpDineInWithTable:"", skipOtpWalkIn:"", skipOtpRoomOrders:""}})'
+ ```
+ 
+diff --git a/memory_repo/DEPLOYMENT_HANDOVER_CUSTOMER_APP.md b/memory_repo/DEPLOYMENT_HANDOVER_CUSTOMER_APP.md
+index 58e1922..2947668 100644
+--- a/memory_repo/DEPLOYMENT_HANDOVER_CUSTOMER_APP.md
++++ b/memory_repo/DEPLOYMENT_HANDOVER_CUSTOMER_APP.md
+@@ -262,7 +262,7 @@ Evidence collected from source grep:
+    - `REACT_APP_BACKEND_URL=https://<deployed-backend-host>`   *(collect from ops)*
+    - `REACT_APP_IMAGE_BASE_URL=https://manage.mygenie.online`
+    - `REACT_APP_LOGIN_PHONE=+919579504871`
+-   - `REACT_APP_LOGIN_PASSWORD=Qplazm@10`
++   - `REACT_APP_LOGIN_PASSWORD=<POS_LOGIN_PASSWORD>`
+    - `REACT_APP_CRM_URL=https://crm.mygenie.online/api`
+    - `REACT_APP_CRM_API_VERSION=v2`
+    - `REACT_APP_CRM_API_KEY=<JSON string>`                      *(collect from ops)*
+diff --git a/memory_repo/DEPLOYMENT_RUN_ISSUES.md b/memory_repo/DEPLOYMENT_RUN_ISSUES.md
+index c7a2086..5ea66c0 100644
+--- a/memory_repo/DEPLOYMENT_RUN_ISSUES.md
++++ b/memory_repo/DEPLOYMENT_RUN_ISSUES.md
+@@ -31,7 +31,7 @@ if not MYGENIE_API_URL: raise ValueError(...)
+ Working values used in this run:
+ 
+ ```env
+-MONGO_URL=mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie
++MONGO_URL=mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie
+ DB_NAME=mygenie
+ CORS_ORIGINS=*
+ JWT_SECRET=<any long random string>
+@@ -55,7 +55,7 @@ ENABLE_HEALTH_CHECK=false
+ REACT_APP_IMAGE_BASE_URL=https://manage.mygenie.online
+ REACT_APP_API_BASE_URL=https://preprod.mygenie.online/api/v1
+ REACT_APP_LOGIN_PHONE=+919579504871
+-REACT_APP_LOGIN_PASSWORD=Qplazm@10
++REACT_APP_LOGIN_PASSWORD=<POS_LOGIN_PASSWORD>
+ REACT_APP_CRM_URL=https://crm.mygenie.online/api
+ REACT_APP_GOOGLE_MAPS_API_KEY=AIzaSyCS9rZcttTxbair3abltZ3Fm1vEnmY0mj4
+ REACT_APP_CRM_API_VERSION=v2
+diff --git a/memory_repo/QA_HANDOVER_SESSION_2026-05-03.md b/memory_repo/QA_HANDOVER_SESSION_2026-05-03.md
+index debf21e..6ceac74 100644
+--- a/memory_repo/QA_HANDOVER_SESSION_2026-05-03.md
++++ b/memory_repo/QA_HANDOVER_SESSION_2026-05-03.md
+@@ -92,7 +92,7 @@ Also on remote: `.emergent/emergent.yml`, `.gitignore`, `test_result.md` modifie
+ 
+ ### 🟡 Task 4.1 — Restaurant 716 Validation (resume here)
+ Verify the room/table-number display fix works end-to-end on the OrderSuccess page now that compilation is green.
+-- **Login**: `+919579504871` / `Qplazm@10` (from `frontend/.env`)
++- **Login**: `+919579504871` / `<POS_LOGIN_PASSWORD>` (from `frontend/.env`)
+ - **Steps**:
+   1. Open the 716 menu, select a room/table manually (saves to `sessionStorage`).
+   2. Place an order through the multi-menu flow.
+@@ -131,7 +131,7 @@ No backend changes. No env changes. No supervisor config changes.
+ - **App URL (local dev)**: `http://localhost:3000`
+ - **API base**: `https://preprod.mygenie.online/api/v1`
+ - **Login phone**: `+919579504871`
+-- **Login password**: `Qplazm@10`
++- **Login password**: `<POS_LOGIN_PASSWORD>`
+ - **Test restaurants**: `716` (Hyatt Centric — autopaid + manual room select), `478` (loyalty + coupon + wallet flows)
+ 
+ See also `/app/memory/test_credentials.md` if present.
+diff --git a/memory_repo/QA_HANDOVER_SESSION_2026-05-04.md b/memory_repo/QA_HANDOVER_SESSION_2026-05-04.md
+index 1c5a045..8809596 100644
+--- a/memory_repo/QA_HANDOVER_SESSION_2026-05-04.md
++++ b/memory_repo/QA_HANDOVER_SESSION_2026-05-04.md
+@@ -222,9 +222,9 @@ QA should provide:
+ |---|---|
+ | Preview URL | `https://room-scan-validation.preview.emergentagent.com` |
+ | Test login phone (from `.env`) | `+919579504871` |
+-| Test password (from `.env`) | `Qplazm@10` |
++| Test password (from `.env`) | `<POS_LOGIN_PASSWORD>` |
+ | Backend POS API base | `https://preprod.mygenie.online/api/v1` |
+-| MongoDB | `mongodb://mygenie_admin:QplazmMzalpq@52.66.232.149:27017/mygenie` (read-only access for sync mirror) |
++| MongoDB | `mongodb://mygenie_admin:<MONGO_PASSWORD>@52.66.232.149:27017/mygenie` (read-only access for sync mirror) |
+ | Restaurants exercised | 716 (Hyatt, prepaid-only, multi-menu room-only), 699 (Brew, prepaid-only), 739 (Five star, walk-in sample) |
+ 
+ Sample order ids investigated this session:
+diff --git a/memory_repo/change_requests/SERVICE_CHARGE_MAPPING_478_EDIT_ORDER_VALIDATION_REPORT.md b/memory_repo/change_requests/SERVICE_CHARGE_MAPPING_478_EDIT_ORDER_VALIDATION_REPORT.md
+index 081aad8..d2f8309 100644
+--- a/memory_repo/change_requests/SERVICE_CHARGE_MAPPING_478_EDIT_ORDER_VALIDATION_REPORT.md
++++ b/memory_repo/change_requests/SERVICE_CHARGE_MAPPING_478_EDIT_ORDER_VALIDATION_REPORT.md
+@@ -60,7 +60,7 @@ For each flow, the in-scope fields were:
+ - The user instructions for this thread say `Do not implement`, `Do not modify code`, `Only test, capture payloads, and report.` They do not explicitly grant write access to live preprod data; combined with the CR summary's explicit escalation to stakeholder, the safe interpretation is to NOT auto-create test orders.
+ 
+ ### B3. No prior order exists for the test customer on 478
+-- The only credentials in scope are `REACT_APP_LOGIN_PHONE=+919579504871` and `REACT_APP_LOGIN_PASSWORD=Qplazm@10` (`backend/.env`/`frontend/.env`). Logging in against `POST /auth/login` returns a token whose JWT `sub=14` (verified, §3.1).
++- The only credentials in scope are `REACT_APP_LOGIN_PHONE=+919579504871` and `REACT_APP_LOGIN_PASSWORD=<POS_LOGIN_PASSWORD>` (`backend/.env`/`frontend/.env`). Logging in against `POST /auth/login` returns a token whose JWT `sub=14` (verified, §3.1).
+ - A read-only listing of orders / running orders for this user on 478 was attempted; the endpoints used by historical clients are either not exposed (`POST /customer/order/list` → `405 Method Not Allowed`, supported methods `GET, HEAD`) or 404 (`POST /customer/order/running-order` → 404 HTML). Without an existing in-flight order to inspect, I cannot capture a representative `/order-details` payload for an editable 478 order.
+ 
+ ### B4. Curl-based payload simulation is not equivalent validation
+diff --git a/memory_repo/current-state/CRM_ENV_SWITCH_RUNTIME_TRACE_AND_PHASE2_PLAN.md b/memory_repo/current-state/CRM_ENV_SWITCH_RUNTIME_TRACE_AND_PHASE2_PLAN.md
+index 4dad798..4782521 100644
+--- a/memory_repo/current-state/CRM_ENV_SWITCH_RUNTIME_TRACE_AND_PHASE2_PLAN.md
++++ b/memory_repo/current-state/CRM_ENV_SWITCH_RUNTIME_TRACE_AND_PHASE2_PLAN.md
+@@ -21,7 +21,7 @@
+   - `REACT_APP_IMAGE_BASE_URL=https://manage.mygenie.online`
+   - `REACT_APP_API_BASE_URL=https://preprod.mygenie.online/api/v1`
+   - `REACT_APP_LOGIN_PHONE=+919579504871`
+-  - `REACT_APP_LOGIN_PASSWORD=Qplazm@10`
++  - `REACT_APP_LOGIN_PASSWORD=<POS_LOGIN_PASSWORD>`
+   - `REACT_APP_CRM_URL=https://crm.mygenie.online/api`
+   - `REACT_APP_GOOGLE_MAPS_API_KEY=[provided]`
+   - `REACT_APP_CRM_API_VERSION=v2`
+diff --git a/test_reports/iteration_1.json b/test_reports/iteration_1.json
+index c1cf543..990566e 100644
+--- a/test_reports/iteration_1.json
++++ b/test_reports/iteration_1.json
+@@ -32,7 +32,7 @@
+   ],
+   "updated_files": [],
+   "success_rate": {"backend": "N/A (FE-only CR)", "frontend": "code-review pass; runtime tests pending"},
+-  "test_credentials": "REACT_APP_LOGIN_PHONE=+919579504871, REACT_APP_LOGIN_PASSWORD=Qplazm@10 (from frontend/.env per request). /app/memory/test_credentials.md was NOT found — flag for repo hygiene.",
++  "test_credentials": "REACT_APP_LOGIN_PHONE=+919579504871, REACT_APP_LOGIN_PASSWORD=<POS_LOGIN_PASSWORD> (from frontend/.env per request). /app/memory/test_credentials.md was NOT found — flag for repo hygiene.",
+   "seed_data_creation": "None. Mongo customer_app_config edits would be required for live functional scenarios — deferred to main agent / next iteration.",
+   "retest_needed": true,
+   "main_agent_can_self_test": true,
+diff --git a/test_reports/iteration_2.json b/test_reports/iteration_2.json
+index 239b511..00c01dc 100644
+--- a/test_reports/iteration_2.json
++++ b/test_reports/iteration_2.json
+@@ -47,7 +47,7 @@
+   ],
+   "updated_files": [],
+   "success_rate": {"backend": "endpoint OK (204) + index OK; admin save API broken for new field", "frontend": "policy module + modal + admin section OK; Guard C1 missing → ~25% of feature actually works at runtime"},
+-  "test_credentials": "owner@cafeflora.com / Qplazm@10 — restaurant 698. Login via POST /api/auth/login requires `phone_or_email` (NOT phone or email) plus `user_type:'restaurant'`. /app/memory/test_credentials.md present and accurate.",
++  "test_credentials": "owner@cafeflora.com / <POS_LOGIN_PASSWORD> — restaurant 698. Login via POST /api/auth/login requires `phone_or_email` (NOT phone or email) plus `user_type:'restaurant'`. /app/memory/test_credentials.md present and accurate.",
+   "seed_data_creation": "Direct MongoDB write was required to set `allowNonQrOrders:false` on customer_app_config for restaurant 698 (since the admin API silently drops it). Cleanup performed at end of test run via $unset — verified GET /api/config/698 now returns allowNonQrOrders=null (default). MongoDB `non_qr_blocks` collection now has 2 documents from this test session (1 from manual curl smoke + 1 from earlier backend smoke); harmless given the 200-doc cap and they only affect 698's rolling window.",
+   "retest_needed": true,
+   "main_agent_can_self_test": true,
+diff --git a/test_reports/iteration_3.json b/test_reports/iteration_3.json
+index 4ec9fc9..7310610 100644
+--- a/test_reports/iteration_3.json
++++ b/test_reports/iteration_3.json
+@@ -44,7 +44,7 @@
+     "backend": "diagnostics endpoint + rolling cap + DB-layer config write: 100% (3/3 verified). Admin PUT round-trip via API not exercised this iteration.",
+     "frontend": "C2 add-to-cart: PASS. C3 place-order: code-correct (same shape as C2, not runtime-tested because C1 blocks runtime path). C1 landing: FAIL — selectedMode bypass bug. Modal/policy/admin section all individually correct. ~50% of feature actually works at runtime."
+   },
+-  "test_credentials": "owner@cafeflora.com / Qplazm@10. Restaurant 698. /app/memory/test_credentials.md present and accurate.",
++  "test_credentials": "owner@cafeflora.com / <POS_LOGIN_PASSWORD>. Restaurant 698. /app/memory/test_credentials.md present and accurate.",
+   "seed_data_creation": "Set customer_app_config.allowNonQrOrders=false on restaurant 698 via direct Mongo write for the test run. Posted 250 dummy diagnostics events with restaurant_id=TEST_RID to validate the 200-doc rolling cap (exactly 200 persisted — verified). Cleanup performed: $unset allowNonQrOrders on 698 AND 716 (716 was a no-op — field was already absent); delete_many({restaurant_id:'TEST_RID'}) on non_qr_blocks. Post-test GET /api/config/698 returns allowNonQrOrders=null (default).",
+   "retest_needed": true,
+   "main_agent_can_self_test": true,
+diff --git a/test_reports/iteration_4.json b/test_reports/iteration_4.json
+index 4ad6be2..84ee187 100644
+--- a/test_reports/iteration_4.json
++++ b/test_reports/iteration_4.json
+@@ -30,7 +30,7 @@
+     "backend": "Diagnostics POST + DB persistence: 100% (1/1 round-trip verified). Admin PUT round-trip via API not exercised this iteration (no change to admin API in iter_4 — already verified working through DB-level config writes reflecting through the read path).",
+     "frontend": "Guard C1 (landing): PASS (all primary + telemetry + bypass scenarios). Modal non-dismissable: PASS. 716 carve-out: PASS. allowNonQrOrders=true no-op: PASS. Item 1 non-regression: PASS. 100% of in-scope scenarios for iter_4."
+   },
+-  "test_credentials": "owner@cafeflora.com / Qplazm@10 (Cafe Flora). Used direct Mongo writes for config changes — no admin UI auth needed this iteration.",
++  "test_credentials": "owner@cafeflora.com / <POS_LOGIN_PASSWORD> (Cafe Flora). Used direct Mongo writes for config changes — no admin UI auth needed this iteration.",
+   "seed_data_creation": "(1) Set 698.allowNonQrOrders=false for Scenario 3+14. (2) Flipped to 698.allowNonQrOrders=true + skipOtpDineIn=true for Scenario 15. (3) Set 716.allowNonQrOrders=false for Scenario 11. (4) Added 698.skipOtpDineInWithTable=true for Scenario 16. (5) Used navigator.sendBeacon=undefined patch in Playwright to force the fetch keepalive path so request bodies were interceptable. FINAL CLEANUP performed: $unset allowNonQrOrders + skipOtpDineIn + skipOtpDineInWithTable on 698; $unset allowNonQrOrders on 716; delete_many({restaurant_id:'TEST_RID'}) on non_qr_blocks (0 docs — none had been seeded this iteration). End-state DB verified: 698 config doc has only _id (all touched flags removed), 716 config doc has only _id.",
+   "retest_needed": false,
+   "main_agent_can_self_test": true,

@@ -1,0 +1,24 @@
+{
+  "summary": "CR-2026-10-03-001 (delete dead customer API shim) verified end-to-end. Ran the pre-existing smoke test (12/12 passing) and added a complementary test file covering every item in the review request — deleted-route 404s without auth, admin login shape (token/pos_token/no restaurant_context), /api/auth/me, wrong-password 401, unknown-email 404 with 'Account not found', public routes untouched (/healthz, /config/478, /dietary-tags/478), /api/config/689 GET, admin PUT /api/config/ round-trip + restore on restaurant 478, and backend.err.log clean since last startup. Combined suite: 28/28 passed. Broader regression (/app/backend/tests/smoke + /app/backend/tests/contracts) also passes 61/61 after cleanup. Login rate limit (5/min) respected throughout — admin JWT fixture reused and extras tested in a single window.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/smoke/test_cr_2026_10_03_001.py",
+    "/app/backend/tests/smoke/test_cr_2026_10_03_001_extras.py",
+    "/app/test_reports/pytest/cr_2026_10_03_001_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PUT /api/config/ ignores any `restaurant_id` in the request body — it always writes to the restaurant baked into the admin JWT. Not a CR regression (behaviour predates this change), but worth documenting as it is non-obvious and caused one of my test iterations to silently succeed against the wrong restaurant."
+  ],
+  "updated_files": [
+    "/app/backend/tests/smoke/test_cr_2026_10_03_001_extras.py (new, 9 tests)"
+  ],
+  "success_rate": {"backend": "100% (28/28 CR tests, 61/61 full smoke+contract suite)", "frontend": "skipped (backend-only CR per request)"},
+  "test_credentials": "owner@18march.com / Qplazm@10 (from /app/memory/test_credentials.md and conftest ADMIN_PHONE/ADMIN_PASS env defaults)",
+  "seed_data_creation": "None. Config round-trip test writes a timestamped marker to restaurant 478's welcomeMessage and restores the original value in the same test. After an earlier dry-run where the marker leaked (double-execution), I manually PUT welcomeMessage='Welcome!' to clean up; confirmed by rerunning tests/contracts/test_public_config.py (9/9 pass incl. snapshot).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Everything related to CR-2026-10-03-001 is green. The new extras file /app/backend/tests/smoke/test_cr_2026_10_03_001_extras.py is a safe long-term regression suite. If re-running: login limiter is 5/min — the extras file consumes 3 login slots (admin_jwt fixture + wrong-password + unknown-email); the companion test_cr_2026_10_03_001.py consumes 2 more (admin_jwt reused via session scope + test_admin_login_still_restaurant). Running both together is fine (admin_jwt is session-scoped). Running them back-to-back across sessions needs a 60s pause.",
+  "rca of the issue": "N/A — no bugs found. Minor test authoring note: initial version of my config round-trip test targeted restaurant 689 using the body `restaurant_id` field; backend ignores that field and keys off the JWT's restaurant_id, so the PUT silently wrote to 478 and the GET on 689 showed no change. Fixed by aligning the test to the admin's actual restaurant (478) and keeping a plain GET /api/config/689 assertion to prove the public read route still works."
+}
