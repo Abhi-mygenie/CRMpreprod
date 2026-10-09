@@ -205,7 +205,11 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - `tests/test_cr096_feedback.py` (new, 15 tests F-A…F-M + F-K2 + F-ZZ): sync requests + pymongo pattern.
 - Self-test **15/15 PASS** (38 s). Shared-limiter regression 39 pass / 2 skip / 1 fail (transient log-cleanliness check from E3→E2 ordering gap; backend clean).
 
-## 2026-10-09 — IMPLEMENTATION: CR-100 tolerant phone_match for legacy `country_code: null/""` (owner-approved, plan Q1 A / Q2 accept-either / Q3 +91-only)
+## 2026-10-09 — IMPLEMENTATION: CR-095 PUT half (owner-approved, Q1 YES two-step / Q2 A/404)
+- `routers/scan.py`: deleted `AppConfigUpdate` model (70 fields, 69 lines) + `DietaryTagsUpdate` model (2 lines) + `update_app_config` route (26 lines) + `update_dietary_tags` route (24 lines) = **126 lines removed**. Implemented via regex deletion (block sizes too large for search_replace).
+- Cross-tenant write security hole **CLOSED**. `customer_app_config` (13 docs) and `dietary_tags_mapping` (0 docs) untouched.
+- Self-test V1–V6: PUT /scan/config/689 → 405 · PUT /scan/menu/dietary-tags/689 → 405 · GET routes still 200 · counts unchanged. NOTE: 405 not 404 while GET routes live (correct HTTP — path exists via GET; resolves to 404 after GET half removed at CA-2).
+- GET half stays live pending CA-2 cutover from Scan & Order. **Next: QA (optional, LOW risk) → GET half after CA-2.**
 - `core/phone.py` (E1): `phone_match()` returns `{"$in": ["+91", None, ""]}` on `country_code` when `cc == "+91"`. Foreign cc stays exact. All 11 call sites fixed automatically.
 - `routers/scan.py:324` (E2): inline dict in `lookup_customer` migrated to `{**phone_match(...), ...}` — the only call site that bypassed the helper.
 - `tests/test_cr100_tolerant_match.py` (E3, new): V1–VZZ — 8 tests; synthetic null-cc customer inserted/cleaned per test.

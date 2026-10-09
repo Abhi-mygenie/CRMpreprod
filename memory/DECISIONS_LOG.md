@@ -1681,3 +1681,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: **Q1 = YES** — two-step: delete both PUTs now (PUT half, this CR); both GETs removed only after Scan & Order confirms CA-2 cutover. **Q2 = A (404)** — hard 404 for deleted PUT routes, same pattern as CR-084/097/098. No 410 stub (zero callers, no deprecation window needed). **Implementation Plan gate OPENED** by owner.
 **Source**: Owner 2026-10-09: "q1 yes, Q2 - A (404); update docs and decision; choose planning role for implementation planning of CR 095".
 **Locks**: CR-095 PUT half scope = delete `AppConfigUpdate` model + `DietaryTagsUpdate` model + `update_app_config` route + `update_dietary_tags` route from `routers/scan.py`. GET routes stay live. No other files touched. Implementation gate open on "choose implementation role for CR-095".
+
+### 2026-10-09 [CR-095] PUT half IMPLEMENTED — cross-tenant write hole closed
+**Decision**: Implemented per plan. `AppConfigUpdate` + `DietaryTagsUpdate` models deleted; `update_app_config` + `update_dietary_tags` routes deleted (126 lines total). Self-test PASS. NOTE: PUTs return 405 (not 404) while GET routes for same paths remain live — correct FastAPI/HTTP behaviour; resolves to 404 after GET half removal at CA-2. GET routes stay live pending CA-2.
+**Locks**: PUT half done. GET half removal gated on CA-2 confirmation from Scan & Order. No consumer note needed for PUT removal (zero callers confirmed).

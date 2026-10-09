@@ -132,80 +132,6 @@ class TableAction(BaseModel):
     message: Optional[str] = None
 
 
-class AppConfigUpdate(BaseModel):
-    primaryColor: Optional[str] = None
-    secondaryColor: Optional[str] = None
-    backgroundColor: Optional[str] = None
-    buttonTextColor: Optional[str] = None
-    textColor: Optional[str] = None
-    textSecondaryColor: Optional[str] = None
-    fontHeading: Optional[str] = None
-    fontBody: Optional[str] = None
-    logoUrl: Optional[str] = None
-    tagline: Optional[str] = None
-    welcomeMessage: Optional[str] = None
-    banners: Optional[List[dict]] = None
-    showCallWaiter: Optional[bool] = None
-    showPayBill: Optional[bool] = None
-    showCategories: Optional[bool] = None
-    showPriceBreakdown: Optional[bool] = None
-    showPromotionsOnMenu: Optional[bool] = None
-    showTableInfo: Optional[bool] = None
-    showLoyaltyPoints: Optional[bool] = None
-    showWallet: Optional[bool] = None
-    showLoginButton: Optional[bool] = None
-    feedbackEnabled: Optional[bool] = None
-    feedbackIntroText: Optional[str] = None
-    aboutUsContent: Optional[str] = None
-    aboutUsImage: Optional[str] = None
-    openingHours: Optional[str] = None
-    address: Optional[str] = None
-    contactEmail: Optional[str] = None
-    phone: Optional[str] = None
-    instagramUrl: Optional[str] = None
-    facebookUrl: Optional[str] = None
-    twitterUrl: Optional[str] = None
-    whatsappNumber: Optional[str] = None
-    youtubeUrl: Optional[str] = None
-    navMenuOrder: Optional[List[dict]] = None
-    footerLinks: Optional[List[dict]] = None
-    footerText: Optional[str] = None
-    mapEmbedUrl: Optional[str] = None
-    borderRadius: Optional[str] = None
-    showHamburgerMenu: Optional[bool] = None
-    showCookingInstructions: Optional[bool] = None
-    showSpecialInstructions: Optional[bool] = None
-    showDescription: Optional[bool] = None
-    showFoodStatus: Optional[bool] = None
-    showOrderStatusTracker: Optional[bool] = None
-    showEstimatedTimes: Optional[bool] = None
-    showCouponCode: Optional[bool] = None
-    showCustomerDetails: Optional[bool] = None
-    showCustomerName: Optional[bool] = None
-    showCustomerPhone: Optional[bool] = None
-    showExtraInfo: Optional[bool] = None
-    showFooter: Optional[bool] = None
-    showLogo: Optional[bool] = None
-    showMenuFab: Optional[bool] = None
-    showPoweredBy: Optional[bool] = None
-    showSocialIcons: Optional[bool] = None
-    showTableNumber: Optional[bool] = None
-    showWelcomeText: Optional[bool] = None
-    showLandingCallWaiter: Optional[bool] = None
-    showLandingCustomerCapture: Optional[bool] = None
-    showLandingPayBill: Optional[bool] = None
-    browseMenuButtonText: Optional[str] = None
-    backgroundImageUrl: Optional[str] = None
-    mobileBackgroundImageUrl: Optional[str] = None
-    restaurantOpeningTime: Optional[str] = None
-    restaurantClosingTime: Optional[str] = None
-    extraInfoItems: Optional[List[str]] = None
-    customPages: Optional[List[dict]] = None
-
-
-class DietaryTagsUpdate(BaseModel):
-    mappings: dict
-
 
 # Standard response
 def _resp(success: bool, message: str, data=None):
@@ -677,33 +603,6 @@ async def get_app_config(restaurant_id: str):
     return _resp(True, "Config loaded", config)
 
 
-@router.put("/config/{restaurant_id}")
-async def update_app_config(restaurant_id: str, updates: AppConfigUpdate, user: dict = Depends(get_current_user)):
-    """Update restaurant app config (CRM admin only — JWT auth)."""
-    update_dict = {k: v for k, v in updates.model_dump().items() if v is not None}
-    if not update_dict:
-        return _resp(False, "No fields to update")
-
-    update_dict["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-    # Try to find existing config
-    config = await db.customer_app_config.find_one({"restaurant_id": restaurant_id})
-    if not config:
-        full_id = _normalize_restaurant_id(restaurant_id)
-        config = await db.customer_app_config.find_one({"restaurant_id": full_id})
-    if not config:
-        short_id = _short_restaurant_id(restaurant_id)
-        config = await db.customer_app_config.find_one({"restaurant_id": short_id})
-
-    if config:
-        await db.customer_app_config.update_one({"_id": config["_id"]}, {"$set": update_dict})
-    else:
-        update_dict["restaurant_id"] = restaurant_id
-        update_dict["created_at"] = datetime.now(timezone.utc).isoformat()
-        await db.customer_app_config.insert_one(update_dict)
-
-    return _resp(True, "Config updated")
-
 
 # ============================================
 # C5 - Dietary Tags
@@ -721,31 +620,6 @@ async def get_dietary_tags(restaurant_id: str):
 
     return _resp(True, "Dietary tags loaded", doc)
 
-
-@router.put("/menu/dietary-tags/{restaurant_id}")
-async def update_dietary_tags(restaurant_id: str, data: DietaryTagsUpdate, user: dict = Depends(get_current_user)):
-    """Update dietary tag mappings (CRM admin only)."""
-    short_id = _short_restaurant_id(restaurant_id)
-    now = datetime.now(timezone.utc).isoformat()
-
-    existing = await db.dietary_tags_mapping.find_one({"restaurant_id": short_id})
-    if not existing:
-        existing = await db.dietary_tags_mapping.find_one({"restaurant_id": restaurant_id})
-
-    if existing:
-        await db.dietary_tags_mapping.update_one(
-            {"_id": existing["_id"]},
-            {"$set": {"mappings": data.mappings, "updated_at": now, "updated_by": user.get("id")}}
-        )
-    else:
-        await db.dietary_tags_mapping.insert_one({
-            "restaurant_id": short_id,
-            "mappings": data.mappings,
-            "updated_at": now,
-            "updated_by": user.get("id")
-        })
-
-    return _resp(True, "Dietary tags updated")
 
 
 # ============================================
