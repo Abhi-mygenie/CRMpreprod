@@ -1813,3 +1813,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Decision**: **Q1 = A** — no channel default; S&O passes `?channel=` explicitly when needed. **Q2 = YES (confirmed by business rules clarification)** — pos-only coupons always excluded from base query (`applicable_channels: {$in: [dine_in, delivery, takeaway]}`). Implementation Plan gate OPENED by owner.
 **Source**: Owner 2026-10-09: "q1 a".
 **Locks**: `scan.py` only. E1: add `channel: Optional[str] = None` param + base `$in [dine_in,delivery,takeaway]` filter + conditional channel filter. ~5 lines. Implementation gate opens on "choose implementation role for CR-106".
+
+### 2026-10-09 [CR-106] IMPLEMENTATION COMPLETE — channel filter + pos-only exclusion shipped
+**Decision**: Implemented per plan. E1: `channel: Optional[str] = None` param + `ch_filter` logic in `get_available_coupons`. V1-V6 PASS (fresh customer). r689 has 0 pos-only production coupons (6 exist on QA test tenant only). FLAT100TEST absent for customer 7505242126 = correct (per_user_limit=1, usage=1).
+**Locks**: CR-106 🟢 IMPLEMENTED. QA handover: `qa/CR_106_QA_HANDOVER.md`. Next: QA → S&O consumer note update (contract v2.1 addendum).

@@ -460,14 +460,20 @@ async def get_order_detail(order_id: str, auth: dict = Depends(verify_customer_t
 
 
 @router.get("/coupons")
-async def get_available_coupons(auth: dict = Depends(verify_customer_token)):
+async def get_available_coupons(
+    channel: Optional[str] = None,  # CR-106: "dine_in" | "delivery" | "takeaway"
+    auth: dict = Depends(verify_customer_token),
+):
     """List active coupons the customer is eligible for."""
     now = datetime.now(timezone.utc).isoformat()
+    # CR-106: always exclude pos-only coupons; optionally filter to a specific channel
+    ch_filter = {"$in": [channel]} if channel else {"$in": ["dine_in", "delivery", "takeaway"]}
     coupons = await db.coupons.find({
         "user_id": auth["restaurant_id"],
         "is_active": True,
         "start_date": {"$lte": now},
-        "end_date": {"$gte": now}
+        "end_date": {"$gte": now},
+        "applicable_channels": ch_filter,  # CR-106
     }, {"_id": 0}).to_list(50)
 
     # Filter by per_user_limit
