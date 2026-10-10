@@ -609,3 +609,30 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 **Reported**: 2026-10-09 · **Severity**: P3 · **Risk**: LOW (docs only) · **Status**: ✅ ACCEPTED 2026-10-09 — Customer-App notes → CR-094 consumer note; POS-contract edits parked with CR-103 (no POS changes this batch)
 **Where**: `handoff/CR_079_CR_081_CR_080_POS_API_CONTRACT_v1_FINAL.md` §3.1 Field Reference lists 10/15 fields; `off_peak_bonus_type` (`"multiplier"|"flat"`) missing from String Constants; `off_peak_*_time` tz (`HH:MM` Asia/Kolkata) unstated; `points_expiry_months: 0` = never unstated.
 **Intake**: same doc §5.
+
+---
+
+## BUG-035: CR-110 token-refresh script selects every tenant — `dp_live_` test checks the wrong field
+
+**Reported**: 2026-10-10 (prod investigation Finding 7 correction) · **Severity**: P2 · **Risk**: MEDIUM if run on prod as-is · **Status**: 📋 REGISTERED → fix = CR-110 amendment
+**Where**: `scripts/push_and_refresh_tokens.py:29-31` — `not mygenie_token.startswith("dp_live_")`. `dp_live_` is the CRM `api_key` format (`core/auth.py:46`); `mygenie_token` is a MyGenie Bearer session token refreshed on CRM login (`routers/auth.py:369`). Result: 89/89 selected. Prod: 11 tenants synced successfully in Oct-2026 with their stored tokens.
+**Fix**: selector = `users.mygenie_token_invalid:true` (CR-115) ∨ latest `migration_sync_logs.error` matches `401` ∨ `last_login < now-60d`; `--restaurant <rid>`; print dry-run list first.
+**Intake**: `crm/crm_roi_sprint/discovery/SESSION_2026_10_10_BATCH_INTAKE_DQ1_CR111_CR117_BUG035_BUG037.md`
+
+---
+
+## BUG-036: CSV importer accepts junk 10-digit phones — bypasses `normalize_phone`
+
+**Reported**: 2026-10-10 (recurrence validation G-1) · **Severity**: P2 · **Risk**: LOW · **Status**: 📋 REGISTERED → fix = CR-111
+**Where**: `routers/customers.py:100-117` `_validate_and_classify_row` — only `isdigit` + `len==10`; `0000000000`, `1111111111`, `1000000000` pass. New/update decision keyed on raw `phone` string, not `phone_match`. CR-085-A W11 only added `country_code:"+91"`.
+**Evidence**: prod Jeh's Nest `9999999999 Noname` (no `pos_customer_id`) via import; importer used by 2 tenants (Jeh's Nest ×5, MyGenie Sales ×2).
+**Intake**: same doc.
+
+---
+
+## BUG-037: Orders synced before their customer exists are never re-linked when the customer arrives
+
+**Reported**: 2026-10-10 (prod per-restaurant breakdown Q1 situation A) · **Severity**: P1 · **Risk**: LOW · **Status**: 📋 REGISTERED → structural fix = CR-115 (d) forward-only; historical = CR-087 O-A backfill
+**Where**: `routers/migration.py:209-224` sets `customer_id:null` when no customer matches; `:289-303` updates `customer_id` only when the **same order** is re-processed. `customer_sync` (`customers.py:528`) inserts the customer and never looks back at `orders`.
+**Evidence**: Brew r699 — 1,128 orders Mar–Apr 2026 with `pos_customer_id` (int), customer sync completed 2026-08-12, **391/391** referenced customers now exist, orders still unlinked (₹1.6 L). Same pattern in 15 % of a 200-order sample across tenants.
+**Intake**: same doc.
