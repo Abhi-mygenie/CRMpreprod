@@ -1845,3 +1845,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-109] Registered — add .strip() to coupon code at write time
 **Classification**: CR P2/LOW. 6 lines in 2 files. All decisions trivially clear — no owner questions. Forward-fix from CR-108. Prevents trailing-space coupon code bug from recurring on new coupons. Planning gate opens on "choose planning role for CR-109".
 **Source**: Owner 2026-10-09: "register follow-up CR to add .strip().upper() during coupon create/update".
+
+### 2026-10-09 [CR-109] Impact Analysis complete — IA closed, no owner questions
+**All decisions trivially clear.** 6 lines in 2 files: coupons.py:16/26/130 + pos_coupons.py:77/87/119. Fix: .upper() → .strip().upper(). Dup-check lines also fixed for consistency (prevents false dup-miss if both .strip() paths differ). Zero schema/DB/index change. Full backward compat. PROC-001 not required. **Implementation Plan gate NOT opened** — owner said "choose planning role for impact analysis" only.
+**Source**: Owner 2026-10-09: "choose planning role for impact analysis of CR-109".
