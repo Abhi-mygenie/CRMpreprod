@@ -1862,3 +1862,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Revenue REVISED**: ₹97,56,648 (~₹1 crore) invisible across 15,172 orphan orders (previous ₹21.9L estimate used wrong field `total_amount` instead of `order_amount`).
 **Fix**: A+B = operational (no code — use X-MyGenie-Token header on existing sync endpoints). C = preventive (~30 lines in migration.py). Q1 token refresh · Q2 re-link orders · Q3 stub creation. Owner Q answers pending.
 **Source**: Owner 2026-10-09 "choose planning role for impact analysis of CR-086".
+
+### 2026-10-09 [CR-110] Registered — bulk mygenie_token refresh script
+**Classification**: OPS P1/LOW–MEDIUM. Script iterates all users docs, calls MYGENIE_LOGIN_ENDPOINT + MYGENIE_CRM_TOKEN_ENDPOINT for each, stores fresh token. No application code files modified. Dry-run mode protects against accidents. Skip-on-fail (no tenant left worse than before). Directly unblocks CR-086 Part A. No owner questions.
+**Source**: Owner 2026-10-09: "boot intake role and create formal CR for this".
