@@ -1834,3 +1834,10 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-108] IA + Implementation Plan complete — gate open
 **IA + Impl Plan written together (no owner questions — trivial data fix). Three-step plan: dry-run (count 11) → updateMany $trim → verify (count 0 + spot-check). Forward-fix note: add .strip().upper() at coupon create/update storage time (separate future CR). PROC-001 not required (cosmetic whitespace trim, no structural/relational data change). Implementation gate OPENED by owner.**
 **Source**: Owner 2026-10-09: "choose planning role for impact analysis and implementation planning for above CR".
+
+### 2026-10-09 [CR-108] COMPLETE — trailing-space coupon codes fixed
+**Executed**: db.coupons.updateMany({"code":/\s/},[{$set:{"code":{$trim:{input:"$code"}}}}]) → matched=11, modified=3.
+**Fixed**: 'FLAT TODAY ' → 'FLAT TODAY', '10 PERCENT DISCOUNT ' → '10 PERCENT DISCOUNT', 'NTH ' → 'NTH'.
+**10 remaining /\s/ matches** = valid multi-word codes (internal spaces — not bugs): TEST HAPPY, FLAT DISCOUNT, PERCENTAGE OFF, HAPPY HOUR ×2, 50 FF, 40 OFF, 10 PERCENT DISCOUNT, TEST 20, FLAT TODAY.
+**Verified**: FLAT TODAY validates (200, valid:True) ✅. 10 PERCENT DISCOUNT now EXPIRED not INVALID_CODE ✅. coupon_usage count unchanged (187) ✅.
+**Forward-fix**: register separate CR to add .strip().upper() at coupon create/update storage time.

@@ -216,7 +216,9 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Self-test 6/6 PASS: r69 slow path resolves to `pos_owner_69_bdd4513c` on all 4 routes; r689 fast path unchanged. Regression 68/2s PASS.
 - Orphan customer at `pos_0001_restaurant_69` untouched → CR-101. QA handover: `qa/BUG_030_QA_HANDOVER.md`. **Next: QA.**
 
-## 2026-10-09 — IMPLEMENTATION: CR-082 per-coupon requires_customer flag (all 8 decisions locked since 2026-08-06)
+## 2026-10-09 — COMPLETE: CR-108 coupon trailing-space fix (3 docs: FLAT TODAY · 10 PERCENT DISCOUNT · NTH)
+- `db.coupons.updateMany({"code":/\s/},[...])` → matched=11, modified=3. FLAT TODAY validates ✅. usage_count unchanged.
+- Forward-fix: register separate CR for .strip().upper() at coupon create/update.
 - `schemas.py`: requires_customer on CouponCreate/Update/Coupon + customer_id Optional on POSCouponValidateRequest.
 - `core/coupon.py`: validate_coupon_for_customer signature → Optional + CUSTOMER_REQUIRED gate (8 lines) + specific_users latent bug fix (None guard). list_available_coupons signature → Optional.
 - `routers/pos.py`: pos_available_coupons param reorder (order_total before customer_id).

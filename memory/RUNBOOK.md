@@ -294,6 +294,8 @@ asyncio.run(main())
 
 ## 13. Fix trailing spaces in coupon codes
 
+**Executed: 2026-10-09** ✅ — 3 docs updated (`FLAT TODAY`, `10 PERCENT DISCOUNT`, `NTH`).
+
 **When:** Run as part of CR-101 data cleanup (end of batch), or immediately if S&O reports INVALID_CODE on known-valid coupon codes.
 
 **Why:** Some coupon codes in the DB were entered with trailing spaces (e.g. `"FLAT TODAY "`). `validate_coupon_for_customer` strips the input before querying (`code_upper = code.strip().upper()`) but the DB lookup is an exact string match — the stripped input never matches the spaced DB value → `INVALID_CODE`.
