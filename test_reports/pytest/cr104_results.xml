@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="21" time="58.609" timestamp="2026-10-10T09:03:02.339280+00:00" hostname="agent-env-d7d91a5d-8fbc-43f1-9799-626901cbfda0"><testcase classname="tests.test_cr104_feedback_bonus" name="test_V1_first_token_feedback_earns_bonus" time="1.558"><failure message="AssertionError: V1 pre-condition FAILED: 9838777712 already has 1 feedback bonus txn(s). Use a different FRESH phone.&#10;assert 1 == 0">mongo = Database(MongoClient(host=['52.66.232.149:27017'], document_class=dict, tz_aware=False, connect=True), 'mygenie')
+
+    def test_V1_first_token_feedback_earns_bonus(mongo):
+        """First feedback submission via token → +50 pts bonus awarded."""
+        # Pre-condition: verify FRESH_PHONE has 0 existing feedback bonus txns for r689
+        # First get customer_id
+        cust = mongo.customers.find_one(
+            {"user_id": R_FULL_689, "phone": FRESH_PHONE, "country_code": CC},
+            {"_id": 0, "id": 1, "total_points": 1}
+        )
+        if cust:
+            prior_bonus = mongo.points_transactions.count_documents({
+                "user_id": R_FULL_689,
+                "customer_id": cust["id"],
+                "description": "Feedback bonus",
+            })
+&gt;           assert prior_bonus == 0, (
+                f"V1 pre-condition FAILED: {FRESH_PHONE} already has {prior_bonus} feedback bonus txn(s). "
+                "Use a different FRESH phone."
+            )
+E           AssertionError: V1 pre-condition FAILED: 9838777712 already has 1 feedback bonus txn(s). Use a different FRESH phone.
+E           assert 1 == 0
+
+tests/test_cr104_feedback_bonus.py:78: AssertionError</failure></testcase><testcase classname="tests.test_cr104_feedback_bonus" name="test_V2_idempotency_no_second_bonus" time="3.057" /><testcase classname="tests.test_cr104_feedback_bonus" name="test_V3_anonymous_no_bonus" time="1.644" /><testcase classname="tests.test_cr104_feedback_bonus" name="test_V4_phone_path_no_bonus" time="2.280" /><testcase classname="tests.test_cr104_feedback_bonus" name="test_V5_loyalty_disabled_no_bonus" time="3.073" /><testcase classname="tests.test_cr104_feedback_bonus" name="test_V6_feedback_bonus_disabled_no_bonus" time="3.273" /><testcase classname="tests.test_cr096_feedback" name="test_FA_token_path_linked" time="3.498" /><testcase classname="tests.test_cr096_feedback" name="test_FB_bad_token_401" time="0.096" /><testcase classname="tests.test_cr096_feedback" name="test_FC_no_token_known_phone_linked" time="2.487" /><testcase classname="tests.test_cr096_feedback" name="test_FD_no_token_unknown_phone_unlinked" time="2.527" /><testcase classname="tests.test_cr096_feedback" name="test_FE_anonymous_unlinked" time="1.388" /><testcase classname="tests.test_cr096_feedback" name="test_FF_invalid_phone_400" time="1.383" /><testcase classname="tests.test_cr096_feedback" name="test_FG_blocked_customer_unlinked" time="2.290" /><testcase classname="tests.test_cr096_feedback" name="test_FH_order_id_not_found" time="1.627" /><testcase classname="tests.test_cr096_feedback" name="test_FI_no_restaurant_id_422" time="0.093" /><testcase classname="tests.test_cr096_feedback" name="test_FJ_unknown_rid_404" time="0.737" /><testcase classname="tests.test_cr096_feedback" name="test_FK_ip_rate_limit" time="13.703" /><testcase classname="tests.test_cr096_feedback" name="test_FK2_phone_rate_limit" time="5.851"><failure message="AssertionError: F-K2: first 3 should be 200, got [429, 429, 429, 429]&#10;assert [429, 429, 429] == [200, 200, 200]&#10;  &#10;  At index 0 diff: 429 != 200&#10;  &#10;  Full diff:&#10;    [&#10;  -     200,&#10;  ?      ^^...&#10;  &#10;  ...Full output truncated (11 lines hidden), use '-vv' to show">mongo = Database(MongoClient(host=['52.66.232.149:27017'], document_class=dict, tz_aware=False, connect=True), 'mygenie')
+
+    def test_FK2_phone_rate_limit(mongo):
+        # Use a phone that does NOT exist in customers (to avoid side effects on F-C/F-D)
+        limit_phone = "9500000096"
+        # Drain any leftover bucket from previous runs (direct mongo delete of limiter docs)
+        mongo.scan_lookup_attempts.delete_many({"key": {"$regex": f"^fb-ph:{R_FULL}:{KNOWN_CC}{limit_phone}"}})
+    
+        codes = []
+        for i in range(4):
+            r = _post({"rating": 2, "phone": limit_phone, "country_code": KNOWN_CC, "restaurant_id": R_SHORT},
+                      ip=f"10.96.7.{i+1}")
+            codes.append(r.status_code)
+            if r.status_code == 200:
+                fid = r.json().get("data", {}).get("feedback_id")
+                if fid:
+                    _created.append(fid)
+    
+&gt;       assert codes[:3] == [200, 200, 200], f"F-K2: first 3 should be 200, got {codes}"
+E       AssertionError: F-K2: first 3 should be 200, got [429, 429, 429, 429]
+E       assert [429, 429, 429] == [200, 200, 200]
+E         
+E         At index 0 diff: 429 != 200
+E         
+E         Full diff:
+E           [
+E         -     200,
+E         ?      ^^...
+E         
+E         ...Full output truncated (11 lines hidden), use '-vv' to show
+
+tests/test_cr096_feedback.py:261: AssertionError</failure></testcase><testcase classname="tests.test_cr096_feedback" name="test_FL_rating_out_of_range" time="0.190" /><testcase classname="tests.test_cr096_feedback" name="test_FM_staff_feedback_list_200" time="6.556" /><testcase classname="tests.test_cr096_feedback" name="test_FZZ_cleanup" time="1.105" /></testsuite></testsuites>

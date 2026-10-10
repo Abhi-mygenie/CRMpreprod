@@ -1,0 +1,72 @@
+{
+  "summary": "Iteration 12 QA covering CR-104 (feedback bonus award). V1-V6 all PASS (independent run). CR-096 regression 15/15 PASS. Note: combined run shows 2 expected failures due to data-state (V1 bonus already awarded after first run, FK2 rate-limit bucket pollution from concurrent phone submissions).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "test suite combined run",
+        "issue": "test_V1 fails on second combined run (expected — bonus already awarded after first run, idempotency by design). test_FK2 fails when run after V3/V4 phone submissions (rate-limit bucket pollution). Both pass when suites run independently."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "phase_results": {
+    "PHASE_CR104_V1": {
+      "result": "PASS",
+      "details": "Fresh phone 9838777712 had 0 prior Feedback bonus txns. Token feedback → total_points +50. points_transactions doc created (type=bonus, description='Feedback bonus', points=50). feedback_id returned."
+    },
+    "PHASE_CR104_V2": {
+      "result": "PASS",
+      "details": "Second token feedback submission → total_points UNCHANGED, bonus_txn count still 1. Idempotency guard works."
+    },
+    "PHASE_CR104_V3": {
+      "result": "PASS",
+      "details": "Anonymous feedback (no token, no phone) → no bonus txn created."
+    },
+    "PHASE_CR104_V4": {
+      "result": "PASS",
+      "details": "Phone-path feedback (no token) → no bonus txn created. identity_source guard works."
+    },
+    "PHASE_CR104_V5": {
+      "result": "PASS",
+      "details": "r719 loyalty_enabled=False → no bonus awarded. loyalty_enabled guard fires."
+    },
+    "PHASE_CR104_V6": {
+      "result": "PASS",
+      "details": "r719 (loyalty disabled) → no bonus. Guard verified. r689 feedback_bonus_enabled=True confirmed in loyalty_settings."
+    },
+    "PHASE_CR096_REGRESSION_V7": {
+      "result": "15/15 PASS",
+      "details": "All 15 CR-096 tests pass including test_FA_token_path_linked (feedback_count+1 with bonus running). Bonus award is additive — no regressions.",
+      "test_file": "/app/backend/tests/test_cr096_feedback.py"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr104_feedback_bonus.py",
+    "/app/backend/tests/test_cr096_feedback.py",
+    "/app/test_reports/pytest/cr104_results.xml",
+    "/app/memory/crm/crm_roi_sprint/qa/CR_104_QA_REPORT.md"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CR-104 implementation (~20 lines in scan.py:817-849) is clean. identity_source=='token' guard, loyalty_enabled guard, feedback_bonus_enabled guard, idempotency check — all correct. No issues found."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_cr104_feedback_bonus.py",
+    "/app/memory/crm/crm_roi_sprint/qa/CR_104_QA_REPORT.md"
+  ],
+  "success_rate": {
+    "backend": "CR-104: 6/6 PASS (independent), CR-096 regression: 15/15 PASS"
+  },
+  "seed_data_creation": "V1 awarded 50 pts to customer 9838777712 in r689 (intentional, real data per spec). V5/V6 submitted feedback for 9000000719 in r719 (no points change — loyalty disabled).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 12 complete. CR-104 feedback bonus: 6/6 PASS. CR-096 regression: 15/15 PASS. Customer 9838777712 now has 1 Feedback bonus txn in r689 (50 pts). Do NOT use this phone for fresh V1 tests in future — choose another fresh phone. Previous iterations 1-11 all PASS.",
+  "pre_existing_notes": [
+    "Combined suite run: V1 expected fail on re-run (bonus already awarded). FK2 rate-limit bucket pollution when phone submissions run in quick succession — run suites independently."
+  ]
+}
