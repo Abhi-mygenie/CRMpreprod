@@ -26,7 +26,7 @@ R_SHORT_719 = "719"
 R_FULL_719  = "pos_0001_restaurant_719"
 
 # Fresh phone for V1/V2 (must have 0 existing feedback bonus txns)
-FRESH_PHONE = "9838777712"
+FRESH_PHONE = "9990818342"
 CC          = "+91"
 
 # r719 loyalty-disabled phone

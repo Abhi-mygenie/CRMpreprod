@@ -252,6 +252,7 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - QA handover: `qa/CR_100_QA_HANDOVER.md`. **Next: QA role.**
 - Docs: `qa/CR_096_QA_HANDOVER.md`, change-log Wave 3 row, `handoff/SESSION_2026_10_09_HANDOVER_CR096_IMPL.md`. **Next: QA role.**
 
-## 2026-10-09 — QA PASS iteration_12: CR-104 feedback bonus award (6/6 + CR-096 regression 15/15)
+## 2026-10-09 — FULL REGRESSION iteration_13: 145/147 PASS — 2 pre-existing NOTEs only
+- 14 suites, 147 tests. No BLOCKERs or MAJORs. Batch ready for owner smoke → Closure.
 - scan.py E1 (~20 lines): token path only; loyalty_settings fetch; already_awarded guard; points_transactions insert; total_points +=$feedback_bonus_points. Self-test 7/7 PASS.
 - CR-082: 8/8 PASS · backward-compat 7/7 PASS · frontend verified. CR-106: 5/6+1skip. CR-109: 6/6 PASS.

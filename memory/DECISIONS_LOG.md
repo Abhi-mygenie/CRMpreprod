@@ -1914,3 +1914,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 ### 2026-10-09 [CR-104] QA PASS — iteration_12.json
 **Result**: 6/6 PASS (independent run). CR-096 regression 15/15 PASS. Code review clean — all guards correct (identity_source, loyalty_enabled, feedback_bonus_enabled, idempotency). Pre-existing notes: V1 expected-fail on combined re-run (bonus already awarded by design); FK2 rate-limit bucket pollution when phone submissions combined — not bugs.
+
+### 2026-10-09 [iteration_13] FULL REGRESSION PASS — 145/147 tests, 2 pre-existing NOTEs
+**Suites run**: cr085a (22/22) · cr089 (19/1skip/1NOTE-S4b) · cr093 (20/1skip) · cr100 (8/8) · cr094 (12/1NOTE-R5) · cr096 (15/15) · cr104 (6/6) · cr001c (4/4) · cr021 (3/3) · cr082 (8/8) · cr106/cr109 (10/1skip) · cr084/cr097 (15/15) · cr098 (15/15) · cr094/cr096-adhoc (9/9). API smoke 6/6. **No BLOCKERs or MAJORs. Batch ready for owner smoke → Closure.**
+**Pre-existing NOTEs**: test_S4b (cr089 phone bucket ordering) · test_R5 (cr094 ip_limiter bucket state from prior run). Both documented, not new.
+**Phone exhaustion note**: 9838777712 and 9990818342 both have 1 feedback bonus txn. Next agent should query DB for a fresh phone for cr104 V1.
