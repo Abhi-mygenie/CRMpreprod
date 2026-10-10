@@ -1849,3 +1849,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-109] Impact Analysis complete — IA closed, no owner questions
 **All decisions trivially clear.** 6 lines in 2 files: coupons.py:16/26/130 + pos_coupons.py:77/87/119. Fix: .upper() → .strip().upper(). Dup-check lines also fixed for consistency (prevents false dup-miss if both .strip() paths differ). Zero schema/DB/index change. Full backward compat. PROC-001 not required. **Implementation Plan gate NOT opened** — owner said "choose planning role for impact analysis" only.
 **Source**: Owner 2026-10-09: "choose planning role for impact analysis of CR-109".
+
+### 2026-10-09 [CR-109] Implementation Plan complete — gate open
+**6 one-line edits: coupons.py:16/26/130 + pos_coupons.py:77/87/119. Pattern: .upper() → .strip().upper(). Edit order: E1+E2 → E3 → E4+E5 → E6. V1–V5 curl+pymongo self-test. Implementation gate OPENED by owner.**
+**Source**: Owner 2026-10-09: "choose planning role for implementation planning of CR-109".
