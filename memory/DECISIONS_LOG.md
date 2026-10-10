@@ -1878,3 +1878,11 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Root cause of crm_token:null**: restaurant exists in CRM DB but does not have an active CRM token on preprod.mygenie.online — likely test/dummy tenants or tenants not onboarded to preprod.
 **Script saved**: /app/scripts/refresh_mygenie_tokens.py (persistent).
 **Gate**: owner to decide next step — re-trigger customer sync for r541+r474 (now have fresh tokens).
+
+### 2026-10-09 [CR-110] CLOSED — all CR-086 tenants fixed (38/41 total)
+**Root cause confirmed**: Production DB dump → CRM api_key never registered with preprod MyGenie → login returns crm_token:null. Fix = push api_key via MYGENIE_CRM_TOKEN_ENDPOINT, then login returns dp_live_ token.
+**Round 1** (refresh_mygenie_tokens.py): 23/41 OK. **Round 2** (push_and_refresh_tokens.py): 37/41 OK → total 37+1 already fresh = 38/41.
+**Remaining 4 stale**: owner@aapkiapnirasoi.com (401) · owner@mygenievijay.com (401) · owner@hyatttest.com (401) · owner@mygeniesales.com (403 invalid restaurant_id) — all test/internal accounts, not production restaurants.
+**CR-086 tenants**: r541 ✅ r665 ✅ r474 ✅ — all 3 now have fresh tokens. Ready for customer sync.
+**Scripts saved**: /app/scripts/refresh_mygenie_tokens.py · /app/scripts/push_and_refresh_tokens.py
+**Gate**: owner triggers customer sync for r541/r665/r474.
