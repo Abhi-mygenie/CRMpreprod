@@ -813,6 +813,40 @@ async def submit_feedback(
             {"id": customer_id},
             {"$set": {"last_rating": data.rating}, "$inc": {"feedback_count": 1}},
         )
+        # CR-104: feedback bonus award — token path only (Q1=a); once per customer (Q2=c)
+        if identity_source == "token":
+            settings = await db.loyalty_settings.find_one({"user_id": rid}, {"_id": 0})
+            if (settings
+                    and settings.get("loyalty_enabled")
+                    and settings.get("feedback_bonus_enabled")
+                    and (settings.get("feedback_bonus_points") or 0) > 0):
+                bonus_pts = int(settings["feedback_bonus_points"])
+                already_awarded = await db.points_transactions.find_one({
+                    "user_id": rid,
+                    "customer_id": customer_id,
+                    "transaction_type": "bonus",
+                    "description": "Feedback bonus",
+                })
+                if not already_awarded:  # CR-104: idempotency guard — once per customer
+                    cust_doc = await db.customers.find_one(
+                        {"id": customer_id}, {"_id": 0, "total_points": 1}
+                    )
+                    balance_after = (cust_doc.get("total_points") or 0) + bonus_pts
+                    await db.points_transactions.insert_one({
+                        "id": str(uuid.uuid4()),
+                        "user_id": rid,
+                        "customer_id": customer_id,
+                        "points": bonus_pts,
+                        "transaction_type": "bonus",
+                        "description": "Feedback bonus",
+                        "bill_amount": None,
+                        "balance_after": balance_after,
+                        "created_at": now,
+                    })  # CR-104
+                    await db.customers.update_one(
+                        {"id": customer_id},
+                        {"$inc": {"total_points": bonus_pts, "total_points_earned": bonus_pts}},
+                    )  # CR-104
 
     return _resp(True, "Feedback submitted", {
         "feedback_id": feedback_doc["id"],
