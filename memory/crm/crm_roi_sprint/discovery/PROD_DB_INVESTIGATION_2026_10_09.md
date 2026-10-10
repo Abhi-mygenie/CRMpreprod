@@ -29,7 +29,9 @@ Orders by write path: `pos_id:"mygenie"` (order sync) **276,783** · `pos_id:"00
 
 ---
 
-## Finding 1 — Junk phones: **71 records** (top-pattern subset probed: 32)
+## Finding 1 — Junk phones: **71 records** by pattern · **630 invalid by full CRM rule** (top-pattern subset probed: 32)
+
+> ⚠️ 2026-10-10: applying `normalize_phone` (10 digits, starts 6–9, not all-same) to all prod customers gives **630 invalid**, of which ~540 came from the POS master. The extra ~560 are foreign numbers without `+cc` (Palm House 54+), 9/11-digit typos (Aura 19), and room/table numbers typed as phone (Craft, Cold Rock). Categories J/F/T/S/B and per-restaurant table → `PROD_PER_RESTAURANT_BREAKDOWN_2026_10_10.md` §Q2.
 
 - **First**: 2023-07-12 · phone `5555555555` · **Last**: 2026-09-30 · phone `0000000000`
 - **Top tenants**: r541 (13) · r383 (5) · r595 (4) · r523/478/509/661/788/408 (3 each) · 15 more
@@ -101,6 +103,8 @@ Top 5 tenants (re-split):
 | **CAFE 103** (r644) | **15,865** | **15,844 / ₹1.63 cr** | **21 / ₹23,163** |
 | The Palm House | 14,871 | ≈ all | — |
 | The Craft Restaurant | 12,976 | ≈ all | — |
+
+Per-restaurant split of the recoverable 9,924 (Bamboo Yoga ₹1.64 cr alone; Brew 391/391 linkable now; Palm group POS-id mismatch) → `PROD_PER_RESTAURANT_BREAKDOWN_2026_10_10.md` §Q1.
 
 **Interpretation:** ₹7.71 cr is **not "invisible customer revenue"** — it is anonymous till revenue that was never attached to a customer in POS. The CRM-recoverable figure is **₹2.15 cr / 9,924 orders**.
 

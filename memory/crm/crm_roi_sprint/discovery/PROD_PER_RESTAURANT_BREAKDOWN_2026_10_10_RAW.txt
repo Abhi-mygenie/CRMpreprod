@@ -1,0 +1,239 @@
+=== Q1 recoverable orphans by restaurant ===
+Bamboo Yoga                  | uid=_196 | orders=  975 | ₹16,431,066 | distinct POS cust= 871 | already in CRM=   0 | CRM customers=    7 | last cust_sync=never  | 2024-11-01→2026-02-16
+The Palm                     | uid=_666 | orders=  951 | ₹ 1,047,157 | distinct POS cust= 595 | already in CRM=   0 | CRM customers=  125 | last cust_sync=2026-06-08 completed | 2025-11-10→2026-06-02
+The Palm House               | uid=_541 | orders= 1528 | ₹ 1,030,228 | distinct POS cust= 374 | already in CRM=   0 | CRM customers=  540 | last cust_sync=2026-07-29 completed | 2025-08-15→2026-07-20
+Palm Aryan                   | uid=_628 | orders= 1512 | ₹   917,938 | distinct POS cust=1271 | already in CRM=   0 | CRM customers=   59 | last cust_sync=2026-06-05 completed | 2025-10-11→2026-06-03
+Palm Aryan Mussoorie01       | uid=_665 | orders= 1332 | ₹   901,464 | distinct POS cust= 921 | already in CRM=   0 | CRM customers=  373 | last cust_sync=2026-06-08 completed | 2025-11-15→2026-06-03
+Welcome Resort               | uid=_474 | orders= 1495 | ₹   559,656 | distinct POS cust=1004 | already in CRM=   0 | CRM customers=   64 | last cust_sync=2026-08-24 completed | 2025-03-27→2025-10-19
+G SQUARE                     | uid=_661 | orders=  520 | ₹   176,512 | distinct POS cust= 425 | already in CRM=   0 | CRM customers=  168 | last cust_sync=2026-06-06 completed | 2025-10-30→2026-06-02
+Brew                         | uid=_699 | orders= 1128 | ₹   159,653 | distinct POS cust= 391 | already in CRM= 391 | CRM customers=  995 | last cust_sync=2026-08-12 completed | 2026-03-06→2026-04-29
+18march                      | uid=_478 | orders=   63 | ₹    46,169 | distinct POS cust=  36 | already in CRM=   0 | CRM customers=   91 | last cust_sync=never  | 2025-03-21→2026-08-01
+Pav & Pages Cafe             | uid=_509 | orders=  132 | ₹    44,707 | distinct POS cust=  92 | already in CRM=   0 | CRM customers=  552 | last cust_sync=never  | 2025-04-26→2025-09-13
+CAFE 103                     | uid=_644 | orders=   21 | ₹    23,163 | distinct POS cust=   7 | already in CRM=   0 | CRM customers=  488 | last cust_sync=2026-10-10 completed | 2026-06-26→2026-07-27
+Five star                    | uid=_739 | orders=    7 | ₹    23,083 | distinct POS cust=   3 | already in CRM=   1 | CRM customers=   25 | last cust_sync=2026-09-27 completed | 2026-05-08→2026-06-13
+mantri                       | uid=_675 | orders=   13 | ₹    19,439 | distinct POS cust=  11 | already in CRM=   0 | CRM customers=   56 | last cust_sync=never  | 2026-01-07→2026-03-10
+LSD Fried Chicken            | uid=_475 | orders=   44 | ₹    17,141 | distinct POS cust=  42 | already in CRM=   0 | CRM customers= 3383 | last cust_sync=never  | 2025-07-16→2026-02-08
+Mayur's Kitchen              | uid=_523 | orders=   30 | ₹    16,126 | distinct POS cust=  23 | already in CRM=   0 | CRM customers=   36 | last cust_sync=never  | 2025-05-11→2026-02-03
+Pav & Pages Book Cafe        | uid=_383 | orders=   54 | ₹    12,754 | distinct POS cust=  33 | already in CRM=   0 | CRM customers=  939 | last cust_sync=2026-07-31 completed | 2024-08-14→2025-07-12
+Nirwanderers Cafe            | uid=_364 | orders=   17 | ₹    10,002 | distinct POS cust=  14 | already in CRM=   0 | CRM customers=   19 | last cust_sync=2026-08-07 completed | 2024-07-14→2025-09-08
+Food Mohalla                 | uid=_601 | orders=   19 | ₹     7,427 | distinct POS cust=  19 | already in CRM=   0 | CRM customers=  184 | last cust_sync=2026-05-25 completed | 2025-09-04→2025-10-08
+11 The Cafe                  | uid=_505 | orders=   33 | ₹     5,596 | distinct POS cust=  28 | already in CRM=   0 | CRM customers=  157 | last cust_sync=2026-09-21 completed | 2025-04-17→2026-07-24
+Palm Aryan Gangtok           | uid=_697 | orders=   34 | ₹     4,342 | distinct POS cust=  23 | already in CRM=   0 | CRM customers=    7 | last cust_sync=2026-06-08 completed | 2026-05-28→2026-06-03
+ONE BITE                     | uid=_506 | orders=    6 | ₹       953 | distinct POS cust=   4 | already in CRM=   0 | CRM customers=   22 | last cust_sync=2026-10-01 completed | 2025-10-23→2025-11-25
+The Craft Restaurant         | uid=_595 | orders=    1 | ₹       605 | distinct POS cust=   1 | already in CRM=   0 | CRM customers=  889 | last cust_sync=2026-10-07 completed | 2026-03-09→2026-03-09
+Hogwarts                     | uid=_618 | orders=    4 | ₹       490 | distinct POS cust=   2 | already in CRM=   1 | CRM customers=   24 | last cust_sync=2026-10-08 completed | 2026-05-15→2026-05-15
+Humsafar                     | uid=_610 | orders=    2 | ₹       487 | distinct POS cust=   2 | already in CRM=   0 | CRM customers=  236 | last cust_sync=never  | 2025-09-14→2025-09-21
+Sattvik Delight              | uid=_745 | orders=    1 | ₹       100 | distinct POS cust=   1 | already in CRM=   0 | CRM customers=    1 | last cust_sync=never  | 2026-04-13→2026-04-13
+Hungry Keya??                | uid=_634 | orders=    1 | ₹        20 | distinct POS cust=   1 | already in CRM=   0 | CRM customers= 1574 | last cust_sync=2026-08-03 completed | 2026-02-03→2026-02-03
+Jeh's Nest                   | uid=_635 | orders=    1 | ₹        20 | distinct POS cust=   1 | already in CRM=   0 | CRM customers=  569 | last cust_sync=2026-08-13 completed | 2026-02-03→2026-02-03
+
+=== Q2 per-restaurant cleanup candidates (junk / dup / nullcc / blank) ===
+restaurant | uid | invalid_phone (from POS, with activity) | dup groups (true, with data) | null_cc | blank_phone
+Jeh's Nest                   | _635 |   6 (  4 POS,   2 active) |  97 ( 94 true,  77 data) |  184 |   1
+Kunafa Mahal                 | _689 |  47 ( 43 POS,  30 active) |  47 (  0 true,  46 data) |  135 |   1
+The Palm House               | _541 | 174 (120 POS, 151 active) |   0 (  0 true,   0 data) |    0 |   1
+MyGenie Sales                | _792 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |  143 |   0
+Fun Food Frenzy              | _687 |   1 (  0 POS,   0 active) |   0 (  0 true,   0 data) |   77 |   1
+CAFE 103                     | _644 |  22 ( 21 POS,  17 active) |  16 (  0 true,  16 data) |   31 |   1
+LSD Fried Chicken            | _475 |  61 ( 61 POS,  59 active) |   0 (  0 true,   0 data) |    0 |   1
+Cafe Flora                   | _698 |  39 ( 36 POS,  34 active) |  12 ( 12 true,   2 data) |    0 |   1
+The Craft Restaurant         | _595 |  38 ( 35 POS,  33 active) |   0 (  0 true,   0 data) |    0 |   1
+Aura                         | _788 |  37 ( 18 POS,  37 active) |   0 (  0 true,   0 data) |    0 |   1
+Brew                         | _699 |  17 ( 16 POS,   0 active) |   9 (  9 true,   1 data) |    0 |   1
+Pav & Pages Book Cafe        | _383 |  24 ( 24 POS,  23 active) |   0 (  0 true,   0 data) |    0 |   1
+The Mill Bakery(2)           | _640 |  18 ( 18 POS,   2 active) |   0 (  0 true,   0 data) |    0 |   1
+Hungry Keya??                | _634 |  10 (  9 POS,   7 active) |   0 (  0 true,   0 data) |    6 |   1
+Pav & Pages Cafe             | _509 |  15 ( 14 POS,  14 active) |   0 (  0 true,   0 data) |    0 |   1
+18march                      | _478 |  13 (  9 POS,  12 active) |   1 (  1 true,   1 data) |    0 |   1
+The Five Ridge               | _851 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |   11 |   1
+mantri                       | _675 |  10 ( 10 POS,   6 active) |   0 (  0 true,   0 data) |    0 |   1
+Hogwarts                     | _618 |   1 (  1 POS,   0 active) |   2 (  0 true,   1 data) |    6 |   1
+Krunch N Grill               | _672 |   5 (  5 POS,   5 active) |   1 (  0 true,   1 data) |    1 |   1
+Picolo dreams                | _408 |   7 (  7 POS,   2 active) |   0 (  0 true,   0 data) |    0 |   1
+Food Mohalla                 | _601 |   7 (  7 POS,   7 active) |   0 (  0 true,   0 data) |    0 |   1
+The Sattva Cafe              | _566 |   6 (  3 POS,   5 active) |   0 (  0 true,   0 data) |    1 |   1
+G SQUARE                     | _661 |   7 (  6 POS,   6 active) |   0 (  0 true,   0 data) |    0 |   1
+NI HAO                       | _620 |   5 (  1 POS,   4 active) |   0 (  0 true,   0 data) |    1 |   1
+Cold Rock Cafe               | _694 |   6 (  2 POS,   5 active) |   0 (  0 true,   0 data) |    0 |   1
+Curry's Lounge               | _835 |   4 (  0 POS,   4 active) |   0 (  0 true,   0 data) |    2 |   1
+The Palm                     | _666 |   5 (  5 POS,   3 active) |   0 (  0 true,   0 data) |    0 |   1
+11 The Cafe                  | _505 |   3 (  2 POS,   1 active) |   0 (  0 true,   0 data) |    2 |   1
+Palm Aryan Mussoorie01       | _665 |   4 (  4 POS,   3 active) |   0 (  0 true,   0 data) |    0 |   1
+Priti                        | _391 |   3 (  3 POS,   0 active) |   0 (  0 true,   0 data) |    1 |   1
+Mayur's Kitchen              | _523 |   4 (  4 POS,   2 active) |   0 (  0 true,   0 data) |    0 |   1
+Welcome Resort               | _474 |   3 (  3 POS,   1 active) |   0 (  0 true,   0 data) |    0 |   1
+Palm Aryan                   | _628 |   3 (  1 POS,   1 active) |   0 (  0 true,   0 data) |    0 |   1
+Humsafar                     | _610 |   3 (  3 POS,   3 active) |   0 (  0 true,   0 data) |    0 |   1
+Woko - Flame Fired Asian     | _839 |   3 (  2 POS,   3 active) |   0 (  0 true,   0 data) |    0 |   1
+Burger Bliss                 | _826 |   1 (  0 POS,   1 active) |   0 (  0 true,   0 data) |    2 |   1
+Dream Of Goa                 | _844 |   2 (  0 POS,   1 active) |   0 (  0 true,   0 data) |    1 |   1
+Teekha Koyla                 | _836 |   1 (  0 POS,   0 active) |   1 (  1 true,   0 data) |    0 |   2
+Takita Takita Kitchen        | _649 |   2 (  2 POS,   2 active) |   0 (  0 true,   0 data) |    0 |   1
+ONE BITE                     | _506 |   2 (  2 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Five star                    | _739 |   2 (  2 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Bamboo Yoga                  | _196 |   2 (  2 POS,   2 active) |   0 (  0 true,   0 data) |    0 |   0
+Nirwanderers Cafe            | _364 |   1 (  1 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Fern's by kate's             | _425 |   1 (  1 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Swastik Food Zone            | _805 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    1 |   1
+Cutletopia                   | _669 |   0 (  0 POS,   0 active) |   1 (  1 true,   1 data) |    0 |   1
+AARVA- The Aroma of South    | _643 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    1 |   1
+Cafe 360 AGONDA              | _691 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    1 |   1
+Chaap Gali                   | _658 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    1 |   1
+Virtual Food Court           | _843 |   1 (  1 POS,   1 active) |   0 (  0 true,   0 data) |    0 |   1
+The Prasadam                 | _802 |   1 (  0 POS,   1 active) |   0 (  0 true,   0 data) |    0 |   1
+Militia Eatery Fauji Dhaba   | _468 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    1 |   1
+The Rouche Cafe              | _850 |   1 (  0 POS,   1 active) |   0 (  0 true,   0 data) |    0 |   1
+sunildev                     | _558 |   1 (  1 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Young Monk Cafe              | _709 |   1 (  1 POS,   1 active) |   0 (  0 true,   0 data) |    0 |   1
+Dosa World                   | _847 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Tropical Taste               | _772 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Ricky Hotel And Restaurant   | _729 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Fish n Chips                 | _856 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+NUVANA TASTE OF INDIA        | _722 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Palm Aryan Gangtok           | _697 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Chai Chabutra                | _825 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Hyatt                        | _716 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Bake & Bite                  | _631 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Figmento                     | _782 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Sharma Foods                 | _714 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Shree Annapoorna Signature   | _702 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Chatori Adda                 | _860 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Mygenie Dev                  | _510 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Sutraa                       | _858 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+LV FOODS                     | _690 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Day Catch Fish and  Chips    | _822 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Hotel RBS Inn                | _638 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Ondu plate                   | _809 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+The Green Pouch Cafe         | _848 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Madhura coffee roasters      | _857 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+Urban Pizzeria               | _854 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+The SRT Bengal Bites         | _623 |   0 (  0 POS,   0 active) |   0 (  0 true,   0 data) |    0 |   1
+TOTAL invalid 630 dups 187 nullcc 609 blank 78 tenants 79
+
+=== Q4 CSV importer usage (import_logs) ===
+{'user_id': 'pos_0001_restaurant_635', 'created_at': datetime.datetime(2026, 7, 14, 2, 55, 36, 784000), 'filename': 'Jehs_Customer_uat.xlsx', 'total_rows': 346, 'imported_count': None, 'updated_count': None, 'failed_count': None} Jeh's Nest
+{'user_id': 'pos_0001_restaurant_635', 'created_at': datetime.datetime(2026, 7, 14, 3, 1, 28, 754000), 'filename': 'customers_export_2026_07_14 (1).xlsx', 'total_rows': 374, 'imported_count': None, 'updated_count': None, 'failed_count': None} Jeh's Nest
+{'user_id': 'pos_0001_restaurant_635', 'created_at': datetime.datetime(2026, 7, 14, 11, 31, 50, 904000), 'filename': 'customers_export_2026_07_14.xlsx', 'total_rows': 339, 'imported_count': None, 'updated_count': None, 'failed_count': None} Jeh's Nest
+{'user_id': 'pos_0001_restaurant_635', 'created_at': datetime.datetime(2026, 7, 14, 11, 34, 25, 648000), 'filename': 'customers_export_2026_07_14.xlsx', 'total_rows': 339, 'imported_count': None, 'updated_count': None, 'failed_count': None} Jeh's Nest
+{'user_id': 'pos_0001_restaurant_792', 'created_at': datetime.datetime(2026, 8, 8, 14, 7, 23, 907000), 'filename': 'import_template (1).csv', 'total_rows': 94, 'imported_count': None, 'updated_count': None, 'failed_count': None} MyGenie Sales
+{'user_id': 'pos_0001_restaurant_635', 'created_at': datetime.datetime(2026, 8, 9, 16, 43, 57, 510000), 'filename': 'customers_export_2026_08_09.xlsx', 'total_rows': 114, 'imported_count': None, 'updated_count': None, 'failed_count': None} Jeh's Nest
+{'user_id': 'pos_0001_restaurant_792', 'created_at': datetime.datetime(2026, 8, 14, 8, 26, 21, 588000), 'filename': 'import_template (2).csv', 'total_rows': 50, 'imported_count': None, 'updated_count': None, 'failed_count': None} MyGenie Sales
+invalid-phone customers WITHOUT pos_customer_id (CRM-originated: importer/UI/old realtime):
+  18march                        4  e.g. [('2255544789', 'sagar', 1), ('3334442233', 'ddddd', 1), ('2555258612', 'yuh666', 1)]
+  Pav & Pages Cafe               1  e.g. [('93171936211', 'Customer 6211', 1)]
+  The Craft Restaurant           3  e.g. [('502', 'royal gest house', 2), ('105', 'royal sm', 1), ('209', 'relax inn', 1)]
+  Kunafa Mahal                   4  e.g. [('3299350628', 'Customer 0628', 1), ('69394272484', 'Noname', 1), ('85988633364', 'Sf', 1)]
+  Jeh's Nest                     2  e.g. [('9999999999', 'Noname', 0), ('882651924', 'Shreya Ghoush', 0)]
+  G SQUARE                       1  e.g. [('972545518963', '', 0)]
+  The Palm House                54  e.g. [('4915128755537', '', 0), ('529981166431', '', 0), ('447821620445', '', 0)]
+  Brew                           1  e.g. [('971558220798', '', 0)]
+  Hungry Keya??                  1  e.g. [('83358139775', 'Rima', 1)]
+  Cafe Flora                     3  e.g. [('447417474156', '', 0), ('309927872833', '', 0), ('447369948427', '', 0)]
+  Palm Aryan                     2  e.g. [('449847095633', 'Mothi Alice Kuruvilla', 0), ('989847095633', 'Mothi Alice Kuruvilla', 0)]
+  CAFE 103                       1  e.g. [('91941807758', 'Mr. Yadvinder Singh ', 0)]
+  Cold Rock Cafe                 4  e.g. [('4062', 'uhu', 1), ('1878', 'Noname', 1), ('7997', 'JIUIH', 1)]
+  Aura                          19  e.g. [('787400621', 'VISHA', 1), ('966529246', 'ABHIJIT', 1), ('913778433', 'ANKET', 3)]
+  NI HAO                         4  e.g. [('1233465645', 'jitandar', 2), ('4685585474', 'arun yadv 2', 0), ('5124214454', 'gutam bullet', 1)]
+  The Sattva Cafe                3  e.g. [('1000000000', 'Ashutosh..Tec', 19), ('2000000000', 'Abhishek Malviya', 1), ('3000000000', 'Priyanka Mam Content', 1)]
+  The Prasadam                   1  e.g. [('280', 'Noname', 1)]
+  Dream Of Goa                   2  e.g. [('1235658858', 'P 3', 0), ('123', 'P 3', 1)]
+  Curry's Lounge                 4  e.g. [('931560293', 'f 3- 401 g 121', 1), ('965402553', 'n 2 1001 l h m', 1), ('9540', 'Noname', 1)]
+  Burger Bliss                   1  e.g. [('947390707', 'akanksha', 2)]
+  Fun Food Frenzy                1  e.g. [('82447039451', 'Mani Teja', 0)]
+  Woko - Flame Fired Asian       1  e.g. [('887979749', 'Paritosh berma', 1)]
+  Teekha Koyla                   1  e.g. [('4545548488', 'ccjcjjcjcc', 0)]
+  11 The Cafe                    1  e.g. [('9779770043707', 'Dipanjali Ratre', 0)]
+  The Rouche Cafe                1  e.g. [('984846438484', 'Noname', 1)]
+
+=== Q5 restaurants by CRM login recency vs sync ===
+last_login | restaurant | uid | customers | orders | realtime orders since Sep | last sync | status | error
+2026-03-11 | The cook                   | _483 |     0 |      0 |     0 | never |           | 
+2026-03-15 | AROMA & U                  | _519 |     0 |      0 |     0 | never |           | 
+2026-03-15 | Bake & Bite                | _631 |    46 |   9391 |     0 | never |           | 
+2026-03-15 | Bamboo Yoga                | _196 |     7 |   1064 |     0 | never |           | 
+2026-03-17 | Humsafar                   | _610 |   236 |   3655 |     0 | never |           | 
+2026-04-03 | LV FOODS                   | _690 |    26 |   3065 |     0 | never |           | 
+2026-04-22 | LSD Fried Chicken          | _475 |  3383 |  11976 |     0 | never |           | 
+2026-04-26 | Young Monk Cafe            | _709 |    33 |    462 |     0 | never |           | 
+2026-05-06 | Jungle Trail Food Court    | _771 |     2 |      0 |     0 | never |           | 
+2026-05-12 | Krunch N Grill             | _769 |     0 |      0 |     0 | never |           | 
+2026-05-14 | Sattvik Delight            | _745 |     1 |      8 |     0 | never |           | 
+2026-05-22 | Kashi Sweets N Snacks      | _780 |     0 |      0 |     0 | 2026-05-22 | completed | 
+2026-05-25 | Food Mohalla               | _601 |   184 |   4626 |     0 | 2026-05-25 | completed | 
+2026-05-25 | Shree Annapoorna Signature | _702 |    56 |      0 |     0 | 2026-05-22 | failed    | API error on page 1: 500
+2026-06-01 | sunildev                   | _558 |     6 |     92 |     0 | never |           | 
+2026-06-05 | The SRT Bengal Bites       | _623 |    50 |   2110 |     0 | never |           | 
+2026-06-08 | The Palm                   | _666 |   125 |   1163 |     0 | 2026-06-08 | completed | 
+2026-06-16 | Ricky Hotel And Restaurant | _729 |    32 |    925 |     0 | 2026-06-16 | completed | 
+2026-06-17 | Palm Aryan                 | _628 |    59 |   1633 |     0 | 2026-06-05 | completed | 
+2026-06-22 | Palm Aryan Mussoorie01     | _665 |   373 |   1871 |     0 | 2026-06-08 | completed | 
+2026-06-25 | Palm Aryan Gangtok         | _697 |     7 |    125 |    24 | 2026-06-08 | completed | 
+2026-07-12 | G SQUARE                   | _661 |   168 |    838 |     0 | 2026-06-06 | completed | 
+2026-07-15 | Figmento                   | _782 |     4 |   1181 |   234 | 2026-07-15 | completed | 
+2026-07-15 | Priti                      | _391 |    12 |    214 |     8 | never |           | 
+2026-07-18 | AARVA- The Aroma of South  | _643 |     5 |  12440 |  1643 | 2026-07-18 | completed | 
+2026-07-19 | NI HAO                     | _620 |    56 |  15259 |   561 | 2026-07-08 | completed | 
+2026-07-21 | Picolo dreams              | _408 |    10 |   1238 |   875 | 2026-07-21 | completed | 
+2026-07-22 | Swastik Food Zone          | _805 |    12 |    646 |    88 | 2026-07-23 | failed    | API error on page 1: 401
+2026-07-23 | Cold Rock Cafe             | _694 |   169 |  30386 |  4816 | 2026-06-25 | completed | 
+2026-07-23 | Cutletopia                 | _669 |    26 |    279 |    62 | 2026-07-23 | failed    | API error on page 9: 401
+2026-07-24 | The Sattva Cafe            | _566 |   153 |   5663 |   742 | 2026-07-24 | completed | 
+2026-07-28 | Ondu plate                 | _809 |     1 |      1 |     0 | never |           | 
+2026-07-30 | Cafe Flora                 | _698 |  4880 |   8480 |  1762 | 2026-07-30 | failed    | API error on page 1: 401
+2026-07-31 | Pav & Pages Cafe           | _509 |   552 |   8880 |   990 | never |           | 
+2026-08-01 | Cafe 360 AGONDA            | _691 |     2 |    133 |    89 | never |           | 
+2026-08-02 | Fern's by kate's           | _425 |     6 |    658 |   476 | 2026-08-02 | completed | 
+2026-08-02 | Pav & Pages Book Cafe      | _383 |   939 |  75169 |    31 | 2026-07-31 | completed | 
+2026-08-03 | The Mill Bakery(2)         | _640 |    26 |  12569 |    87 | 2026-08-03 | failed    | API error on page 499: 401
+2026-08-06 | Tropical Taste             | _772 |     2 |    600 |   457 | never |           | 
+2026-08-07 | Hotel RBS Inn              | _638 |     3 |      5 |     0 | never |           | 
+2026-08-11 | The Prasadam               | _802 |    74 |    634 |   389 | 2026-08-08 | completed | 
+2026-08-12 | Militia Eatery Fauji Dhaba | _468 |     3 |   1557 |  1058 | never |           | 
+2026-08-17 | Day Catch Fish and  Chips  | _822 |     2 |      5 |     2 | 2026-08-17 | completed | 
+2026-08-17 | Rolvo                      | _814 |     0 |      0 |     0 | never |           | 
+2026-08-18 | NUVANA TASTE OF INDIA      | _722 |    13 |   8869 |  1680 | 2026-08-18 | completed | 
+2026-08-21 | Hyatt Candolim             | _797 |     0 |      0 |     0 | never |           | 
+2026-08-23 | Fun Food Frenzy            | _687 |   515 |   1615 |   204 | 2026-08-15 | completed | 
+2026-08-24 | Welcome Resort             | _474 |    64 |   3656 |     1 | 2026-08-24 | failed    | API error on page 147: 401
+2026-08-27 | Chaap Gali                 | _658 |    11 |    905 |   772 | 2026-08-27 | completed | 
+2026-08-29 | Aura                       | _788 |  1235 |   4200 |  1141 | 2026-08-05 | completed | 
+2026-08-30 | Hyatt                      | _716 |     1 |    211 |   205 | never |           | 
+2026-09-02 | Curry's Lounge             | _835 |   218 |   1715 |  1458 | 2026-09-02 | completed | 
+2026-09-04 | Dream Of Goa               | _844 |     4 |    968 |   968 | 2026-09-04 | completed | 
+2026-09-09 | Pool Cafe                  | _841 |     2 |      0 |     0 | never |           | 
+2026-09-10 | Brew                       | _699 |   995 |   1253 |     7 | 2026-08-12 | completed | 
+2026-09-11 | Dosa World                 | _847 |     3 |     88 |    88 | 2026-09-11 | completed | 
+2026-09-15 | The Palm House             | _541 |   540 |  20794 |  1959 | 2026-07-29 | completed | 
+2026-09-22 | The Green Pouch Cafe       | _848 |     4 |    152 |   152 | never |           | 
+2026-09-24 | Urban Pizzeria             | _854 |    11 |      3 |     3 | never |           | 
+2026-09-25 | Fish n Chips               | _856 |     2 |    128 |   128 | 2026-09-25 | failed    | API error on page 1: 401
+2026-09-26 | The Rouche Cafe            | _850 |     2 |     14 |    14 | 2026-09-26 | completed | 
+2026-09-27 | Burger Bliss               | _826 |    26 |     23 |    22 | never |           | 
+2026-09-27 | Five star                  | _739 |    25 |    155 |     0 | 2026-09-27 | completed | 
+2026-09-30 | Madhura coffee roasters    | _857 |     2 |    293 |   293 | 2026-09-30 | completed | 
+2026-10-01 | Kunafa Mahal               | _689 |  3947 |   7756 |  2646 | 2026-08-18 | completed | 
+2026-10-01 | ONE BITE                   | _506 |    22 |    194 |     1 | 2026-10-01 | completed | 
+2026-10-02 | 11 The Cafe                | _505 |   157 |   5162 |    40 | 2026-09-21 | completed | 
+2026-10-02 | Mayur's Kitchen            | _523 |    36 |   1199 |    47 | never |           | 
+2026-10-02 | Mygenie Dev                | _510 |    11 |    478 |     0 | 2026-06-17 | completed | 
+2026-10-03 | Chai Chabutra              | _825 |     2 |   1777 |  1777 | never |           | 
+2026-10-03 | Krunch N Grill             | _672 |    19 |    169 |   109 | 2026-09-22 | completed | 
+2026-10-03 | MyGenie Sales              | _792 |   146 |      0 |     0 | 2026-08-13 | completed | 
+2026-10-03 | mantri                     | _675 |    56 |    761 |     6 | never |           | 
+2026-10-04 | Chatori Adda               | _860 |     1 |     24 |    24 | 2026-10-04 | completed | 
+2026-10-05 | Nirwanderers Cafe          | _364 |    19 |    808 |    82 | 2026-08-07 | completed | 
+2026-10-05 | Sutraa                     | _858 |     3 |     10 |    10 | never |           | 
+2026-10-05 | Teekha Koyla               | _836 |   256 |     56 |    14 | 2026-10-05 | completed | 
+2026-10-05 | The Five Ridge             | _851 |    33 |    331 |   325 | 2026-09-16 | completed | 
+2026-10-07 | The Craft Restaurant       | _595 |   889 |  14941 |    93 | 2026-10-07 | completed | 
+2026-10-07 | Virtual Food Court         | _843 |    31 |     59 |    18 | 2026-10-06 | completed | 
+2026-10-08 | 18march                    | _478 |    91 |   2846 |    30 | 2026-08-04 | completed | 
+2026-10-08 | Alfresco                   | _863 |     1 |      1 |     1 | 2026-10-08 | completed | 
+2026-10-08 | Hungry Keya??              | _634 |  1574 |   3572 |   397 | 2026-08-03 | completed | 
+2026-10-08 | Sharma Foods               | _714 |     2 |      1 |     1 | 2026-10-08 | completed | 
+2026-10-08 | Woko - Flame Fired Asian   | _839 |   263 |    610 |   208 | 2026-10-06 | completed | 
+2026-10-09 | Hogwarts                   | _618 |    24 |    129 |    48 | 2026-10-08 | completed | 
+2026-10-10 | CAFE 103                   | _644 |   488 |  19812 |  1333 | 2026-10-10 | completed | 
+2026-10-10 | Jeh's Nest                 | _635 |   569 |   1103 |   380 | 2026-08-13 | completed | 
+2026-10-10 | Takita Takita Kitchen      | _649 |    53 |    657 |     3 | 2026-10-10 | completed | 
+never | Demo Restaurant & Cafe     | rant |    55 |    283 |     0 | never |           | 

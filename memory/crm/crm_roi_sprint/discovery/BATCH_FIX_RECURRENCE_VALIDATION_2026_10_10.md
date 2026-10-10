@@ -182,4 +182,6 @@ This is where the money leaks. Validation owned by CRM, inputs owned by POS.
 
 **Bottom line:** the batch closed every **human-facing** door (CRM UI, Customer App) and made POS-facing doors **flag instead of corrupt**. Three doors still leak silently: **CSV importer junk phones**, **concurrent double-insert**, and — the only one with money on it — **`order_sync` orphans (₹2.15 cr recoverable, ₹7.71 cr anonymous by nature)**. None of the fixes are on production yet.
 
+**Owner rulings 2026-10-10** (see `PROD_PER_RESTAURANT_BREAKDOWN_2026_10_10.md`): CSV validation at CRM side ✅ (CR-111) · order-sync anonymous orphans accepted as not-a-defect (only customer-exists backfill + POS P-15 ID-space question remain) · concurrent dups → POS contract + CRM daily data-quality log (CR-113) · new POS ask **P-15**: is `order.user_id` the same ID space as `/customer/list.id`? (Palm group: 0/3,000 ids match after completed syncs).
+
 **Proposed registrations (INTAKE, owner approval):** CR-111 importer `normalize_phone` (G-1) · CR-112 unique partial index + DuplicateKey handling (G-2, after 085-B/087) · CR-113 sync link-status + counters + guest-webhook trace (G-3, L-1, L-2) · CR-086 Part C + sync-order guard + backfill (G-4; Q3=a pending) · CR-114 401 resilience (G-5) · CR-110 selector fix (G-8) · POS brief P-8…P-14 · PROC-001 += orphan KPI definition (G-6).
