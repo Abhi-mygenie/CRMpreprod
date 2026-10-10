@@ -1894,3 +1894,6 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 ### 2026-10-09 [CR-086] Status updated — DEFERRED, move to data cleanup / prod check
 **No additional code.** CR-110 (token refresh) done. CR-086 deferred to: (1) check if same issue exists on production, (2) if yes → run as data cleanup pass at end of batch (trigger syncs for affected tenants). Part C (stub customer creation) stays as a separate future decision.
+
+### 2026-10-09 [iteration_11] QA PASS — CR-082 + CR-106 + CR-109
+**CR-082**: 8/8 PASS · cr001c+cr021 backward-compat 7/7 PASS · frontend toggle+badge verified. **CR-106**: 5/6 PASS + 1 SKIP (V5 no pos+dine_in coupon in r689 prod — data gap not code). **CR-109**: 6/6 PASS · internal spaces preserved correctly. Combined coupon regression 3/3 PASS. No action items. retest_needed=false.

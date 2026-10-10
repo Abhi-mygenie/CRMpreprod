@@ -1,0 +1,76 @@
+{
+  "summary": "Iteration 11 QA covering CR-082 (requires_customer flag), CR-106 (channel filter), CR-109 (strip/upper), plus full coupon regression. All items PASS.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "phase_results": {
+    "PHASE_A_CR082": {
+      "result": "8/8 PASS",
+      "details": "V1–V6, V10, V11 all pass. Generic coupon (requires_customer=false) validates without customer_id. Standard coupon (requires_customer=true) returns CUSTOMER_REQUIRED when no customer_id. Available coupons endpoint correctly filters by requires_customer. Usage recorded for generic coupon.",
+      "test_file": "/app/backend/tests/test_cr082_requires_customer.py"
+    },
+    "PHASE_A2_CR082_regression": {
+      "result": "7/7 PASS",
+      "details": "cr001c (4 tests) + cr021 (3 tests) — backward compat confirmed. requires_customer defaults to True. PUT update to false persists correctly. Validation with customer_id never triggers CUSTOMER_REQUIRED.",
+      "test_files": ["/app/backend/tests/test_cr001c_coupon_crud.py", "/app/backend/tests/test_cr021_coupon_validate.py"]
+    },
+    "PHASE_A3_CR082_frontend": {
+      "result": "PASS",
+      "details": "requires-customer-toggle visible with correct data-testid. Default checked=True (standard). Uncheck → aria-checked=false (generic). Generic badge code verified in CouponsPage.jsx line 544 with data-testid='generic-badge-{id}'. Toggle is PASS on desktop 1920px."
+    },
+    "PHASE_B_CR106": {
+      "result": "5/6 PASS, 1 SKIP",
+      "details": "V1: dine_in=24. V2: delivery=23 (≤ dine_in). V3: no-param excludes pos-only, all consumer channels present. V4: takeaway==delivery (23). V5: SKIP (no pos+dine_in coupon in r689 prod). V6: all dine_in results have 'dine_in' in applicable_channels.",
+      "test_file": "/app/backend/tests/test_cr106_cr109_phaseD.py"
+    },
+    "PHASE_C_CR109": {
+      "result": "6/6 PASS",
+      "details": "V1-V3: leading/trailing spaces stripped on create (CRM + POS routes). V4: dup check fires on stripped code. V5: 0 DB docs with leading/trailing spaces. Internal spaces ('FLAT TODAY') preserved correctly.",
+      "test_file": "/app/backend/tests/test_cr106_cr109_phaseD.py"
+    },
+    "PHASE_D_combined_regression": {
+      "result": "3/3 PASS",
+      "details": "GET /scan/coupons (no channel) returns coupons (BUG-034 still fixed). FLAT100TEST validates valid:true (CR-105 regression ok). Staff coupon list → 200 (no schema regression from CR-082).",
+      "test_file": "/app/backend/tests/test_cr106_cr109_phaseD.py"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_cr082_requires_customer.py",
+    "/app/backend/tests/test_cr001c_coupon_crud.py",
+    "/app/backend/tests/test_cr021_coupon_validate.py",
+    "/app/backend/tests/test_cr106_cr109_phaseD.py",
+    "/app/memory/crm/crm_roi_sprint/qa/CR_082_QA_REPORT.md",
+    "/app/memory/crm/crm_roi_sprint/qa/CR_106_QA_REPORT.md",
+    "/app/memory/crm/crm_roi_sprint/qa/CR_109_QA_REPORT.md"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_cr001c_coupon_crud.py",
+    "/app/backend/tests/test_cr021_coupon_validate.py",
+    "/app/backend/tests/test_cr106_cr109_phaseD.py",
+    "/app/memory/crm/crm_roi_sprint/qa/CR_082_QA_REPORT.md",
+    "/app/memory/crm/crm_roi_sprint/qa/CR_106_QA_REPORT.md",
+    "/app/memory/crm/crm_roi_sprint/qa/CR_109_QA_REPORT.md"
+  ],
+  "success_rate": {
+    "backend": "100% (29/29 pass, 1 skip — V5 no pos+dine_in coupon in prod)",
+    "frontend": "100% (toggle visible, checked by default, toggle works, badge code verified)"
+  },
+  "seed_data_creation": "CR-082 test coupons (CR082_GENERIC_*, CR082_STANDARD_*) cleaned up by pytest fixture. CR-001c (CR001C_TEST_*), CR-021 (CR021_TEST_*), CR-106/109/D test coupons (TESTCR109STRIP*, UPDATED109STRIP*, POSCR109STRIP*) cleaned up by fixture.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 11 complete. All 3 CRs pass: CR-082 (8/8), CR-106 (5/6+1skip), CR-109 (6/6). Backward compat regression (cr001c + cr021) 7/7 PASS. Phase D combined regression 3/3 PASS. New test files created: test_cr001c_coupon_crud.py, test_cr021_coupon_validate.py, test_cr106_cr109_phaseD.py. Frontend: requires-customer-toggle visible and default=checked. Customer DB ~8900. Coupon count 32 for r689 staff view. V5 skip (no pos+dine_in coupon in r689 prod) is a data gap — not an implementation issue.",
+  "pre_existing_notes": [
+    "test_S4b (cr089): phone bucket ordering — pre-existing NOTE",
+    "test_S10 (cr089): historical traceback in backend log — pre-existing NOTE",
+    "test_A2 (cr085a): space-containing phone in DB from old CR099 test — pre-existing NOTE",
+    "test_baseline_customer_count: ~8900 customers, old baseline 7705 — pre-existing"
+  ]
+}

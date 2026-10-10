@@ -251,3 +251,6 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - Self-test **8/8 PASS** (13 s). BUG-027 root cause resolved (test suites no longer create duplicates for the 63 legacy phones). Regression note: test_S4b in cr089 suite shows pre-existing ordering sensitivity when run after cr085a in same invocation — not a CR-100 defect.
 - QA handover: `qa/CR_100_QA_HANDOVER.md`. **Next: QA role.**
 - Docs: `qa/CR_096_QA_HANDOVER.md`, change-log Wave 3 row, `handoff/SESSION_2026_10_09_HANDOVER_CR096_IMPL.md`. **Next: QA role.**
+
+## 2026-10-09 — QA PASS iteration_11: CR-082 + CR-106 + CR-109
+- CR-082: 8/8 PASS · backward-compat 7/7 PASS · frontend verified. CR-106: 5/6+1skip. CR-109: 6/6 PASS.
