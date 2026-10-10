@@ -1897,3 +1897,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 ### 2026-10-09 [iteration_11] QA PASS — CR-082 + CR-106 + CR-109
 **CR-082**: 8/8 PASS · cr001c+cr021 backward-compat 7/7 PASS · frontend toggle+badge verified. **CR-106**: 5/6 PASS + 1 SKIP (V5 no pos+dine_in coupon in r689 prod — data gap not code). **CR-109**: 6/6 PASS · internal spaces preserved correctly. Combined coupon regression 3/3 PASS. No action items. retest_needed=false.
+
+### 2026-10-09 [CR-104] IA + Implementation Plan complete — owner Q1/Q2 pending
+**IA**: feedback_bonus_enabled=True on 40/41 tenants; 0 bonus txns ever awarded; feedback_count already tracked. E1: ~20 lines in scan.py submit_feedback (token path only, after feedback_count+1). Q1 token-only vs token+phone-linked · Q2 every-submission vs per-order vs once-ever. Gate opens on Q answers.
+**Source**: Owner 2026-10-09: "choose planning role for impact analysis and implementation planning of CR-104".
