@@ -1886,3 +1886,11 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **CR-086 tenants**: r541 ✅ r665 ✅ r474 ✅ — all 3 now have fresh tokens. Ready for customer sync.
 **Scripts saved**: /app/scripts/refresh_mygenie_tokens.py · /app/scripts/push_and_refresh_tokens.py
 **Gate**: owner triggers customer sync for r541/r665/r474.
+
+### 2026-10-09 [CR-086] DEFERRED to data cleanup / prod check
+**Owner decision**: Check on production first — not every customer uses the sync feature. No code implementation this batch. If prod has the same 401 / orphan-order issue → treat as a data cleanup pass (run customer sync + order sync for affected tenants, decide Part C separately). Tokens are already fixed on preprod via CR-110.
+**Source**: Owner 2026-10-09: "keep as part of data clean up, we will do this check on prod if same issue, not every customer uses this feature".
+**Status**: ⏸ DEFERRED. IA complete. No Impl Plan. No code written.
+
+### 2026-10-09 [CR-086] Status updated — DEFERRED, move to data cleanup / prod check
+**No additional code.** CR-110 (token refresh) done. CR-086 deferred to: (1) check if same issue exists on production, (2) if yes → run as data cleanup pass at end of batch (trigger syncs for affected tenants). Part C (stub customer creation) stays as a separate future decision.
