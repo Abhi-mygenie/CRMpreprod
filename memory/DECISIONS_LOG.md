@@ -1870,3 +1870,11 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-110] IA + Implementation Plan complete — gate open
 **IA REVISED from intake**: login response is top-level (not d['data']['token']); `crm_token` field = what to store in users.mygenie_token; MYGENIE_CRM_TOKEN_ENDPOINT NOT needed (returns errors, crm_token already in login response). Script confirmed working for r689 (crm_token: dp_live_...). Implementation gate OPENED by owner.
 **Source**: Owner 2026-10-09: "choose planning role for impact analysis and implementation planning of CR-110".
+
+### 2026-10-09 [CR-110] IMPLEMENTED — bulk token refresh complete (23/41 OK)
+**Result**: 23 OK (fresh dp_live_ tokens stored) · 18 FAIL.
+**CR-086 tenants**: r541 ✅ FRESH · r474 ✅ FRESH · r665 ❌ login OK but crm_token:null.
+**18 FAIL breakdown**: 16 = login succeeds but crm_token null (not configured on preprod MyGenie) · 2 = HTTP 401 (wrong password).
+**Root cause of crm_token:null**: restaurant exists in CRM DB but does not have an active CRM token on preprod.mygenie.online — likely test/dummy tenants or tenants not onboarded to preprod.
+**Script saved**: /app/scripts/refresh_mygenie_tokens.py (persistent).
+**Gate**: owner to decide next step — re-trigger customer sync for r541+r474 (now have fresh tokens).
