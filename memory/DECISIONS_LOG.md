@@ -1866,3 +1866,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-110] Registered — bulk mygenie_token refresh script
 **Classification**: OPS P1/LOW–MEDIUM. Script iterates all users docs, calls MYGENIE_LOGIN_ENDPOINT + MYGENIE_CRM_TOKEN_ENDPOINT for each, stores fresh token. No application code files modified. Dry-run mode protects against accidents. Skip-on-fail (no tenant left worse than before). Directly unblocks CR-086 Part A. No owner questions.
 **Source**: Owner 2026-10-09: "boot intake role and create formal CR for this".
+
+### 2026-10-09 [CR-110] IA + Implementation Plan complete — gate open
+**IA REVISED from intake**: login response is top-level (not d['data']['token']); `crm_token` field = what to store in users.mygenie_token; MYGENIE_CRM_TOKEN_ENDPOINT NOT needed (returns errors, crm_token already in login response). Script confirmed working for r689 (crm_token: dp_live_...). Implementation gate OPENED by owner.
+**Source**: Owner 2026-10-09: "choose planning role for impact analysis and implementation planning of CR-110".
