@@ -13,7 +13,7 @@ router = APIRouter(prefix="/coupons", tags=["Coupons"])
 
 @router.post("", response_model=Coupon)
 async def create_coupon(coupon_data: CouponCreate, user: dict = Depends(get_current_user)):
-    existing = await db.coupons.find_one({"user_id": user["id"], "code": coupon_data.code.upper()})
+    existing = await db.coupons.find_one({"user_id": user["id"], "code": coupon_data.code.strip().upper()})  # CR-109
     if existing:
         raise HTTPException(status_code=400, detail="Coupon code already exists")
     
@@ -23,7 +23,7 @@ async def create_coupon(coupon_data: CouponCreate, user: dict = Depends(get_curr
     coupon_doc = coupon_data.model_dump()
     coupon_doc["id"] = coupon_id
     coupon_doc["user_id"] = user["id"]
-    coupon_doc["code"] = coupon_data.code.upper()
+    coupon_doc["code"] = coupon_data.code.strip().upper()  # CR-109
     coupon_doc["is_active"] = True
     coupon_doc["total_used"] = 0
     coupon_doc["created_at"] = now
@@ -127,7 +127,7 @@ async def update_coupon(coupon_id: str, coupon_data: CouponUpdate, user: dict = 
     
     update_data = {k: v for k, v in coupon_data.model_dump().items() if v is not None}
     if "code" in update_data:
-        update_data["code"] = update_data["code"].upper()
+        update_data["code"] = update_data["code"].strip().upper()  # CR-109
         existing = await db.coupons.find_one({
             "user_id": user["id"], 
             "code": update_data["code"],

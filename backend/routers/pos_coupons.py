@@ -74,7 +74,7 @@ async def pos_get_coupon(coupon_id: str, user: dict = Depends(verify_pos_auth)):
 @router.post("", response_model=POSResponse)
 async def pos_create_coupon(coupon_data: CouponCreate, user: dict = Depends(verify_pos_auth)):  # CR-081 C-3
     """Create a new coupon from POS."""
-    existing = await db.coupons.find_one({"user_id": user["id"], "code": coupon_data.code.upper()})
+    existing = await db.coupons.find_one({"user_id": user["id"], "code": coupon_data.code.strip().upper()})  # CR-109
     if existing:
         return POSResponse(success=False, message="Coupon code already exists", data=None)
 
@@ -84,7 +84,7 @@ async def pos_create_coupon(coupon_data: CouponCreate, user: dict = Depends(veri
     doc = coupon_data.model_dump()
     doc["id"]         = coupon_id
     doc["user_id"]    = user["id"]
-    doc["code"]       = coupon_data.code.upper()
+    doc["code"]       = coupon_data.code.strip().upper()  # CR-109
     doc["is_active"]  = True
     doc["total_used"] = 0
     doc["created_at"] = now
@@ -116,7 +116,7 @@ async def pos_update_coupon(  # CR-081 C-4
     update = {k: v for k, v in coupon_data.model_dump().items() if v is not None}
 
     if "code" in update:
-        update["code"] = update["code"].upper()
+        update["code"] = update["code"].strip().upper()  # CR-109
         clash = await db.coupons.find_one({
             "user_id": user["id"],
             "code": update["code"],

@@ -1853,3 +1853,6 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-109] Implementation Plan complete — gate open
 **6 one-line edits: coupons.py:16/26/130 + pos_coupons.py:77/87/119. Pattern: .upper() → .strip().upper(). Edit order: E1+E2 → E3 → E4+E5 → E6. V1–V5 curl+pymongo self-test. Implementation gate OPENED by owner.**
 **Source**: Owner 2026-10-09: "choose planning role for implementation planning of CR-109".
+
+### 2026-10-09 [CR-109] IMPLEMENTATION COMPLETE — .strip().upper() at coupon write time
+**Result**: 6 edits applied, 5/5 PASS. coupons.py:16/26/130 + pos_coupons.py:77/87/119. ' NEWCR109 '→'NEWCR109' ✅, dup check 400 ✅, POS ' POSCR109 '→'POSCR109' ✅, zero trailing-space codes in DB ✅. Closure gated on owner smoke.
