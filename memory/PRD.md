@@ -252,6 +252,10 @@ Backend `.env` 30+ keys (never print), frontend `REACT_APP_BACKEND_URL`. `test_c
 - QA handover: `qa/CR_100_QA_HANDOVER.md`. **Next: QA role.**
 - Docs: `qa/CR_096_QA_HANDOVER.md`, change-log Wave 3 row, `handoff/SESSION_2026_10_09_HANDOVER_CR096_IMPL.md`. **Next: QA role.**
 
+## 2026-10-10 — INVESTIGATION (read-only, prod DB): prod report corrected + recurrence validation (no code, no writes)
+- `discovery/PROD_DB_INVESTIGATION_2026_10_09.md` refreshed (prod data only). Corrections: orphan orders 219,100 are **100% from `order_sync`**, 95.5% (209,176 / ₹7.71 cr) are anonymous bills with no phone and no `pos_customer_id` → not recoverable; **recoverable = 9,924 / ₹2.15 cr** (all have `pos_customer_id`). CAFE 103: 15,844 anonymous, 21 recoverable. Junk phones 29/32 came from POS master via sync. Dup groups 118 true + 69 cc-twins. Null-cc still created in Oct (not deployed). **Token finding 7 was wrong** (`dp_live_` is api_key format): 11 tenants synced OK in Oct; 401 risk = ~14 dormant tenants; CR-110 selector must be re-scoped.
+- NEW `discovery/BATCH_FIX_RECURRENCE_VALIDATION_2026_10_10.md`: per-door recurrence matrix (W1…W15), 8 structural gaps (G-1 importer junk leak · G-2 no unique index · G-3/G-4 order_sync orphans unlogged + never creates customer · G-5 401 partial sync · G-6 KPI · G-7/G-8), logging audit (L-1 orphan writes unlogged, L-2 guest webhook zero trace, `pos_request_logs` disabled on prod), validation checklists S-1…S-6 / O-1…O-9 / P-8…P-14. Proposed CR-111…CR-114 + POS brief — await owner INTAKE.
+
 ## 2026-10-09 — FULL REGRESSION iteration_13: 145/147 PASS — 2 pre-existing NOTEs only
 - 14 suites, 147 tests. No BLOCKERs or MAJORs. Batch ready for owner smoke → Closure.
 - scan.py E1 (~20 lines): token path only; loyalty_settings fetch; already_awarded guard; points_transactions insert; total_points +=$feedback_bonus_points. Self-test 7/7 PASS.
