@@ -1901,3 +1901,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-104] IA + Implementation Plan complete — owner Q1/Q2 pending
 **IA**: feedback_bonus_enabled=True on 40/41 tenants; 0 bonus txns ever awarded; feedback_count already tracked. E1: ~20 lines in scan.py submit_feedback (token path only, after feedback_count+1). Q1 token-only vs token+phone-linked · Q2 every-submission vs per-order vs once-ever. Gate opens on Q answers.
 **Source**: Owner 2026-10-09: "choose planning role for impact analysis and implementation planning of CR-104".
+
+### 2026-10-09 [CR-104] Q1 + Q2 FINAL — Implementation gate open
+**Q1 = (a) token path only** — authenticated customer (Case A); no bonus for anonymous or phone-linked.
+**Q2 = (c) once per customer per restaurant** — check db.points_transactions for existing "Feedback bonus" doc before awarding; skip silently if already awarded; feedback submissions themselves are unlimited (feedback_count still increments every time). Implementation gate OPENED.
+**Clarification from owner**: "customer can give as many feedback, only points are awarded once" — confirmed design intent.
+**Source**: Owner 2026-10-09.

@@ -121,16 +121,17 @@ Same shape for feedback bonus. `transaction_type: "bonus"` (consistent with firs
 
 ---
 
-## 7. Verification matrix
+## 7. Verification matrix (updated with Q2=c idempotency check)
 
 | V | Check | Expected |
 |---|---|---|
-| V1 | Submit feedback with token (r689, `feedback_bonus_enabled:True`) | `customers.total_points` += 50 |
-| V2 | `points_transactions` doc created | `transaction_type:"bonus"`, `description:"Feedback bonus"`, `points:50` |
-| V3 | Submit feedback on `feedback_bonus_disabled` tenant | No bonus txn (skip) |
-| V4 | Anonymous feedback (no token) | No bonus txn (skip) |
-| V5 | Phone-linked feedback (Case C, no token) | No bonus txn (skip — token path only) |
-| V6 | Existing CR-096 test suite (`test_cr096_feedback.py`) | All PASS (bonus is additive, tests check `feedback_id` and `linked`, not points) |
+| V1 | Submit feedback with token (r689, `feedback_bonus_enabled:True`) — first time | `customers.total_points` += 50; bonus txn created |
+| V2 | Submit feedback again (same customer, same restaurant) | No new bonus txn; `total_points` unchanged; feedback stored normally |
+| V3 | `points_transactions` after V1 | 1 doc: `transaction_type:"bonus"`, `description:"Feedback bonus"`, `points:50` |
+| V4 | Submit feedback on `feedback_bonus_disabled` tenant | No bonus txn (skip) |
+| V5 | Anonymous feedback (no token) | No bonus txn (skip — token path only) |
+| V6 | Phone-linked feedback (Case C, no token) | No bonus txn (skip — token path only) |
+| V7 | Existing CR-096 test suite (`test_cr096_feedback.py`) | All PASS (bonus additive; existing tests check feedback_id and linked only) |
 
 ---
 
