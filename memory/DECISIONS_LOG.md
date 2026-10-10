@@ -1825,3 +1825,8 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-09 [CR-082] IMPLEMENTATION COMPLETE — requires_customer flag shipped
 **Result**: 9 edits across 4 files + new test. Self-test 8/8 PASS. Key fixes: E5c specific_users latent bug fixed (guard None), E7 pos_available_coupons param reorder (Python arg ordering). Test fix: generic coupon needs "pos" in applicable_channels for POS till validation. Backward compat confirmed: existing coupons default to requires_customer=True.
 **Locks**: CR-082 🟢 IMPLEMENTED. QA handover: `qa/CR_082_QA_HANDOVER.md`. Next: QA.
+
+### 2026-10-09 [CR-108] Registered — trailing-space coupon code data fix
+**Classification**: DATA (P1/LOW). 11 coupon docs across 6 tenants (r689/601/541/558/762/523). `validate_coupon_for_customer` strips input before DB exact-match → spaced codes → INVALID_CODE for S&O + POS. Fix: one idempotent `db.coupons.updateMany({"code":/\s/},[{$set:{"code":{$trim:{input:"$code"}}}}])`. Usage data unaffected (coupon_usage stores UUID). PROC-001 not required. Timing: owner's choice — run now or fold into CR-101 end-of-batch.
+**Source**: S&O agent flag 2026-10-09; owner confirmed "register this CR officially".
+**Locks**: No owner questions. See RUNBOOK.md §13 for full procedure.

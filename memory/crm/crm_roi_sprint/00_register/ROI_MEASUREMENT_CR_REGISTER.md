@@ -181,3 +181,5 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 - No edits to `/app/memory/final/` (does not exist)
 - No edits to the closed CRM 1.0 baseline close document
 - No deep rewrite of existing CR-003 doc
+
+| 62 | `CR-108 Coupon code trailing-space data fix` | Data hygiene — strip spaces from 11 coupon.code docs (6 tenants). P1/LOW. One MongoDB updateMany. RUNBOOK.md §13. | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR108_COUPON_CODE_TRAILING_SPACE.md` | `cr108_registered_p1_low_owner_timing_choice` |
