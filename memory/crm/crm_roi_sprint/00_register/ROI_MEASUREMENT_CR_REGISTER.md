@@ -183,3 +183,5 @@ For CR-003 specifically, Phase 1 owner decisions are already locked (see CR-003 
 - No deep rewrite of existing CR-003 doc
 
 | 62 | `CR-108 Coupon code trailing-space data fix` | Data hygiene — strip spaces from 11 coupon.code docs (6 tenants). P1/LOW. One MongoDB updateMany. RUNBOOK.md §13. | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR108_COUPON_CODE_TRAILING_SPACE.md` | `cr108_registered_p1_low_owner_timing_choice` |
+
+| 63 | `CR-109 Add .strip().upper() to coupon code at write time` | Preventive — 6 lines in coupons.py + pos_coupons.py. P2/LOW. No owner questions. | Intake: `../discovery/SESSION_2026_10_09_INTAKE_CR109_COUPON_CODE_STRIP.md` | `cr109_registered_p2_low_preventive_no_owner_questions` |

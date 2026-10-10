@@ -1841,3 +1841,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **10 remaining /\s/ matches** = valid multi-word codes (internal spaces — not bugs): TEST HAPPY, FLAT DISCOUNT, PERCENTAGE OFF, HAPPY HOUR ×2, 50 FF, 40 OFF, 10 PERCENT DISCOUNT, TEST 20, FLAT TODAY.
 **Verified**: FLAT TODAY validates (200, valid:True) ✅. 10 PERCENT DISCOUNT now EXPIRED not INVALID_CODE ✅. coupon_usage count unchanged (187) ✅.
 **Forward-fix**: register separate CR to add .strip().upper() at coupon create/update storage time.
+
+### 2026-10-09 [CR-109] Registered — add .strip() to coupon code at write time
+**Classification**: CR P2/LOW. 6 lines in 2 files. All decisions trivially clear — no owner questions. Forward-fix from CR-108. Prevents trailing-space coupon code bug from recurring on new coupons. Planning gate opens on "choose planning role for CR-109".
+**Source**: Owner 2026-10-09: "register follow-up CR to add .strip().upper() during coupon create/update".
