@@ -1830,3 +1830,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Classification**: DATA (P1/LOW). 11 coupon docs across 6 tenants (r689/601/541/558/762/523). `validate_coupon_for_customer` strips input before DB exact-match → spaced codes → INVALID_CODE for S&O + POS. Fix: one idempotent `db.coupons.updateMany({"code":/\s/},[{$set:{"code":{$trim:{input:"$code"}}}}])`. Usage data unaffected (coupon_usage stores UUID). PROC-001 not required. Timing: owner's choice — run now or fold into CR-101 end-of-batch.
 **Source**: S&O agent flag 2026-10-09; owner confirmed "register this CR officially".
 **Locks**: No owner questions. See RUNBOOK.md §13 for full procedure.
+
+### 2026-10-09 [CR-108] IA + Implementation Plan complete — gate open
+**IA + Impl Plan written together (no owner questions — trivial data fix). Three-step plan: dry-run (count 11) → updateMany $trim → verify (count 0 + spot-check). Forward-fix note: add .strip().upper() at coupon create/update storage time (separate future CR). PROC-001 not required (cosmetic whitespace trim, no structural/relational data change). Implementation gate OPENED by owner.**
+**Source**: Owner 2026-10-09: "choose planning role for impact analysis and implementation planning for above CR".
