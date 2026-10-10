@@ -1856,3 +1856,9 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 ### 2026-10-09 [CR-109] IMPLEMENTATION COMPLETE — .strip().upper() at coupon write time
 **Result**: 6 edits applied, 5/5 PASS. coupons.py:16/26/130 + pos_coupons.py:77/87/119. ' NEWCR109 '→'NEWCR109' ✅, dup check 400 ✅, POS ' POSCR109 '→'POSCR109' ✅, zero trailing-space codes in DB ✅. Closure gated on owner smoke.
+
+### 2026-10-09 [CR-086] Impact Analysis complete — root cause and revenue REVISED
+**Root cause REVISED**: All 3 tenants failed with 'API error on page 1: 401' — expired mygenie_token, not timeout. r541 token last valid 2026-05-25, r665 2026-06-08, r474 2026-06-06.
+**Revenue REVISED**: ₹97,56,648 (~₹1 crore) invisible across 15,172 orphan orders (previous ₹21.9L estimate used wrong field `total_amount` instead of `order_amount`).
+**Fix**: A+B = operational (no code — use X-MyGenie-Token header on existing sync endpoints). C = preventive (~30 lines in migration.py). Q1 token refresh · Q2 re-link orders · Q3 stub creation. Owner Q answers pending.
+**Source**: Owner 2026-10-09 "choose planning role for impact analysis of CR-086".
