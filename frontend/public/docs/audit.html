@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyGenie CRM — Architecture Audit Bible v1.0</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --hi:#f85149; --med:#d29922; --low:#3fb950; --accent:#bc8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; line-height:1.55; }
+  .wrap { max-width:1180px; margin:0 auto; padding:48px 32px 96px; }
+  header { border-bottom:1px solid var(--border); padding-bottom:24px; margin-bottom:32px; }
+  h1 { font-size:2rem; margin:0 0 8px; } h1 span { color:var(--accent); }
+  .meta { color:var(--muted); font-size:.9rem; } .meta a { color:var(--accent); }
+  .stats { display:flex; gap:16px; margin:24px 0 0; flex-wrap:wrap; }
+  .stat { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 26px; text-align:center; }
+  .stat b { display:block; font-size:1.7rem; }
+  .stat.hi b{color:var(--hi);} .stat.med b{color:var(--med);} .stat.low b{color:var(--low);}
+  .stat small { color:var(--muted); }
+  h2 { font-size:1.25rem; margin:48px 0 14px; padding-left:14px; border-left:4px solid var(--accent); }
+  .danger { background:#2d1517; border:1px solid #5c2b29; border-radius:12px; padding:18px 24px; margin-bottom:10px; font-size:.92rem; }
+  .danger b { color:var(--hi); }
+  details { background:var(--panel); border:1px solid var(--border); border-radius:10px; margin-bottom:8px; overflow:hidden; }
+  summary { cursor:pointer; padding:12px 18px; display:flex; align-items:center; gap:12px; font-size:.93rem; }
+  summary:hover { background:#1c2128; }
+  .body { padding:4px 20px 16px 20px; font-size:.88rem; color:var(--muted); border-top:1px solid var(--border); }
+  .body b { color:var(--text); }
+  .body p { margin:8px 0; }
+  .id { font-family:monospace; font-size:.8rem; color:var(--accent); min-width:64px; }
+  .pill { font-size:.7rem; font-weight:700; border-radius:12px; padding:2px 10px; letter-spacing:.5px; }
+  .pill.hi { background:#3d1d1f; color:var(--hi); } .pill.med { background:#3a2d10; color:var(--med); } .pill.low { background:#12331f; color:var(--low); }
+  table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.85rem; }
+  th,td { border:1px solid var(--border); padding:7px 12px; text-align:left; }
+  th { background:var(--panel); }
+  code { color:var(--accent); background:#1c2128; padding:1px 5px; border-radius:4px; font-size:.85em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>MyGenie CRM — <span>Architecture Audit Bible</span></h1>
+  <div class="meta">v1.1 · 2026-07-06 · Evidence-based audit for scaling to thousands of clients · Source of truth: <code>/app/memory/ARCHITECTURE_AUDIT.md</code> · Companions: <a href="./architecture.html">Architecture</a> · <a href="./dataflow.html">Data Flow</a> · <a href="#cap">Jump to Capacity &amp; Breakpoints ↓</a></div>
+  <div class="stats">
+    <div class="stat hi"><b>14</b><small>HIGH</small></div>
+    <div class="stat med"><b>21</b><small>MEDIUM</small></div>
+    <div class="stat low"><b>10</b><small>LOW</small></div>
+    <div class="stat"><b>45</b><small>Total findings</small></div>
+  </div>
+</header>
+
+<h2>The five most dangerous facts</h2>
+<div class="danger"><b>1.</b> MongoDB is reachable from the public internet and has already shown a ransomware indicator database.</div>
+<div class="danger"><b>2.</b> Everything runs in one process — API, scheduler, campaign sends, PDF rendering. No path to horizontal scaling today.</div>
+<div class="danger"><b>3.</b> Login has a hard dependency on MyGenie preprod SSO — MyGenie down ⇒ every tenant locked out.</div>
+<div class="danger"><b>4.</b> Multi-tenancy is a convention, not a guarantee — one missed <code>user_id</code> filter leaks tenant data.</div>
+<div class="danger"><b>5.</b> No monitoring, no alerting, no CI, no verified backups — failures will be discovered by customers.</div>
+
+<h2>1 · Security</h2>
+<details open><summary><span class="id">SEC-01</span><span class="pill hi">HIGH</span> Publicly exposed MongoDB with active compromise indicator</summary><div class="body">
+<p><b>What:</b> DB on public IP <code>52.66.232.149:27017</code>, no TLS; <code>READ_ME_TO_RECOVER_YOUR_DATA</code> ransomware DB observed on the server.</p>
+<p><b>Risk / impact at scale:</b> Full customer PII of every tenant exposed to internet scanners; wipe-and-ransom is realistic. Regulatory (DPDP/GDPR) + total trust loss.</p>
+<p><b>Fix:</b> Private subnet/VPC + security-group allowlist; rotate credentials; enable TLS; scoped non-admin app user; forensic snapshot then remove artifact; move to managed Mongo (Atlas) with IP allowlist + encryption at rest.</p></div></details>
+<details><summary><span class="id">SEC-02</span><span class="pill hi">HIGH</span> CORS wildcard with credentials</summary><div class="body">
+<p><b>What:</b> <code>server.py:179</code> — <code>CORS_ORIGINS=*</code> with <code>allow_credentials=True</code>, all methods/headers.</p>
+<p><b>Risk / impact:</b> Any site can drive the API from a victim browser; CSRF-style attacks against thousands of dashboards.</p>
+<p><b>Fix:</b> Exact origin whitelist per environment; fail startup if <code>*</code> in production.</p></div></details>
+<details><summary><span class="id">SEC-03</span><span class="pill hi">HIGH</span> Unauthenticated public status webhook (HMAC dormant)</summary><div class="body">
+<p><b>What:</b> <code>POST /api/whatsapp/status-callback</code> is public; HMAC code exists (<code>whatsapp.py:1527</code>) but <code>AUTHKEY_WEBHOOK_SECRET</code> is unset.</p>
+<p><b>Risk / impact:</b> Forged delivery statuses corrupt campaign ROI metrics — the platform's core value; storage-flood vector.</p>
+<p><b>Fix:</b> Set the secret (CR-041-F3), activate HMAC, rate-limit per IP, reject unknown <code>logid</code>s.</p></div></details>
+<details><summary><span class="id">SEC-04</span><span class="pill hi">HIGH</span> Plaintext password in localStorage</summary><div class="body">
+<p><b>What:</b> <code>LoginPage.jsx:51</code> stores <code>remembered_password</code> in plaintext. That password is also the tenant's MyGenie POS password (SSO pass-through).</p>
+<p><b>Risk / impact:</b> One XSS or extension = mass credential harvest across two products.</p>
+<p><b>Fix:</b> Remove password persistence (remember email only); "stay signed in" via refresh tokens (SEC-05).</p></div></details>
+<details><summary><span class="id">SEC-05</span><span class="pill hi">HIGH</span> JWT in localStorage, 24h expiry, no refresh/revocation</summary><div class="body">
+<p><b>What:</b> <code>AuthContext.jsx:59</code>; 24h HS256 tokens; no server-side invalidation; password change doesn't kill sessions.</p>
+<p><b>Risk / impact:</b> XSS = 24h uninterruptible account takeover; incident response impossible at scale.</p>
+<p><b>Fix:</b> 15-min access + rotating refresh tokens in httpOnly cookies; per-user <code>token_version</code> checked in <code>get_current_user</code>.</p></div></details>
+<details><summary><span class="id">SEC-06</span><span class="pill hi">HIGH</span> No rate limiting or brute-force protection</summary><div class="body">
+<p><b>What:</b> Verified — no limiter anywhere. Login, 6-digit OTP endpoints, public webhook all unthrottled.</p>
+<p><b>Risk / impact:</b> Credential stuffing (which also hammers MyGenie — they may block the CRM IP, killing login for all tenants); OTP brute-force in ~10⁶ guesses.</p>
+<p><b>Fix:</b> <code>slowapi</code> (Redis-backed): 5/min/IP on login; 3-attempt OTP lockout; CAPTCHA after repeated failures.</p></div></details>
+<details><summary><span class="id">SEC-07</span><span class="pill med">MED</span> Flat .env secrets; unencrypted tenant credentials in DB</summary><div class="body">
+<p><b>What:</b> AWS keys, Mongo admin creds, JWT secret in plaintext .env; per-tenant AuthKey/Meta tokens unencrypted in <code>users</code>.</p>
+<p><b>Risk / impact:</b> DB breach leaks every tenant's WhatsApp/Meta credentials; rotation effectively never happens.</p>
+<p><b>Fix:</b> Secrets manager at deploy; envelope-encrypt tenant third-party creds (KMS master key); rotation runbooks.</p></div></details>
+<details><summary><span class="id">SEC-08</span><span class="pill med">MED</span> Static, unhashed, unscoped POS API keys</summary><div class="body">
+<p><b>What:</b> <code>X-API-Key</code> compared against plaintext <code>users.api_key</code>; no rotation/expiry.</p>
+<p><b>Risk / impact:</b> Leaked key = fake order injection → fabricated loyalty points (financial liability) and poisoned analytics.</p>
+<p><b>Fix:</b> Store key hashes + identifying prefix; dual-key rotation windows; per-key usage logging.</p></div></details>
+<details><summary><span class="id">SEC-09</span><span class="pill med">MED</span> No security headers or dependency scanning</summary><div class="body">
+<p><b>What:</b> No CSP/HSTS/X-Frame-Options; no pip-audit/yarn audit/Dependabot.</p>
+<p><b>Fix:</b> Header middleware or ingress config; automated dependency scanning in CI (MAI-02). Directly reduces SEC-04/05 blast radius.</p></div></details>
+<details><summary><span class="id">SEC-10</span><span class="pill low">LOW</span> OTP flow hardening review</summary><div class="body">
+<p><b>Fix:</b> 5-min TTL index, max 3 attempts, single-use invalidation, constant-time compare across <code>otp_tokens</code> and <code>customer_otps</code>.</p></div></details>
+
+<h2>2 · Scalability</h2>
+<details open><summary><span class="id">SCA-01</span><span class="pill hi">HIGH</span> Monolith: API + scheduler in one process — cannot scale horizontally</summary><div class="body">
+<p><b>What:</b> APScheduler starts inside the API lifespan. Running 2+ replicas fires the Daily Loyalty job N times (points corruption — financial); only campaigns have an atomic claim.</p>
+<p><b>Risk / impact:</b> Meal-time POS bursts, login storms and campaign fan-out compete in one event loop; a single OOM kills ingestion + scheduler together. Only scaling lever is a bigger box.</p>
+<p><b>Fix:</b> Dedicated worker deployment (<code>ROLE=worker</code> flag — API pods never start APScheduler); distributed locks (Redis SET NX / Mongo lease) for all cron jobs; scale API pods behind ingress.</p></div></details>
+<details><summary><span class="id">SCA-02</span><span class="pill hi">HIGH</span> No message queue — campaign sends run inside the scheduler tick</summary><div class="body">
+<p><b>What:</b> <code>process_due_campaigns()</code> sends inline; <code>coalesce</code> means ticks are skipped while a large send runs — other tenants' campaigns silently slip.</p>
+<p><b>Risk / impact:</b> 1,000 tenants × 1,000 msgs ≈ 10⁶ sends/day through one sequential pipeline; hours of delay; noisy-neighbor degradation.</p>
+<p><b>Fix:</b> Queue (Redis Streams/RabbitMQ/SQS): tick only enqueues; scalable worker pool consumes with per-tenant concurrency, retries and resumable progress in <code>campaign_runs</code>.</p></div></details>
+<details><summary><span class="id">SCA-03</span><span class="pill hi">HIGH</span> Multi-tenancy enforced only by convention</summary><div class="body">
+<p><b>What:</b> Isolation = every query across 21k+ LOC remembering <code>user_id</code>. No enforcing data layer, no isolation tests, one unsharded shared DB.</p>
+<p><b>Risk / impact:</b> One missed filter = cross-tenant data leak — contract/regulatory breach guaranteed to be found by a customer at scale.</p>
+<p><b>Fix:</b> Tenant-scoped data-access helper that force-injects the filter (hotspots first); two-tenant isolation pytest suite over every list endpoint; plan shard key <code>{user_id, _id}</code> for big collections.</p></div></details>
+<details><summary><span class="id">SCA-04</span><span class="pill med">MED</span> Unbounded / oversized in-memory queries</summary><div class="body">
+<p><b>What:</b> Verified: 5× <code>to_list(None)</code>, 6× <code>to_list(10000)</code> — incl. audience resolution (<code>campaigns.py:55</code>) materializing full customer docs.</p>
+<p><b>Risk / impact:</b> Tenants with &gt;10k customers get silently <b>truncated audiences</b> (correctness bug); concurrent previews OOM the process.</p>
+<p><b>Fix:</b> Cursor iteration + projection; <code>count_documents</code> for previews; lint-ban <code>to_list(None)</code>.</p></div></details>
+<details><summary><span class="id">SCA-05</span><span class="pill med">MED</span> No caching layer</summary><div class="body">
+<p><b>What:</b> Dashboard aggregations, loyalty settings, tag catalogs, template maps re-computed per request.</p>
+<p><b>Fix:</b> Redis: tenant-scoped dashboard cache (60–300s TTL) + invalidate-on-write config caches. Same Redis serves SCA-01 locks, SCA-02 queue, SEC-06 limits.</p></div></details>
+<details><summary><span class="id">SCA-06</span><span class="pill med">MED</span> Hardcoded, racey campaign daily limit</summary><div class="body">
+<p><b>What:</b> <code>DAILY_LIMIT=1000</code> module constant; enforcement is check-then-act counting at send time (<code>campaigns.py:394</code>).</p>
+<p><b>Risk / impact:</b> Blocks tiered pricing plans; concurrent sends can exceed the cap.</p>
+<p><b>Fix:</b> Per-tenant <code>plan.daily_message_limit</code>; atomic per-day counter (<code>$inc</code> doc or Redis INCR+TTL).</p></div></details>
+<details><summary><span class="id">SCA-07</span><span class="pill med">MED</span> Untuned Mongo driver / pooling</summary><div class="body">
+<p><b>What:</b> Bare <code>AsyncIOMotorClient(mongo_url)</code> — default pool 100, 30s server selection, no read preference.</p>
+<p><b>Fix:</b> Explicit <code>maxPoolSize</code>, <code>serverSelectionTimeoutMS=5000</code>, <code>retryWrites</code>; replica set with analytics reads on secondaries.</p></div></details>
+<details><summary><span class="id">SCA-08</span><span class="pill low">LOW</span> CPU-bound PDF rendering in request path</summary><div class="body"><p><b>Fix:</b> Pre-render on invoice creation in the worker; serve from S3.</p></div></details>
+<details><summary><span class="id">SCA-09</span><span class="pill low">LOW</span> Sequential vendor sync loops</summary><div class="body"><p><b>Fix:</b> Bounded-concurrency gather (semaphore 5) after confirming vendor rate limits.</p></div></details>
+
+<h2>3 · Reliability</h2>
+<details open><summary><span class="id">REL-01</span><span class="pill hi">HIGH</span> MyGenie SSO is a hard single point of failure for login</summary><div class="body">
+<p><b>What:</b> Every login synchronously calls MyGenie login + profile. MyGenie down ⇒ nobody can enter the CRM.</p>
+<p><b>Risk / impact:</b> Platform availability capped by a third party's preprod uptime; a 2-hour vendor outage = 2-hour platform-wide lockout.</p>
+<p><b>Fix:</b> Timeouts + circuit breaker; degraded-mode login against local <code>password_hash</code> for known users (<code>sso_degraded=true</code> session, POS-fresh features disabled); async profile refresh.</p></div></details>
+<details><summary><span class="id">REL-02</span><span class="pill hi">HIGH</span> Unverified backups — no proven restore path</summary><div class="body">
+<p><b>What:</b> Backup snapshot failures observed 2026-07-02, never re-verified; combined with SEC-01, a wipe is currently unrecoverable.</p>
+<p><b>Risk / impact:</b> Total loss of all tenants' customers, orders, points ledgers (financial liabilities), invoices.</p>
+<p><b>Fix:</b> Automated daily snapshots + oplog PITR; off-account/off-region storage; quarterly restore drills; documented RTO/RPO.</p></div></details>
+<details><summary><span class="id">REL-03</span><span class="pill med">MED</span> S3 local-disk fallback on ephemeral pod</summary><div class="body">
+<p><b>What:</b> <code>S3_CONFIGURED=False</code> → invoices/logos write to pod disk, which vanishes on restart.</p>
+<p><b>Fix:</b> Production boot fails if S3 unconfigured; disk fallback for local dev only.</p></div></details>
+<details><summary><span class="id">REL-04</span><span class="pill med">MED</span> Silent failure patterns</summary><div class="body">
+<p><b>What:</b> 40+ broad <code>except Exception</code> blocks; startup index creation (incl. <b>unique/idempotency indexes</b>) silently passes on failure (<code>server.py:41,92,106,120</code>).</p>
+<p><b>Risk / impact:</b> Code believes it has idempotency guarantees it doesn't have; slow silent corruption at scale.</p>
+<p><b>Fix:</b> Unique-index failures abort production boot; others emit alerts (MON-01); narrow exceptions in business paths.</p></div></details>
+<details><summary><span class="id">REL-05</span><span class="pill med">MED</span> No automatic retry / dead-letter for failed sends</summary><div class="body">
+<p><b>What:</b> Transient AuthKey timeouts permanently fail messages; recovery is manual resend.</p>
+<p><b>Risk / impact:</b> At 10⁶ sends/day, 1% transient failures = 10k/day needing manual intervention.</p>
+<p><b>Fix:</b> With the SCA-02 queue: exponential-backoff retry (timeouts/5xx only), DLQ + daily digest; never auto-retry provider rejections.</p></div></details>
+<details><summary><span class="id">REL-06</span><span class="pill low">LOW</span> No skipped-tick detection</summary><div class="body"><p><b>Fix:</b> Scheduler heartbeat doc per tick; alert when gap &gt; 3 min.</p></div></details>
+
+<h2>4 · Performance</h2>
+<details><summary><span class="id">PER-01</span><span class="pill med">MED</span> Live aggregation analytics, no pre-computation</summary><div class="body">
+<p><b>What:</b> Dashboards aggregate raw orders/customers per request (551 LOC of pipelines).</p>
+<p><b>Risk / impact:</b> Growing scans evict the working set and slow <b>POS ingestion</b> (shared DB CPU).</p>
+<p><b>Fix:</b> Nightly rollups into <code>analytics_daily_rollups (user_id, date)</code> + today's delta; heavy reads to a replica.</p></div></details>
+<details><summary><span class="id">PER-02</span><span class="pill med">MED</span> Missing compound unique webhook index (CR-041-F2)</summary><div class="body">
+<p><b>What:</b> CR-039 lookup uses <code>(message_id, customer_phone)</code> but only single-field sparse index exists; duplicates can re-enter under race.</p>
+<p><b>Fix:</b> Dedupe, then unique compound index with partial filter — ship deferred CR-041-F2.</p></div></details>
+<details><summary><span class="id">PER-03</span><span class="pill med">MED</span> Unbounded log-collection growth</summary><div class="body">
+<p><b>What:</b> <code>whatsapp_message_logs</code>, callbacks, webhook/cron/pos-event logs grow forever (≈365M msg-log docs/yr at target scale).</p>
+<p><b>Fix:</b> TTL indexes on raw audit logs (30–90d); 12-month cold archival for message logs; documented retention policy.</p></div></details>
+<details><summary><span class="id">PER-04</span><span class="pill low">LOW</span> N+1 assembly on detail endpoints</summary><div class="body"><p><b>Fix:</b> <code>$lookup</code> or parallel gather on hottest endpoints — measure first via MON-01.</p></div></details>
+
+<h2>5 · Data model</h2>
+<details><summary><span class="id">DM-01</span><span class="pill med">MED</span> Mixed <code>campaign_id</code> semantics in message logs</summary><div class="body">
+<p><b>What:</b> Legacy rows: <code>campaign_id=run_id</code>; new rows: <code>campaign_id=campaign.id</code> — every query needs a <code>$or</code> forever.</p>
+<p><b>Fix:</b> One-time batched backfill migration, then delete the <code>$or</code> branches.</p></div></details>
+<details><summary><span class="id">DM-02</span><span class="pill med">MED</span> No DB-level schema validation</summary><div class="body">
+<p><b>What:</b> Pydantic only at the API edge; scripts/migrations write unvalidated dicts.</p>
+<p><b>Fix:</b> Moderate <code>$jsonSchema</code> validators on top-6 collections (required keys + types only).</p></div></details>
+<details><summary><span class="id">DM-03</span><span class="pill low">LOW</span> Unbounded tag array on <code>users</code></summary><div class="body"><p><b>Fix:</b> Cap at ~200 tags in API; dedicated collection if demand grows.</p></div></details>
+<details><summary><span class="id">DM-04</span><span class="pill low">LOW</span> Money as floats</summary><div class="body"><p><b>What:</b> Discount/GST math on Python floats. <b>Fix:</b> Integer paise (or Decimal128) for new paths; migrate coupon engine only inside a planned, fully-QA'd change.</p></div></details>
+
+<h2>6 · Maintainability</h2>
+<details open><summary><span class="id">MAI-01</span><span class="pill hi">HIGH</span> Hotspot mega-files concentrate change risk</summary><div class="body">
+<p><b>What:</b> <code>pos.py</code> ~2.9k, <code>whatsapp.py</code> ~4k, <code>coupon.py</code> ~2.5k, <code>customers.py</code> ~2.2k LOC — exactly where a missed tenant filter (SCA-03) would hide.</p>
+<p><b>Fix:</b> Planned splits behind pure re-exports, one file per sprint, guarded by existing pytest suites (CR-041-F1 already registered).</p></div></details>
+<details><summary><span class="id">MAI-02</span><span class="pill med">MED</span> No CI pipeline</summary><div class="body">
+<p><b>What:</b> Verified — no workflows; tests and lint run manually.</p>
+<p><b>Fix:</b> GitHub Actions on PR: pytest, flake8, eslint, yarn build, pip-audit/yarn audit; protected main branch.</p></div></details>
+<details><summary><span class="id">MAI-03</span><span class="pill med">MED</span> No API versioning on the POS contract</summary><div class="body">
+<p><b>What:</b> External MyGenie POS consumes unversioned <code>/api/pos/*</code>.</p>
+<p><b>Fix:</b> Freeze as <code>/api/pos/v1/*</code> (alias existing paths); breaking changes → v2 with deprecation window; publish OpenAPI subset.</p></div></details>
+<details><summary><span class="id">MAI-04</span><span class="pill low">LOW</span> Zero frontend tests; oversized pages</summary><div class="body"><p><b>Fix:</b> RTL smoke tests for login, campaign create, template submit; opportunistic component splits.</p></div></details>
+
+<h2>7 · Deployment</h2>
+<details open><summary><span class="id">DEP-01</span><span class="pill hi">HIGH</span> No production pipeline, branch model, or staging</summary><div class="body">
+<p><b>What:</b> Production deployment is UNKNOWN; git = throwaway session branches, no main/tags; the preview pod is the integration environment and points at <b>live preprod data</b>.</p>
+<p><b>Risk / impact:</b> No reproducible ship or rollback; bad deploys hit live tenant data immediately.</p>
+<p><b>Fix:</b> main + feature branches + tagged releases behind CI; staging env with anonymized DB copy; production runbook (build → promote → smoke → rollback).</p></div></details>
+<details><summary><span class="id">DEP-02</span><span class="pill med">MED</span> Dev-grade serving</summary><div class="body">
+<p><b>What:</b> CRA dev server + Uvicorn --reload (fine for preview, not prod).</p>
+<p><b>Fix:</b> <code>yarn build</code> → CDN/static hosting; <code>uvicorn --workers N</code> without reload; CI-built container images.</p></div></details>
+<details><summary><span class="id">DEP-03</span><span class="pill med">MED</span> No boot-time config validation</summary><div class="body">
+<p><b>What:</b> Some vars fail fast, others silently default/dormant (webhook secret, scheduler flag, S3).</p>
+<p><b>Fix:</b> pydantic-settings config module; production boot fails loudly on missing/insecure values (CORS *, unset secrets, S3 off).</p></div></details>
+<details><summary><span class="id">DEP-04</span><span class="pill low">LOW</span> Single region, no DR posture</summary><div class="body"><p><b>Fix:</b> After REL-02: multi-AZ replica set + restore-to-new-region runbook.</p></div></details>
+
+<h2>8 · Monitoring &amp; observability</h2>
+<details open><summary><span class="id">MON-01</span><span class="pill hi">HIGH</span> No error tracking, metrics, or alerting of any kind</summary><div class="body">
+<p><b>What:</b> Plain stdout logging only; no Sentry/Prometheus/uptime checks/alert channel.</p>
+<p><b>Risk / impact:</b> Every failure in this document is invisible until a customer complains; MTTD measured in days.</p>
+<p><b>Fix (ROI order):</b> 1) Sentry FE+BE. 2) Structured JSON logs with <code>tenant_id</code>/<code>request_id</code>. 3) <code>/metrics</code> (latency, error rate, tick duration, queue depth, send ratio). 4) Alerts on health-down, error spikes, heartbeat gaps, webhook surges.</p></div></details>
+<details><summary><span class="id">MON-02</span><span class="pill med">MED</span> No audit trail for staff actions</summary><div class="body">
+<p><b>What:</b> Coupon/loyalty/campaign config changes are unattributed.</p>
+<p><b>Fix:</b> Append-only <code>audit_logs</code> (actor, action, entity, before/after) via decorator on mutating endpoints of critical routers.</p></div></details>
+<details><summary><span class="id">MON-03</span><span class="pill med">MED</span> Health check is a constant</summary><div class="body">
+<p><b>What:</b> <code>/api/health</code> returns healthy unconditionally — no DB ping, no readiness semantics.</p>
+<p><b>Fix:</b> <code>/health/live</code> vs <code>/health/ready</code> (Mongo ping + scheduler heartbeat age) wired to K8s probes.</p></div></details>
+<details><summary><span class="id">MON-04</span><span class="pill low">LOW</span> Job logs unconsumed</summary><div class="body"><p><b>Fix:</b> Derive metrics/alerts from <code>cron_job_logs</code>; small owner-facing system-status page.</p></div></details>
+
+<h2>9 · Remediation roadmap → registered CRs (2026-07-06)</h2>
+<table>
+<thead><tr><th>Phase</th><th>Scope</th><th>Findings addressed</th><th>Registered CRs</th></tr></thead>
+<tbody>
+<tr><td><b>Phase 0 · Stop the bleeding</b><br/>(this week)</td><td>Lock down MongoDB + verified backups + restore drill · webhook HMAC + CORS pinning · remove stored password · rate limiting on auth</td><td>SEC-01/02/03/04/06 · REL-02</td><td><b>CR-046 · CR-047 · CR-048</b></td></tr>
+<tr><td><b>Phase 1 · Scale foundations</b><br/>(1–2 sprints)</td><td>Redis + worker split + distributed locks · queue-based sending with retry/DLQ · Sentry + metrics + real health checks · CI + branch model + staging · refresh-token auth</td><td>SCA-01/02/05 · REL-04/05/06 · MON-01/03 · MAI-02 · DEP-01/02 · SEC-05</td><td><b>CR-049 → CR-053</b></td></tr>
+<tr><td><b>Phase 2 · Hardening</b><br/>(next quarter)</td><td>Tenant-scoped data layer + isolation tests · hotspot splits · webhook unique index + campaign_id migration + TTL policy · SSO circuit breaker · config validation + S3 mandatory + POS API v1 · secrets manager + hashed keys</td><td>SCA-03 · MAI-01/03 · PER-02/03 · DM-01/02 · REL-01/03 · DEP-03 · SEC-07/08/09</td><td><b>CR-054 → CR-058</b> (+CR-041-F1)</td></tr>
+<tr><td><b>Phase 3 · Optimization</b><br/>(as volume demands)</td><td>Analytics rollups + replica reads + pool tuning + shard plan · per-tenant plan limits · audit trail · PDF offload · money-as-integers · frontend tests · DR runbook</td><td>PER-01 · SCA-06/07/08 · MON-02 · DM-04 · MAI-04 · DEP-04</td><td><b>CR-059</b> (umbrella)</td></tr>
+</tbody>
+</table>
+
+<h2 id="cap">10 · Capacity &amp; Breakpoints — how far does this architecture go?</h2>
+<p class="desc">Engineering estimates from code-verified constraints (33 msg/s send throughput per CR-038 measurement, 1-min tick, single process, to_list(10000) audience cap) — not load tests. Assumptions: ~350 customers, ~50 orders/day, ~1.5 campaigns/week per tenant.</p>
+
+<h3 style="font-size:1.02rem;margin:24px 0 4px;">Projected load by tier</h3>
+<table>
+<thead><tr><th>Metric</th><th>Today (~30)</th><th>100 tenants</th><th>1,000 tenants</th><th>10,000 tenants</th></tr></thead>
+<tbody>
+<tr><td>Orders/day (peak rate)</td><td>~1.5k (0.2/s)</td><td>~5k (0.6/s)</td><td><b>~50k (6/s)</b></td><td><b>~500k (60/s)</b></td></tr>
+<tr><td>WhatsApp msgs/day</td><td>~2.5k</td><td>~8.5k</td><td>~85k</td><td>~850k</td></tr>
+<tr><td>Callbacks/day</td><td>~5k</td><td>~17k</td><td>~170k</td><td>~1.7M</td></tr>
+<tr><td>Message-log docs/year</td><td>~1M</td><td>~3M</td><td>~31M</td><td>~310M</td></tr>
+</tbody>
+</table>
+
+<h3 style="font-size:1.02rem;margin:28px 0 4px;">Subsystem breakpoints</h3>
+<table>
+<thead><tr><th>#</th><th>Subsystem</th><th>Code constraint</th><th>Degrades from</th><th>Breaks around</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>B1</td><td><b>Campaign send pipeline</b></td><td>Sequential loop in 1-min tick; ~33 msg/s; coalesce skips ticks</td><td>~100–150 tenants</td><td><b>~300–500 tenants</b> — first hard wall</td><td>CR-049 + CR-050</td></tr>
+<tr><td>B2</td><td>POS order ingestion</td><td>1 process; ~10 DB ops + HTTP + blocking PDF per order</td><td>~300 tenants</td><td>~500–1,000 tenants (event-loop saturation)</td><td>CR-049 + PDF offload</td></tr>
+<tr><td>B3</td><td>Single-tenant audience</td><td><code>to_list(10000)</code> silent truncation</td><td colspan="2"><b>First tenant &gt;10k customers — any tier</b></td><td>fold into CR-050</td></tr>
+<tr><td>B4</td><td>Analytics dashboards</td><td>Live aggregations, no cache/replica, shared DB CPU</td><td>~200–300 tenants</td><td>~500–800 tenants (drags B2 down)</td><td>CR-049 cache + rollups</td></tr>
+<tr><td>B5</td><td>MongoDB single instance</td><td>No replica; $or on partial index; no TTL</td><td>~300–500 tenants</td><td>~1,000–2,000 tenants (working set &gt; RAM)</td><td>CR-055/057, shard at 10k</td></tr>
+<tr><td>B6</td><td>Webhook callbacks</td><td>No unique compound index; race-able duplicates</td><td>~500 tenants</td><td>~2,000+ tenants</td><td>CR-055 + CR-050</td></tr>
+<tr><td>B7</td><td>Login / MyGenie SSO</td><td>2 sync external calls; no circuit breaker</td><td colspan="2">Availability break at ANY tier — vendor outage locks out all tenants</td><td>CR-056 before 1,000</td></tr>
+<tr><td>B8</td><td>Daily-limit counting</td><td>Global const + check-then-act race</td><td>~100 tenants (commercial)</td><td>~1,000 tenants (race breach)</td><td>CR-059 counters</td></tr>
+<tr><td>B9</td><td>Tenant isolation (risk)</td><td>user_id convention across 21k+ LOC</td><td colspan="2">Leak probability ∝ tenants × change rate — company-ending at 1,000</td><td><b>CR-054 before 1,000</b></td></tr>
+</tbody>
+</table>
+
+<h3 style="font-size:1.02rem;margin:28px 0 4px;">What is needed at each tier</h3>
+<table>
+<thead><tr><th>Tier</th><th>Verdict</th><th>Must do</th><th>Infra footprint</th></tr></thead>
+<tbody>
+<tr><td><b>✅ → 100 tenants</b></td><td>Current architecture survives</td><td>CR-046/047/048 (Phase 0) · <b>CR-051 observability first</b> (can't see B1–B5 coming without it) · CR-055 index+TTL parts · CR-052 CI</td><td>Current pod + small Redis + Sentry. No re-architecture.</td></tr>
+<tr><td><b>⚠️ 100 → 1,000</b></td><td>Re-architecture window — B1 breaks inside this tier; land CR-049+050 <b>before ~300 tenants</b></td><td>CR-049 worker split · <b>CR-050 queue</b> · CR-054 isolation · CR-055 full · CR-056 SSO resilience · CR-053/057/058 · dashboard cache + rollups</td><td>2–4 API pods + 1–2 workers · Redis · Mongo replica set (3 nodes) · S3 mandatory · staging.</td></tr>
+<tr><td><b>🔺 1,000 → 10,000</b></td><td>Platform build-out (technical + organizational)</td><td>Shard on <code>{user_id,_id}</code> · per-tenant plan limits · dedicated callback workers · cold archival · multi-AZ/DR · OLAP analytics path · load-test CI gates</td><td>8–15 API pods · 4–8 workers · sharded Mongo · Redis cluster · CDN · on-call rotation.</td></tr>
+</tbody>
+</table>
+
+<h3 style="font-size:1.02rem;margin:28px 0 4px;">External vendor ceilings (independent of our code)</h3>
+<table>
+<thead><tr><th>Vendor</th><th>Constraint</th><th>Bite point</th></tr></thead>
+<tbody>
+<tr><td>AuthKey.io</td><td>Unknown throughput SLA; duplicate-LogID defects at just 3 concurrent sends (CR-040)</td><td>850k msgs/day at Tier 3 — get throughput SLA in writing before Tier 2 exit</td></tr>
+<tr><td>Meta WhatsApp tiers</td><td>Business-initiated conversations capped per WABA number (1k → 10k → 100k unique customers/24h)</td><td>Per-tenant cap: any tenant with &gt;1k daily campaign recipients hits Meta Tier-1 regardless of our architecture — surface in campaign UI</td></tr>
+<tr><td>MyGenie API</td><td>Login/profile/menu throughput unknown</td><td>~2k login-hour bursts at Tier 2 need vendor confirmation; CR-056 shrinks dependency</td></tr>
+</tbody>
+</table>
+
+<div class="note" style="border-left-color:var(--hi);"><b>One-line answer</b> — Safe to ~100 tenants with only Phase-0 fixes. First hard wall: campaign send pipeline at <b>~300–500 tenants</b> (CR-049+CR-050 must land before then). 1,000 tenants = full Phase-1/2 set. 10,000 tenants = platform build-out: sharding, dedicated workers, archival, multi-AZ, vendor capacity contracts.</div>
+
+</div>
+</body>
+</html>
