@@ -164,6 +164,7 @@ class SkipOTPRequest(BaseModel):
     phone: str
     restaurant_id: str
     country_code: Optional[str] = "+91"  # CR-102: mirror LookupRequest (Customer App sends it)
+    name: Optional[str] = None           # CR-119: Customer App sends name at Browse-Menu login
 
 
 class LookupRequest(BaseModel):  # CR-093
@@ -202,7 +203,7 @@ async def skip_otp_login(req: SkipOTPRequest, request: Request):
         customer_doc = {
             "id": customer_id,
             "user_id": full_restaurant_id,
-            "name": "",
+            "name": req.name.strip() if req.name and req.name.strip() else "",  # CR-119
             "phone": phone,
             "country_code": cc,
             "email": None,
@@ -227,11 +228,15 @@ async def skip_otp_login(req: SkipOTPRequest, request: Request):
         customer_id = customer["id"]
 
     token = create_customer_token(customer_id, full_restaurant_id, phone)
+    # CR-119: return name so Customer App confirms what was stored without a GET /scan/auth/me call.
+    # New customer: name we just stored. Existing customer: already fetched at line 196 (no extra DB call).
+    stored_name = (req.name.strip() if req.name and req.name.strip() else "") if is_new else customer.get("name", "")
     return _resp(True, "Login successful", {
         "token": token,
         "customer_id": customer_id,
         "is_new_customer": is_new,
-        "phone": req.phone
+        "phone": req.phone,
+        "name": stored_name
     })
 
 
