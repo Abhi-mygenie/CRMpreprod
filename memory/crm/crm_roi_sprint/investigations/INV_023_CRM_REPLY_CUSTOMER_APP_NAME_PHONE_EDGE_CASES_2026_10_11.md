@@ -56,9 +56,16 @@ The brief states *"we will now include `name` in the body (confirmed supported p
 
 ## 3. Data-quality side effect the Customer App should know about (CRM ask back)
 
-Calling `skip-otp` at **Browse Menu** creates a CRM customer for **every phone typed**, before the diner has committed to anything. In the phone-change scenario the wrong number **9535310660** now exists as a customer with `name:""`, 0 orders — permanently. On production there are already 21+ such blank-name diner records (CR-089 probe). CRM is in the middle of a data-quality batch (DQ-1) whose whole purpose is to stop junk records from being created.
+> **⚠️ Owner ruling 2026-10-11: §3 ask-back SUPERSEDED.** Owner confirmed: `skip-otp` must be called at Browse Menu — register customer the moment the phone number is entered. Do NOT move `skip-otp` to Place Order. The CRM will implement CR-119 (`skip-otp` accept `name`) so name can be captured in one call at Browse Menu. Decision: `DECISIONS_LOG.md` 2026-10-11.
 
-**Ask (P2, no API change needed):** move the `skip-otp` call from *Browse Menu* to *Place Order* (after the Review screen, with the final phone + name), and use the **read-only `POST /scan/auth/lookup`** (`{exists, name}`, no token, no record created) for the "Welcome back, Alok" greeting on the landing page — exactly as agreed in INV-022 B1. Then: one `skip-otp` per real order, `PUT /scan/profile` only when the name was edited or blank, and no abandoned records on phone change. If the menu-browsing experience needs a token earlier (e.g. to show personal points), say so and we will discuss a lighter path.
+~~Calling `skip-otp` at **Browse Menu** creates a CRM customer for **every phone typed**, before the diner has committed to anything. In the phone-change scenario the wrong number **9535310660** now exists as a customer with `name:""`, 0 orders — permanently. On production there are already 21+ such blank-name diner records (CR-089 probe). CRM is in the middle of a data-quality batch (DQ-1) whose whole purpose is to stop junk records from being created.~~
+
+~~**Ask (P2, no API change needed):** move the `skip-otp` call from *Browse Menu* to *Place Order* (after the Review screen, with the final phone + name), and use the **read-only `POST /scan/auth/lookup`** (`{exists, name}`, no token, no record created) for the "Welcome back, Alok" greeting on the landing page — exactly as agreed in INV-022 B1. Then: one `skip-otp` per real order, `PUT /scan/profile` only when the name was edited or blank, and no abandoned records on phone change. If the menu-browsing experience needs a token earlier (e.g. to show personal points), say so and we will discuss a lighter path.~~
+
+**Current confirmed flow (post owner ruling):**
+- Customer enters phone at Browse Menu → `POST /scan/auth/skip-otp` → customer registered
+- If `is_new_customer: true` → Customer App calls `PUT /scan/profile { name }` with the returned token to set the name
+- Once CR-119 ships → name can be sent directly in the `skip-otp` body (one call)
 
 ---
 
