@@ -1981,3 +1981,7 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Observed, not a defect**: first T4 ran with 64 pts < min_redemption 100 → CR-007 "never reject" path logged `loyalty_redeem_failed … order will proceed`, earned on full 440 → 22. Confirms redemption-failure behaviour unchanged.
 **Test data**: 9 `CR123-*` orders on Alok Test (r689). Cleanup `qa/cr123_cleanup.py --apply` after owner smoke.
 **Next**: QA role regression confirmation → owner smoke → briefs to POS (display `points_earned` from CRM; `self_discount` meaning) and S&O (`bill_amount` = pre-tax pre-discount; new preview fields).
+
+### 2026-10-12 [CR-123 — briefs drafted, owner to send]
+**S&O**: CR-123 folded into `handoff/CRM_TO_SCAN_ORDER_CR119_TO_CR123_LIVE_PLEASE_VALIDATE_2026_10_12.md` (§4b earn rule + `max-redeemable` contract clarification `bill_amount` = pre-tax pre-discount sub-total + 2 optional fields; V9–V11; question: which number do they pass today).
+**POS**: new `handoff/CRM_TO_POS_CR123_POINTS_EARNED_SOURCE_OF_TRUTH_2026_10_12.md` — asks **P-18** display `data.points_earned` from `POST /pos/orders` response, drop local math (fixes 22 vs 19) · **P-19** `bill_amount` on `/pos/max-redeemable` = pre-tax sub-total · **P-20** meaning of `self_discount`. V1–V5 validation table. No webhook contract change.
