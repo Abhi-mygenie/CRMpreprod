@@ -86,17 +86,60 @@ The same handler already uses `order_sub_total_amount or order_amount` for the *
 
 ---
 
+## 6a. Owner rulings — 2026-10-12 (gate stays closed; Planning not opened)
+
+| Q | Ruling | Note |
+|---|---|---|
+| **Q1** | **Discounts are deducted first; loyalty earned on the net.** Owner: "that's already the case … if not, justify your claim." | **Claim justified below (§6b).** It IS the case today — but only *because* CRM earns on `order_amount`, which is already net of discounts. The moment we move the base to `order_sub_total_amount` (pre-discount), that deduction disappears unless we subtract it explicitly. So the ruling = **Q1 (b)**: `earn_base = sub_total − coupon_discount − order_discount − loyalty_redeemed`. |
+| **Q2** | **(a)** — legacy `payment-received` webhook out of scope. Documented as legacy; revisit only if prod logs show traffic. | |
+| **Q3** | **(b)** — add optional `points_to_redeem` to `POST /scan/max-redeemable` so `projected_points_earned` reflects the post-redemption, post-discount earn. | Scope grows to **2 files** (`routers/pos.py` + `routers/scan.py`). Still LOW risk, additive, backward compatible when omitted. Planning must also decide whether the preview takes `coupon_discount` (S&O knows it from `/scan/coupons/validate`). |
+| **Q4** | **(a)** — forward-only. No back-fill of historical `points_earned` / balances. | |
+
+### 6b. Justification for Q1 — what the POS `order_sub_total_amount` actually is (preprod evidence)
+
+Live order **1233135** (r689, 2026-10-12):
+```
+order_sub_total   290.00
+coupon_discount    43.50   = 15 % × 290.00  → coupon was computed ON the sub-total → sub-total is PRE-coupon
+gst_tax            12.33   =  5 % × 246.50  → tax computed AFTER coupon
+order_amount      216.00   (final paid)
+points_earned      10      = 5 % × 216 today (net of coupon AND tax)
+```
+Live order **1232834** (r675): `order_sub_total 100 · coupon_discount 20 · order_amount 68` — same pattern.
+12 of 355 Sept+ orders carry a discount; in **every one** `order_sub_total` is larger than (`order_amount` − tax), i.e. it excludes the discount.
+
+So POS bill structure is: **`sub_total` → − coupon/order discount → + tax → `order_amount`**.
+
+- **Today**: CRM earns on `order_amount` → discounts are implicitly removed ✅, but tax is included ❌.
+- **Naive Option B** (raw `sub_total`): tax removed ✅, but discounts come back in ❌ — order 1233135 would earn 5 % × 290 = 14 instead of 12.
+- **Ruled formula**: `sub_total − discounts − loyalty_redeemed` → tax removed ✅, discounts removed ✅, redemption removed ✅ → order 1233135 earns 5 % × 246.5 = **12**.
+
+`self_discount` and `order_discount` are also on the webhook model (`pos.py:1221–1223`). Preprod since June: `coupon_discount > 0` on 21 orders · `order_discount > 0` on **0** · `self_discount > 0` on **0**. Include `order_discount` defensively (same semantics); `self_discount` → Planning to confirm with POS what it means before including.
+
+---
+
 ## 7. Fix sketch (for Planning — do not implement now)
 
 ```python
-# routers/pos.py:1449 — CR-123
-# earn base = pre-tax sub-total (fallback: order_amount when POS omits it) minus loyalty redeemed.
+# routers/pos.py:1449 — CR-123 (owner Q1 ruling: discounts first, then earn on the net)
 earn_base_amount = max(
     0.0,
-    (order_data.order_sub_total_amount or order_data.order_amount) - loyalty_redeemed_value,
+    (order_data.order_sub_total_amount or order_data.order_amount)
+    - float(order_data.coupon_discount or 0)
+    - float(order_data.order_discount or 0)
+    - loyalty_redeemed_value,
 )
 ```
-If Q1 = (b): additionally subtract `float(order_data.coupon_discount or 0) + float(order_data.order_discount or 0)`.
+Fallback caveat for Planning: when `order_sub_total_amount` is absent (6 % of orders) `order_amount` is already net of discounts — subtracting them again would double-deduct. Planning must branch: `if sub_total present: sub_total − discounts − redeemed` else `order_amount − redeemed` (today's behaviour).
+
+```python
+# routers/scan.py — POST /scan/max-redeemable (owner Q3 = b)
+class ScanMaxRedeemableRequest(BaseModel):
+    bill_amount: float                      # pre-tax, pre-discount cart sub-total
+    points_to_redeem: Optional[int] = None  # CR-123: preview earn after redemption
+    coupon_discount: Optional[float] = None # CR-123: Planning to confirm
+# projected_points_earned = calculate_points(bill_amount − coupon_discount − points_to_redeem × ratio_per_point, …)
+```
 
 Companion (no code): S&O brief §4 note · POS brief: "read `points_earned` from CRM response; stop self-calculating".
 
@@ -107,8 +150,10 @@ Companion (no code): S&O brief §4 note · POS brief: "read `points_earned` from
 | V | Case | Expected |
 |---|---|---|
 | V1 | Webhook: `order_amount 1092`, `order_sub_total_amount 1040`, 5 % tier, no redemption | `points_earned 52` (was 54) |
+| V1b | Replay order 1233135: `sub_total 290`, `coupon_discount 43.5`, `gst 12.33`, `order_amount 216` | `points_earned 12` (was 10; naive sub-total would give 14) |
 | V2 | Webhook: `order_amount 440`, `order_sub_total_amount 440`, redeem 44 pts (₹44) | `points_earned 19` (unchanged — G2 preserved) |
-| V3 | Webhook without `order_sub_total_amount` | falls back to `order_amount` — identical to today |
+| V3 | Webhook without `order_sub_total_amount` but with `coupon_discount` | falls back to `order_amount − redeemed` — identical to today, **no double deduction** |
+| V8 | `POST /scan/max-redeemable {bill_amount 1040, points_to_redeem 100}` (ratio 1.0) | `projected_points_earned = 5 % × 940 = 47` |
 | V4 | `order_sub_total_amount` below `min_order_value` but `order_amount` above | 0 points (gate now on pre-tax base) |
 | V5 | Guest order / `loyalty_enabled=false` | 0 points — unchanged |
 | V6 | Regression: `tests/` loyalty + POS order suites | PASS |
@@ -123,9 +168,9 @@ Severity: P1
 Risk: LOW
 Duplicate check: DISTINCT (related: CR-001C-LR redemption-net ruling; CR-107 preview surface)
 Evidence: captured (owner screenshots 52/54 + 22/19; pos.py:1422 vs :1449; preprod DB 641/580, 68/100; DECISIONS_LOG 2026-10-12)
-Blast radius: SMALL (routers/pos.py, 1 line; all future POS + S&O orders earn on pre-tax base; no back-fill)
-S&O validation: same gap inherited — fixed by the same line; S&O needs contract note only (bill_amount = pre-tax; read points_earned from CRM)
-Owner questions: Q1 discount deduction · Q2 legacy webhook scope · Q3 max-redeemable param · Q4 back-fill
+Blast radius: SMALL (routers/pos.py ~5 lines + routers/scan.py ~6 lines; all future POS + S&O orders earn on pre-tax, post-discount, post-redemption base; no back-fill)
+S&O validation: same gap inherited — fixed by the same pos.py change; plus Q3(b) additive preview param in scan.py
+Owner rulings 2026-10-12: Q1 = discounts deducted first (claim justified §6b) · Q2 = a (legacy out of scope) · Q3 = b (add points_to_redeem) · Q4 = a (forward-only)
 Docs updated: discovery/CR_123_LOYALTY_EARN_BASE_SUB_TOTAL_INTAKE.md · 00_register row 77 · CR_STATUS_DASHBOARD · DECISIONS_LOG
-Next: Planning — opens on "choose planning role for CR-123" (after Q1–Q4 ruled)
+Next: GATE CLOSED — owner said "stay at gate". Planning opens only on "choose planning role for CR-123"
 ```
