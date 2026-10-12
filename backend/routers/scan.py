@@ -20,7 +20,7 @@ from core.auth import (
 import jwt  # CR-096
 from core.helpers import calculate_tier, get_earn_percent_for_tier, get_redemption_value_for_tier  # CR-094
 from core.loyalty import default_loyalty_settings, compute_max_redeemable, calculate_points  # CR-094 + CR-107
-from core.coupon import validate_coupon_for_customer  # CR-105
+from core.coupon import validate_coupon_for_customer, list_available_coupons  # CR-105 · CR-122
 from models.schemas import CustomerAddressCreate, CustomerAddressUpdate
 
 logger = logging.getLogger(__name__)
@@ -469,11 +469,14 @@ async def get_order_detail(order_id: str, auth: dict = Depends(verify_customer_t
 async def get_available_coupons(
     channel: Optional[str] = None,          # CR-106: "dine_in" | "delivery" | "takeaway"
     restaurant_id: Optional[str] = None,    # CR-121: required when no token; ignored when token present
+    order_total: Optional[float] = None,    # CR-122: enables server-side applicability filtering + recommendation
     request: Request = None,                # CR-121: needed for anonymous rate limit
     auth: Optional[dict] = Depends(optional_customer_token),  # CR-121: was verify_customer_token
-):  # CR-121
+):  # CR-121 · CR-122
     """List active coupons eligible for this customer or restaurant.
-    Token optional: anonymous callers pass restaurant_id as query param instead."""
+    Token optional: anonymous callers pass restaurant_id as query param instead.
+    order_total optional: when present, uses list_available_coupons engine for min_order
+    filtering, time-window awareness, requires_cart_validation, and recommendation signal."""
     # CR-121: rate-limit anonymous callers only (token-holders are already gated by JWT)
     if not auth:
         retry = await _lookup_rate_limited(
@@ -495,15 +498,58 @@ async def get_available_coupons(
         rid = await _resolve_restaurant_id(restaurant_id)
         customer_id = None
 
+    # CR-122: engine path — when order_total is provided, use list_available_coupons
+    # which handles min_order filtering, time-window awareness, requires_cart_validation,
+    # and expected_discount computation. Backward compatible: no order_total → legacy path.
+    if order_total is not None:
+        eligible = await list_available_coupons(
+            db,
+            user_id=rid,
+            customer_id=customer_id,
+            order_total=order_total,
+            channel=channel or "dine_in",
+        )
+
+        # CR-122: restore my_usage_count for authenticated callers (engine does not include it)
+        if customer_id and eligible:
+            coupon_ids = [c["id"] for c in eligible]
+            usage_pipeline = [
+                {"$match": {"customer_id": customer_id, "coupon_id": {"$in": coupon_ids}}},
+                {"$group": {"_id": "$coupon_id", "count": {"$sum": 1}}},
+            ]
+            usage_by_id = {
+                row["_id"]: row["count"]
+                async for row in db.coupon_usage.aggregate(usage_pipeline)
+            }
+            for c in eligible:
+                c["my_usage_count"] = usage_by_id.get(c["id"], 0)
+
+        # CR-122: pick best simple coupon as recommendation
+        # must be: non-cart, has expected_discount, AND currently within time window
+        simple = [
+            c for c in eligible
+            if not c.get("requires_cart_validation")
+            and (c.get("expected_discount") or 0) > 0
+            and c.get("time_window", {}).get("within_window_now", True)  # exclude outside-window
+        ]
+        best = max(simple, key=lambda c: c["expected_discount"], default=None)
+
+        return _resp(True, f"{len(eligible)} coupons available", {
+            "coupons":              eligible,
+            "recommended_code":     best["code"] if best else None,
+            "recommended_discount": best["expected_discount"] if best else None,
+        })
+
+    # Legacy path (no order_total) — unchanged from CR-121, backward compatible
     now = datetime.now(timezone.utc).isoformat()
     # CR-106: always exclude pos-only coupons; optionally filter to a specific channel
     ch_filter = {"$in": [channel]} if channel else {"$in": ["dine_in", "delivery", "takeaway"]}
     coupons = await db.coupons.find({
-        "user_id": rid,          # CR-121: was auth["restaurant_id"]
+        "user_id": rid,
         "is_active": True,
         "start_date": {"$lte": now},
         "end_date": {"$gte": now},
-        "applicable_channels": ch_filter,  # CR-106
+        "applicable_channels": ch_filter,
     }, {"_id": 0}).to_list(50)
 
     eligible = []
@@ -511,11 +557,9 @@ async def get_available_coupons(
         # CR-121 (owner Q4): hide requires_customer=true coupons from anonymous callers
         if not customer_id and c.get("requires_customer", True):
             continue
-
         # specific_users: only meaningful when we know the diner
         if c.get("specific_users") and customer_id and customer_id not in c["specific_users"]:
             continue
-
         # per_user_limit: skip DB hit for anonymous — no customer to check against
         if customer_id:
             usage = await db.coupon_usage.count_documents(
@@ -524,7 +568,6 @@ async def get_available_coupons(
             if usage >= (c.get("per_user_limit") or 1):  # BUG-034 null-handling preserved
                 continue
             c["my_usage_count"] = usage  # only present in authenticated response
-
         eligible.append(c)
 
     return _resp(True, f"{len(eligible)} coupons available", {"coupons": eligible})
