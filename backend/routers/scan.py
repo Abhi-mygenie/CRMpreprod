@@ -95,6 +95,7 @@ async def _lookup_rate_limited(key: str, limit: int, window_s: int) -> Optional[
 _FEEDBACK_IP_LIMIT    = (10, 60)   # CR-096: 10/min per IP
 _FEEDBACK_PHONE_LIMIT = (3, 600)   # CR-096: 3/10 min per phone+restaurant
 _COUPON_VALIDATE_IP_LIMIT = (10, 60)  # CR-105 Q1=a: 10/min per IP
+_COUPON_LIST_IP_LIMIT     = (10, 60)  # CR-121: 10/min per IP for anonymous list
 
 
 async def optional_customer_token(credentials=Depends(optional_security)) -> Optional[dict]:
@@ -466,30 +467,65 @@ async def get_order_detail(order_id: str, auth: dict = Depends(verify_customer_t
 
 @router.get("/coupons")
 async def get_available_coupons(
-    channel: Optional[str] = None,  # CR-106: "dine_in" | "delivery" | "takeaway"
-    auth: dict = Depends(verify_customer_token),
-):
-    """List active coupons the customer is eligible for."""
+    channel: Optional[str] = None,          # CR-106: "dine_in" | "delivery" | "takeaway"
+    restaurant_id: Optional[str] = None,    # CR-121: required when no token; ignored when token present
+    request: Request = None,                # CR-121: needed for anonymous rate limit
+    auth: Optional[dict] = Depends(optional_customer_token),  # CR-121: was verify_customer_token
+):  # CR-121
+    """List active coupons eligible for this customer or restaurant.
+    Token optional: anonymous callers pass restaurant_id as query param instead."""
+    # CR-121: rate-limit anonymous callers only (token-holders are already gated by JWT)
+    if not auth:
+        retry = await _lookup_rate_limited(
+            f"cl-ip:{_client_ip(request)}", *_COUPON_LIST_IP_LIMIT
+        )
+        if retry:
+            raise HTTPException(
+                status_code=429, detail="Too many requests",
+                headers={"Retry-After": str(retry)}
+            )
+
+    # CR-121: resolve restaurant + customer from token or query param
+    if auth:
+        rid = auth["restaurant_id"]
+        customer_id = auth["customer_id"]
+    else:
+        if not restaurant_id:
+            raise HTTPException(status_code=422, detail="restaurant_id required when not authenticated")
+        rid = await _resolve_restaurant_id(restaurant_id)
+        customer_id = None
+
     now = datetime.now(timezone.utc).isoformat()
     # CR-106: always exclude pos-only coupons; optionally filter to a specific channel
     ch_filter = {"$in": [channel]} if channel else {"$in": ["dine_in", "delivery", "takeaway"]}
     coupons = await db.coupons.find({
-        "user_id": auth["restaurant_id"],
+        "user_id": rid,          # CR-121: was auth["restaurant_id"]
         "is_active": True,
         "start_date": {"$lte": now},
         "end_date": {"$gte": now},
         "applicable_channels": ch_filter,  # CR-106
     }, {"_id": 0}).to_list(50)
 
-    # Filter by per_user_limit
     eligible = []
     for c in coupons:
-        if c.get("specific_users") and auth["customer_id"] not in c["specific_users"]:
+        # CR-121 (owner Q4): hide requires_customer=true coupons from anonymous callers
+        if not customer_id and c.get("requires_customer", True):
             continue
-        usage = await db.coupon_usage.count_documents({"coupon_id": c["id"], "customer_id": auth["customer_id"]})
-        if usage < (c.get("per_user_limit") or 1):  # handle per_user_limit:null stored in DB (None != default)
-            c["my_usage_count"] = usage
-            eligible.append(c)
+
+        # specific_users: only meaningful when we know the diner
+        if c.get("specific_users") and customer_id and customer_id not in c["specific_users"]:
+            continue
+
+        # per_user_limit: skip DB hit for anonymous — no customer to check against
+        if customer_id:
+            usage = await db.coupon_usage.count_documents(
+                {"coupon_id": c["id"], "customer_id": customer_id}
+            )
+            if usage >= (c.get("per_user_limit") or 1):  # BUG-034 null-handling preserved
+                continue
+            c["my_usage_count"] = usage  # only present in authenticated response
+
+        eligible.append(c)
 
     return _resp(True, f"{len(eligible)} coupons available", {"coupons": eligible})
 
