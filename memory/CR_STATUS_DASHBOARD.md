@@ -2,7 +2,7 @@
 
 > **Live flat status board.** Update on every phase transition.
 > One row per CR. No narrative. For narrative, read the linked discovery / planning / impl / QA doc.
-> Handover: `handoff/SESSION_2026_10_10_HANDOVER_WAVE_A_PLANNING_INTAKE_OWNER_EDITION.md` (latest — **start with §0: INV-023 Customer App brief**, then §1 data-quality story; next agent reads both to owner) · previous: `handoff/SESSION_2026_10_10_HANDOVER_WAVE_A_IA.md` · `handoff/SESSION_2026_10_10_HANDOVER_DQ1_BATCH_INTAKE.md`
+> Handover: `handoff/SESSION_2026_10_12_HANDOVER_SCAN_ORDER_COUPONS_AND_WAVE_A_NEXT.md` (latest) · previous: `handoff/SESSION_2026_10_10_HANDOVER_WAVE_A_PLANNING_INTAKE_OWNER_EDITION.md` · `handoff/SESSION_2026_10_10_HANDOVER_WAVE_A_IA.md` · `handoff/SESSION_2026_10_10_HANDOVER_DQ1_BATCH_INTAKE.md`
 > Last updated: **2026-10-03 (CRM→POS brief SENT — `pos_event_logs` consumption + Call Waiter/Pay Bill direction (P1/P6/P7); `handoff/CRM_TO_POS_POS_EVENT_LOGS_AND_TABLE_ACTIONS_2026_10_03.md`. · CONTRACT SIGN-OFF · CRM signs Part 1 §1–§6 of CONTRACT_CUSTOMER_APP_CRM_v1.0 (RC3). All 36 agreed rows match our JSON; D-1/D-2 owner ruling (owner=writer → pos_event_logs/orders/order_items = CRM) ACCEPTED; D-3 otp_tokens vs customer_otps clarified; O-8 feedback=CR-096 + short-form rid confirmed; O-10 users 6-field change-notice AGREED. CR-096 registered. Full OWNERSHIP_MAP freeze still blocked by POS P1/P5/P6/P7 + owner F3.)**
 
 ---
