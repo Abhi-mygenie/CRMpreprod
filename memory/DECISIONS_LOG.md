@@ -1938,8 +1938,12 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Registered**: BUG-038, BUG-039, BUG-040, CR-118 (`discovery/SESSION_2026_10_10_INTAKE_BUG038_BUG040_CR118.md`). No code.
 
 ### 2026-10-12 [INV — Loyalty earn base] Owner rules Option B — earn on order_sub_total (pre-tax)
-**Decision** (owner): **Option B** — loyalty points earn base = `order_sub_total_amount` (food value, pre-tax), NOT `order_amount` (total including GST). Fixes 2-point discrepancy between CRM (54 pts on ₹1092) and POS display (52 pts on ₹1040 subtotal). Makes earn consistent with redemption cap (which already uses `order_sub_total_amount` at `pos.py:1422`).
-**CRM fix**: 1-line change in `pos.py:1449` — change `order_data.order_amount` to `order_data.order_sub_total_amount or order_data.order_amount`. No POS change needed.
+**Decision** (owner):
+(1) **Option B — earn base = `order_sub_total_amount`** (food value, pre-tax), NOT `order_amount` (total including GST/service charge). 1-line fix in `pos.py:1449`.
+(2) **Loyalty redemption MUST be deducted from earn base** — "19 is right amount not 22". Customer should NOT earn points on the portion paid with their own loyalty points. CRM's current deduction logic is correct. POS is wrong to show 22.
+**Combined formula (post-fix)**: `earn_base = max(0, order_sub_total_amount − loyalty_redeemed_value)`
+**CRM fix**: change `pos.py:1449` from `order_data.order_amount` → `order_data.order_sub_total_amount or order_data.order_amount`. No POS change for deduction (CRM is source of truth).
+**POS gap (separate)**: POS must read `points_earned` from CRM response instead of self-calculating. CRM response already includes correct value.
 **Lock**: Do NOT implement until owner opens the gate. Register as new CR first.
 
 ### 2026-10-11 [INV-023 / CR-119] Owner ruling on §3 ask-back + "Set name at first login" confirmed
