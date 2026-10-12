@@ -1,4 +1,4 @@
-# CRM → Scan & Order (Customer App) — CR-119 / CR-120 / CR-121 / CR-122 live on preprod, please validate
+# CRM → Scan & Order (Customer App) — CR-119 / CR-120 / CR-121 / CR-122 / CR-123 live on preprod, please validate
 **Date:** 2026-10-12
 **Owner sends; agents never send.**
 **Base URL (preprod preview):** `https://mygenie-crm-preprod.preview.emergentagent.com`
@@ -16,6 +16,7 @@ This closes out both of your briefs (INV-023 name/phone; INV-024 anonymous coupo
 | **CR-120** | `POST /scan/coupons/validate` | Token now **optional**; pass `restaurant_id` in body when anonymous | Let diner Apply a code before phone entry |
 | **CR-121** | `GET /scan/coupons` | Token now **optional**; pass `?restaurant_id=` when anonymous; anonymous list = generic coupons only | Show coupon list on checkout before login |
 | **CR-122** | `GET /scan/coupons` | New `?order_total=` param → engine path: min-order filtering, `requires_cart_validation` always set, `time_window`, `expected_discount`, **`recommended_code`** | Always pass `order_total`; auto-apply `recommended_code`; show "Tap to see discount" for cart-validated coupons |
+| **CR-123** | `POST /scan/max-redeemable` + points awarded on every order | Loyalty earn base corrected: points = tier % of **pre-tax food value minus coupon minus points redeemed**. Preview endpoint gets optional `points_to_redeem` + `coupon_discount` and returns `earn_base_preview` | `bill_amount` must be the **pre-tax, pre-discount cart sub-total**; send the two new fields so the preview equals what gets credited; after the order, show `points_earned` from CRM — never compute locally |
 
 Nothing was removed. Every existing call you make today still works unchanged.
 
@@ -133,6 +134,46 @@ Legacy response (CR-121 shape), no `recommended_code`, `requires_cart_validation
 
 ---
 
+## §4b — CR-123: loyalty points — what the diner actually earns, and how to preview it
+
+### The rule (now consistent across POS and CRM)
+```
+earn base = cart sub-total (pre-tax, pre-discount)
+          − coupon / bill discount
+          − ₹ value of loyalty points redeemed on this order
+points    = tier % × earn base          (min-order gate applies to this net base)
+```
+Diners do **not** earn on GST/service charge, and do **not** earn on the part of the bill they paid with a coupon or with their own points.
+
+Worked example (real order shape): sub-total ₹290, coupon ₹43.50, GST ₹12.33, Bronze 5 % → base ₹246.50 → **12 points**. (Showing "5 % of ₹290 = 14" or "5 % of the ₹258.83 total = 12.9" would both be wrong.)
+
+### `POST /scan/max-redeemable` — contract clarification + 2 optional fields
+```http
+POST /api/scan/max-redeemable
+Authorization: Bearer <customer_token>
+
+{ "bill_amount": 290.0,          // REQUIRED — pre-tax, pre-discount cart sub-total (NOT the total incl. GST)
+  "coupon_discount": 43.5,       // optional — computed_discount from /scan/coupons/validate, if a coupon is applied
+  "points_to_redeem": 100 }      // optional — points the diner has chosen to redeem (we clamp to max_points_redeemable)
+```
+Response — all existing keys unchanged, **two added**:
+```json
+{ "ok": true, "max_points_redeemable": 110, "ratio_per_point": 1.0, "available_points": 159,
+  "projected_points_earned": 7,
+  "earn_base_preview": 146.5,          // NEW — the ₹ the % was applied to (290 − 43.5 − 100)
+  "points_to_redeem_applied": 100 }    // NEW — what we actually deducted after clamping
+```
+- Omit both optional fields → response identical to today (preview = earn with no coupon, no redemption).
+- `points_to_redeem` above `max_points_redeemable` (or when `ok:false`) → clamped; read `points_to_redeem_applied` to show the diner what will really apply.
+- Call it again whenever the cart, coupon, or redemption slider changes — it's read-only and cheap.
+
+### What to show on screen
+- Checkout: "You'll earn **N** points" ← `projected_points_earned` from this call, with the current coupon + redemption passed in.
+- After order placed: show **`points_earned` from CRM** (POS gets it in the order response and should surface it). Do not recompute from `loyalty-rules` earn %.
+- If you display the earn %, phrase it as "5 % on food value after discounts", not "5 % on your bill".
+
+---
+
 ## §5 — Recommended checkout flow (end to end)
 
 1. Browse Menu → phone (+ name) → `POST /scan/auth/skip-otp` (CR-119) → store token.
@@ -165,6 +206,9 @@ Legacy response (CR-121 shape), no `recommended_code`, `requires_cart_validation
 - [ ] V6 `?order_total=960` → `recommended_code` non-null; every coupon has boolean `requires_cart_validation`
 - [ ] V7 BXGY coupon → `expected_discount: null`, `requires_cart_validation: true`; `/validate` with `items[]` returns a number
 - [ ] V8 omit `restaurant_id` anonymously → 422
+- [ ] V9 `POST /scan/max-redeemable {bill_amount: 290, coupon_discount: 43.5}` → `projected_points_earned 12`, `earn_base_preview 246.5`, `points_to_redeem_applied 0`
+- [ ] V10 same call without the new fields → same keys as before + the 2 new ones, `projected_points_earned` unchanged from today
+- [ ] V11 `points_to_redeem: 9999` → `points_to_redeem_applied == max_points_redeemable`
 
 ---
 
@@ -174,8 +218,11 @@ Legacy response (CR-121 shape), no `recommended_code`, `requires_cart_validation
 |---|---|---|---|
 | CR-119 / 120 / 121 | PASS (`qa/CR_119_CR_120_CR_121_QA_REPORT.md`) | pending | not yet |
 | CR-122 | PASS (manual V1–V6 on preprod) | pending | not yet |
+| CR-123 | PASS (12/12 on preprod r689) | pending | not yet |
 
-Preprod only today. Prod deploy follows owner smoke of the October batch + these four. Reply with your V1–V8 results and any contract objections before we lock.
+Preprod only today. Prod deploy follows owner smoke of the October batch + these five. Reply with your V1–V11 results and any contract objections before we lock.
+
+**One question for you:** on your checkout screen today, is the number you pass as `bill_amount` the pre-tax sub-total or the total including GST? If it's the total, the earn preview you show diners has been overstated — switch to sub-total with CR-123.
 
 ---
 
