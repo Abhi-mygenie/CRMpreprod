@@ -534,15 +534,17 @@ class ScanCouponValidateRequest(BaseModel):  # CR-105
     order_total: float
     channel: Optional[str] = "dine_in"   # CR-105 Q2
     items: Optional[List[dict]] = None   # needed for item/category-scope (V2/V3-B) coupons
+    restaurant_id: Optional[str] = None  # CR-120: required when no token; ignored when token present
 
 
 @router.post("/coupons/validate")
 async def scan_validate_coupon(
     data: ScanCouponValidateRequest,
     request: Request,
-    auth: dict = Depends(verify_customer_token),
-):  # CR-105
-    """CR-105: validate coupon code against order total. Read-only — no usage recorded."""
+    auth: Optional[dict] = Depends(optional_customer_token),  # CR-120: was verify_customer_token
+):  # CR-105 · CR-120
+    """CR-105/CR-120: validate coupon code against order total. Read-only — no usage recorded.
+    Token optional: anonymous callers pass restaurant_id in body instead."""
     retry = await _lookup_rate_limited(
         f"vc-ip:{_client_ip(request)}", *_COUPON_VALIDATE_IP_LIMIT
     )
@@ -551,11 +553,21 @@ async def scan_validate_coupon(
             status_code=429, detail="Too many requests",
             headers={"Retry-After": str(retry)}
         )
+    # CR-120: resolve restaurant + customer from token or request body
+    if auth:
+        rid = auth["restaurant_id"]
+        customer_id = auth["customer_id"]
+    else:
+        if not data.restaurant_id:
+            raise HTTPException(status_code=422, detail="restaurant_id required when not authenticated")
+        rid = await _resolve_restaurant_id(data.restaurant_id)
+        customer_id = None  # anonymous — engine returns CUSTOMER_REQUIRED for standard coupons
+
     result = await validate_coupon_for_customer(
         db,
-        user_id=auth["restaurant_id"],
+        user_id=rid,
         code=data.code,
-        customer_id=auth["customer_id"],
+        customer_id=customer_id,
         order_total=data.order_total,
         channel=data.channel or "dine_in",
         items=data.items,
