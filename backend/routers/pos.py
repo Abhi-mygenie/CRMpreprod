@@ -879,6 +879,7 @@ async def _save_order_and_transactions(
     now: str,
     crm_loyalty_points_redeemed: int = 0,
     crm_loyalty_discount: float = 0.0,
+    earn_base_amount: Optional[float] = None,  # CR-123
 ) -> str:
     """Persist order, points transaction, and wallet transaction. Returns order id.
     CR-085-A2 E3: `customer` may be None (guest order) → customer_id null everywhere."""
@@ -1054,7 +1055,10 @@ async def _save_order_and_transactions(
         await db.order_items.insert_many(order_items_docs)
 
     if points_earned > 0:
-        desc = f"Earned on order {order_data.order_id} (Rs.{order_data.order_amount})"
+        if earn_base_amount is not None:  # CR-123: show the net base the % was applied to
+            desc = f"Earned on order {order_data.order_id} (Rs.{earn_base_amount:.2f} net)"
+        else:
+            desc = f"Earned on order {order_data.order_id} (Rs.{order_data.order_amount})"
         if off_peak_bonus > 0:
             desc += f" [includes {off_peak_bonus} off-peak bonus]"
         await db.points_transactions.insert_one({
@@ -1445,8 +1449,19 @@ async def pos_order_webhook(
         # (order_amount − loyalty_redeemed_value) per Q-CORR-3 Option B.
         # CR-001C-L Phase L5 (2026-05-25): inlined direct call to shared
         # helper. Old `_calculate_points` wrapper removed.
+        # CR-123 (2026-10-12): earn on pre-tax food value, net of discounts and redemption.
+        # POS order_sub_total_amount is pre-coupon → subtract coupon/order discount explicitly.
+        # Fallback when POS omits sub-total: order_amount is already net of discounts → only redemption.
         loyalty_enabled = bool(settings.get("loyalty_enabled", False))
-        earn_base_amount = max(0.0, order_data.order_amount - loyalty_redeemed_value)
+        if order_data.order_sub_total_amount:
+            earn_base_amount = max(0.0, (
+                float(order_data.order_sub_total_amount)
+                - float(order_data.coupon_discount or 0.0)
+                - float(order_data.order_discount or 0.0)
+                - loyalty_redeemed_value
+            ))
+        else:
+            earn_base_amount = max(0.0, order_data.order_amount - loyalty_redeemed_value)  # pre-CR-123 behaviour
         if loyalty_enabled and not is_guest:  # CR-085-A2: guests earn nothing
             pts = calculate_points(earn_base_amount, customer, settings)
             points_earned = pts["total_points"]
@@ -1543,6 +1558,7 @@ async def pos_order_webhook(
             order_data, user, customer, points_earned, new_points,
             wallet_used, new_wallet_balance, pts["off_peak_bonus"], now,
             crm_loyalty_points_redeemed, crm_loyalty_discount,
+            earn_base_amount=earn_base_amount,  # CR-123
         )
 
         # Update customer with latest data for triggers (None for guest — CR-085-A2)

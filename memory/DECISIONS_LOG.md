@@ -1974,3 +1974,10 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Q3 = (b)** add optional `points_to_redeem` (and, Planning to confirm, `coupon_discount`) to `POST /scan/max-redeemable` so `projected_points_earned` is post-redemption/post-discount. Scope: `routers/pos.py` + `routers/scan.py`. Backward compatible.
 **Q4 = (a)** forward-only; no back-fill of historical points/balances.
 **Gate**: owner — "stay at gate". Planning NOT opened. **No code. No data written.**
+
+### 2026-10-12 [CR-123 IMPLEMENTATION] Earn base fix shipped to preprod
+**Code**: `routers/pos.py` E1 (earn-base branch: `sub_total − coupon_discount − order_discount − loyalty_redeemed`; fallback `order_amount − redeemed`), E2 (tx description shows net base); `routers/scan.py` E3 (`/scan/max-redeemable` + `points_to_redeem` clamped to cap + `coupon_discount` + `earn_base_preview` / `points_to_redeem_applied`). D1–D4 applied on IA defaults (owner silent).
+**Self-test 12/12 PASS** (preprod r689): 1040/1092 → 52 (was 54) · 290−43.5 → 12 (was 10) · fallback unchanged · redeem 100 on 440 → 17 · preview parity and clamp verified.
+**Observed, not a defect**: first T4 ran with 64 pts < min_redemption 100 → CR-007 "never reject" path logged `loyalty_redeem_failed … order will proceed`, earned on full 440 → 22. Confirms redemption-failure behaviour unchanged.
+**Test data**: 9 `CR123-*` orders on Alok Test (r689). Cleanup `qa/cr123_cleanup.py --apply` after owner smoke.
+**Next**: QA role regression confirmation → owner smoke → briefs to POS (display `points_earned` from CRM; `self_discount` meaning) and S&O (`bill_amount` = pre-tax pre-discount; new preview fields).

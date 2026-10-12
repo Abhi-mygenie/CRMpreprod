@@ -574,15 +574,19 @@ async def get_available_coupons(
 
 
 class ScanMaxRedeemableRequest(BaseModel):  # CR-107
-    bill_amount: float
+    bill_amount: float                          # pre-tax, pre-discount cart sub-total (= POS order_sub_total_amount)
+    points_to_redeem: Optional[int] = None      # CR-123: preview earn after redeeming these points
+    coupon_discount: Optional[float] = None     # CR-123: preview earn after this coupon (from /scan/coupons/validate)
 
 
 @router.post("/max-redeemable")
 async def scan_max_redeemable(
     data: ScanMaxRedeemableRequest,
     auth: dict = Depends(verify_customer_token),
-):  # CR-107
-    """CR-107: max loyalty points redeemable for a given bill amount. Read-only."""
+):  # CR-107 · CR-123
+    """CR-107: max loyalty points redeemable for a given bill amount. Read-only.
+    CR-123: projected_points_earned uses the same net base as POST /pos/orders —
+    bill_amount − coupon_discount − (points_to_redeem × ratio), clamped to the redeemable cap."""
     rid = auth["restaurant_id"]
     customer = await db.customers.find_one(
         {"id": auth["customer_id"], "user_id": rid}, {"_id": 0}
@@ -591,9 +595,16 @@ async def scan_max_redeemable(
         return _resp(False, "Customer not found")
     settings = await db.loyalty_settings.find_one({"user_id": rid}, {"_id": 0})
     cap = compute_max_redeemable(customer, settings, data.bill_amount)
+    # CR-123: net earn base mirrors pos.py earn-base rule
+    pts_applied = max(0, min(int(data.points_to_redeem or 0), int(cap["max_points_redeemable"] or 0)))
+    earn_base = max(0.0, (
+        float(data.bill_amount)
+        - float(data.coupon_discount or 0.0)
+        - pts_applied * float(cap["ratio_per_point"] or 0.0)
+    ))
     projected_earned = 0
     if cap["loyalty_enabled"] and settings:
-        pts = calculate_points(data.bill_amount, customer, settings)
+        pts = calculate_points(earn_base, customer, settings)
         projected_earned = pts.get("total_points", 0)
     return _resp(True, "Max redeemable computed", {
         "ok":                      cap["ok"],
@@ -605,7 +616,9 @@ async def scan_max_redeemable(
         "min_redemption_points":   cap["min_redemption_points"],
         "loyalty_enabled":         cap["loyalty_enabled"],
         "projected_points_earned": projected_earned,
-    })  # CR-107
+        "earn_base_preview":       round(earn_base, 2),  # CR-123
+        "points_to_redeem_applied": pts_applied,         # CR-123
+    })  # CR-107 · CR-123
 
 
 class ScanCouponValidateRequest(BaseModel):  # CR-105
