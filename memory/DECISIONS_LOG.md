@@ -1985,3 +1985,12 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 ### 2026-10-12 [CR-123 — briefs drafted, owner to send]
 **S&O**: CR-123 folded into `handoff/CRM_TO_SCAN_ORDER_CR119_TO_CR123_LIVE_PLEASE_VALIDATE_2026_10_12.md` (§4b earn rule + `max-redeemable` contract clarification `bill_amount` = pre-tax pre-discount sub-total + 2 optional fields; V9–V11; question: which number do they pass today).
 **POS**: new `handoff/CRM_TO_POS_CR123_POINTS_EARNED_SOURCE_OF_TRUTH_2026_10_12.md` — asks **P-18** display `data.points_earned` from `POST /pos/orders` response, drop local math (fixes 22 vs 19) · **P-19** `bill_amount` on `/pos/max-redeemable` = pre-tax sub-total · **P-20** meaning of `self_discount`. V1–V5 validation table. No webhook contract change.
+
+### 2026-10-14 [CR-2026-10-14-001 — registry → Tech Dashboard sheet, INTAKE gate closed]
+**Request**: Mirror CRM registry into the shared Google Sheet (`1RFvI1MxmK6sYPBjejp78Sr_Ojcqo6UCRmgo0piEMBrc`) per contract v1.5 + brief-crm-agent.md. Intake doc: `discovery/CR_2026_10_14_001_REGISTRY_SHEET_SYNC_INTAKE.md`.
+**Current state**: no machine registry today; ~192 items (124 CR · 36 BUG · 23 INV · 9 GAP) across `CR_STATUS_DASHBOARD.md` + `00_register/ROI_MEASUREMENT_CR_REGISTER.md`.
+**D1 RULED**: registry = `00_register/registry.json`, 22-column schema (cols A–L, N–V); M Assignee + W Release week never written/diffed.
+**D2 RULED**: **registry always wins** (source of truth). No auto-accept of sheet Status over registry. `drift` op surfaces sheet↔registry divergence; owner decides in chat. (`SOURCE=DASHBOARD` Priority/Status SMOKE→CLOSED/Blocked on remain auto-apply per §8.1.)
+**D3 RULED**: auto-map back-catalogue to 8-value enum; unmappable → Unrouted (blank) + report count.
+**D4 RULED**: raw Google OAuth client — owner supplies client ID + secret; one-time browser flow → refresh token in `.env` beside script. BLOCKER for first push until creds provided.
+**Gate**: CLOSED. No code, no push, no registry file created. Owner said "stick to gate" — next role opens only on explicit instruction.
