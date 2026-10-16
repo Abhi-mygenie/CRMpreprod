@@ -41,8 +41,11 @@ New `GET /api/pos/orders/{pos_order_id}/invoice` (auth `verify_pos_auth`):
 - Return `{ token, invoice_number, einvoice_link, einvoice_pdf_link }`, base URL from `REACT_APP_BACKEND_URL`/`CRM_EXTERNAL_URL`.
 - `404` when no invoice exists for that order. Read-only.
 
+### R6 — Observability (added by owner 2026-10-14)
+Log every invoice-generation failure with the **restaurant identity** (`user_id` + `restaurant_id`) plus `pos_order_id`/`restaurant_order_id` + error, covering both the throw and the silent "returned empty token" cases, so failing restaurants are visible. Log-only (no new collection). Base URL strictly from env (no hardcoding).
+
 ### Out of scope
-- R2 (S3) — already configured. R4 (external URL env) — config check, confirm at planning. R5 (pre-generate PDF at order time) — optional polish, deferred.
+- R2 (S3) — already configured. R4 (external URL env) — base URL strictly from env, no hardcoding. R5 (pre-generate PDF at order time) — optional polish, deferred. Persisted failure-counter collection — deferred.
 
 ## 5. Acceptance criteria (draft — firmed in planning)
 

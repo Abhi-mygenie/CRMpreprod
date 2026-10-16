@@ -2001,3 +2001,11 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **Classification**: CR · P1 · Risk LOW · Blast SMALL · Money path YES · Duplicate = DISTINCT (extends CR-014).
 **Key facts**: create_invoice already returns invoice_url+pdf_url (idempotent on user_id+restaurant_order_id); pos.py drops them from the POS response; public invoice routes are tokenized/no-auth; invoices collection keyed by user_id+pos_order_id/restaurant_order_id (order_id NOT stored).
 **Gate**: INTAKE complete, no code. Next: planning on owner go.
+
+### 2026-10-14 [CR-2026-10-14-002 — Impact Analysis rulings + R6 added]
+**D1 RULED**: nested `data.einvoice {available, token, invoice_number, html_url, pdf_url}` object (not flat keys).
+**D2 RULED**: R3 lookup by `pos_order_id`, fallback `restaurant_order_id`.
+**D3 RULED**: add `(user_id, pos_order_id)` index on `invoices`.
+**D4 RULED**: base URL strictly from env (`REACT_APP_BACKEND_URL` → `CRM_EXTERNAL_URL`); NO hardcoding of crm.mygenie.online.
+**R6 (NEW, owner)**: log invoice-generation failures per restaurant — structured ERROR with user_id+restaurant_id+pos_order_id+restaurant_order_id+error, covering both throw and silent empty-token cases; set einvoice.available=false; order still succeeds. Log-only (no new collection). Enriches thin warning at pos.py:1598-1599.
+**Scope now**: R1 + R3 + R6. Files touched: routers/pos.py + one invoices index. IA: `planning/CR_2026_10_14_002_IMPACT_ANALYSIS.md`. Gate: planning (IA done), no code.

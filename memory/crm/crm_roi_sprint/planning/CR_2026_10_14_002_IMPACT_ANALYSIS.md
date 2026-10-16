@@ -52,11 +52,16 @@ Success `200`:
 Not found `404`: `{"detail": "Invoice not found for this order"}` (mirrors `pos_get_documents` 404 style).
 Tenant-scoped: lookup filtered by `user["id"]` → one tenant cannot read another's invoice.
 
-## 5. Owner decisions (surface before implementation)
-- **D1 — response shape:** nested `data.einvoice {…}` (recommended — groups fields, POS null-checks one key) **vs** flat keys `einvoice_link`/`einvoice_pdf_link`/`einvoice_token` (matches the WhatsApp event naming). → Recommend **nested**.
-- **D2 — R3 lookup key:** `pos_order_id` (recommended — what POS holds) with fallback to `restaurant_order_id`. Both stored on the invoice doc.
-- **D3 — index:** add `(user_id, pos_order_id)` index on `invoices` (future-proof; 53 rows today so optional). → Recommend add.
-- **D4 — base URL:** use `REACT_APP_BACKEND_URL` → fallback `CRM_EXTERNAL_URL` (same as order flow L1594). Confirm prod value is the public `crm.mygenie.online`.
+## 5. Owner decisions — RULED 2026-10-14
+- **D1 RULED:** nested `data.einvoice {…}` object (as recommended). Flat keys dropped.
+- **D2 RULED:** R3 lookup by `pos_order_id` with `restaurant_order_id` fallback (as recommended).
+- **D3 RULED:** add `(user_id, pos_order_id)` index on `invoices`.
+- **D4 RULED:** base URL **strictly from env** `REACT_APP_BACKEND_URL` → fallback `CRM_EXTERNAL_URL`. **No hardcoding** of `crm.mygenie.online` anywhere.
+
+## 5b. R6 (NEW requirement, owner 2026-10-14) — log invoice-generation failures per restaurant
+When `create_invoice()` **throws** OR **returns an empty/missing `token`** (silent failure), emit a **structured ERROR log** carrying `user_id` (restaurant), `restaurant_id`, `pos_order_id`, `restaurant_order_id`, and the error — so we can see *which restaurants* are failing. In that case set `data.einvoice.available=false` (nulls) and the order still succeeds (no raise).
+- Today only a thin WARNING exists (`pos.py:1598-1599`) logging the CRM `order_id` only — no restaurant identity, and it does **not** catch the silent "returned but empty token" case. R6 enriches both.
+- Same base-URL env rule (D4) applies; no new collection required (log-only). Optional future: a `invoice_failures` counter — **out of scope** now.
 
 ## 6. Conflicts & downstream consumers
 - **Conflicts:** none. No change to generation, storage, loyalty, coupons, webhook contract, or `POSResponse` schema (`data: Optional[dict]`).
@@ -73,10 +78,12 @@ Tenant-scoped: lookup filtered by `user["id"]` → one tenant cannot read anothe
 | V6 | `GET` unknown order | 404 |
 | V7 | `GET` with tenant B's key for tenant A's order | 404 (isolation) |
 | V8 | invoice-gen forced failure | `available=false`, nulls, order still 200 (no raise) |
+| V9 | invoice-gen failure (throw) | structured ERROR log with `user_id`+`restaurant_id`+`pos_order_id`+`restaurant_order_id`+error (R6) |
+| V10 | invoice-gen returns empty token (silent fail) | same R6 ERROR log fires; `available=false` |
 
 ## 8. Files
 **WILL change:** `routers/pos.py` (R1: response block ~L1753-1781; R3: new `GET /orders/{pos_order_id}/invoice`). Optional one-off index create on `invoices`.
 **WILL NOT touch:** `services/invoice_generator.py`, `routers/invoices.py`, `models/schemas.py`, `core/loyalty.py`, `core/coupon.py`, `core/whatsapp*.py`, webhook/event contract, any frontend.
 
 ## 9. Gate
-Impact Analysis complete. **No code written.** Awaiting owner ruling on D1–D4, then "choose planning role for implementation plan" (or straight to implementation).
+Impact Analysis complete. **No code written.** D1–D4 RULED; R6 added to scope. Next: "choose planning role for implementation plan" (or straight to implementation). Implementation touches only `routers/pos.py` (R1 response block, R3 new route, R6 enriched failure logging) + one `invoices` index.
