@@ -31,6 +31,8 @@ async def lifespan(app: FastAPI):
         await db.orders.create_index([("user_id", 1), ("customer_id", 1)], name="idx_user_customer")
         await db.orders.create_index([("user_id", 1), ("created_at", -1)], name="idx_user_created")
         await db.order_items.create_index([("user_id", 1), ("customer_id", 1)], name="idx_oi_user_customer")
+        # CR-2026-10-14-002 (D3): fast POS invoice lookup
+        await db.invoices.create_index([("user_id", 1), ("pos_order_id", 1)], name="idx_inv_user_posorder")
     except Exception as e:
         logging.getLogger(__name__).warning(f"Index creation skipped (insufficient permissions): {e}")
     try:

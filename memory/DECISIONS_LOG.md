@@ -2012,3 +2012,13 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 
 ### 2026-10-14 [CR-2026-10-14-002 — Implementation Plan drafted]
 5 edits: E1 capture pdf_url+invoice_number & empty-token guard, E2 R6 structured failure log (user_id+restaurant_id+pos_order_id+restaurant_order_id), E3 add nested `data.einvoice` to order response, E4 new `GET /api/pos/orders/{pos_order_id}/invoice` (pos_order_id→restaurant_order_id fallback, 404, tenant-scoped), E5 invoices index `(user_id,pos_order_id)` in server.py. Files: routers/pos.py + server.py only. No schema change. V1–V10 + regression R-a..R-e. Plan: `planning/CR_2026_10_14_002_IMPLEMENTATION_PLAN.md`. Gate: planning done, no code; awaiting implementation gate.
+
+### 2026-10-16 [CR-2026-10-14-002 — IMPLEMENTED (R1/R3/R6) + 2 pre-existing PDF blockers found]
+Implemented E1-E5 in routers/pos.py + server.py. Verified: order response `data.einvoice` (V1), guest order (V3), R3 fetch/404/isolation (V5/V6/V7), idempotency (V4), index created (E5). Bonus: fixed pre-existing double-/api in base URL (affected WhatsApp einvoice_link too) via pos.py normaliser.
+FINDINGS (PDF download, pre-existing, outside scope files): B1 weasyprint NOT installed in pod → no PDF generated (pdf_path=None); B2 routers/invoices.py:95 `Path(None)` → 500 before on-the-fly fallback (fix: `Path(invoice.get('pdf_path') or '')`). HTML + links + R3 work; PDF link 500s. Awaiting owner decision: fold B1/B2 into this CR vs register BUG. QA: `qa/CR_2026_10_14_002_QA_HANDOVER.md`.
+
+### 2026-10-16 [CR-2026-10-14-003 — INTAKE: enable e-invoice PDF (weasyprint + S3 + E2E)]
+**Scope (owner)**: S1 install weasyprint (pip; system libs libpango/gobject/cairo already present → pip-only; add to requirements.txt). S2 verify invoice HTML+PDF persist to & served from S3 (not local), all config from ENV, no hardcoding. S3 owner-run manual E2E: create real order → PDF generated → stored in S3 → pdf_url returned to POS (R1) + R3 → POS downloads it.
+**Classification**: CR · P1 · Risk LOW · Blast SMALL · Money path YES · DISTINCT (enables parent CR-2026-10-14-002).
+**Notes**: weasyprint NOT installed (ModuleNotFoundError) = root of PDF failure; S3 already configured (mygenie-prod) and generate_invoice_pdf already writes PDF to S3. B2 (invoices.py:95 Path(None) 500) OUT OF SCOPE (owner: no code edit) — latent, won't trigger once PDF pre-generated. Intake: `discovery/CR_2026_10_14_003_EINVOICE_PDF_ENABLE_S3_E2E_INTAKE.md`.
+**Gate**: INTAKE done, nothing installed. Next: implementation gate.

@@ -43,6 +43,20 @@ def _generate_addr_id() -> str:
     return f"addr_{uuid.uuid4().hex[:12]}"
 
 
+def _invoice_public_base() -> str:
+    # CR-2026-10-14-002 (D4): base strictly from env; strip a trailing /api so we never emit /api/api
+    raw = (os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("CRM_EXTERNAL_URL") or "").strip().rstrip("/")
+    if raw.endswith("/api"):
+        raw = raw[:-4]
+    return raw
+
+
+def _invoice_urls(token: str) -> tuple:
+    # CR-2026-10-14-002: (html_url, pdf_url) for a public invoice token
+    base = _invoice_public_base()
+    return f"{base}/api/invoices/{token}", f"{base}/api/invoices/{token}/pdf"
+
+
 # ============================================
 # POS Customer Management APIs (for MyGenie/other POS to call)
 # ============================================
@@ -1585,18 +1599,32 @@ async def pos_order_webhook(
 
         # 8. Fire WhatsApp triggers
         # CR-014 Bucket 4: Generate invoice before WhatsApp triggers
+        # CR-2026-10-14-002 (R1): also capture pdf_url + invoice_number for the POS response
         einvoice_link = ""
+        einvoice_pdf = ""
         einvoice_token = ""
+        einvoice_number = ""
         try:
             from services.invoice_generator import create_invoice
             saved_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
             if saved_order:
                 base_url = os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("CRM_EXTERNAL_URL")
                 inv = await create_invoice(db, saved_order, user, updated_customer, order_ctx, base_url)
-                einvoice_link = inv.get("invoice_url", "")
                 einvoice_token = inv.get("token", "")
+                einvoice_number = inv.get("invoice_number", "")
+                if not einvoice_token:  # CR-2026-10-14-002 (R6): silent-failure guard
+                    raise RuntimeError("invoice returned empty token")
+                # CR-2026-10-14-002: build correct public links from token (env base, /api-safe → used by POS response + WhatsApp)
+                einvoice_link, einvoice_pdf = _invoice_urls(einvoice_token)
         except Exception as _inv_err:
-            logging.getLogger(__name__).warning(f"CR-014: Invoice generation failed for order {order_id}: {_inv_err}")
+            # CR-2026-10-14-002 (R6): log invoice-gen failure WITH restaurant identity
+            logging.getLogger(__name__).error(
+                "CR-014 invoice generation FAILED user_id=%s restaurant_id=%s pos_order_id=%s restaurant_order_id=%s order_id=%s err=%s",
+                user.get("id"), user.get("restaurant_id"),
+                order_data.order_id, getattr(order_data, "restaurant_order_id", None),
+                order_id, _inv_err,
+            )
+            einvoice_link = einvoice_pdf = einvoice_token = einvoice_number = ""
 
         # send_bill trigger - for every order with an identified customer
         # CR-085-A2 default (b): guest order → no WhatsApp (no valid number to send to).
@@ -1777,6 +1805,14 @@ async def pos_order_webhook(
                 "coupon_usage": coupon_usage_block,
                 # CR-001C-LR correction: surface redemption info if applied.
                 "loyalty_redeem": loyalty_redeem_result["data"] if loyalty_redeem_result else None,
+                # CR-2026-10-14-002 (R1): surface e-invoice links to POS (D1 nested object)
+                "einvoice": {
+                    "available": bool(einvoice_token),
+                    "token": einvoice_token or None,
+                    "invoice_number": einvoice_number or None,
+                    "html_url": einvoice_link or None,
+                    "pdf_url": einvoice_pdf or None,
+                },
             },
         )
 
@@ -2339,6 +2375,35 @@ async def pos_get_documents(
         success=True,
         message="Documents retrieved",
         data={"documents": grouped},
+    )
+
+
+@router.get("/orders/{pos_order_id}/invoice", response_model=POSResponse)
+async def pos_get_order_invoice(pos_order_id: str, user: dict = Depends(verify_pos_auth)):
+    """CR-2026-10-14-002 (R3): POS re-fetch the e-invoice for one of its orders."""
+    inv = await db.invoices.find_one(
+        {"user_id": user["id"], "pos_order_id": pos_order_id}, {"_id": 0}
+    )
+    if not inv:  # CR-2026-10-14-002 (D2): fallback on restaurant_order_id
+        inv = await db.invoices.find_one(
+            {"user_id": user["id"], "restaurant_order_id": pos_order_id}, {"_id": 0}
+        )
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found for this order")
+    token = inv["token"]
+    html_url, pdf_url = _invoice_urls(token)
+    return POSResponse(
+        success=True,
+        message="Invoice found",
+        data={
+            "pos_order_id": pos_order_id,
+            "available": True,
+            "token": token,
+            "invoice_number": inv.get("invoice_number"),
+            "html_url": html_url,
+            "pdf_url": pdf_url,
+            "generated_at": inv.get("generated_at"),
+        },
     )
 
 
