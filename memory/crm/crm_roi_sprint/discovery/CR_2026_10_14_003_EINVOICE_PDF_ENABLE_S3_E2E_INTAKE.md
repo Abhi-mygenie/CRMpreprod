@@ -45,5 +45,8 @@ CR (enabling + environment + verification), **DISTINCT** from CR-2026-10-14-002 
 - Q2: Does production deploy image already include weasyprint? (If yes, this is a preview-pod parity fix; confirm at deploy.)
 - Q3: B2 (invoices.py:95) — leave as latent (owner: no code edit now) or fold a 1-line guard later under CR-002? (default: leave, revisit.)
 
-## 8. Gate
-Intake complete. **No code written, nothing installed.** Scope S1+S2+S3. Next: owner opens the implementation gate ("choose implementation role for CR-2026-10-14-003") to install weasyprint + run the S3 check; owner then performs the manual E2E order test.
+## 8. Gate / status
+- **S1 DONE (2026-10-16):** `weasyprint==70.0` installed (pip-only, system libs present) and pinned in `requirements.txt`. `import weasyprint` OK. Backend restarted.
+- **S2 DONE — S3 dry-run verified (no real order):** ran `generate_invoice_pdf` on an existing invoice → PDF uploaded to S3 (`invoices/{token}/invoice.pdf`: BEFORE absent → AFTER present). Live `GET /api/invoices/{token}/pdf` → **302 → S3** (`https://mygenie-prod.s3.ap-south-1.amazonaws.com/...`), S3 URL returns **200**. All config from ENV; no hardcoding.
+- **S3 PENDING — owner manual E2E:** owner creates a real order; verify PDF generated → S3 → `pdf_url` in POS order response (R1) + R3 → POS downloads it.
+- B2 (`invoices.py:95`) untouched (owner: no code edit); not hit on happy path since PDF now pre-generated to S3.

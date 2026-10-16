@@ -2022,3 +2022,6 @@ FINDINGS (PDF download, pre-existing, outside scope files): B1 weasyprint NOT in
 **Classification**: CR · P1 · Risk LOW · Blast SMALL · Money path YES · DISTINCT (enables parent CR-2026-10-14-002).
 **Notes**: weasyprint NOT installed (ModuleNotFoundError) = root of PDF failure; S3 already configured (mygenie-prod) and generate_invoice_pdf already writes PDF to S3. B2 (invoices.py:95 Path(None) 500) OUT OF SCOPE (owner: no code edit) — latent, won't trigger once PDF pre-generated. Intake: `discovery/CR_2026_10_14_003_EINVOICE_PDF_ENABLE_S3_E2E_INTAKE.md`.
 **Gate**: INTAKE done, nothing installed. Next: implementation gate.
+
+### 2026-10-16 [CR-2026-10-14-003 — S1+S2 DONE (weasyprint + S3 dry-run)]
+S1: weasyprint==70.0 installed (pip-only; system libs present) + pinned in requirements.txt; backend restarted. S2 dry-run (no real order): generate_invoice_pdf on existing token → PDF now in S3 (was absent); live /api/invoices/{token}/pdf → 302→S3; S3 public URL 200. Config all from ENV. S3 (owner manual order E2E) PENDING. B2 untouched per owner.
