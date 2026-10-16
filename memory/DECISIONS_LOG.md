@@ -1994,3 +1994,10 @@ Conclusion: AuthkeyK + AuthkeyP System Users are BOTH registered under the same 
 **D3 RULED**: auto-map back-catalogue to 8-value enum; unmappable → Unrouted (blank) + report count.
 **D4 RULED**: raw Google OAuth client — owner supplies client ID + secret; one-time browser flow → refresh token in `.env` beside script. BLOCKER for first push until creds provided.
 **Gate**: CLOSED. No code, no push, no registry file created. Owner said "stick to gate" — next role opens only on explicit instruction.
+
+### 2026-10-14 [CR-2026-10-14-002 — POS e-invoice download, INTAKE registered]
+**Request**: POS must be able to retrieve/download the CR-014 e-invoice (CRM generates + stores it but never hands POS the link). Investigation: `investigations/INV_2026_10_14_001_POS_ORDER_RESPONSE_EINVOICE.md`. Intake: `discovery/CR_2026_10_14_002_POS_EINVOICE_DOWNLOAD_INTAKE.md`.
+**Scope (owner-approved)**: R1 (return `einvoice_link` + `einvoice_pdf_link` + `einvoice_token` in `POST /api/pos/orders` response) + R3 (new `GET /api/pos/orders/{pos_order_id}/invoice` re-fetch endpoint). R2 (S3) = already configured (bucket `mygenie-prod`) → no work. R4 (URL env) = config check at planning. R5 (pre-gen PDF) = deferred.
+**Classification**: CR · P1 · Risk LOW · Blast SMALL · Money path YES · Duplicate = DISTINCT (extends CR-014).
+**Key facts**: create_invoice already returns invoice_url+pdf_url (idempotent on user_id+restaurant_order_id); pos.py drops them from the POS response; public invoice routes are tokenized/no-auth; invoices collection keyed by user_id+pos_order_id/restaurant_order_id (order_id NOT stored).
+**Gate**: INTAKE complete, no code. Next: planning on owner go.

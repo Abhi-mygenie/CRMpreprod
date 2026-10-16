@@ -637,3 +637,10 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 | **110 (amend)** | **Bulk `mygenie_token` refresh script** | **🟡 AMEND REQUIRED 2026-10-10 (BUG-035) before any prod run. Prod: 11 tenants synced OK in Oct; ~14 dormant tenants + 6 mid-run-401 tenants are the real targets.** | **🟡** | ~30 min | owner password confirmation per run | **2026-10-10** |
 | **Carry-overs in DQ-1** | **CR-085-B · CR-087 · CR-101 · PROC-001 · BUG-028 · ENV-002** | Unchanged status; executed in Wave C (data) / Wave A (BUG-028 with CR-113 d; ENV-002 infra). CR-103 stays ⏸ PARKED. | | | | **2026-10-10** |
+
+---
+### 2026-10-14 — CR-2026-10-14-002 registered (INTAKE)
+| ID | Title | Status | Pri | Risk | Money | Doc |
+|---|---|---|---|---|---|---|
+| **CR-2026-10-14-002** | POS can retrieve/download the CR-014 e-invoice (R1: links in `/api/pos/orders` response · R3: `GET /api/pos/orders/{pos_order_id}/invoice`) | 🟠 INTAKE | P1 | LOW | YES | `discovery/CR_2026_10_14_002_POS_EINVOICE_DOWNLOAD_INTAKE.md` · `investigations/INV_2026_10_14_001_POS_ORDER_RESPONSE_EINVOICE.md` |
+
