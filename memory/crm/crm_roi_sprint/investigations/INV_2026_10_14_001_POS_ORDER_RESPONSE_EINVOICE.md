@@ -52,10 +52,10 @@ There is **no** POS-authenticated endpoint to fetch an invoice by `order_id` / `
 - `pos.py` captures only `einvoice_link` + `einvoice_token` (L1596-1597) and **drops `pdf_url`** entirely, then puts none of them in the POS response (§2). So POS has no token and no link.
 - **Required:** surface in `POST /api/pos/orders` response `data`: `einvoice_link`, `einvoice_pdf_link` (available from `create_invoice` — just thread `inv["pdf_url"]` through), and/or `einvoice_token`.
 
-### 6.3 Gap #2 (reliability) — persistence is ephemeral without S3
-- **S3 is NOT configured in this pod** (`S3_CONFIGURED=False`, bucket empty). Invoices therefore fall back to **local disk `/app/data/invoices/{token}/`**, which is container-local and **lost on restart/redeploy**.
-- **PDF is NOT generated at order time** — only the HTML is written on create. The PDF is generated **on-the-fly (WeasyPrint) on the first hit** to `/pdf` (L97-103), then cached to disk (+S3 if configured).
-- **Required for reliable POS download in prod:** configure S3 (`AWS_S3_BUCKET/REGION/keys`) so HTML+PDF persist beyond a single pod; otherwise links can 404 after a restart or if POS downloads from a different pod. (Optionally pre-generate the PDF to avoid first-hit latency.)
+### 6.3 Gap #2 (reliability) — RESOLVED: S3 IS configured
+- **Correction (2026-10-14):** S3 **is** configured. Initial check ran without loading `.env` (false negative). With `.env` loaded as the backend does: `S3_CONFIGURED=True`, bucket `mygenie-prod`, region `ap-south-1`, all four AWS keys non-placeholder. CR-036 smoke-tested against this same bucket 2026-07-04.
+- Invoices therefore **dual-write to S3** (HTML on create; PDF on first `/pdf` hit, then cached to S3). Persist beyond pod lifecycle → links stay valid after restart/redeploy. **No infra blocker.**
+- **PDF is still generated on-the-fly on first `/pdf` hit** (WeasyPrint, L97-103) then cached to S3. Only residual nicety: optionally pre-generate to avoid first-hit latency (R5).
 
 ### 6.4 Gap #3 (robustness) — no re-fetch path
 - Invoice gen inside the order flow is best-effort try/except (L1590-1599); if it fails/times out, the response fields would be empty. There is **no POS lookup endpoint** to retrieve the invoice later.
@@ -69,7 +69,7 @@ There is **no** POS-authenticated endpoint to fetch an invoice by `order_id` / `
 | # | Requirement | Type | Size |
 |---|---|---|---|
 | R1 | Return `einvoice_link` + `einvoice_pdf_link` (+`einvoice_token`) in the `POST /api/pos/orders` response | CRM code | small (values already computed) |
-| R2 | Configure S3 so invoice HTML/PDF persist (currently local-disk/ephemeral) | infra/env | config |
+| R2 | ~~Configure S3~~ — ALREADY DONE (bucket `mygenie-prod`, ap-south-1; S3_CONFIGURED=True). No action. | infra/env | ✅ done |
 | R3 | (Optional) POS re-fetch endpoint `GET /api/pos/orders/{pos_order_id}/invoice` | CRM code | small-medium |
 | R4 | Ensure `REACT_APP_BACKEND_URL`/`CRM_EXTERNAL_URL` set to external prod URL | env | config |
 | R5 | (Optional) pre-generate PDF at order time to avoid first-hit latency | CRM code | small |
