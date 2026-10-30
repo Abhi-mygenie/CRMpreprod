@@ -45,7 +45,6 @@ EXPORT_FIELDS = [
     ("Name",            "name"),
     ("Phone",           "phone"),
     ("Country Code",    "country_code"),  # CR-124
-    ("Country Code",    "country_code"),  # CR-124
     ("Email",           "email"),
     ("Date of Birth",   "dob"),
     ("Anniversary",     "anniversary"),
@@ -1545,7 +1544,7 @@ async def preview_import(
     existing_docs = await db.customers.find(
         {"user_id": user["id"]}, {"phone": 1, "country_code": 1, "_id": 0}  # CR-124: include cc
     ).to_list(length=None)
-    existing_phones = {f"{doc.get('country_code', '+91')}:{doc['phone']}" for doc in existing_docs if doc.get("phone")}
+    existing_phones = {f"{doc.get('country_code') or '+91'}:{doc['phone']}" for doc in existing_docs if doc.get("phone")}
 
     classified   = [_validate_and_classify_row(r, existing_phones) for r in rows]
 
@@ -1608,7 +1607,7 @@ async def import_customers(
     existing_docs = await db.customers.find(
         {"user_id": user["id"]}, {"phone": 1, "country_code": 1, "id": 1, "tags": 1, "_id": 0}  # CR-124: include cc
     ).to_list(length=None)
-    phone_to_doc = {f"{doc.get('country_code', '+91')}:{doc['phone']}": doc for doc in existing_docs if doc.get("phone")}
+    phone_to_doc = {f"{doc.get('country_code') or '+91'}:{doc['phone']}": doc for doc in existing_docs if doc.get("phone")}
 
     imported_count = 0
     updated_count  = 0

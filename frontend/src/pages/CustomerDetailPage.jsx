@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { COUNTRY_CODES } from "@/lib/constants";
 import { Switch } from "@/components/ui/switch"; // CR-063
 import { ResponsiveLayout } from "@/components/ResponsiveLayout";
 import TagChip from "@/components/TagChip";
@@ -1068,7 +1069,7 @@ export default function CustomerDetailPage() {
                             </div>
                             <div>
                                 <p className="font-semibold">{customer?.name}</p>
-                                <p className="text-xs text-gray-500">{customer?.phone}</p>
+                                <p className="text-xs text-gray-500">{customer?.country_code && customer.country_code !== "+91" ? `${customer.country_code} ` : ""}{customer?.phone}</p>
                             </div>
                         </div>
                         <div>
@@ -1163,14 +1164,15 @@ export default function CustomerDetailPage() {
                                             value={editData.country_code || "+91"} 
                                             onValueChange={(v) => setEditData({...editData, country_code: v})}
                                         >
-                                            <SelectTrigger className="w-24 h-11 rounded-xl">
+                                            <SelectTrigger className="w-24 h-11 rounded-xl" data-testid="edit-detail-cc-select">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="+91">+91</SelectItem>
-                                                <SelectItem value="+1">+1</SelectItem>
-                                                <SelectItem value="+44">+44</SelectItem>
-                                                <SelectItem value="+971">+971</SelectItem>
+                                                {COUNTRY_CODES.map(cc => (
+                                                    <SelectItem key={cc.code} value={cc.code}>
+                                                        {cc.flag} {cc.code}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                         <Input
