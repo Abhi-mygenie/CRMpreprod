@@ -1,0 +1,33 @@
+{
+  "summary": "CR-124 retest (focused). Backend: 7/7 targeted tests pass (V5, V6, V2, V1, V17, V7, export single Country Code column + Fir Hills row cc=+1). Import-preview cc-aware dedup verified manually (country_code header): +1/+44/+91 existing rows correctly classified as 'update'. Frontend: customer list shows '+1 1772654157' and '+44 7911123456'; detail profile card and re-engage modal show +cc prefix; edit modal cc select has all 8 COUNTRY_CODES with current value +1 preselected; saving +91 shows 'Enter a valid mobile number' toast, saving +1 shows 'Customer updated successfully!'; QR registration page has cc dropdown. All 4 fixed bugs verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/customers/export + /api/customers/import-preview", "issue": "Export header is 'Country Code' but import parser only lowercases headers ('country code' with space) and reads 'country_code'. Re-importing an exported CSV silently drops the cc -> foreign numbers default to +91 and fail as 'Invalid phone number' (e.g. Fir Hills row 1772654157) or create a +91 duplicate instead of updating the +44 record. Template (country_code) works fine."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CustomerRegistrationPage", "issue": "Country code dropdown is hardcoded with 6 options (+91,+1,+44,+971,+65,+61) and does not use COUNTRY_CODES from constants (missing +81, +86 and flags). Same inconsistency that was fixed in CustomerDetailPage.", "selector": "[data-testid='public-reg-cc-select']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "CustomerDetailPage edit modal", "issues": ["DOB/Anniversary use the browser's native date input (mm/dd/yyyy) instead of the shadcn Calendar/date picker"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_cr124_retest.py", "/app/test_reports/pytest/pytest_cr124_retest.xml"],
+  "action_items": [
+    "(Optional) Make the import parser accept the 'Country Code' header too, e.g. normalize headers with .strip().lower().replace(' ', '_'), so export->import round-trips keep the cc",
+    "(Optional) Use COUNTRY_CODES from constants in CustomerRegistrationPage.jsx lines 82-87"
+  ],
+  "critical_code_review_comments": [
+    "routers/customers.py lines 154/1634/1644/1654 still use result.get('country_code', '+91'), which is safe because _validate_and_classify_row always sets country_code from normalize_phone",
+    "Legacy row 'Unknown' phone '01772654157' cc '+91' exists in CAFE 103 data (pre-normalization). Not caused by CR-124"
+  ],
+  "updated_files": ["/app/backend/tests/test_cr124_retest.py"],
+  "success_rate": {"backend": "100%", "frontend": "100% of requested checks (1 low-priority inconsistency)"},
+  "seed_data_creation": "None new. V1 9988776655 and V2 7911123456 already existed (400 'already exists'). Fir Hills was edited via the UI (+91 rejected, then saved back to +1). Its final state is phone=1772654157 cc=+1. Import was preview-only, no commit.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run with: REACT_APP_BACKEND_URL=... pytest tests/test_cr124_retest.py (pytest.ini adds xdist flags). The customers list API returns a JSON array. Fir Hills id 6eddb366-ad93-41bf-b1c2-b9210a62fbd9. The re-engage modal is opened by data-testid=detail-reengage-btn."
+}

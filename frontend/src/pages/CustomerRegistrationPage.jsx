@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { API } from "@/lib/constants";
+import { API, COUNTRY_CODES } from "@/lib/constants";
 
 export default function CustomerRegistrationPage() {
     const { restaurantId } = useParams();
@@ -79,12 +79,11 @@ export default function CustomerRegistrationPage() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="+91">+91</SelectItem>
-                                    <SelectItem value="+1">+1</SelectItem>
-                                    <SelectItem value="+44">+44</SelectItem>
-                                    <SelectItem value="+971">+971</SelectItem>
-                                    <SelectItem value="+65">+65</SelectItem>
-                                    <SelectItem value="+61">+61</SelectItem>
+                                    {COUNTRY_CODES.map(cc => (
+                                        <SelectItem key={cc.code} value={cc.code}>
+                                            {cc.flag} {cc.code}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                             <Input

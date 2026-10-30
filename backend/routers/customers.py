@@ -79,7 +79,7 @@ def _parse_import_file(content: bytes, filename: str) -> list:
             raw_rows = list(ws.iter_rows(values_only=True))
             if not raw_rows:
                 raise HTTPException(status_code=400, detail="Excel file is empty")
-            headers = [str(h).strip().lower() if h else "" for h in raw_rows[0]]
+            headers = [str(h).strip().lower().replace(" ", "_") if h else "" for h in raw_rows[0]]  # CR-124: normalize spaces to underscores
             for i, row in enumerate(raw_rows[1:], start=2):
                 row_dict = {headers[j]: (str(v).strip() if v is not None else "") for j, v in enumerate(row) if j < len(headers)}
                 row_dict["_row"] = i
@@ -88,7 +88,7 @@ def _parse_import_file(content: bytes, filename: str) -> list:
             text = content.decode("utf-8-sig")
             reader = csv.DictReader(io.StringIO(text))
             for i, row in enumerate(reader, start=2):
-                row_dict = {k.strip().lower(): v.strip() for k, v in row.items()}
+                row_dict = {k.strip().lower().replace(" ", "_"): v.strip() for k, v in row.items()}  # CR-124: normalize spaces
                 row_dict["_row"] = i
                 rows.append(row_dict)
     except HTTPException:
