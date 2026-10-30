@@ -1,3 +1,10 @@
+### 2026-10-30 [CR-124] §intake — International Phone Number Support registered
+**Decision**: Register CR-124 (E.164 international phone support) as P1/HIGH. No code until owner answers Q1-Q5.
+**Source**: Owner uploaded `BACKEND_BRIEF_INTL_PHONE_2026_10_24.md` + reported 422 on cafe103 customer phone edit.
+**Rationale**: Hotels serve international guests; CRM hardcoded to Indian 10-digit phones. 12+ surfaces affected. Phone identity = CRM anchor (§6.6).
+**Locks**: No implementation until Q1-Q5 answered + Planning approved.
+
+
 # Decisions Log — `crm_roi_sprint`
 
 > **Append-only.** Every owner-locked decision gets a row. Never edit historical rows; if a decision is reversed, add a NEW row referencing the old one.

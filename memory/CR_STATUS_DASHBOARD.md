@@ -649,3 +649,12 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 > **CR-2026-10-14-003 registered (2026-10-16)** 🟠 INTAKE · P1 · LOW · Money=YES. Enable e-invoice PDF: S1 install weasyprint (pip-only, system libs present), S2 S3 persistence from ENV (no hardcoding), S3 owner manual E2E (order→PDF→S3→POS download). Enables parent CR-2026-10-14-002. B2 (invoices.py:95) latent/out-of-scope (no code edit). Doc: `discovery/CR_2026_10_14_003_EINVOICE_PDF_ENABLE_S3_E2E_INTAKE.md`.
 > **CR-2026-10-14-003 update (2026-10-16)**: S1 weasyprint==70.0 installed+pinned ✅ · S2 S3 dry-run ✅ (PDF→S3, /pdf 302→S3, URL 200, ENV-driven). S3 owner manual order E2E PENDING. 🟡 IMPLEMENTED (pending owner E2E).
 > **CR-2026-10-14-002(+003) QA (2026-10-16)**: ✅ PASS WITH CONDITIONS. Links/R3/isolation/`/api`-safe + weasyprint+S3 all green; PDF now 302→S3. B2 (invoices.py:95 missing-PDF 500) reproduced → MAJOR latent, **production-fix tracked** (no code edit). PENDING owner manual E2E order + deploy. Report: `qa/CR_2026_10_14_002_QA_REPORT.md`.
+
+
+---
+### 2026-10-30 — CR-124 registered (INTAKE)
+| ID | Title | Status | Pri | Risk | Money | Doc |
+|---|---|---|---|---|---|---|
+| **CR-124** | International Phone Number Support — E.164 storage & validation across CRM write/lookup/display paths (hotels, international guests) | 🟠 INTAKE | P1 | HIGH | NO (indirect: loyalty identity) | `discovery/CR_124_INTL_PHONE_E164_INTAKE.md` · Source: `BACKEND_BRIEF_INTL_PHONE_2026_10_24.md` · Related external: CR-473 (POS FE) |
+
+> **CR-124 context**: Owner reported 422 "invalid phone number" when editing customer `1772654157` (cafe103). Investigation confirmed `core/phone.py:27` India-only validation (`digits[0] in "6789"`) rejects non-Indian numbers. Brief (2026-10-24) documents POS create stripping UK `+447911123456` → `"11123456"`. 12+ surfaces affected across 5 files. Related CLOSED CRs: 085/099/100/102 (all India-only). **Q1-Q5 pending owner answers.** Next: Planning (IA + Impl Plan).
