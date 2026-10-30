@@ -1,0 +1,50 @@
+{
+  "summary": "FINAL gate QA for CR-124, BUG-041, BUG-042, BUG-043 and CR-125. Block A V1-V20: 20/20 PASS (V11 now passes after the BUG-042 fix). Block B B1-B11: 11/11 PASS. Block D D1-D5: 5/5 PASS in the browser. Block C regression: C1 CR-085 22/22, C2 CR-100 8/8, C3 CR-089 20 pass + 1 pre-existing skip, C4 CR-093 20 pass + 1 skip, C6 intl_phone all pass (1 skip because the record already exists), C7 qa_full 28/28. C5 CR-096: 13/15. The 2 failures are test-data and rate-limit artifacts, not regressions (see notes). No code defects found in the session's changes. Environment: the external SSO preprod.mygenie.online stopped responding for about 10 minutes (11:31-11:43 UTC), so /api/auth/login returned 504 after the backend's 10s httpx timeout. After it recovered, every affected suite was rerun and passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/login", "issue": "ENV NOTE: the upstream MyGenie SSO hung for about 10 min, so login returned 504 (routers/auth.py timeout=10.0). A healthy login also takes about 20s at peak. Not caused by this session."},
+      {"endpoint": "tests/test_cr096_feedback.py::test_FD_no_token_unknown_phone_unlinked", "issue": "TEST DATA DRIFT: the supposedly unknown phone 9000000001 exists as customer d5ccc45f 'BrandNewUser' in pos_0001_restaurant_689 (created 2026-10-11), so linked=True is correct behaviour. The test should use a phone that is guaranteed to be unused."},
+      {"endpoint": "tests/test_cr096_feedback.py::test_FK2_phone_rate_limit", "issue": "Got 429 from the start because of repeated QA runs within the rate-limit window. Expected, not a defect. It passed on the first run of the session."},
+      {"endpoint": "tests/test_cr096_feedback.py", "issue": "The suite targets r689 (Kunafa Mahal). CRM_TEST_OWNER_EMAIL must be owner@kunafamahal.com, not cafe103. With cafe103, test_FM fails because of the restaurant mismatch."},
+      {"endpoint": "tests/test_cr093_lookup.py", "issue": "Passes on a fresh run. Back-to-back reruns give 429 'Too many lookups' (rate limit, expected)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Customers > Import preview table", "issues": ["The preview row shows row.phone without the country_code prefix (CustomersPage.jsx ~2975), even though the API now returns country_code. Optional UX polish."]},
+      {"screen": "Frontend COUNTRY_CODES", "issues": ["The UI offers 8 country codes while the backend recognises 22 (CR-125). Guests from +27/+7/+34/+62/+234/+254 etc. cannot pick their code in the QR or edit dropdowns. Informational, product decision."]},
+      {"screen": "Customer detail edit modal", "issues": ["DOB and Anniversary use the browser's native date input (mm/dd/yyyy) instead of the shadcn calendar. Pre-existing."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter3_final_gate.py",
+    "/app/backend/tests/test_cr124_qa_full.py",
+    "/app/backend/tests/test_cr124_intl_phone.py",
+    "/app/backend/tests/test_phone_normalize.py",
+    "/app/test_reports/pytest/iter3_cr124.xml",
+    "/app/test_reports/pytest/iter3_scan.xml",
+    "/app/test_reports/pytest/iter3_part1.xml"
+  ],
+  "action_items": [
+    "None blocking. Ready for smoke testing.",
+    "(Optional) test_cr096_feedback F-D: replace 9000000001 with a guaranteed-unused phone, or clean it up in setup.",
+    "(Optional) Show the +cc prefix in the import preview table.",
+    "(Optional) Consider widening the frontend COUNTRY_CODES to match the backend's 22 _KNOWN_CC."
+  ],
+  "critical_code_review_comments": [
+    "core/phone.py: known-prefix detection tries the longest prefix first (4,3,2,1). Verified for +7/+27/+34/+62/+234/+254/+44/+91. Unknown '+' prefixes still fall back to the greedy 1-4 digit regex, which can mis-split numbers from countries outside the list (e.g. +2547... is fine, but +880 Bangladesh would split as +880 by luck, and +2xx unknowns are at risk). Low risk, noted in iteration_2 as well.",
+    "core/whatsapp.py:836 BUG-041 fix verified: (customer.get('country_code') or '+91'). Line 913 is also null-safe.",
+    "routers/pos.py:2590 uses _cc from normalize_phone. Verified.",
+    "routers/customers.py:1635/1645 use result.get('country_code','+91'), which would not default if the key exists with value None. That is safe today because _validate_and_classify_row always sets cc from normalize_phone."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter3_final_gate.py (new)"],
+  "success_rate": {"backend": "100% of session-scope checks (V1-V20 and B1-B11). Regression: 129/131 executed, and both failures are non-defects", "frontend": "100% (D1-D5)"},
+  "test_credentials": "From /app/memory/test_credentials.md: owner@cafe103.com and owner@kunafamahal.com / Qplazm@10",
+  "seed_data_creation": "None. Existing Fir Hills, UK Guest and UAE Guest were reused. Import tests were preview-only.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run the CR-124 suites with CRM_TEST_OWNER_EMAIL=owner@cafe103.com and the CR-096 suite with owner@kunafamahal.com. Use -n0 (xdist is installed) to avoid parallel rate-limit collisions. If login returns 504, check that https://preprod.mygenie.online is reachable (upstream SSO). Scan endpoints are rate-limited per phone and IP, so leave a few minutes between reruns. The CR-085 baseline drift NOTE did not reproduce: 22/22 passed."
+}
