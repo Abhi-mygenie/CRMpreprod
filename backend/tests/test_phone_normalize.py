@@ -23,4 +23,7 @@ def test_normalize(raw, cc_in, exp):
 
 
 def test_phone_match_key():
-    assert phone_match("u1", "9876543210", "+91") == {"user_id": "u1", "phone": "9876543210", "country_code": "+91"}
+    # CR-100: +91 uses $in tolerance for legacy null/"" country_code docs
+    assert phone_match("u1", "9876543210", "+91") == {"user_id": "u1", "phone": "9876543210", "country_code": {"$in": ["+91", None, ""]}}
+    # CR-124: non-India uses exact match
+    assert phone_match("u1", "7911123456", "+44") == {"user_id": "u1", "phone": "7911123456", "country_code": "+44"}

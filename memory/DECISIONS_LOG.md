@@ -1,3 +1,8 @@
+### 2026-10-30 [BUG-043] §implementation — Fixed, pytest 13/13 PASS
+**Decision**: BUG-043 implemented. Updated assertion to `$in` form + added +44 exact-match case. `pytest tests/test_phone_normalize.py -v` → 13/13 PASS.
+**Source**: Implementation per `planning/BUG_043_IMPLEMENTATION_PLAN.md` E1.
+
+
 ### 2026-10-30 [BUG-041] §implementation — Fixed, self-test PASS
 **Decision**: BUG-041 implemented. 1 line in `core/whatsapp.py:836`. Self-test T1-T4 PASS. Backend healthy.
 **Source**: Implementation per `planning/BUG_041_IMPLEMENTATION_PLAN.md` E1.
