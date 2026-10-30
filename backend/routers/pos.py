@@ -2587,7 +2587,7 @@ async def pos_event_webhook(
                 "id": None,
                 "name": (event_data.event_data or {}).get("customer_name", "Customer"),
                 "phone": recipient_phone,
-                "country_code": "+91",
+                "country_code": _cc,  # CR-124: use cc from normalize_phone, not hardcoded
                 "total_points": 0,
                 "wallet_balance": 0,
                 "tier": "Bronze"

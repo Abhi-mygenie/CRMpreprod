@@ -6,11 +6,12 @@ import { Phone, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { API } from "@/lib/constants";
 
 export default function CustomerRegistrationPage() {
     const { restaurantId } = useParams();
-    const [formData, setFormData] = useState({ name: "", phone: "", email: "" });
+    const [formData, setFormData] = useState({ name: "", phone: "", country_code: "+91", email: "" });
     const [restaurantName, setRestaurantName] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -69,15 +70,34 @@ export default function CustomerRegistrationPage() {
                     </div>
                     <div>
                         <Label className="form-label">Phone Number *</Label>
-                        <Input
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                            placeholder="9876543210"
-                            className="h-12 rounded-xl"
-                            required
-                            data-testid="public-reg-phone"
-                        />
+                        <div className="flex gap-2">
+                            <Select
+                                value={formData.country_code}
+                                onValueChange={(v) => setFormData({...formData, country_code: v})}
+                            >
+                                <SelectTrigger className="w-24 h-12 rounded-xl" data-testid="public-reg-cc-select">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="+91">+91</SelectItem>
+                                    <SelectItem value="+1">+1</SelectItem>
+                                    <SelectItem value="+44">+44</SelectItem>
+                                    <SelectItem value="+971">+971</SelectItem>
+                                    <SelectItem value="+65">+65</SelectItem>
+                                    <SelectItem value="+61">+61</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Input
+                                type="tel"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                placeholder="9876543210"
+                                className="flex-1 h-12 rounded-xl"
+                                required
+                                maxLength={15}
+                                data-testid="public-reg-phone"
+                            />
+                        </div>
                     </div>
                     <div>
                         <Label className="form-label">Email (optional)</Label>

@@ -1,3 +1,10 @@
+### 2026-10-30 [CR-124] §implementation — Code complete, self-test PASS
+**Decision**: CR-124 implemented. 14 edits across 6 files. Self-test: normalize_phone 14/14 PASS, CSV import 6/6 PASS, backend healthy, frontend compiled.
+**Source**: Implementation per approved plan (`planning/CR_124_IMPLEMENTATION_PLAN.md`).
+**Rationale**: All edits follow plan E1-E14 exactly. Known-prefix lookup added to fix greedy regex for raw E.164 parsing (T6).
+**Locks**: API-level verification (V1-V20) blocked on real MONGO_URL — owner must add secrets for full QA.
+
+
 ### 2026-10-30 [CR-124] §Q6 — CSV import country_code column
 **Decision**: Add `country_code` as optional CSV import column. Default `+91` when absent.
 **Source**: Owner reply "6 a" (2026-10-30).

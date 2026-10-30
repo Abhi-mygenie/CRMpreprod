@@ -44,6 +44,8 @@ def _is_placeholder_name(name) -> bool:
 EXPORT_FIELDS = [
     ("Name",            "name"),
     ("Phone",           "phone"),
+    ("Country Code",    "country_code"),  # CR-124
+    ("Country Code",    "country_code"),  # CR-124
     ("Email",           "email"),
     ("Date of Birth",   "dob"),
     ("Anniversary",     "anniversary"),
@@ -108,15 +110,14 @@ def _validate_and_classify_row(row: dict, existing_phones: set) -> dict:
     if not phone:
         return {"status": "error", "row": row_num, "reason": "Missing phone number"}
 
-    clean_phone = phone.replace(" ", "").replace("-", "").lstrip("+")
-    if clean_phone.startswith("91") and len(clean_phone) == 12:
-        clean_phone = clean_phone[2:]
-    if not clean_phone.isdigit():
-        return {"status": "error", "row": row_num, "reason": f"Invalid phone format: '{phone}'"}
-    if len(clean_phone) != 10:
-        return {"status": "error", "row": row_num, "reason": f"Phone must be 10 digits, got {len(clean_phone)}"}
+    # CR-124: use normalize_phone for international support (Q6=a: optional country_code column, default +91)
+    row_cc = row.get("country_code", "").strip() or None
+    clean_phone, clean_cc, ph_status = normalize_phone(phone, row_cc)
+    if ph_status == "invalid":
+        return {"status": "error", "row": row_num, "reason": f"Invalid phone number: '{phone}'" + (f" for {row_cc}" if row_cc else "")}
 
-    status = "update" if clean_phone in existing_phones else "new"
+    dedup_key = f"{clean_cc}:{clean_phone}"  # CR-124: cc-aware dedup
+    status = "update" if dedup_key in existing_phones else "new"
     raw_tags = row.get("tags", "").strip()
     tags_list = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else []
 
@@ -134,6 +135,7 @@ def _validate_and_classify_row(row: dict, existing_phones: set) -> dict:
         "row":     row_num,
         "name":    name,
         "phone":   clean_phone,
+        "country_code": clean_cc,  # CR-124
         "email":   row.get("email", "").strip() or None,
         "dob":     row.get("dob", "").strip() or None,
         "city":    row.get("city", "").strip() or None,
@@ -150,7 +152,7 @@ def _find_duplicate_phones(classified: list) -> Optional[str]:
     for r in classified:
         if r["status"] == "error":
             continue
-        seen.setdefault(r["phone"], []).append(r["row"])
+        seen.setdefault(f"{r.get('country_code', '+91')}:{r['phone']}", []).append(r["row"])  # CR-124: cc-aware dedup
     dups = {p: rws for p, rws in seen.items() if len(rws) > 1}
     if not dups:
         return None
@@ -1476,10 +1478,12 @@ async def download_import_template(
         raise HTTPException(status_code=400, detail="format must be 'csv' or 'xlsx'")
 
     # BUG-014 (Q-C=a): template includes whatsapp_opt_in column
-    IMPORT_HEADERS = ["name", "phone", "email", "dob", "city", "address", "tags", "whatsapp_opt_in"]
+    # CR-124: country_code optional column (Q6=a); default +91 when absent
+    IMPORT_HEADERS = ["name", "phone", "country_code", "email", "dob", "city", "address", "tags", "whatsapp_opt_in"]
     SAMPLE_ROWS = [
-        ["Priya Sharma",  "9876543210", "priya@example.com", "1990-05-15", "Mumbai", "123 Main St", "VIP, Regular", "Yes"],
-        ["Rahul Verma",   "9123456789", "rahul@example.com", "",           "Delhi",  "",             "",             ""],
+        ["Priya Sharma",  "9876543210", "+91", "priya@example.com", "1990-05-15", "Mumbai", "123 Main St", "VIP, Regular", "Yes"],
+        ["Rahul Verma",   "9123456789", "",    "rahul@example.com", "",           "Delhi",  "",             "",             ""],
+        ["John Smith",    "7911123456", "+44", "john@example.com",  "",           "",       "",             "",             ""],
     ]
     timestamp = datetime.now(timezone.utc).strftime("%Y_%m_%d")
 
@@ -1539,9 +1543,9 @@ async def preview_import(
         raise HTTPException(status_code=400, detail=f"File has {len(rows)} rows. Maximum allowed is 5,000.")
 
     existing_docs = await db.customers.find(
-        {"user_id": user["id"]}, {"phone": 1, "_id": 0}
+        {"user_id": user["id"]}, {"phone": 1, "country_code": 1, "_id": 0}  # CR-124: include cc
     ).to_list(length=None)
-    existing_phones = {doc["phone"] for doc in existing_docs if doc.get("phone")}
+    existing_phones = {f"{doc.get('country_code', '+91')}:{doc['phone']}" for doc in existing_docs if doc.get("phone")}
 
     classified   = [_validate_and_classify_row(r, existing_phones) for r in rows]
 
@@ -1602,9 +1606,9 @@ async def import_customers(
         raise HTTPException(status_code=400, detail=f"Max 5,000 rows allowed, got {len(rows)}.")
 
     existing_docs = await db.customers.find(
-        {"user_id": user["id"]}, {"phone": 1, "id": 1, "tags": 1, "_id": 0}
+        {"user_id": user["id"]}, {"phone": 1, "country_code": 1, "id": 1, "tags": 1, "_id": 0}  # CR-124: include cc
     ).to_list(length=None)
-    phone_to_doc = {doc["phone"]: doc for doc in existing_docs if doc.get("phone")}
+    phone_to_doc = {f"{doc.get('country_code', '+91')}:{doc['phone']}": doc for doc in existing_docs if doc.get("phone")}
 
     imported_count = 0
     updated_count  = 0
@@ -1628,7 +1632,7 @@ async def import_customers(
             errors.append(ImportRowError(row=result["row"], reason=result["reason"]))
             continue
 
-        payload = {"name": result["name"], "phone": result["phone"], "country_code": "+91"}  # CR-085 W11 (G2)
+        payload = {"name": result["name"], "phone": result["phone"], "country_code": result.get("country_code", "+91")}  # CR-124 (was CR-085 W11)
         for field in ("email", "dob", "city", "address"):
             if result.get(field):
                 payload[field] = result[field]
@@ -1638,7 +1642,8 @@ async def import_customers(
             new_tags_seen.add(t)
 
         if result["status"] == "update":
-            existing_doc  = phone_to_doc[result["phone"]]
+            dedup_key = f"{result.get('country_code', '+91')}:{result['phone']}"  # CR-124
+            existing_doc  = phone_to_doc[dedup_key]
             existing_tags = existing_doc.get("tags", [])
             merged_tags   = list(set(existing_tags + incoming_tags))
             update_payload = {**payload, "tags": merged_tags, "updated_at": now}
@@ -1647,7 +1652,7 @@ async def import_customers(
             if result.get("whatsapp_opt_in") is not None:
                 update_payload["whatsapp_opt_in"] = result["whatsapp_opt_in"]
             ops.append(UpdateOne(
-                {"user_id": user["id"], "phone": result["phone"]},
+                {**phone_match(user["id"], result["phone"], result.get("country_code", "+91"))},  # CR-124
                 {"$set": update_payload}
             ))
             updated_count += 1

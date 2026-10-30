@@ -1588,7 +1588,7 @@ export default function CustomersPage() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">{customer.phone}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-600">{customer.country_code && customer.country_code !== "+91" ? `${customer.country_code} ` : ""}{customer.phone}</td>
                                                 <td className="px-4 py-3 text-center">
                                                     <span className="text-sm font-medium text-gray-700">{customer.total_visits || 0}</span>
                                                 </td>
@@ -2884,7 +2884,7 @@ export default function CustomersPage() {
                                 <input id="import-file-input" type="file" accept=".csv,.xlsx" className="hidden" onChange={(e) => handleFileSelect(e.target.files[0])} data-testid="import-file-input" />
                             </label>
                             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs text-amber-700">
-                                <span className="font-semibold">Required columns:</span> <code className="bg-amber-100 px-1 rounded">name</code> and <code className="bg-amber-100 px-1 rounded">phone</code>. Optional: email, dob, city, address, tags (comma-separated). Duplicate phone → update existing customer.
+                                <span className="font-semibold">Required columns:</span> <code className="bg-amber-100 px-1 rounded">name</code> and <code className="bg-amber-100 px-1 rounded">phone</code>. Optional: country_code (default +91), email, dob, city, address, tags (comma-separated). Duplicate phone → update existing customer.
                             </div>
                             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
                                 <span className="text-xs text-gray-600">Not sure of the format?</span>

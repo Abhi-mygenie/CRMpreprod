@@ -297,7 +297,7 @@ export default function CustomerDetailPage() {
                                 <h1 className="text-2xl font-bold font-['Montserrat']">{customer.name}</h1>
                                 <div className="flex items-center gap-2 mt-1 text-white/80">
                                     <Phone className="w-4 h-4" />
-                                    <span>{customer.phone}</span>
+                                    <span>{customer.country_code && customer.country_code !== "+91" ? `${customer.country_code} ` : ""}{customer.phone}</span>
                                 </div>
 {/* Email hidden as per requirement */}
                                 {/* Stats Subtitle */}
@@ -1179,6 +1179,7 @@ export default function CustomerDetailPage() {
                                             placeholder="9876543210"
                                             className="flex-1 h-11 rounded-xl"
                                             required
+                                            maxLength={15}
                                             data-testid="edit-phone-input"
                                         />
                                     </div>
