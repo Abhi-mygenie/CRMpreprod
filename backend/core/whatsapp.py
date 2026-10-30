@@ -833,7 +833,7 @@ async def trigger_whatsapp_event(
 
         # 5. Prepare message
         phone = customer.get("phone", "").replace(" ", "").replace("-", "")
-        country_code = customer.get("country_code", "+91").replace("+", "")
+        country_code = (customer.get("country_code") or "+91").replace("+", "")  # BUG-041: null-safe
         
         if not phone:
             logger.warning(f"Customer {customer.get('id')} has no phone number")

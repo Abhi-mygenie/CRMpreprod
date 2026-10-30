@@ -652,7 +652,7 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 
 | **CR-125** | Extend `_KNOWN_CC` prefix set for raw E.164 parsing — add +27 (South Africa), +7 (Russia), +234 (Nigeria), +254 (Kenya), +62 (Indonesia) and other high-traffic hotel guest origins | 📋 REGISTERED (P3, LOW) | `core/phone.py` `_KNOWN_CC` frozenset. Currently 14 prefixes. Unknown prefixes fall back to greedy regex which can mis-split (e.g. +27→+2782). Only affects raw E.164 without explicit cc dropdown. | 2026-10-30 |
-| **BUG-041** | WhatsApp send crashes on legacy `country_code:null` customers — `AttributeError` on `.replace()` | 🔴 OPEN (P1, MEDIUM) | `core/whatsapp.py:836`. Pre-existing since CR-100. 1-line fix. | 2026-10-30 |
+| **BUG-041** | WhatsApp send crashes on legacy `country_code:null` customers — `AttributeError` on `.replace()` | 🟢 FIXED + self-test 4/4 PASS (P1, MEDIUM) | `core/whatsapp.py:836`. Pre-existing since CR-100. 1-line fix. | 2026-10-30 |
 | **BUG-042** | CSV import preview missing `country_code` in response — `ImportPreviewRow` schema gap | 🔴 OPEN (P3, LOW) | `models/schemas.py` + `routers/customers.py`. CR-124 implementation gap. ~5 lines. | 2026-10-30 |
 | **BUG-043** | `test_phone_normalize.py::test_phone_match_key` stale assertion — expects pre-CR-100 exact match | 🔴 OPEN (P3, LOW) | `tests/test_phone_normalize.py`. Pre-existing since CR-100. 2 lines. | 2026-10-30 |
 

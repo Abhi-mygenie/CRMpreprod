@@ -1,3 +1,9 @@
+### 2026-10-30 [BUG-041] §implementation — Fixed, self-test PASS
+**Decision**: BUG-041 implemented. 1 line in `core/whatsapp.py:836`. Self-test T1-T4 PASS. Backend healthy.
+**Source**: Implementation per `planning/BUG_041_IMPLEMENTATION_PLAN.md` E1.
+**Locks**: Closure gated on owner smoke or QA re-run.
+
+
 ### 2026-10-30 [CR-124 QA] §registration — 4 gaps registered from QA findings
 **Decision**: Register BUG-041 (P1), BUG-042 (P3), BUG-043 (P3), CR-125 (P3) from CR-124 full QA run (iteration_2.json, 19/20 V-items PASS).
 **Source**: Testing agent QA report — N1 (WhatsApp null-cc crash), F1 (preview missing cc), N2 (unknown prefix split), N4 (stale test).
