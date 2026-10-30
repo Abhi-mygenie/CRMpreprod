@@ -661,3 +661,35 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 **Reported**: 2026-10-10 (Wave A Planning, CR-110 amend IA) · **Severity**: P2 (security hygiene; public repo) · **Risk**: LOW fix / MEDIUM exposure · **Status**: 📋 REGISTERED → fix = CR-110 amendment (getpass prompt, no default, masked output). Owner: rotate shared POS password.
 **Where**: `scripts/push_and_refresh_tokens.py:20`, `:82`.
 **Intake**: same doc.
+
+
+---
+
+## BUG-041: WhatsApp send crashes on legacy customers with `country_code: null` — AttributeError
+
+**Reported**: 2026-10-30 (CR-124 QA, finding N1) · **Severity**: P1 · **Risk**: MEDIUM · **Status**: 🔴 OPEN
+**Where**: `core/whatsapp.py:836` — `customer.get('country_code', '+91').replace('+', '')`. When `country_code` key exists but value is `None` (53 legacy docs per CR-100), `.replace()` is called on `None` → `AttributeError`. Line 913 already has the safe form.
+**Effect**: WhatsApp send to any legacy `country_code:null` customer crashes. No message delivered. Server returns 500.
+**Fix**: `(customer.get('country_code') or '+91').replace('+', '')` — 1 line.
+**Pre-existing**: Yes — exists before CR-124. CR-100 knowingly left null-cc docs; this send path was never tested with them.
+**Related**: CR-100 (null-cc tolerance), CR-085 (canonical phone)
+
+---
+
+## BUG-042: CSV import preview doesn't show `country_code` — ImportPreviewRow schema missing field
+
+**Reported**: 2026-10-30 (CR-124 QA, finding F1 / V11 partial fail) · **Severity**: P3 · **Risk**: LOW · **Status**: 🔴 OPEN
+**Where**: `models/schemas.py:1292` `ImportPreviewRow` and `routers/customers.py:~1562` preview builder — neither includes `country_code`. CR-124 added cc-aware classification in `_validate_and_classify_row()` (returns `country_code` in result dict) but forgot to surface it in the preview response.
+**Effect**: Import preview UI shows name/phone/status but not which country code was detected. Import commit itself stores cc correctly.
+**Fix**: Add `country_code: Optional[str] = None` to `ImportPreviewRow` + pass `r.get("country_code")` in preview builder. ~5 lines.
+**Related**: CR-124 (implementation gap)
+
+---
+
+## BUG-043: `test_phone_normalize.py::test_phone_match_key` — stale assertion from before CR-100
+
+**Reported**: 2026-10-30 (CR-124 QA, finding N4) · **Severity**: P3 · **Risk**: LOW (test-only) · **Status**: 🔴 OPEN
+**Where**: `tests/test_phone_normalize.py::test_phone_match_key` — expects exact `{"user_id": ..., "phone": ..., "country_code": "+91"}` but CR-100 changed `phone_match()` to return `{"country_code": {"$in": ["+91", None, ""]}}` for +91. Test always fails.
+**Effect**: Zero app impact. Test suite reports a false failure.
+**Fix**: Update assertion to expect `$in` form. ~2 lines.
+**Pre-existing**: Yes — exists since CR-100, not caused by CR-124.

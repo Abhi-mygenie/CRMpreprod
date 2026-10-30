@@ -1,3 +1,10 @@
+### 2026-10-30 [CR-124 QA] §registration — 4 gaps registered from QA findings
+**Decision**: Register BUG-041 (P1), BUG-042 (P3), BUG-043 (P3), CR-125 (P3) from CR-124 full QA run (iteration_2.json, 19/20 V-items PASS).
+**Source**: Testing agent QA report — N1 (WhatsApp null-cc crash), F1 (preview missing cc), N2 (unknown prefix split), N4 (stale test).
+**Rationale**: QA agent must not fix code. All gaps registered for Bug Fix / Implementation agent per gate flow.
+**Locks**: BUG-041 is P1 — should be fixed before CR-124 owner smoke. Others are P3 backlog.
+
+
 ### 2026-10-30 [CR-124] §implementation — Code complete, self-test PASS
 **Decision**: CR-124 implemented. 14 edits across 6 files. Self-test: normalize_phone 14/14 PASS, CSV import 6/6 PASS, backend healthy, frontend compiled.
 **Source**: Implementation per approved plan (`planning/CR_124_IMPLEMENTATION_PLAN.md`).
