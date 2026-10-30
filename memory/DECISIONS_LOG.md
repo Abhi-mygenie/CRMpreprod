@@ -1,3 +1,8 @@
+### 2026-10-30 [CR-125] §implementation — Fixed, self-test 8/8 + pytest 13/13 PASS
+**Decision**: CR-125 implemented. Extended `_KNOWN_CC` from 14 → 22 prefixes. Added +7, +27, +34, +62, +66, +82, +234, +254.
+**Source**: Implementation per `planning/CR_125_IMPLEMENTATION_PLAN.md` E1.
+
+
 ### 2026-10-30 [BUG-042] §implementation — Fixed, self-test PASS
 **Decision**: BUG-042 implemented. Added `country_code` to `ImportPreviewRow` schema + preview builder. T1 (+44) and T2 (default +91) PASS.
 **Source**: Implementation per `planning/BUG_042_IMPLEMENTATION_PLAN.md` E1+E2.

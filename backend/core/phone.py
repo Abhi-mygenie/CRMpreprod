@@ -5,10 +5,11 @@ from typing import Optional, Tuple
 INDIA_CC = "+91"
 _CC_RE = re.compile(r"^\+(\d{1,4})")
 
-# CR-124: known country code prefixes for raw E.164 parsing (used when no explicit cc_in)
+# CR-125: extended to 22 prefixes (hotel guest high-traffic origins)
 _KNOWN_CC = frozenset({
-    "+1", "+33", "+39", "+44", "+49", "+61", "+65", "+81", "+86",
-    "+91", "+353", "+852", "+966", "+971",
+    "+1", "+7", "+27", "+33", "+34", "+39", "+44", "+49",
+    "+61", "+62", "+65", "+66", "+81", "+82", "+86",
+    "+91", "+234", "+254", "+353", "+852", "+966", "+971",
 })
 
 
