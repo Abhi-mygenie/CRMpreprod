@@ -1,3 +1,16 @@
+### 2026-10-30 [CR-124] §Q6 — CSV import country_code column
+**Decision**: Add `country_code` as optional CSV import column. Default `+91` when absent.
+**Source**: Owner reply "6 a" (2026-10-30).
+**Rationale**: Allows international imports without breaking existing Indian CSV files.
+**Locks**: `_validate_and_classify_row()` must accept optional cc column; import storage must derive cc from normalize result.
+
+### 2026-10-30 [CR-124] §Q7 — Phone display format
+**Decision**: Display `+{cc} {phone}` in customer table and detail pages for all customers.
+**Source**: Owner reply "7 a" (2026-10-30).
+**Rationale**: Hotels with international guests need visible country code to avoid confusion.
+**Locks**: `CustomersPage.jsx` table cell + `CustomerDetailPage.jsx` header must render `+{cc} {phone}`.
+
+
 ### 2026-10-30 [CR-124] §intake — International Phone Number Support registered
 **Decision**: Register CR-124 (E.164 international phone support) as P1/HIGH. No code until owner answers Q1-Q5.
 **Source**: Owner uploaded `BACKEND_BRIEF_INTL_PHONE_2026_10_24.md` + reported 422 on cafe103 customer phone edit.

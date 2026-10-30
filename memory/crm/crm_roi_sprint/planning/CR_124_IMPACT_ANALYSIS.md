@@ -248,17 +248,17 @@ The current non-India path (line 16-18) **already works** for `+XX` prefixed int
 
 ---
 
-## 8. Open Owner Decisions (carried from Intake Q1-Q5)
+## 8. Owner Decisions (ALL LOCKED except Q5)
 
 | # | Decision | Rec | Status |
 |---|---|---|---|
-| Q1 | Storage format: split `phone` + `country_code` (b) vs E.164 in one field (a) | **(b) Split** — zero migration, backward compat | **PROCEEDING WITH (b)** unless owner overrides |
-| Q2 | Backfill existing 7700 Indian customers to E.164? | **(a) Forward-only** | **PROCEEDING WITH (a)** |
-| Q3 | Keep `digits[0] in "6789"` for +91? | **(a) Yes, +91 only** | **PROCEEDING WITH (a)** |
-| Q4 | CRM-only scope vs include POS backend APIs? | **(a) CRM-only** — POS APIs (place-order, check-in) are MyGenie-side | **PROCEEDING WITH (a)** |
+| Q1 | Storage format: split `phone` + `country_code` (b) vs E.164 in one field (a) | **(b) Split** — zero migration, backward compat | ✅ **LOCKED (b)** |
+| Q2 | Backfill existing 7700 Indian customers to E.164? | **(a) Forward-only** | ✅ **LOCKED (a)** |
+| Q3 | Keep `digits[0] in "6789"` for +91? | **(a) Yes, +91 only** | ✅ **LOCKED (a)** |
+| Q4 | CRM-only scope vs include POS backend APIs? | **(a) CRM-only** — POS APIs (place-order, check-in) are MyGenie-side | ✅ **LOCKED (a)** |
 | Q5 | Priority vs CR-069? | Owner decides | **AWAITING** |
-| **Q6 (NEW)** | CSV import: add `country_code` as optional column? Default `+91` when absent? | **(a) Yes, optional column, default +91** | **AWAITING** |
-| **Q7 (NEW)** | Display format: show `+{cc} {phone}` in customer table/detail, or keep digits-only? | **(a) Show with cc prefix** | **AWAITING** |
+| Q6 | CSV import: add `country_code` as optional column? Default `+91` when absent? | **(a) Yes** | ✅ **LOCKED (a)** — owner 2026-10-30 |
+| Q7 | Display format: show `+{cc} {phone}` in customer table/detail? | **(a) Show with cc prefix** | ✅ **LOCKED (a)** — owner 2026-10-30 |
 
 ---
 
@@ -300,7 +300,13 @@ Code reality: PARTIAL (normalize_phone exists; non-India 6-15 digit path exists 
 Risk: HIGH
 Files WILL change: core/phone.py, routers/customers.py, routers/pos.py (1 line), CustomerRegistrationPage.jsx, CustomerDetailPage.jsx (verify), CustomersPage.jsx (display)
 Files WILL NOT touch: core/whatsapp.py, core/loyalty.py, core/coupon.py, core/campaign_jobs.py, routers/scan.py, routers/whatsapp.py, routers/campaigns.py, routers/auth.py, models/schemas.py, services/*
-Owner decisions: Q1-Q5 (proceeding with recs), Q6-Q7 NEW
+Owner decisions: Q1-Q4 locked (recs), Q6-Q7 locked (owner 2026-10-30), Q5 open (priority)
 Docs: planning/CR_124_IMPACT_ANALYSIS.md
-Next: Owner approval → Implementation Plan
+Next: Implementation Plan (IA CLOSED — Q1-Q4 locked by recommendation, Q6-Q7 locked by owner 2026-10-30, Q5 still open)
 ```
+
+---
+
+## IA GATE: CLOSED (2026-10-30)
+
+All owner decisions locked except Q5 (priority sequencing). Implementation Plan can proceed.
