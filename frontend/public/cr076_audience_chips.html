@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CR-076 · Audience Chips — Full Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#F26B33;--brand-dark:#D85A22;--green:#329937;--dark:#1A1A1A;
+  --wa:#25D366;--wa-dark:#128C4E;
+  --new:#329937;--active:#62B5E5;--risk:#F59E0B;--dormant:#EF4444;--churned:#6B7280;
+  --bg:#F5F4F1;--card:#FFFFFF;--border:rgba(0,0,0,0.09);--muted:#6B7280;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,0.1),0 2px 6px rgba(0,0,0,0.06);
+  --r:12px;--rsm:8px;
+}
+html{font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--dark);background:var(--bg);min-height:100vh}
+h1,h2,h3,h4,strong,.label{font-family:'Manrope',sans-serif}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:99px}
+
+/* ── Proto Banner ── */
+.proto{background:#1A1A1A;color:#fff;text-align:center;padding:8px 12px;font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;letter-spacing:.05em;position:sticky;top:0;z-index:999}
+.proto span{color:var(--brand)}
+
+/* ── Page Shell ── */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 37px)}
+.sidebar{background:var(--card);border-right:1px solid var(--border);padding:16px 10px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--rsm);color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;transition:all 120ms;margin-bottom:1px}
+.nav-item:hover{background:#F5F4F0;color:var(--dark)}
+.nav-item.active{background:#FFF3EE;color:var(--brand);font-weight:700}
+.nav-item svg{width:15px;height:15px;flex-shrink:0}
+.nav-sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9CA3AF;padding:12px 12px 5px}
+.main{padding:32px 36px;display:flex;flex-direction:column;gap:28px}
+
+/* ── Page Header ── */
+.page-h{display:flex;align-items:flex-start;justify-content:space-between}
+.page-title{font-size:22px;font-weight:900;letter-spacing:-.03em}
+.page-sub{font-size:13px;color:var(--muted);margin-top:3px}
+
+/* ── Wizard Container ── */
+.wizard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-md);max-width:840px}
+
+/* Wizard Top Bar */
+.wiz-topbar{background:#1A1A1A;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.wiz-title{font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;color:#fff}
+.wiz-close{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;border:1px solid rgba(255,255,255,.12);transition:all 120ms}
+.wiz-close:hover{background:rgba(255,255,255,.08);color:#fff}
+.wiz-close svg{width:13px;height:13px}
+
+/* Step Bar */
+.step-bar{display:flex;align-items:center;padding:16px 24px;border-bottom:1px solid var(--border);background:#FAFAF8;gap:0}
+.step-item{display:flex;align-items:center;gap:8px;flex:1}
+.step-num{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;font-family:'Manrope',sans-serif;flex-shrink:0}
+.step-num.done{background:#DCFCE7;color:var(--green)}
+.step-num.active{background:var(--brand);color:#fff}
+.step-num.pending{background:#F3F4F6;color:var(--muted)}
+.step-label{font-size:12px;font-weight:700;font-family:'Manrope',sans-serif}
+.step-label.active{color:var(--brand)}
+.step-label.pending{color:var(--muted)}
+.step-line{flex:1;height:1px;background:var(--border);margin:0 8px}
+
+/* Wizard Body */
+.wiz-body{padding:22px 24px 24px;display:flex;flex-direction:column;gap:18px}
+
+/* ── Section Label ── */
+.sec-label{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:8px}
+
+/* ── Pre-filled Banner ── */
+.prefill-banner{
+  border-radius:10px;padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1.5px solid;
+}
+.prefill-left{display:flex;align-items:center;gap:10px}
+.prefill-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prefill-icon svg{width:16px;height:16px;color:#fff}
+.prefill-name{font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;display:block}
+.prefill-meta{font-size:11.5px;color:var(--muted);margin-top:2px;display:block}
+.prefill-tag{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;font-family:'Manrope',sans-serif;padding:3px 9px;border-radius:99px;flex-shrink:0}
+.prefill-tag svg{width:10px;height:10px}
+
+/* ── Divider ── */
+.or-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;font-weight:600}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── Quick Audience Grid ── */
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.qa-chip{
+  border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;
+  display:flex;flex-direction:column;gap:5px;cursor:pointer;
+  transition:border-color 150ms,box-shadow 150ms,transform 120ms,background 120ms;
+  background:var(--card);position:relative;
+}
+.qa-chip:hover{border-color:var(--chip-color);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.07)}
+.qa-chip.selected{border-color:var(--chip-color);background:var(--chip-bg);box-shadow:0 0 0 3px var(--chip-shadow)}
+.qa-chip.selected::after{content:'✓';position:absolute;top:7px;right:9px;font-size:11px;font-weight:800;color:var(--chip-color);font-family:'Manrope',sans-serif}
+.chip-icon-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.chip-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0}
+.chip-source{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.chip-name{font-size:12.5px;font-weight:800;font-family:'Manrope',sans-serif;color:var(--dark);line-height:1.2}
+.chip-count{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:500}
+.chip-filter{font-size:10px;color:var(--muted);margin-top:1px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Combo chip */
+.chip-combo-dots{display:flex;gap:2px;align-items:center}
+.chip-combo-dots span{width:7px;height:7px;border-radius:2px}
+
+/* ── Saved Segments ── */
+.seg-list{display:flex;flex-direction:column;gap:6px}
+.seg-row{
+  display:flex;align-items:center;gap:10px;padding:10px 13px;
+  border:1.5px solid var(--border);border-radius:9px;cursor:pointer;
+  transition:border-color 150ms,background 120ms;
+}
+.seg-row:hover{border-color:#D1D5DB;background:#FAFAF8}
+.seg-row.selected{border-color:var(--brand);background:#FFF6F1}
+.seg-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.seg-icon svg{width:14px;height:14px;color:#fff}
+.seg-name{font-size:13px;font-weight:700;font-family:'Manrope',sans-serif}
+.seg-meta{font-size:11px;color:var(--muted);margin-top:1px}
+.seg-count{margin-left:auto;font-size:12px;font-weight:700;font-family:'Manrope',sans-serif;color:var(--muted)}
+
+/* ── All Customers ── */
+.all-row{
+  display:flex;align-items:center;gap:10px;padding:10px 13px;
+  border:1.5px dashed var(--border);border-radius:9px;cursor:pointer;
+  transition:border-color 150ms,background 120ms;color:var(--muted);
+}
+.all-row:hover{border-color:#D1D5DB;color:var(--dark);background:#FAFAF8}
+.all-row svg{width:15px;height:15px}
+.all-row span{font-size:13px;font-weight:600}
+
+/* ── Footer ── */
+.wiz-footer{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-top:1px solid var(--border);background:#FAFAF8}
+.footer-left{font-size:12.5px;color:var(--muted)}
+.footer-left strong{font-family:'Manrope',sans-serif;color:var(--dark)}
+.footer-btns{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;font-family:'Manrope',sans-serif;transition:all 120ms;cursor:pointer}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:#F5F4F0;color:var(--dark)}
+.btn-brand{background:var(--brand);color:#fff;box-shadow:0 2px 8px rgba(242,107,51,.28)}
+.btn-brand:hover{background:var(--brand-dark);box-shadow:0 4px 14px rgba(242,107,51,.36)}
+.btn svg{width:13px;height:13px}
+
+/* ── Legend panel ── */
+.legend{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;max-width:840px}
+.legend-title{font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;margin-bottom:14px}
+.legend-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.lg-item{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;background:#FAFAF8;border-radius:9px;border:1px solid var(--border)}
+.lg-dot{width:10px;height:10px;border-radius:3px;margin-top:3px;flex-shrink:0}
+.lg-name{font-size:12.5px;font-weight:700;font-family:'Manrope',sans-serif;color:var(--dark);margin-bottom:2px}
+.lg-note{font-size:11px;color:var(--muted);line-height:1.4}
+.tag-new{background:#EEF8EE;color:#166534;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;font-family:'Manrope',sans-serif;border:1px solid #BBF7D0;margin-left:4px}
+.tag-works{background:#EFF6FF;color:#1D4ED8;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;font-family:'Manrope',sans-serif;border:1px solid #BFDBFE;margin-left:4px}
+
+/* ── Callout ── */
+.callout{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 15px;font-size:12.5px;color:#166534;line-height:1.6}
+.callout strong{font-family:'Manrope',sans-serif;font-size:13px;display:block;margin-bottom:3px;color:#15803D}
+</style>
+</head>
+<body>
+
+<div class="proto">CR-076 · <span>Audience Chips — Complete Design</span> · Click any chip to select · Pre-filled = Churned (coming from Lifecycle page)</div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="nav-sec">Main</div>
+    <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
+    <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Customers</div>
+    <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Lifecycle</div>
+    <div class="nav-sec" style="margin-top:8px">Marketing</div>
+    <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Audiences</div>
+    <div class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Campaigns</div>
+    <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Templates</div>
+  </nav>
+
+  <main class="main">
+
+    <div class="page-h">
+      <div>
+        <div class="page-title">Campaign Wizard — Audience Step</div>
+        <div class="page-sub">CR-076 · All pre-fill audience chip types · Interactive prototype</div>
+      </div>
+    </div>
+
+    <!-- ── WIZARD ───────────────────────────────────────────────── -->
+    <div class="wizard">
+
+      <!-- Top Bar -->
+      <div class="wiz-topbar">
+        <div class="wiz-title">Create Re-engagement Campaign</div>
+        <button class="wiz-close"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+
+      <!-- Step Bar -->
+      <div class="step-bar">
+        <div class="step-item">
+          <div class="step-num active">1</div>
+          <div class="step-label active">Audience</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-num pending">2</div>
+          <div class="step-label pending">Template</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-num pending">3</div>
+          <div class="step-label pending">Schedule</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item">
+          <div class="step-num pending">4</div>
+          <div class="step-label pending">Review</div>
+        </div>
+      </div>
+
+      <div class="wiz-body">
+
+        <!-- ── SECTION A: Pre-filled chip ── -->
+        <div>
+          <div class="sec-label">Pre-filled from Lifecycle</div>
+          <div class="prefill-banner" id="prefillBanner"
+            style="background:rgba(107,114,128,.07);border-color:rgba(107,114,128,.35)">
+            <div class="prefill-left">
+              <div class="prefill-icon" id="prefillIcon" style="background:#6B7280">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="18" x2="17" y2="18"/></svg>
+              </div>
+              <div>
+                <span class="prefill-name" id="prefillName">Churned Customers</span>
+                <span class="prefill-meta" id="prefillMeta">1,650 customers · last_visit &gt; 90 days ago · lifecycle stage</span>
+              </div>
+            </div>
+            <div class="prefill-tag" id="prefillTag"
+              style="background:rgba(107,114,128,.12);color:#6B7280;border:1px solid rgba(107,114,128,.25)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Pre-filled
+            </div>
+          </div>
+        </div>
+
+        <!-- Or switch -->
+        <div class="or-divider">or choose a different audience</div>
+
+        <!-- ── SECTION B: Lifecycle Stage Chips ── -->
+        <div>
+          <div class="sec-label">Lifecycle Stages <span style="font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;color:#9CA3AF;font-family:'IBM Plex Sans',sans-serif">— from Customer Lifecycle page</span></div>
+          <div class="quick-grid">
+
+            <!-- At Risk -->
+            <div class="qa-chip" id="chip-at_risk" data-name="At Risk Customers" data-count="724" data-filter="last_visit 31–60 days ago" data-color="#F59E0B" data-bg="rgba(245,158,11,.08)" data-shadow="rgba(245,158,11,.18)" onclick="selectChip('at_risk')"
+              style="--chip-color:#F59E0B;--chip-bg:rgba(245,158,11,.08);--chip-shadow:rgba(245,158,11,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#F59E0B"></div>
+                <span class="chip-source">lifecycle</span>
+              </div>
+              <div class="chip-name">At Risk</div>
+              <div class="chip-count">724 customers</div>
+              <div class="chip-filter">31–60 days inactive</div>
+            </div>
+
+            <!-- Dormant -->
+            <div class="qa-chip" id="chip-dormant" data-name="Dormant Customers" data-count="412" data-filter="last_visit 61–90 days ago" data-color="#EF4444" data-bg="rgba(239,68,68,.08)" data-shadow="rgba(239,68,68,.18)" onclick="selectChip('dormant')"
+              style="--chip-color:#EF4444;--chip-bg:rgba(239,68,68,.08);--chip-shadow:rgba(239,68,68,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#EF4444"></div>
+                <span class="chip-source">lifecycle</span>
+              </div>
+              <div class="chip-name">Dormant</div>
+              <div class="chip-count">412 customers</div>
+              <div class="chip-filter">61–90 days inactive</div>
+            </div>
+
+            <!-- Churned (default selected) -->
+            <div class="qa-chip selected" id="chip-churned" data-name="Churned Customers" data-count="1,650" data-filter="last_visit > 90 days" data-color="#6B7280" data-bg="rgba(107,114,128,.08)" data-shadow="rgba(107,114,128,.18)" onclick="selectChip('churned')"
+              style="--chip-color:#6B7280;--chip-bg:rgba(107,114,128,.08);--chip-shadow:rgba(107,114,128,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#6B7280"></div>
+                <span class="chip-source">lifecycle</span>
+              </div>
+              <div class="chip-name">Churned</div>
+              <div class="chip-count">1,650 customers</div>
+              <div class="chip-filter">> 90 days inactive</div>
+            </div>
+
+            <!-- Lapsing combo -->
+            <div class="qa-chip" id="chip-lapsing" data-name="Lapsing Customers" data-count="1,136" data-filter="At Risk + Dormant (31–90d)" data-color="#F59E0B" data-bg="rgba(245,158,11,.08)" data-shadow="rgba(245,158,11,.18)" onclick="selectChip('lapsing')"
+              style="--chip-color:#F59E0B;--chip-bg:rgba(245,158,11,.08);--chip-shadow:rgba(245,158,11,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-combo-dots">
+                  <span style="background:#F59E0B"></span>
+                  <span style="background:#EF4444"></span>
+                </div>
+                <span class="chip-source">combo</span>
+              </div>
+              <div class="chip-name">Lapsing</div>
+              <div class="chip-count">1,136 customers</div>
+              <div class="chip-filter">At Risk + Dormant</div>
+            </div>
+
+            <!-- Win-Back combo -->
+            <div class="qa-chip" id="chip-winback" data-name="Win-Back Pack" data-count="2,062" data-filter="Dormant + Churned (61d+)" data-color="#EF4444" data-bg="rgba(239,68,68,.08)" data-shadow="rgba(239,68,68,.18)" onclick="selectChip('winback')"
+              style="--chip-color:#EF4444;--chip-bg:rgba(239,68,68,.08);--chip-shadow:rgba(239,68,68,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-combo-dots">
+                  <span style="background:#EF4444"></span>
+                  <span style="background:#6B7280"></span>
+                </div>
+                <span class="chip-source">combo</span>
+              </div>
+              <div class="chip-name">Win-Back Pack</div>
+              <div class="chip-count">2,062 customers</div>
+              <div class="chip-filter">Dormant + Churned</div>
+            </div>
+
+            <!-- New customers -->
+            <div class="qa-chip" id="chip-new" data-name="New Customers" data-count="149" data-filter="1 visit, active ≤ 30 days" data-color="#329937" data-bg="rgba(50,153,55,.08)" data-shadow="rgba(50,153,55,.18)" onclick="selectChip('new')"
+              style="--chip-color:#329937;--chip-bg:rgba(50,153,55,.08);--chip-shadow:rgba(50,153,55,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#329937"></div>
+                <span class="chip-source">lifecycle</span>
+              </div>
+              <div class="chip-name">New Customers</div>
+              <div class="chip-count">149 customers</div>
+              <div class="chip-filter">First visit ≤ 30 days</div>
+            </div>
+
+            <!-- Active customers -->
+            <div class="qa-chip" id="chip-active" data-name="Active Customers" data-count="1,283" data-filter="2+ visits, active ≤ 30 days" data-color="#62B5E5" data-bg="rgba(98,181,229,.08)" data-shadow="rgba(98,181,229,.18)" onclick="selectChip('active')"
+              style="--chip-color:#62B5E5;--chip-bg:rgba(98,181,229,.08);--chip-shadow:rgba(98,181,229,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#62B5E5"></div>
+                <span class="chip-source">lifecycle</span>
+              </div>
+              <div class="chip-name">Active Customers</div>
+              <div class="chip-count">1,283 customers</div>
+              <div class="chip-filter">2+ visits ≤ 30 days</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── SECTION C: System Smart Chips ── -->
+        <div>
+          <div class="sec-label">Smart Quick Audiences <span style="font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;color:#9CA3AF;font-family:'IBM Plex Sans',sans-serif">— always available, no segment required</span></div>
+          <div class="quick-grid">
+
+            <!-- VIP -->
+            <div class="qa-chip" id="chip-vip" data-name="VIP Customers" data-count="89" data-filter="vip_flag = true" data-color="#7C3AED" data-bg="rgba(124,58,237,.08)" data-shadow="rgba(124,58,237,.18)" onclick="selectChip('vip')"
+              style="--chip-color:#7C3AED;--chip-bg:rgba(124,58,237,.08);--chip-shadow:rgba(124,58,237,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#7C3AED"></div>
+                <span class="chip-source">smart</span>
+              </div>
+              <div class="chip-name">VIP</div>
+              <div class="chip-count">89 customers</div>
+              <div class="chip-filter">vip_flag = true</div>
+            </div>
+
+            <!-- Never Messaged -->
+            <div class="qa-chip" id="chip-never" data-name="Never Messaged" data-count="340" data-filter="0 WhatsApp logs ever" data-color="#0891B2" data-bg="rgba(8,145,178,.08)" data-shadow="rgba(8,145,178,.18)" onclick="selectChip('never')"
+              style="--chip-color:#0891B2;--chip-bg:rgba(8,145,178,.08);--chip-shadow:rgba(8,145,178,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#0891B2"></div>
+                <span class="chip-source">smart</span>
+              </div>
+              <div class="chip-name">Never Messaged</div>
+              <div class="chip-count">340 customers</div>
+              <div class="chip-filter">0 WA messages sent</div>
+            </div>
+
+            <!-- Opted-in only -->
+            <div class="qa-chip" id="chip-optin" data-name="Opted-In Customers" data-count="3,812" data-filter="whatsapp_opt_in = true" data-color="#25D366" data-bg="rgba(37,211,102,.08)" data-shadow="rgba(37,211,102,.18)" onclick="selectChip('optin')"
+              style="--chip-color:#25D366;--chip-bg:rgba(37,211,102,.08);--chip-shadow:rgba(37,211,102,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#25D366"></div>
+                <span class="chip-source">smart</span>
+              </div>
+              <div class="chip-name">WA Opted-In</div>
+              <div class="chip-count">3,812 customers</div>
+              <div class="chip-filter">whatsapp_opt_in = true</div>
+            </div>
+
+            <!-- Failed delivery -->
+            <div class="qa-chip" id="chip-failed" data-name="Failed Delivery" data-count="67" data-filter="last WA status = failed/rejected" data-color="#DC2626" data-bg="rgba(220,38,38,.08)" data-shadow="rgba(220,38,38,.18)" onclick="selectChip('failed')"
+              style="--chip-color:#DC2626;--chip-bg:rgba(220,38,38,.08);--chip-shadow:rgba(220,38,38,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#DC2626"></div>
+                <span class="chip-source">smart</span>
+              </div>
+              <div class="chip-name">Failed Delivery</div>
+              <div class="chip-count">67 customers</div>
+              <div class="chip-filter">status: failed/rejected</div>
+            </div>
+
+            <!-- Birthday -->
+            <div class="qa-chip" id="chip-bday" data-name="Birthday This Month" data-count="48" data-filter="dob month = current month" data-color="#F26B33" data-bg="rgba(242,107,51,.08)" data-shadow="rgba(242,107,51,.18)" onclick="selectChip('bday')"
+              style="--chip-color:#F26B33;--chip-bg:rgba(242,107,51,.08);--chip-shadow:rgba(242,107,51,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#F26B33"></div>
+                <span class="chip-source">smart</span>
+              </div>
+              <div class="chip-name">Birthday Month</div>
+              <div class="chip-count">48 customers</div>
+              <div class="chip-filter">dob = Aug 2026</div>
+            </div>
+
+            <!-- Anniversary -->
+            <div class="qa-chip" id="chip-anniv" data-name="Anniversary This Month" data-count="31" data-filter="anniversary month = current month" data-color="#F26B33" data-bg="rgba(242,107,51,.08)" data-shadow="rgba(242,107,51,.18)" onclick="selectChip('anniv')"
+              style="--chip-color:#F26B33;--chip-bg:rgba(242,107,51,.08);--chip-shadow:rgba(242,107,51,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#F26B33"></div>
+                <span class="chip-source">smart</span>
+              </div>
+              <div class="chip-name">Anniversary Month</div>
+              <div class="chip-count">31 customers</div>
+              <div class="chip-filter">anniversary = Aug 2026</div>
+            </div>
+
+            <!-- Gold/Platinum tier -->
+            <div class="qa-chip" id="chip-gold" data-name="Gold + Platinum Tier" data-count="212" data-filter="tier = Gold or Platinum" data-color="#D97706" data-bg="rgba(217,119,6,.08)" data-shadow="rgba(217,119,6,.18)" onclick="selectChip('gold')"
+              style="--chip-color:#D97706;--chip-bg:rgba(217,119,6,.08);--chip-shadow:rgba(217,119,6,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-combo-dots">
+                  <span style="background:#D97706"></span>
+                  <span style="background:#9CA3AF"></span>
+                </div>
+                <span class="chip-source">tier</span>
+              </div>
+              <div class="chip-name">Gold + Platinum</div>
+              <div class="chip-count">212 customers</div>
+              <div class="chip-filter">tier = Gold / Platinum</div>
+            </div>
+
+            <!-- High spenders -->
+            <div class="qa-chip" id="chip-highval" data-name="High Value Customers" data-count="318" data-filter="total_spent ≥ ₹5,000" data-color="#059669" data-bg="rgba(5,150,105,.08)" data-shadow="rgba(5,150,105,.18)" onclick="selectChip('highval')"
+              style="--chip-color:#059669;--chip-bg:rgba(5,150,105,.08);--chip-shadow:rgba(5,150,105,.18)">
+              <div class="chip-icon-row">
+                <div class="chip-dot" style="background:#059669"></div>
+                <span class="chip-source">smart</span>
+              </div>
+              <div class="chip-name">High Spenders</div>
+              <div class="chip-count">318 customers</div>
+              <div class="chip-filter">total_spent ≥ ₹5,000</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── SECTION D: Saved Segments ── -->
+        <div>
+          <div class="sec-label">My Saved Segments <span style="font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;color:#9CA3AF;font-family:'IBM Plex Sans',sans-serif">— built in Audiences page</span></div>
+          <div class="seg-list">
+
+            <div class="seg-row" id="seg-1" onclick="selectSeg('seg-1','Gold Tier + VIP (Delhi)','156 customers · tier=Gold AND vip=true AND city=Delhi')">
+              <div class="seg-icon" style="background:#D97706">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+              <div>
+                <div class="seg-name">Gold Tier + VIP (Delhi)</div>
+                <div class="seg-meta">tier = Gold · vip_flag = true · city = Delhi</div>
+              </div>
+              <div class="seg-count">156</div>
+            </div>
+
+            <div class="seg-row" id="seg-2" onclick="selectSeg('seg-2','Corporate Clients','88 customers · customer_type = corporate')">
+              <div class="seg-icon" style="background:#1D4ED8">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+              </div>
+              <div>
+                <div class="seg-name">Corporate Clients</div>
+                <div class="seg-meta">customer_type = corporate · gst_number present</div>
+              </div>
+              <div class="seg-count">88</div>
+            </div>
+
+            <div class="seg-row" id="seg-3" onclick="selectSeg('seg-3','Inactive High Spenders','94 customers · total_spent ≥ ₹2000 · last_visit > 60d')">
+              <div class="seg-icon" style="background:#DC2626">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div>
+                <div class="seg-name">Inactive High Spenders</div>
+                <div class="seg-meta">total_spent ≥ ₹2,000 · last_visit > 60 days ago</div>
+              </div>
+              <div class="seg-count">94</div>
+            </div>
+
+          </div>
+
+          <!-- All customers fallback -->
+          <div class="all-row" style="margin-top:8px" onclick="selectChip('all')">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>All Customers (4,218)</span>
+          </div>
+        </div>
+
+      </div><!-- /wiz-body -->
+
+      <!-- Footer -->
+      <div class="wiz-footer">
+        <div class="footer-left">Selected: <strong id="footerAudience">Churned Customers</strong> &nbsp;·&nbsp; <strong id="footerCount" style="color:var(--brand)">1,650</strong> will receive this campaign</div>
+        <div class="footer-btns">
+          <button class="btn btn-ghost">Cancel</button>
+          <button class="btn btn-brand">
+            Next: Pick Template
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /wizard -->
+
+    <!-- ── LEGEND ──────────────────────────────────────────────── -->
+    <div class="legend">
+      <div class="legend-title">Chip Types — What's New vs Already Working</div>
+      <div class="legend-grid">
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#F59E0B"></div>
+          <div>
+            <div class="lg-name">At Risk / Dormant / Churned <span class="tag-new">NEW</span></div>
+            <div class="lg-note">Requires new lifecycle_stage filter block in build_customer_query (CR-076)</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#EF4444"></div>
+          <div>
+            <div class="lg-name">Lapsing / Win-Back <span class="tag-new">NEW</span></div>
+            <div class="lg-note">Multi-stage combo — needs lifecycle_stage: [at_risk, dormant] array support</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#329937"></div>
+          <div>
+            <div class="lg-name">New / Active <span class="tag-new">NEW</span></div>
+            <div class="lg-note">Lifecycle filter needed, though less common for re-engagement use cases</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#7C3AED"></div>
+          <div>
+            <div class="lg-name">VIP Customers <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">vip_flag filter already in build_customer_query — frontend chip only needed</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#0891B2"></div>
+          <div>
+            <div class="lg-name">Never Messaged <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">never_messaged filter already supported — frontend chip only</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#25D366"></div>
+          <div>
+            <div class="lg-name">WA Opted-In <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">whatsapp_opt_in filter already supported — frontend chip only</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#DC2626"></div>
+          <div>
+            <div class="lg-name">Failed Delivery <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">whatsapp_status_failed filter already supported — frontend chip only</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#F26B33"></div>
+          <div>
+            <div class="lg-name">Birthday / Anniversary <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">has_birthday_this_month filter already in build_customer_query</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#D97706"></div>
+          <div>
+            <div class="lg-name">Gold / Platinum Tier <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">tier filter already supported — frontend chip only</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#059669"></div>
+          <div>
+            <div class="lg-name">High Spenders <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">total_spent filter already in build_customer_query</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#1D4ED8"></div>
+          <div>
+            <div class="lg-name">Saved Segments <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">Fully working today — just needs UI surfacing in Campaign Wizard Step 1</div>
+          </div>
+        </div>
+
+        <div class="lg-item">
+          <div class="lg-dot" style="background:#1A1A1A"></div>
+          <div>
+            <div class="lg-name">All Customers <span class="tag-works">WORKS NOW</span></div>
+            <div class="lg-note">audience_id = "all-customers" — already in wizard today</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="callout" style="margin-top:14px">
+        <strong>Implementation split for CR-076</strong>
+        <strong style="color:#166534;font-size:12px;font-weight:600;display:block;margin-bottom:2px">Phase 1 (new backend needed):</strong> Add lifecycle_stage filter block to build_customer_query → enables At Risk, Dormant, Churned, Lapsing, Win-Back chips
+        <br><strong style="color:#166534;font-size:12px;font-weight:600;display:block;margin-top:6px;margin-bottom:2px">Phase 2 (frontend only, no backend change):</strong> Add Quick Audiences panel to Campaign Wizard Step 1 → all "WORKS NOW" chips need just UI wiring
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+let currentChip = 'churned';
+let currentSeg = null;
+
+const CHIP_DATA = {
+  at_risk:  {name:'At Risk Customers',     count:'724',   color:'#F59E0B', bg:'rgba(245,158,11,.07)', border:'rgba(245,158,11,.35)', filter:'last_visit 31–60 days ago'},
+  dormant:  {name:'Dormant Customers',     count:'412',   color:'#EF4444', bg:'rgba(239,68,68,.07)',  border:'rgba(239,68,68,.35)',  filter:'last_visit 61–90 days ago'},
+  churned:  {name:'Churned Customers',     count:'1,650', color:'#6B7280', bg:'rgba(107,114,128,.07)',border:'rgba(107,114,128,.35)',filter:'last_visit > 90 days'},
+  lapsing:  {name:'Lapsing Customers',     count:'1,136', color:'#F59E0B', bg:'rgba(245,158,11,.07)', border:'rgba(245,158,11,.35)', filter:'At Risk + Dormant (31–90d)'},
+  winback:  {name:'Win-Back Pack',         count:'2,062', color:'#EF4444', bg:'rgba(239,68,68,.07)',  border:'rgba(239,68,68,.35)',  filter:'Dormant + Churned (61d+)'},
+  new:      {name:'New Customers',         count:'149',   color:'#329937', bg:'rgba(50,153,55,.07)',  border:'rgba(50,153,55,.35)',  filter:'1 visit ≤ 30 days'},
+  active:   {name:'Active Customers',      count:'1,283', color:'#62B5E5', bg:'rgba(98,181,229,.07)', border:'rgba(98,181,229,.35)', filter:'2+ visits ≤ 30 days'},
+  vip:      {name:'VIP Customers',         count:'89',    color:'#7C3AED', bg:'rgba(124,58,237,.07)', border:'rgba(124,58,237,.35)', filter:'vip_flag = true'},
+  never:    {name:'Never Messaged',        count:'340',   color:'#0891B2', bg:'rgba(8,145,178,.07)',  border:'rgba(8,145,178,.35)',  filter:'0 WhatsApp messages sent'},
+  optin:    {name:'WA Opted-In',           count:'3,812', color:'#25D366', bg:'rgba(37,211,102,.07)', border:'rgba(37,211,102,.35)', filter:'whatsapp_opt_in = true'},
+  failed:   {name:'Failed Delivery',       count:'67',    color:'#DC2626', bg:'rgba(220,38,38,.07)',  border:'rgba(220,38,38,.35)',  filter:'status failed/rejected'},
+  bday:     {name:'Birthday This Month',   count:'48',    color:'#F26B33', bg:'rgba(242,107,51,.07)', border:'rgba(242,107,51,.35)', filter:'dob month = August'},
+  anniv:    {name:'Anniversary This Month',count:'31',    color:'#F26B33', bg:'rgba(242,107,51,.07)', border:'rgba(242,107,51,.35)', filter:'anniversary = August'},
+  gold:     {name:'Gold + Platinum Tier',  count:'212',   color:'#D97706', bg:'rgba(217,119,6,.07)',  border:'rgba(217,119,6,.35)',  filter:'tier = Gold or Platinum'},
+  highval:  {name:'High Spenders',         count:'318',   color:'#059669', bg:'rgba(5,150,105,.07)',  border:'rgba(5,150,105,.35)',  filter:'total_spent ≥ ₹5,000'},
+  all:      {name:'All Customers',         count:'4,218', color:'#1A1A1A', bg:'rgba(26,26,26,.04)',   border:'rgba(26,26,26,.2)',    filter:'all customers'},
+};
+
+function selectChip(id) {
+  // Clear all chip selections
+  document.querySelectorAll('.qa-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.seg-row').forEach(c => c.classList.remove('selected'));
+
+  currentChip = id;
+  currentSeg = null;
+
+  const el = document.getElementById('chip-' + id);
+  if (el) el.classList.add('selected');
+
+  const d = CHIP_DATA[id];
+  if (!d) return;
+
+  // Update pre-fill banner
+  const banner = document.getElementById('prefillBanner');
+  banner.style.background = d.bg;
+  banner.style.borderColor = d.border;
+  document.getElementById('prefillIcon').style.background = d.color;
+  document.getElementById('prefillName').textContent = d.name;
+  document.getElementById('prefillMeta').textContent = d.count + ' customers · ' + d.filter;
+  document.getElementById('prefillTag').style.background = 'rgba(0,0,0,.06)';
+  document.getElementById('prefillTag').style.color = d.color;
+  document.getElementById('prefillTag').style.borderColor = d.border;
+
+  // Update footer
+  document.getElementById('footerAudience').textContent = d.name;
+  document.getElementById('footerCount').textContent = d.count;
+}
+
+function selectSeg(id, name, meta) {
+  document.querySelectorAll('.qa-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.seg-row').forEach(c => c.classList.remove('selected'));
+  currentChip = null;
+  currentSeg = id;
+
+  document.getElementById(id).classList.add('selected');
+
+  const countMatch = meta.match(/^(\d[\d,]*)/);
+  const count = countMatch ? countMatch[1] : '?';
+
+  // Update banner
+  const banner = document.getElementById('prefillBanner');
+  banner.style.background = 'rgba(242,107,51,.07)';
+  banner.style.borderColor = 'rgba(242,107,51,.3)';
+  document.getElementById('prefillIcon').style.background = '#F26B33';
+  document.getElementById('prefillName').textContent = name;
+  document.getElementById('prefillMeta').textContent = meta;
+  document.getElementById('prefillTag').style.color = '#F26B33';
+  document.getElementById('prefillTag').style.borderColor = 'rgba(242,107,51,.3)';
+
+  document.getElementById('footerAudience').textContent = name;
+  document.getElementById('footerCount').textContent = count;
+}
+</script>
+</body>
+</html>
