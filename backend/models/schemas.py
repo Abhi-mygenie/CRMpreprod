@@ -1293,6 +1293,7 @@ class ImportPreviewRow(BaseModel):
     row: int
     name: Optional[str] = None
     phone: Optional[str] = None
+    country_code: Optional[str] = None    # BUG-042: surface cc in preview
     email: Optional[str] = None
     tags: Optional[str] = None                  # comma-sep string from file
     status: str                                 # "new" | "update" | "error"

@@ -1563,6 +1563,7 @@ async def preview_import(
             row    = r["row"],
             name   = r.get("name"),
             phone  = r.get("phone"),
+            country_code = r.get("country_code"),  # BUG-042
             email  = r.get("email"),
             tags   = ", ".join(r["tags"]) if isinstance(r.get("tags"), list) else r.get("tags"),
             status = r["status"],

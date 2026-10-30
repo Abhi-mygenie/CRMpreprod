@@ -1,3 +1,8 @@
+### 2026-10-30 [BUG-042] §implementation — Fixed, self-test PASS
+**Decision**: BUG-042 implemented. Added `country_code` to `ImportPreviewRow` schema + preview builder. T1 (+44) and T2 (default +91) PASS.
+**Source**: Implementation per `planning/BUG_042_IMPLEMENTATION_PLAN.md` E1+E2.
+
+
 ### 2026-10-30 [BUG-043] §implementation — Fixed, pytest 13/13 PASS
 **Decision**: BUG-043 implemented. Updated assertion to `$in` form + added +44 exact-match case. `pytest tests/test_phone_normalize.py -v` → 13/13 PASS.
 **Source**: Implementation per `planning/BUG_043_IMPLEMENTATION_PLAN.md` E1.
