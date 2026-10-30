@@ -1,0 +1,56 @@
+{
+  "summary": "Full QA run for CR-124 covering V1-V20. 19 of 20 pass. V11 is a partial fail: the import preview handles country codes correctly but does not return country_code in the preview rows. Backend suite test_cr124_qa_full.py: 27/28 tests pass, and the only failure is V11. Regression: CR-085 and CR-100 suites pass 30/30 (they need the env vars CRM_TEST_OWNER_EMAIL and CRM_TEST_OWNER_PASSWORD). Older CR-124 suites pass. One unrelated test is out of date: test_phone_normalize.py::test_phone_match_key. Frontend V14 and V15 pass.",
+  "verification_matrix": {
+    "V1": "PASS - 9988776655/+91 already exists",
+    "V2": "PASS - UK Guest stored as phone 7911123456, cc +44",
+    "V3": "PASS - search 7911123456 returns the UK Guest",
+    "V4": "PASS - unit check gives ('7911123456','+44','fixed'). The API call with raw '+447911123456' and no cc finds the existing +44 customer and returns 'already exists'",
+    "V5": "PASS - 422 'Enter a valid mobile number'",
+    "V6": "PASS - 200, saved and re-read with cc +1",
+    "V7": "PASS - search 17726 returns Fir Hills with cc +1",
+    "V8": "PASS - skip-otp returns 200 'Login successful', data.token present, customer_id = UK Guest id, is_new_customer false",
+    "V9": "PASS - UAE 501234567/+971 already exists and is stored correctly",
+    "V10": "PASS - feedback returns 200 'Feedback submitted' with linked=true (matched to the UK Guest)",
+    "V11": "PARTIAL FAIL - the row gets status 'new' and the cc is applied (7911123456,+44 gives 'update'; 12345678,+65 gives 'new'). But ImportPreviewRow has no country_code field, so the preview response and UI cannot show +44",
+    "V12": "PASS - status 'new' with the default +91",
+    "V13": "PASS (code inspection) - whatsapp.py:836 reads customer.country_code, strips '+', and sends it as a separate country_code field. Edge risk listed in code review",
+    "V14": "PASS - QR registration dropdown shows 8 options with flags, default +91",
+    "V15": "PASS - list shows '+1 1772654157', '+44 7911123456', '+971 501234567'. Indian '9988776655' has no prefix",
+    "V16": "PASS (code inspection) - pos.py:2590 uses _cc",
+    "V17": "PASS - 0000000000 returns 422",
+    "V18": "PASS - phone_match +91 gives $in ['+91',None,'']; foreign cc matches exactly",
+    "V19": "PASS - '+91 9876 543210' normalizes and returns 'already exists'",
+    "V20": "PASS - export CSV has exactly one 'Country Code' column and the Fir Hills row shows +1. Re-importing a file with the 'Country Code' header is now classified as 'update', so the earlier round-trip bug is fixed"
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/customers/import-preview", "issue": "ImportPreviewRow (models/schemas.py:1292) and the builder in routers/customers.py around line 1562 leave out country_code, so V11 'preview shows country_code=+44' cannot be met. Classification itself is cc-aware and correct."},
+      {"endpoint": "core/phone.py normalize_phone (raw E.164 with an unknown prefix)", "issue": "The greedy regex fallback splits wrongly: '+27821234567' becomes cc='+2782', phone='1234567', status 'fixed'. It is stored with a junk cc instead of being rejected or kept as +27."},
+      {"endpoint": "core/phone.py normalize_phone (explicit cc conflicts with raw prefix)", "issue": "('+919876543210', cc='+44') gives phone='919876543210', cc='+44'. ('+447911123456', cc='+91') silently switches to +44. The raw prefix and the explicit cc are not reconciled."},
+      {"endpoint": "core/whatsapp.py:836", "issue": "customer.get('country_code', '+91').replace(...) raises AttributeError when country_code is stored as None (the legacy null cc that CR-100 explicitly tolerates). Line 913 already uses the safe form (... or '+91')."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_cr124_qa_full.py", "/app/test_reports/pytest/pytest_cr124_qa_full.xml", "/app/test_reports/pytest/pytest_cr124_regression.xml"],
+  "action_items": [
+    "Add country_code to ImportPreviewRow and pass r.get('country_code') in preview_import, and show it in the import preview table (V11)",
+    "core/whatsapp.py:836: use (customer.get('country_code') or '+91').replace('+', '')",
+    "core/phone.py: for '+' prefixes not in _KNOWN_CC, mark the number invalid or extend _KNOWN_CC instead of the greedy 1-4 digit regex split",
+    "(Optional) Update the out-of-date tests/test_phone_normalize.py::test_phone_match_key to expect CR-100's $in form"
+  ],
+  "critical_code_review_comments": [
+    "routers/customers.py is far over 700 lines (import/export code is around line 1400-1650) and should be split into modules",
+    "Regression suites test_cr085a/test_cr100 use os.environ['CRM_TEST_OWNER_PASSWORD'] and crash at collection (KeyError) unless it is exported"
+  ],
+  "updated_files": ["/app/backend/tests/test_cr124_qa_full.py"],
+  "success_rate": {"backend": "95% (19/20 V-items; 27/28 pytest)", "frontend": "100%"},
+  "seed_data_creation": "No new customers created (V1/V2/V4/V9/V19 all returned 'already exists'). Side effects: Fir Hills PUT to +91 was rejected, then PUT +1 again with no change. V8 skip-otp logged in the existing UK Guest. V10 created 1 feedback record (message 'TEST_cr124 qa', id cabc3776-5750-4074-af5a-227a727ad507). Import was preview only.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: export REACT_APP_BACKEND_URL=<frontend/.env> CRM_TEST_OWNER_EMAIL=owner@cafe103.com CRM_TEST_OWNER_PASSWORD='Qplazm@10'; pytest tests/test_cr124_qa_full.py -n 0. Feedback has a phone rate limit of 3 per 10 min and skip-otp 5 per 5 min, so 429 is accepted in the scan tests. skip-otp returns the token at data.token. The import-preview response key is preview_rows."
+}
