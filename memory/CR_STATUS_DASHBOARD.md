@@ -658,8 +658,8 @@ Owner can re-order; this is a recommendation. **CR-016 deferred to next sprint a
 
 
 ---
-| **BUG-044** | POS search response missing `country_code` — POS cannot display flag or auto-populate cc picker | 🔴 OPEN (P1, LOW) | `routers/pos.py:2705` projection. CR-124 gap. 1 line fix. Blocks POS CR-479. | 2026-11-01 |
-| **BUG-045** | POS customer-lookup does not accept `country_code` — international customers return `registered: false` | 🔴 OPEN (P1, MEDIUM) | `models/schemas.py:1226` + `routers/pos.py:2165`. CR-124 gap. ~5 lines. Blocks POS CR-479. | 2026-11-01 |
+| **BUG-044** | POS search response missing `country_code` — POS cannot display flag or auto-populate cc picker | 🟢 FIXED + T1/T2 PASS (P1, LOW) | `routers/pos.py:2705` projection. CR-124 gap. 1 line fix. | 2026-11-01 |
+| **BUG-045** | POS customer-lookup does not accept `country_code` — international customers return `registered: false` | 🟢 FIXED + T3/T4/T5 PASS (P1, MEDIUM) | `models/schemas.py:1226` + `routers/pos.py:2165+2212`. CR-124 gap. 4 lines. | 2026-11-01 |
 
 ### 2026-10-30 — CR-124 registered (INTAKE)
 | ID | Title | Status | Pri | Risk | Money | Doc |

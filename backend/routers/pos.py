@@ -2162,7 +2162,7 @@ async def pos_customer_lookup(
     """
     Look up customer by phone number for POS display
     """
-    _ph, _cc, _pst = normalize_phone(lookup_data.phone)  # CR-085 W5
+    _ph, _cc, _pst = normalize_phone(lookup_data.phone, lookup_data.country_code)  # CR-085 W5 + BUG-045
     # CR-085-A2 E5 (owner 2026-10-09): invalid phone or phone_invalid record → not found.
     if _pst == "invalid":
         return POSResponse(success=False, message="Customer not found", data={"registered": False})
@@ -2210,6 +2210,7 @@ async def pos_customer_lookup(
             "customer_id": customer["id"],
             "name": customer["name"],
             "phone": customer["phone"],
+            "country_code": customer.get("country_code", "+91"),  # BUG-045
             "tier": customer.get("tier", "Bronze"),
             "total_points": customer.get("total_points", 0),
             "points_value": blob["points_value"],
@@ -2702,8 +2703,8 @@ async def pos_search_customers(
     }
     customers = await db.customers.find(
         query,
-        {"_id": 0, "id": 1, "name": 1, "phone": 1, "tier": 1, "total_points": 1, "wallet_balance": 1, "last_visit": 1,
-         "customer_type": 1, "is_b2b": 1, "gst_name": 1, "gst_number": 1}  # CR-071: B2B fields
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "country_code": 1, "tier": 1, "total_points": 1, "wallet_balance": 1, "last_visit": 1,
+         "customer_type": 1, "is_b2b": 1, "gst_name": 1, "gst_number": 1}  # CR-071 + BUG-044
     ).sort("last_visit", -1).limit(min(limit, 50)).to_list(min(limit, 50))
 
     return POSResponse(

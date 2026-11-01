@@ -1225,6 +1225,7 @@ class POSPaymentWebhook(BaseModel):
 
 class POSCustomerLookup(BaseModel):
     phone: str
+    country_code: Optional[str] = None  # BUG-045: optional, default None → India path
 
 class POSResponse(BaseModel):
     success: bool

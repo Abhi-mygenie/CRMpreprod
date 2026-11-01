@@ -1,3 +1,8 @@
+### 2026-11-01 [BUG-044 + BUG-045] §implementation — Fixed, self-test 5/5 PASS
+**Decision**: BUG-044 (search projection +country_code) + BUG-045 (lookup schema+call+response) implemented. T1-T5 all PASS. POS CR-479 unblocked.
+**Source**: Implementation per `planning/BUG_044_045_LINE_BY_LINE_IMPL_PLAN.md` E1-E4.
+
+
 ### 2026-11-01 [BUG-044 + BUG-045] §intake — POS validation findings registered
 **Decision**: Register BUG-044 (search missing cc, P1) + BUG-045 (lookup no cc param, P1) from POS team CR-124 validation. Both block POS CR-479. Scan & Order confirmed no equivalent gap.
 **Source**: POS team `POS_TO_CRM_CR124_VALIDATION_FINDINGS_2026_11_01.md` — Finding 1 (search) + Finding 2 (lookup).
