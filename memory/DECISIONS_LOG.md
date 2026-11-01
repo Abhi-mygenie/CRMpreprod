@@ -1,3 +1,10 @@
+### 2026-11-01 [BUG-044 + BUG-045] §intake — POS validation findings registered
+**Decision**: Register BUG-044 (search missing cc, P1) + BUG-045 (lookup no cc param, P1) from POS team CR-124 validation. Both block POS CR-479. Scan & Order confirmed no equivalent gap.
+**Source**: POS team `POS_TO_CRM_CR124_VALIDATION_FINDINGS_2026_11_01.md` — Finding 1 (search) + Finding 2 (lookup).
+**Rationale**: CR-124 brief incorrectly claimed "country_code in all customer responses" (false for search) and "international phones found" (true but lookup has no cc input).
+**Locks**: Both P1 — should be fixed before POS can ship CR-479.
+
+
 ### 2026-10-30 [CR-124] §contracts — POS + S&O briefs drafted, wave change log updated
 **Decision**: 3 contract documents finalized: (1) CRM_TO_POS_CR124_INTL_PHONE_LIVE_2026_10_30.md, (2) CRM_TO_SCAN_ORDER_CR124_INTL_PHONE_LIVE_2026_10_30.md, (3) WAVE_CHANGE_LOG CR-124 section appended. Owner sends; agents never send.
 **Source**: Owner request 2026-10-30 ("please finalize these contract for pos and scan and order").

@@ -693,3 +693,28 @@ No `navigate()`, no dialog trigger, no state change. The sibling "Resend {N}" bu
 **Effect**: Zero app impact. Test suite reports a false failure.
 **Fix**: Update assertion to expect `$in` form. ~2 lines.
 **Pre-existing**: Yes — exists since CR-100, not caused by CR-124.
+
+
+---
+
+## BUG-044: `GET /pos/customers?search=` response missing `country_code` — POS cannot display country flag or auto-populate cc picker
+
+**Reported**: 2026-11-01 (POS team CR-124 validation findings) · **Severity**: P1 · **Risk**: LOW · **Status**: 🔴 OPEN
+**Where**: `routers/pos.py:2703-2706` — MongoDB projection whitelist: `{"_id":0, "id":1, "name":1, "phone":1, "tier":1, "total_points":1, "wallet_balance":1, "last_visit":1, "customer_type":1, "is_b2b":1, "gst_name":1, "gst_number":1}`. `country_code` is **not listed**.
+**Effect**: POS search typeahead returns 11 fields per customer — no `country_code`. POS cannot show 🇬🇧 flag next to UK numbers, cannot auto-fill the cc picker when a search result is selected, and must make a secondary `GET /pos/customers/{id}` call (adds latency) to get `country_code`. Blocks POS CR-479 (international phone UI).
+**Contract claim broken**: CR-124 brief §2 stated "country_code field was already present in all customer responses" — incorrect for this endpoint.
+**Fix**: Add `"country_code": 1` to the projection at line 2705. **1 field, 1 line.**
+**Related**: CR-124 (implementation gap), POS CR-479 (blocked)
+**Reporter**: POS team (`POS_TO_CRM_CR124_VALIDATION_FINDINGS_2026_11_01.md`)
+
+---
+
+## BUG-045: `POST /pos/customer-lookup` does not accept `country_code` — international customers return `registered: false`
+
+**Reported**: 2026-11-01 (POS team CR-124 validation findings) · **Severity**: P1 · **Risk**: MEDIUM · **Status**: 🔴 OPEN
+**Where**: `models/schemas.py:1226-1227` — `POSCustomerLookup` has only `phone: str`, no `country_code` field. `routers/pos.py:2165` calls `normalize_phone(lookup_data.phone)` without cc → defaults to `+91` → `phone_match` queries `{cc: {$in: ["+91", None, ""]}}` → UK customer stored with `cc:"+44"` is **not found**.
+**Effect**: POS sends `{ "phone": "7911123456" }` for a UK customer → CRM returns `registered: false` even though the customer exists. POS has no way to specify `country_code` in the request. Blocks POS CR-479.
+**Contract claim broken**: CR-124 brief §2 stated "International phones found by correct {phone, country_code} match" — true, but the endpoint doesn't accept cc in the request.
+**Fix**: (A) Add `country_code: Optional[str] = None` to `POSCustomerLookup` schema + pass to `normalize_phone()`. (B) Add `country_code` to lookup response. **~5 lines across 2 files.** POS prefers option (A).
+**Related**: CR-124 (implementation gap), POS CR-479 (blocked), Scan & Order has **no equivalent gap** (CR-102/CR-096 already added cc to all scan schemas)
+**Reporter**: POS team (`POS_TO_CRM_CR124_VALIDATION_FINDINGS_2026_11_01.md`)
