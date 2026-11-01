@@ -149,3 +149,50 @@ _CR-089 · CR-088_
 | `POST /scan/auth/lookup` | IP limit (10 / min) now checked **before** phone validation → an invalid phone can return `429` instead of `400` once the IP quota is spent. Response shapes unchanged. |
 | Contract | v1.1 additive note: skip-otp request `{phone, restaurant_id, country_code?}` |
 | Evidence | `test_reports/iteration_8.json` · `qa/BUG025_029_CR102_QA_REPORT.md` |
+
+
+
+---
+
+## CR-124 + CR-125 + BUG-041 + BUG-042 + BUG-043 — International phone number support (2026-10-30)
+
+### CR-124 — International phone number support across all CRM write/lookup paths
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-30** (implemented, QA 165/167 PASS including regression, 0 defects) |
+| Audience | **Both** — POS + Customer App |
+| What changed | CRM now accepts `country_code` other than `"+91"` on **every** phone path. Non-India phones validated as 6-15 digits (was: hardcoded 10-digit Indian only). Raw E.164 auto-detection on POS `cust_mobile` (22 known prefixes). CSV import accepts optional `country_code` column. Frontend shows `+cc` prefix for international customers. |
+| NOT changed | Indian phones (`+91`) behave **identically** to before. All existing POS and S&O payloads produce same results. No request shape changes. No response shape changes (country_code field was already present). |
+| Breaking? | **NO — 100% additive.** New code path only activates when caller sends non-`+91` country_code. |
+| POS brief | `handoff/CRM_TO_POS_CR124_INTL_PHONE_LIVE_2026_10_30.md` |
+| S&O brief | `handoff/CRM_TO_SCAN_ORDER_CR124_INTL_PHONE_LIVE_2026_10_30.md` |
+| Evidence | `test_reports/iteration_3.json` (165/167 PASS, 0 defects). V1-V20 verification matrix. CR-085 22/22, CR-100 8/8 regression PASS. |
+
+### CR-125 — Extended known-prefix set for raw E.164 auto-detection
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-30** |
+| Audience | POS (informational) |
+| What changed | `core/phone.py _KNOWN_CC` extended from 14 → 22 prefixes. Added: +7 (Russia), +27 (South Africa), +34 (Spain), +62 (Indonesia), +66 (Thailand), +82 (South Korea), +234 (Nigeria), +254 (Kenya). |
+| Impact | Only affects raw E.164 parsing when POS sends `cust_mobile` with `+XX` prefix and no explicit `country_code`. |
+
+### BUG-041 — WhatsApp send null-cc crash (pre-existing, fixed)
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-30** |
+| Audience | Neither (internal CRM fix) |
+| What changed | `core/whatsapp.py:836` — null-safety guard on `country_code` read. 53 legacy customers with `country_code: null` no longer crash WhatsApp sends. |
+
+### BUG-042 — CSV import preview now shows country_code
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-30** |
+| Audience | Neither (CRM UI only) |
+| What changed | Import preview API response includes `country_code` field in each preview row. |
+
+### BUG-043 — Stale test assertion fixed
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-10-30** |
+| Audience | Neither (test maintenance) |
+| What changed | `test_phone_normalize.py::test_phone_match_key` updated to expect CR-100's `$in` form. |

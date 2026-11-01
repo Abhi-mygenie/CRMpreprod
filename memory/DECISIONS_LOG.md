@@ -1,3 +1,9 @@
+### 2026-10-30 [CR-124] §contracts — POS + S&O briefs drafted, wave change log updated
+**Decision**: 3 contract documents finalized: (1) CRM_TO_POS_CR124_INTL_PHONE_LIVE_2026_10_30.md, (2) CRM_TO_SCAN_ORDER_CR124_INTL_PHONE_LIVE_2026_10_30.md, (3) WAVE_CHANGE_LOG CR-124 section appended. Owner sends; agents never send.
+**Source**: Owner request 2026-10-30 ("please finalize these contract for pos and scan and order").
+**Locks**: Outbound briefs ready for owner to send. Both marked 100% additive, zero breaking changes.
+
+
 ### 2026-10-30 [CR-125] §implementation — Fixed, self-test 8/8 + pytest 13/13 PASS
 **Decision**: CR-125 implemented. Extended `_KNOWN_CC` from 14 → 22 prefixes. Added +7, +27, +34, +62, +66, +82, +234, +254.
 **Source**: Implementation per `planning/CR_125_IMPLEMENTATION_PLAN.md` E1.
