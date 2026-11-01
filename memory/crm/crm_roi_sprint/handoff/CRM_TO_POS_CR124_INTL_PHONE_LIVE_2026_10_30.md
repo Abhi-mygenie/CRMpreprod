@@ -23,13 +23,17 @@ CRM now stores and matches customers with **any valid country code**, not just `
 |---|---|---|---|
 | `POST /pos/customers` | `country_code` accepted but only `"+91"` validated correctly; non-India phones flagged `phone_invalid` | **Any valid `+XX` accepted.** Non-India: 6-15 digits valid. India (`+91`): unchanged (10 digits, starts 6-9). | **NO** |
 | `PUT /pos/customers/{id}` | Same | Same improvement | **NO** |
-| `POST /pos/customer-lookup` | International phones often not found (mangled on storage) | International phones found by correct `{phone, country_code}` match | **NO** |
+| `POST /pos/customer-lookup` | Only `phone` in request; international phones often not found | **`country_code` now accepted as optional field (BUG-045).** Send it for international customers. Response now includes `country_code`. Indian lookup unchanged. | **NO** |
 | `POST /pos/orders` (`cust_mobile`) | `"+447911123456"` → stripped to junk digits → guest order or flagged customer | **Auto-detects** `cc="+44"`, `phone="7911123456"` → links/creates customer correctly. Indian `"9876543210"` unchanged. | **NO** |
 | `POST /pos/webhook/payment-received` | Same stripping issue | Same auto-detection fix | **NO** |
-| `GET /pos/customers/search` | Partial search on `phone` field | Unchanged — partial search works on stored digits | **NO** |
+| `GET /pos/customers/search` | Partial search on `phone` field; response had no `country_code` | Search unchanged. **Response now includes `country_code` (BUG-044).** POS can display 🇬🇧 flag + auto-populate cc picker. | **NO** |
 | `POST /pos/trigger-event` | Fallback customer data had hardcoded `country_code: "+91"` | Uses detected cc from phone | **NO** |
 
-**Response shapes:** Unchanged. `country_code` field was already present in all customer responses — it now correctly reflects the stored value instead of always being `"+91"`.
+**Response shapes:** `country_code` is now present in **all** POS customer responses:
+- `GET /pos/customers/{id}` — already had it ✅
+- `GET /pos/customers?search=` — **added (BUG-044, 2026-11-01)** ✅
+- `POST /pos/customer-lookup` — **added (BUG-045, 2026-11-01)** ✅
+- `POST /pos/customers` (create response) — already had it ✅
 
 ---
 
@@ -64,14 +68,44 @@ Response:
 Stored: `phone: "7911123456"`, `country_code: "+44"` ✅
 
 ### 3.2 Lookup international customer
+
+**⚠️ Updated 2026-11-01 (BUG-045 fix):** `country_code` is now an **optional** field in the lookup request. For international customers, send it — otherwise the lookup defaults to `+91` and won't match non-Indian customers.
+
+**International lookup (NEW — requires `country_code`):**
 ```
 POST /api/pos/customer-lookup
 X-API-Key: <api_key>
 Content-Type: application/json
 
-{ "phone": "7911123456" }
+{ "phone": "7911123456", "country_code": "+44" }
 ```
-With `country_code: "+44"` stored, the customer is found. ✅
+Response:
+```json
+{
+    "success": true,
+    "message": "Customer found",
+    "data": {
+        "registered": true,
+        "customer_id": "<uuid>",
+        "name": "V2 UK Guest",
+        "phone": "7911123456",
+        "country_code": "+44",
+        ...
+    }
+}
+```
+
+**Indian lookup (unchanged — `country_code` optional, defaults to +91):**
+```
+POST /api/pos/customer-lookup
+X-API-Key: <api_key>
+Content-Type: application/json
+
+{ "phone": "9876543210" }
+```
+Works exactly as before. ✅
+
+**Without `country_code`, international customers return `registered: false`** — this is correct behavior (CRM can't guess the country from digits alone).
 
 ### 3.3 Order with raw E.164 phone (auto-detection)
 ```
@@ -120,7 +154,10 @@ For unlisted prefixes, CRM uses best-effort regex detection. **Recommendation:**
 | # | Action | Expected |
 |---|---|---|
 | P1 | `POST /pos/customers` with `phone: "7911123456", country_code: "+44"` | `success: true`, stored `cc: "+44"` |
-| P2 | `POST /pos/customer-lookup` with `phone: "7911123456"` | `registered: true`, customer found |
+| P2 | `POST /pos/customer-lookup` with `phone: "7911123456", country_code: "+44"` | `registered: true`, response has `country_code: "+44"` |
+| P2b | `POST /pos/customer-lookup` with `phone: "7911123456"` (no cc) | `registered: false` — correct (defaults +91, can't guess country) |
+| P2c | `POST /pos/customer-lookup` with `phone: "9876543210"` (no cc) | `registered: true` — Indian unchanged |
+| P2d | `GET /pos/customers?search=UK` | Response includes `country_code: "+44"` on UK customer |
 | P3 | `POST /pos/orders` with `cust_mobile: "+447911123456"` | Links to P1 customer, `guest_order: false` |
 | P4 | `POST /pos/orders` with `cust_mobile: "9876543210"` | **Unchanged** — Indian customer, full loyalty |
 | P5 | `POST /pos/customers` with `phone: "0000000000", country_code: "+91"` | Flagged `phone_invalid: true` — **unchanged** |
@@ -139,4 +176,6 @@ When POS frontend ships CR-473 (international phone inputs):
 ## 7. Related CRs
 - **CR-085** (canonical phone, 2026-10-09) — foundation; CR-124 extends it
 - **CR-473** (POS frontend international inputs) — your side; CRM is now ready to receive
+- **BUG-044** (search response now includes `country_code`, 2026-11-01) — POS validation finding 1 fixed
+- **BUG-045** (lookup now accepts optional `country_code`, 2026-11-01) — POS validation finding 2 fixed
 - **BACKEND_BRIEF_INTL_PHONE_2026_10_24** — the original brief that triggered CR-124

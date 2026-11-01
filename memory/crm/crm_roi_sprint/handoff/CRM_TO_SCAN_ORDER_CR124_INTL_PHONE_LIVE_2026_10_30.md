@@ -168,3 +168,4 @@ To enable international phone input in the Customer App:
 - **CR-102** (skip-otp accepts `country_code`, 2026-10-09) — already shipped
 - **CR-124** (international phone support, 2026-10-30) — this change
 - **CR-125** (extended known-prefix set, 2026-10-30) — 22 country codes auto-detected
+- **BUG-044 / BUG-045** (2026-11-01) — POS-only fixes; Scan & Order had no equivalent gap

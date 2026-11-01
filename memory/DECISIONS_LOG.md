@@ -1,3 +1,8 @@
+### 2026-11-01 [BUG-044 + BUG-045] §contracts — POS + S&O briefs updated, wave change log updated
+**Decision**: All 3 contract documents updated with BUG-044/045 fixes: (1) CRM_TO_POS brief — §2 route table, §3.2 lookup examples, §5 validation matrix, §7 related CRs; (2) WAVE_CHANGE_LOG — CR-124 section amended + BUG-044/045 sections appended; (3) CRM_TO_SCAN_ORDER brief — §8 related CRs note confirming S&O has no equivalent gap.
+**Source**: Owner request ("update the contract for pos and scan and order").
+
+
 ### 2026-11-01 [BUG-044 + BUG-045] §implementation — Fixed, self-test 5/5 PASS
 **Decision**: BUG-044 (search projection +country_code) + BUG-045 (lookup schema+call+response) implemented. T1-T5 all PASS. POS CR-479 unblocked.
 **Source**: Implementation per `planning/BUG_044_045_LINE_BY_LINE_IMPL_PLAN.md` E1-E4.

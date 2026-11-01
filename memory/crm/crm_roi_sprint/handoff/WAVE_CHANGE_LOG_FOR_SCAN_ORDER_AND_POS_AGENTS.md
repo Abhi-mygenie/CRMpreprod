@@ -162,8 +162,9 @@ _CR-089 · CR-088_
 | Status | **CONFIRMED 2026-10-30** (implemented, QA 165/167 PASS including regression, 0 defects) |
 | Audience | **Both** — POS + Customer App |
 | What changed | CRM now accepts `country_code` other than `"+91"` on **every** phone path. Non-India phones validated as 6-15 digits (was: hardcoded 10-digit Indian only). Raw E.164 auto-detection on POS `cust_mobile` (22 known prefixes). CSV import accepts optional `country_code` column. Frontend shows `+cc` prefix for international customers. |
-| NOT changed | Indian phones (`+91`) behave **identically** to before. All existing POS and S&O payloads produce same results. No request shape changes. No response shape changes (country_code field was already present). |
+| NOT changed | Indian phones (`+91`) behave **identically** to before. All existing POS and S&O payloads produce same results. No request shape changes. |
 | Breaking? | **NO — 100% additive.** New code path only activates when caller sends non-`+91` country_code. |
+| **BUG-044/045 update (2026-11-01)** | POS validation found 2 gaps: (1) search response missing `country_code`; (2) lookup didn't accept `country_code`. Both fixed same day. Search now returns `country_code` in every result. Lookup accepts optional `country_code` in request + returns it in response. |
 | POS brief | `handoff/CRM_TO_POS_CR124_INTL_PHONE_LIVE_2026_10_30.md` |
 | S&O brief | `handoff/CRM_TO_SCAN_ORDER_CR124_INTL_PHONE_LIVE_2026_10_30.md` |
 | Evidence | `test_reports/iteration_3.json` (165/167 PASS, 0 defects). V1-V20 verification matrix. CR-085 22/22, CR-100 8/8 regression PASS. |
@@ -196,3 +197,26 @@ _CR-089 · CR-088_
 | Status | **CONFIRMED 2026-10-30** |
 | Audience | Neither (test maintenance) |
 | What changed | `test_phone_normalize.py::test_phone_match_key` updated to expect CR-100's `$in` form. |
+
+
+
+### BUG-044 — POS search response now includes `country_code` (FIXED 2026-11-01)
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-11-01** (T1/T2 PASS) |
+| Audience | POS |
+| What changed | `GET /api/pos/customers?search=` response now includes `country_code` field per customer (was missing — 11 fields, now 12). POS can display country flag in typeahead + auto-populate cc picker on result selection. |
+| Breaking? | **NO** — additive field in response. |
+| Evidence | T1: `search=UK` → `country_code: "+44"` ✅ |
+
+### BUG-045 — POS customer-lookup now accepts + returns `country_code` (FIXED 2026-11-01)
+| Field | Value |
+|---|---|
+| Status | **CONFIRMED 2026-11-01** (T3/T4/T5 PASS) |
+| Audience | POS |
+| What changed | `POST /api/pos/customer-lookup` request now accepts optional `country_code` field. When provided, matches on `{phone, country_code}`. When omitted, defaults to `+91` (unchanged). Response now includes `country_code`. |
+| Request (NEW) | `{ "phone": "7911123456", "country_code": "+44" }` → `registered: true, country_code: "+44"` |
+| Request (unchanged) | `{ "phone": "9876543210" }` → `registered: true` (Indian, same as before) |
+| Breaking? | **NO** — optional field, default `null` = same behavior as before. |
+| Evidence | T3: UK+44 found ✅ · T4: Indian no-cc found ✅ · T5: UK no-cc not-found (correct) ✅ |
+| Unblocks | POS CR-479 (international phone UI) |
